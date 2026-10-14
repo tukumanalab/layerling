@@ -1,6 +1,7 @@
 "use client";
 
 import { Heart, Sparkles } from "lucide-react";
+import { withBasePath } from "@/lib/basePath";
 import { useEffect, useState, type ReactNode } from "react";
 import { LANGUAGE_INFO, t, type Language } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
@@ -138,7 +139,7 @@ export function AppFooter({
               {sponsor.label || t("dashboard.sponsor")}
             </a>
           ) : null,
-          <a href={t("welcome.guideUrl")} target="_blank" rel="noreferrer" key="guide">
+          <a href={withBasePath(t("welcome.guideUrl"))} target="_blank" rel="noreferrer" key="guide">
             {t("dashboard.userGuide")}
           </a>,
           <a href={communityUrl(language)} target="_blank" rel="noreferrer" key="community">
