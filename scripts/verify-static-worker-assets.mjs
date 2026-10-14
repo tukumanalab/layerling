@@ -5,6 +5,9 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const exportRoot = join(repositoryRoot, "apps", "web", ".next-export");
 const chunksRoot = join(exportRoot, "_next", "static", "chunks");
+// The folder the export is served from, if any; the workers' public path then starts with it.
+const base = (process.env.LAYERLING_BASE_PATH ?? "").trim().replace(/\/+$/, "");
+const publicPath = `${base}/_next/`;
 
 async function listJavaScriptFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -39,9 +42,9 @@ if (workerChunks.length === 0) {
 }
 
 for (const { path, source } of workerChunks) {
-  if (!source.includes('.p="/_next/"') && !source.includes(".p='/_next/'")) {
-    throw new Error(`Worker runtime ${path} does not use the root-relative /_next/ public path.`);
+  if (!source.includes(`.p="${publicPath}"`) && !source.includes(`.p='${publicPath}'`)) {
+    throw new Error(`Worker runtime ${path} does not use the root-relative ${publicPath} public path.`);
   }
 }
 
-console.log(`Verified ${workerChunks.length} static worker runtime(s) use /_next/.`);
+console.log(`Verified ${workerChunks.length} static worker runtime(s) use ${publicPath}.`);

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { withBasePath } from "@/lib/basePath";
 import "./globals.css";
 import { NewVersionNotice } from "@/components/NewVersionNotice";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
@@ -26,7 +27,7 @@ const STRUCTURED_DATA = {
   image: "https://layerling.com/assets/layerling/layerling-social.png",
   sameAs: ["https://github.com/henmedia/layerling"],
 };
-const SOCIAL_CARD = "/assets/layerling/layerling-social.png";
+const SOCIAL_CARD = withBasePath("/assets/layerling/layerling-social.png");
 
 // Chrome and Edge announce "this can be installed" once, often before React is
 // running. The event is kept for the start page's install button
@@ -41,17 +42,17 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   applicationName: NAME,
-  manifest: "/manifest.webmanifest",
+  manifest: withBasePath("/manifest.webmanifest"),
   icons: {
     // Das SVG ist das eigentliche Symbol; die .ico steht daneben fuer alles,
     // was stur /favicon.ico abholt, statt in den Kopf zu sehen.
     icon: [
-      { url: "/assets/layerling/layerling-logo.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "48x48" },
+      { url: withBasePath("/assets/layerling/layerling-logo.svg"), type: "image/svg+xml" },
+      { url: withBasePath("/favicon.ico"), sizes: "48x48" },
     ],
     // iOS nimmt hier ausschliesslich PNG. Stand da ein SVG, legte
     // "Zum Home-Bildschirm" einen Schnappschuss der Seite ab statt des Symbols.
-    apple: { url: "/assets/layerling/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    apple: { url: withBasePath("/assets/layerling/apple-touch-icon.png"), sizes: "180x180", type: "image/png" },
   },
   openGraph: {
     type: "website",

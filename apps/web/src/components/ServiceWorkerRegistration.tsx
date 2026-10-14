@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { withBasePath } from "@/lib/basePath";
 
 /**
  * Registers the service worker that keeps layerling on the visitor's computer
@@ -13,7 +14,7 @@ export function ServiceWorkerRegistration() {
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_STATIC_EXPORT !== "true") return;
     if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
-    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+    navigator.serviceWorker.register(withBasePath("/sw.js"), { scope: withBasePath("/") }).catch(() => {
       // Without it layerling works exactly as before, just not offline.
     });
   }, []);
