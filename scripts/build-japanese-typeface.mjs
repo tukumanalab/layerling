@@ -6,7 +6,8 @@
 // Greek and Cyrillic of JIS X 0208 rows 1-8, and the 2,965 level-1 kanji of rows
 // 16-47, and writes them to apps/web/src/generated/, which is gitignored like the
 // occt runtime. textFonts.ts imports the file as a chunk of its own, fetched the
-// first time a text needs one of these characters.
+// first time a text needs one of these characters. It runs before dev, build,
+// export and the tests: Vite refuses an import it cannot resolve.
 import { inflateRawSync } from "node:zlib";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
