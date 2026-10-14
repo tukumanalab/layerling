@@ -2034,15 +2034,15 @@ export const MESSAGES_JA: Record<MessageKey, string> = {
 
   "units.metric": "メートル法（初期値）",
   "units.imperial": "ヤード・ポンド法",
-  "units.bricks": "ブリック",
+  "units.bricks": "ブロック",
   "scale.millimeters": "1:1（ミリメートル）",
   "scale.centimeters": "1:10（センチメートル）",
   "scale.meters": "1:1000（メートル）",
   "scale.inches": "1:1（インチ）",
   "scale.feet": "1:1（フィート）",
-  "scale.studs": "1:1（スタッド）",
+  "scale.studs": "1:1（ポッチ）",
   "grid.off": "オフ",
-  "grid.brick": "ブリック",
+  "grid.brick": "ブロック",
 
   "workspace.customActive": "カスタム設定がオン",
   "workspace.usingDefaults": "layerlingの初期値を使用中",
