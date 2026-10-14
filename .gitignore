@@ -21,6 +21,7 @@ apps/web/public/kontakt.php
 # The user guide is built from docs/guide by scripts/build-guide.mjs.
 apps/web/public/anleitung/
 apps/web/public/guide/
+apps/web/public/guide-ja/
 
 # Environment files
 .env

@@ -4,14 +4,22 @@
     <loc>https://layerling.com/</loc>
   </url>
   <url>
+    <loc>https://layerling.com/guide-ja/index.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://layerling.com/guide/index.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://layerling.com/anleitung/index.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://layerling.com/guide-ja/index.html"/>
+  </url>
+  <url>
     <loc>https://layerling.com/anleitung/index.html</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://layerling.com/guide/index.html"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://layerling.com/anleitung/index.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://layerling.com/guide-ja/index.html"/>
   </url>
   <url>
     <loc>https://layerling.com/guide/index.html</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://layerling.com/guide/index.html"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://layerling.com/anleitung/index.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://layerling.com/guide-ja/index.html"/>
   </url>
   <url>
     <loc>https://layerling.com/guide/getting-started.html</loc>

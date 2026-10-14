@@ -10,7 +10,7 @@
  *
  * To add a language, see docs/TRANSLATING.md.
  */
-export const LANGUAGES = ["en", "de"] as const;
+export const LANGUAGES = ["en", "de", "ja"] as const;
 export type Language = (typeof LANGUAGES)[number];
 export const DEFAULT_LANGUAGE: Language = "en";
 
@@ -137,6 +137,38 @@ export const LANGUAGE_INFO: Readonly<Record<Language, LanguageInfo>> = {
       languageMenu: "Sprache",
       search: "Anleitung durchsuchen",
       searchNothing: "Nichts gefunden.",
+    },
+  },
+  ja: {
+    name: "日本語",
+    htmlLang: "ja",
+    numberLocale: "ja-JP",
+    quotes: ["「", "」"],
+    guideDir: "guide-ja",
+    communityUrl: GITHUB_DISCUSSIONS,
+    readme: "README.md",
+    quickstartAnchor: "windows-quickstart",
+    legal: { imprint: "運営者情報", privacy: "プライバシーポリシー" },
+    keyNames: { Click: "クリック", RightClick: "右クリック", Drag: "ドラッグ" },
+    asciiUmlauts: false,
+    complete: false,
+    guide: {
+      site: "layerling ユーザーガイド",
+      home: "ユーザーガイド",
+      openEditor: "エディターを開く",
+      backToEditor: "エディターに戻る",
+      editorElsewhere: "エディターはすでに別のタブで開いています。そちらに切り替えてください。",
+      chapters: "章",
+      onThisPage: "このページの内容",
+      previous: "前の章",
+      next: "次の章",
+      overviewLead: "layerling でできることを、順を追って説明します。画像は実際に動作しているプログラムから撮影され、バージョンごとに更新されます。",
+      sourceNote: "このガイドはプログラムとともに成長します。足りない点や間違いがあれば、こちらで教えてください:",
+      forum: "ディスカッション",
+      notTranslated: "この章はまだ日本語に翻訳されていません。英語の本文が続きます。",
+      languageMenu: "言語",
+      search: "ガイドを検索",
+      searchNothing: "見つかりませんでした。",
     },
   },
 };
