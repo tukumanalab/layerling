@@ -3749,20 +3749,52 @@ function RangeProperty({
   return hint ? <>{row}<p className="property-hint">{hint}</p></> : row;
 }
 
+/**
+ * A text of a shape. The field owns what is typed: `onChange` commits through the editor, for a
+ * name tag after an await, and a controlled field set back to the shape's older text meanwhile
+ * broke an IME in the middle of a word - "ishi" came out as "いｓい", unconvertible. So the
+ * field is uncontrolled: the shape's text is written into it only while it is not being edited,
+ * and a word being composed (Japanese, Chinese, Korean) is committed once, when it is done.
+ */
 function TextProperty({ label, value, disabled, onChange, onInteractionActiveChange }: Omit<TextPropertyConfig, "id"> & { id?: string } & { disabled?: boolean; onInteractionActiveChange?: (active: boolean) => void }) {
   const holdInteraction = useInteractionHold(onInteractionActiveChange);
+  const field = useRef<HTMLInputElement>(null);
+  const editing = useRef(false);
+  const composing = useRef(false);
+  useEffect(() => {
+    if (field.current && !editing.current && field.current.value !== value) field.current.value = value;
+  }, [value]);
   return (
     <label className="text-property">
       <span>{label}</span>
       <input
+        ref={field}
         type="text"
-        value={value}
+        defaultValue={value}
         disabled={disabled}
         maxLength={24}
         spellCheck={false}
-        onFocus={() => holdInteraction(true)}
-        onBlur={() => holdInteraction(false)}
-        onChange={(event) => onChange(event.currentTarget.value)}
+        onFocus={() => {
+          editing.current = true;
+          holdInteraction(true);
+        }}
+        onBlur={(event) => {
+          editing.current = false;
+          composing.current = false;
+          holdInteraction(false);
+          // What the shape kept of the text (trimmed, cut to length), now that the editing is over.
+          if (event.currentTarget.value !== value) event.currentTarget.value = value;
+        }}
+        onCompositionStart={() => {
+          composing.current = true;
+        }}
+        onCompositionEnd={(event) => {
+          composing.current = false;
+          onChange(event.currentTarget.value);
+        }}
+        onChange={(event) => {
+          if (!composing.current) onChange(event.currentTarget.value);
+        }}
       />
     </label>
   );
