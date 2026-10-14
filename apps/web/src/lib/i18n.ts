@@ -78,7 +78,9 @@ export function createCatalogueStore(
 }
 
 /** Fetching a further language: one line per language that is not built in, `() => import("@/lib/messages.xx").then((module) => module.MESSAGES_XX)`. */
-const LOADERS: Partial<Record<Language, CatalogueLoader>> = {};
+const LOADERS: Partial<Record<Language, CatalogueLoader>> = {
+  ja: () => import("@/lib/messages.ja").then((module) => module.MESSAGES_JA),
+};
 
 const catalogues = createCatalogueStore({ en: MESSAGES_EN, de: MESSAGES_DE }, LOADERS);
 
