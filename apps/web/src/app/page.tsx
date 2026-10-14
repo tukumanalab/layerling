@@ -1,6 +1,7 @@
 "use client";
 
 import { Archive, Clock3, Copy, EllipsisVertical, FolderInput, FolderKanban, FolderPlus, FolderUp, Grid3X3, List, Pencil, Plus, RefreshCw, Search, Server, SlidersHorizontal, Sparkles, Trash2, X } from "lucide-react";
+import { withBasePath } from "@/lib/basePath";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { AppFooter } from "@/components/AppFooter";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
@@ -975,7 +976,7 @@ export default function Home() {
     setActiveProjectId(null);
     setView("dashboard");
     if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", "/");
+      window.history.replaceState(null, "", withBasePath("/"));
     }
   }, [activeProjectId, projects]);
 
@@ -1074,7 +1075,7 @@ export default function Home() {
         setProjects(storedProjects);
         setActiveProjectId(null);
         setView("dashboard");
-        window.history.replaceState(null, "", "/");
+        window.history.replaceState(null, "", withBasePath("/"));
         return;
       }
       setProjects(storedProjects.map((project) => (project.id === projectId ? { ...project, updatedAt: Date.now() } : project)));
@@ -1086,7 +1087,7 @@ export default function Home() {
     setEditorStarted(true);
     setView("editor");
     if (typeof window !== "undefined") {
-      const nextUrl = projectId ? `/?editor=1&project=${encodeURIComponent(projectId)}` : "/?editor=1";
+      const nextUrl = withBasePath(projectId ? `/?editor=1&project=${encodeURIComponent(projectId)}` : "/?editor=1");
       window.history.replaceState(null, "", nextUrl);
     }
   };
@@ -1109,7 +1110,7 @@ export default function Home() {
       current.map((project) => (project.id === snapshot.projectId ? { ...project, shapes: snapshot.shapes, updatedAt: version } : project)),
     );
     try {
-      const response = await fetch("/api/project-thumbnail", {
+      const response = await fetch(withBasePath("/api/project-thumbnail"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dataUrl: snapshot.image, projectId: snapshot.projectId }),
@@ -1868,7 +1869,7 @@ export default function Home() {
     setEditorLoading(false);
     setView("dashboard");
     if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", "/");
+      window.history.replaceState(null, "", withBasePath("/"));
     }
   };
 
@@ -2483,7 +2484,7 @@ function Dashboard({
     <main className="dashboard-shell">
       <header className="dashboard-topbar">
         <a className="dashboard-brand" href="./" aria-label={t("brand.home")}>
-          <img src="/assets/layerling/layerling-logo.svg" alt="" />
+          <img src={withBasePath("/assets/layerling/layerling-logo.svg")} alt="" />
           <span className="dashboard-brand-text">
             <span className="dashboard-brand-name">layerling</span>
             <span className="dashboard-tagline">{t("brand.tagline")}</span>

@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Builds the static export that plain web hosting serves. This exists as a
@@ -24,6 +25,7 @@ function run(args, extraEnvironment = {}) {
 }
 
 run(["scripts/copy-occt-wasm.mjs"]);
+run(["scripts/build-japanese-typeface.mjs"]);
 run(["scripts/build-guide.mjs"]);
 // Next.js 16 builds with Turbopack unless told otherwise. The CAD worker is
 // bundled by webpack, and the check below looks for its webpack runtime, so
@@ -33,5 +35,8 @@ const nextMajor = Number(createRequire(import.meta.url)("next/package.json").ver
 run([nextBin, "build", "apps/web", ...(nextMajor >= 16 ? ["--webpack"] : [])], { STATIC_EXPORT: "true", LAYERLING_BUILD_ID: `${Date.now()}` });
 run(["scripts/verify-static-worker-assets.mjs"]);
 run(["scripts/generate-service-worker.mjs"]);
+// GitHub Pages runs the files through Jekyll unless told not to, and Jekyll drops every folder
+// that starts with an underscore - _next holds the whole program. Harmless anywhere else.
+writeFileSync(join(repositoryRoot, "apps", "web", ".next-export", ".nojekyll"), "");
 
 console.log("Static export ready in apps/web/.next-export/");

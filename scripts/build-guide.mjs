@@ -16,6 +16,9 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const guideSource = join(root, "docs", "guide");
 const publicDirectory = join(root, "apps", "web", "public");
 const SITE = "https://layerling.com";
+// The folder the program is served from, if a host puts it in one (GitHub Pages); see
+// apps/web/src/lib/basePath.ts. Empty at the root, "/layerling" in a folder.
+const BASE = (process.env.LAYERLING_BASE_PATH ?? "").trim().replace(/\/+$/, "");
 
 // The languages and what the guide needs to know about each one live in
 // apps/web/src/lib/languages.ts, which the interface reads too.
@@ -154,7 +157,7 @@ export function renderInline(text, context) {
     const chapter = /^chapter:([\w-]+)$/.exec(target);
     if (chapter) {
       context.references?.chapters.add(chapter[1]);
-      return `<a href="/${GUIDE_LANGUAGES[context.language].dir}/${chapter[1]}.html">${label}</a>`;
+      return `<a href="${BASE}/${GUIDE_LANGUAGES[context.language].dir}/${chapter[1]}.html">${label}</a>`;
     }
     const external = /^https?:\/\//.test(target);
     return `<a href="${target}"${external ? ' rel="noopener"' : ""}>${label}</a>`;
@@ -220,7 +223,7 @@ export function renderBlocks(markdown, context) {
       const size = context.imageSize?.(name);
       const dimensions = size ? ` width="${size.width}" height="${size.height}"` : "";
       const dir = GUIDE_LANGUAGES[context.language].dir;
-      html.push(`<figure><img src="/${dir}/img/${name}.webp" alt="${escapeHtml(alt)}"${dimensions} loading="lazy"><figcaption>${renderInline(alt, context)}</figcaption></figure>`);
+      html.push(`<figure><img src="${BASE}/${dir}/img/${name}.webp" alt="${escapeHtml(alt)}"${dimensions} loading="lazy"><figcaption>${renderInline(alt, context)}</figcaption></figure>`);
       index += 1;
       continue;
     }
@@ -566,7 +569,7 @@ function guideSearchScript() {
 
 /** The search box in the header of a guide page; the script fills it with results. */
 function searchForm(strings, language) {
-  return `<form class="guide-search" id="guide-search" role="search" data-index="/${strings.dir}/search-index.json" data-nothing="${escapeHtml(strings.searchNothing)}" data-umlauts="${LANGUAGE_INFO[language].asciiUmlauts ? "true" : "false"}"><input type="search" id="guide-search-input" name="q" placeholder="${escapeHtml(strings.search)}" aria-label="${escapeHtml(strings.search)}" aria-controls="guide-results" aria-expanded="false" autocomplete="off" spellcheck="false"><div class="guide-results" id="guide-results" hidden></div></form>`;
+  return `<form class="guide-search" id="guide-search" role="search" data-index="${BASE}/${strings.dir}/search-index.json" data-nothing="${escapeHtml(strings.searchNothing)}" data-umlauts="${LANGUAGE_INFO[language].asciiUmlauts ? "true" : "false"}"><input type="search" id="guide-search-input" name="q" placeholder="${escapeHtml(strings.search)}" aria-label="${escapeHtml(strings.search)}" aria-controls="guide-results" aria-expanded="false" autocomplete="off" spellcheck="false"><div class="guide-results" id="guide-results" hidden></div></form>`;
 }
 
 export const THEME_SCRIPT = `try{var t=localStorage.getItem("layerling.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;else if(t==="graphite"){document.documentElement.dataset.theme="dark";document.documentElement.dataset.palette="graphite"}}catch(e){}`;
@@ -574,7 +577,7 @@ export const THEME_SCRIPT = `try{var t=localStorage.getItem("layerling.theme");i
 function pageShell({ language, title, description, path, alternates, chapters, current, body, languageLinks, footer, englishPath }) {
   const strings = GUIDE_LANGUAGES[language];
   const nav = chapters
-    .map((chapter) => `<li><a href="/${strings.dir}/${chapter.slug}.html"${chapter.slug === current ? ' aria-current="page"' : ""}>${escapeHtml(chapter.title)}</a></li>`)
+    .map((chapter) => `<li><a href="${BASE}/${strings.dir}/${chapter.slug}.html"${chapter.slug === current ? ' aria-current="page"' : ""}>${escapeHtml(chapter.title)}</a></li>`)
     .join("");
   const alternateLinks = Object.entries(alternates)
     .map(([code, href]) => `<link rel="alternate" hreflang="${code}" href="${SITE}${href}">`)
@@ -591,16 +594,16 @@ function pageShell({ language, title, description, path, alternates, chapters, c
     <meta property="og:title" content="${escapeHtml(title)}">
     <meta property="og:description" content="${escapeHtml(description)}">
     <meta property="og:image" content="${SITE}/assets/layerling/layerling-social.png">
-    <link rel="icon" href="/assets/layerling/layerling-logo.svg">
+    <link rel="icon" href="${BASE}/assets/layerling/layerling-logo.svg">
     <script>${THEME_SCRIPT}</script>
     <style>${STYLE}</style>
   </head>
   <body>
     <header class="bar"><div class="bar-inner">
-      <a class="brand" href="/${strings.dir}/index.html"><img src="/assets/layerling/layerling-logo.svg" alt=""><span class="brand-text"><b>layerling</b><span class="brand-note">${escapeHtml(strings.home)}</span></span></a>
+      <a class="brand" href="${BASE}/${strings.dir}/index.html"><img src="${BASE}/assets/layerling/layerling-logo.svg" alt=""><span class="brand-text"><b>layerling</b><span class="brand-note">${escapeHtml(strings.home)}</span></span></a>
       ${searchForm(strings, language)}
       ${languageMenu(languageLinks, language, strings)}
-      <a class="button" id="open-editor" href="/">${escapeHtml(strings.openEditor)}</a>
+      <a class="button" id="open-editor" href="${BASE}/">${escapeHtml(strings.openEditor)}</a>
     </div><p class="editor-elsewhere" id="editor-elsewhere" role="status" hidden>${escapeHtml(strings.editorElsewhere)}</p></header>
     <div class="shell">
       <nav class="chapters" aria-label="${escapeHtml(strings.chapters)}"><h2>${escapeHtml(strings.chapters)}</h2><ol>${nav}</ol></nav>
@@ -709,7 +712,7 @@ export async function buildGuide({ log = console.log } = {}) {
     const languageLinksFor = (number) => LANGUAGE_CODES.map((code) => {
       const target = GUIDE_LANGUAGES[code];
       const slug = number === null ? null : effective[code].find((entry) => entry.number === number)?.slug;
-      return { code, name: LANGUAGE_INFO[code].name, htmlLang: target.htmlLang, href: `/${target.dir}/${slug ?? "index"}.html` };
+      return { code, name: LANGUAGE_INFO[code].name, htmlLang: target.htmlLang, href: `${BASE}/${target.dir}/${slug ?? "index"}.html` };
     });
 
     const searchIndex = [];
@@ -744,7 +747,7 @@ export async function buildGuide({ log = console.log } = {}) {
       const toc = rendered.headings.length > 2
         ? `<div class="toc"><b>${escapeHtml(strings.onThisPage)}</b><ul>${rendered.headings.map((heading) => `<li><a href="#${heading.id}">${heading.text}</a></li>`).join("")}</ul></div>`
         : "";
-      const pager = `<div class="pager">${previous ? `<a href="/${strings.dir}/${previous.slug}.html"><small>${escapeHtml(strings.previous)}</small>${escapeHtml(previous.title)}</a>` : ""}${next ? `<a class="next" href="/${strings.dir}/${next.slug}.html"><small>${escapeHtml(strings.next)}</small>${escapeHtml(next.title)}</a>` : ""}</div>`;
+      const pager = `<div class="pager">${previous ? `<a href="${BASE}/${strings.dir}/${previous.slug}.html"><small>${escapeHtml(strings.previous)}</small>${escapeHtml(previous.title)}</a>` : ""}${next ? `<a class="next" href="${BASE}/${strings.dir}/${next.slug}.html"><small>${escapeHtml(strings.next)}</small>${escapeHtml(next.title)}</a>` : ""}</div>`;
       const notice = chapter.fallback ? `<p class="not-translated" role="note" lang="${strings.htmlLang}">${escapeHtml(strings.notTranslated)}</p>\n` : "";
       const body = `<h1>${escapeHtml(chapter.title)}</h1>\n<p class="lead">${escapeHtml(chapter.summary)}</p>\n${notice}${toc}\n${rendered.html}\n${pager}`;
       const page = pageShell({
@@ -752,13 +755,13 @@ export async function buildGuide({ log = console.log } = {}) {
         current: chapter.slug, body, footer, languageLinks: languageLinksFor(chapter.number), englishPath,
       });
       await writeFile(join(outputRoot, `${chapter.slug}.html`), page);
-      searchIndex.push(...searchEntries({ title: chapter.title, summary: chapter.summary, html: rendered.html, path }));
+      searchIndex.push(...searchEntries({ title: chapter.title, summary: chapter.summary, html: rendered.html, path: `${BASE}${path}` }));
       // A page that only shows English text is no page of its own for a search engine.
       if (!chapter.fallback) result.pages.push({ path, alternates });
     }
 
     const cards = chapters
-      .map((chapter) => `<li><a href="/${strings.dir}/${chapter.slug}.html"><b>${escapeHtml(chapter.title)}</b><span>${escapeHtml(chapter.summary)}</span></a></li>`)
+      .map((chapter) => `<li><a href="${BASE}/${strings.dir}/${chapter.slug}.html"><b>${escapeHtml(chapter.title)}</b><span>${escapeHtml(chapter.summary)}</span></a></li>`)
       .join("");
     const indexPath = `/${strings.dir}/index.html`;
     const indexAlternates = Object.fromEntries(LANGUAGE_CODES.map((code) => [GUIDE_LANGUAGES[code].htmlLang, `/${GUIDE_LANGUAGES[code].dir}/index.html`]));

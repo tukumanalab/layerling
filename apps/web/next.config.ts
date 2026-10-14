@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const isStaticExport = process.env.STATIC_EXPORT === "true";
+// A host that serves the program from a folder (GitHub Pages: /<repository>) says so here;
+// the export then requests every file under that folder. Empty at the root.
+const basePath = (process.env.LAYERLING_BASE_PATH ?? "").trim().replace(/\/+$/, "");
+if (basePath && !basePath.startsWith("/")) throw new Error(`LAYERLING_BASE_PATH must start with "/", got "${basePath}"`);
 const extraAllowedDevOrigins = (process.env.LAYERLING_ALLOWED_DEV_ORIGINS ?? "")
   .split(",")
   .map((origin) => origin.trim())
@@ -17,6 +21,7 @@ const appVersion: string = JSON.parse(readFileSync(path.resolve(process.cwd(), "
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.resolve(process.cwd()),
+  ...(basePath ? { basePath } : {}),
   devIndicators: false,
   // Keep the live development compiler isolated from `next build`. Sharing
   // `.next` lets a production verification build invalidate chunks used by a
@@ -25,6 +30,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["localhost", "127.0.0.1", ...extraAllowedDevOrigins],
   env: {
     NEXT_PUBLIC_STATIC_EXPORT: isStaticExport ? "true" : "false",
+    NEXT_PUBLIC_BASE_PATH: basePath,
     NEXT_PUBLIC_OCCT_RUNTIME_VERSION: occtRuntimeVersion,
     NEXT_PUBLIC_APP_VERSION: appVersion,
     // Page and CAD workers compare it (lib/buildStamp.ts); the export script sets one per build.

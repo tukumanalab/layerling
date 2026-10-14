@@ -1,11 +1,12 @@
 import { APP_THEME_OPTIONS, type AppThemePreference } from "@/lib/appTheme";
+import { withBasePath } from "@/lib/basePath";
 
 /**
  * What the server a copy of layerling runs on suggests for people who have not chosen yet. The
  * Node build answers on this route from its environment (`LAYERLING_DEFAULT_THEME`); an
  * installation served as plain files has no server to ask, so it never does.
  */
-export const SERVER_DEFAULTS_ENDPOINT = "/api/server-defaults";
+export const SERVER_DEFAULTS_ENDPOINT = withBasePath("/api/server-defaults");
 export const DEFAULT_THEME_ENV = "LAYERLING_DEFAULT_THEME";
 
 export type ServerDefaults = { theme: AppThemePreference | null };

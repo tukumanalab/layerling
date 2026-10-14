@@ -1,3 +1,4 @@
+import { withBasePath } from "@/lib/basePath";
 export const APP_THEME_STORAGE_KEY = "layerling.theme";
 
 export const APP_THEME_OPTIONS = [
@@ -82,7 +83,7 @@ export const GRAPHITE_STYLESHEET_ID = "layerling-graphite-theme";
 // version query keeps a cached stylesheet from an older release out, since
 // the file is regenerated from globals.css under the same name every build.
 const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
-export const GRAPHITE_STYLESHEET_HREF = `/assets/theme/graphite-theme.css${appVersion ? `?v=${appVersion}` : ""}`;
+export const GRAPHITE_STYLESHEET_HREF = withBasePath(`/assets/theme/graphite-theme.css${appVersion ? `?v=${appVersion}` : ""}`);
 
 /**
  * Graphite's colours live in a generated stylesheet that is only fetched once

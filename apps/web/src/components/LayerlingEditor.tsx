@@ -1,6 +1,7 @@
 "use client";
 
 import { GuideHelpLink } from "@/components/GuideHelpLink";
+import { withBasePath } from "@/lib/basePath";
 import { AlertTriangle, Check, Percent, Circle as CircleIcon, CloudUpload, Download, Eye, EyeOff, FilePlus2, FolderOpen, Hexagon as HexagonIcon, Info, ListTree, Pencil, Pentagon as PentagonIcon, Search, Square as SquareIcon, Star as StarIcon, Triangle as TriangleIcon, X } from "lucide-react";
 import { ObjectListPanel } from "@/components/workplane/ObjectListPanel";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
@@ -9107,7 +9108,7 @@ export function LayerlingEditor({
       if (command.action === "list_fonts") {
         const stored = new Set((await storedCustomFonts().catch(() => [])).map((font) => font.id));
         return {
-          builtIn: ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil"],
+          builtIn: ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Japanese"],
           custom: customFontList().map((font) => ({ id: font.id, name: font.name, stored: stored.has(font.id), complete: font.complete })),
         };
       }
@@ -9422,7 +9423,7 @@ export function LayerlingEditor({
           if (image.length > 100) {
             window.__layerlingBooleanTestImage = image;
             document.body.dataset.codexBooleanTestImageReady = "true";
-            void fetch("/api/codex-screenshot", {
+            void fetch(withBasePath("/api/codex-screenshot"), {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ name: `boolean-${detail.caseId}-${detail.mode}.png`, dataUrl: image }),
@@ -11560,7 +11561,7 @@ function SketchReferenceIcon({ name }: { name: SketchReferenceIconName }) {
       className="sketch-reference-icon"
       data-sketch-icon={name}
       draggable={false}
-      src={`/assets/editor/${sketchReferenceIcons[name]}`}
+      src={withBasePath(`/assets/editor/${sketchReferenceIcons[name]}`)}
       alt=""
     />
   );
@@ -12795,7 +12796,7 @@ function SecondaryToolbar({
         {/* The brand, in the same corner as on the start page. Not a link:
             leaving the editor is not something to trigger by accident. */}
         <div className="toolbar-brand">
-          <img src="/assets/layerling/layerling-logo.svg" alt="Layerling" />
+          <img src={withBasePath("/assets/layerling/layerling-logo.svg")} alt="Layerling" />
           <span className="toolbar-brand-text">
             <span className="toolbar-brand-name">layerling</span>
             <span className="toolbar-brand-tagline">{t("brand.tagline")}</span>

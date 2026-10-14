@@ -1,4 +1,5 @@
 import type { MessageKey } from "@/lib/i18n";
+import { withBasePath } from "@/lib/basePath";
 import { LAYERLING_VIDEOS } from "@/lib/layerlingVideos";
 
 type Translate = (key: MessageKey) => string;
@@ -110,7 +111,7 @@ export function WelcomeGuideBody({ tr }: { tr: Translate }) {
         <p>{tr("welcome.localBody")}</p>
       </div>
       <p className="dashboard-welcome-help">{tr("welcome.help")}</p>
-      <a className="dashboard-welcome-guide-link" href={tr("welcome.guideUrl")}>
+      <a className="dashboard-welcome-guide-link" href={withBasePath(tr("welcome.guideUrl"))}>
         {tr("welcome.guideLink")}
         <span aria-hidden="true">&rarr;</span>
       </a>
