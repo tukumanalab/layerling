@@ -68,4 +68,4 @@ Thumbs.db
 apps/web/public/occt/
 
 # The Japanese typeface, cut from the one three.js ships by scripts/build-japanese-typeface.mjs
-apps/web/src/generated/
+apps/web/public/fonts/japanese/

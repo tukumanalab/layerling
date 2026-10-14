@@ -1,5 +1,5 @@
 import type { ManifoldToplevel } from "manifold-3d";
-import { commonJapaneseCharacters } from "@/lib/japaneseText";
+import { commonJapaneseCharacters, level2JapaneseCharacters } from "@/lib/japaneseText";
 import type { Font as OpentypeFont, Glyph as OpentypeGlyph, GsubSubtable, GsubTable } from "opentype.js";
 import type { FontData } from "three/examples/jsm/loaders/FontLoader.js";
 import { arabicLetterForms, lamAlefLigatures, shapeText } from "@/lib/arabicShaping";
@@ -355,9 +355,13 @@ export async function typefaceFromFontFile(bytes: ArrayBuffer, fileName: string,
   }
   addArabicForms(font, byCharacter);
   // By code point, a Japanese font would keep the first 8,000 characters and lose the common
-  // kanji that come late in the block (郎, 高, 鈴): the common characters come first instead.
+  // kanji that come late in the block (郎, 高, 鈴): level 1 comes first, then level 2, then the rest.
   const common = commonJapaneseCharacters();
-  const rank = (code: number) => (common.has(String.fromCodePoint(code)) ? 0 : 1);
+  const level2 = new Set(level2JapaneseCharacters());
+  const rank = (code: number) => {
+    const char = String.fromCodePoint(code);
+    return common.has(char) ? 0 : level2.has(char) ? 1 : 2;
+  };
   const codes = [...byCharacter.keys()].sort((a, b) => rank(a) - rank(b) || a - b).slice(0, MAX_CUSTOM_FONT_CHARACTERS);
   const glyphs: Record<string, TypefaceGlyph> = {};
   for (const code of codes) {

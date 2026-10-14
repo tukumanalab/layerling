@@ -40,6 +40,13 @@ export function commonJapaneseCharacters(): ReadonlySet<string> {
   return set;
 }
 
+let level2: string[] | null = null;
+
+/** The 3,390 level-2 kanji of JIS X 0208 rows 48-84 (rare names and places: 澤, 槇, 檜), which the Japanese face brings in a second file. */
+export function level2JapaneseCharacters(): readonly string[] {
+  return (level2 ??= jisRows(48, 84));
+}
+
 /** Whether a character is one the built-in faces lack and the Japanese face has: kana, kanji, their punctuation, the full-width forms. */
 export function isJapaneseCharacter(char: string): boolean {
   const code = char.codePointAt(0) ?? 0;
@@ -49,5 +56,12 @@ export function isJapaneseCharacter(char: string): boolean {
 /** Whether a text has a character the Japanese face is needed for. */
 export function textNeedsJapanese(text: string): boolean {
   for (const char of text) if (isJapaneseCharacter(char)) return true;
+  return false;
+}
+
+/** Whether a text has a Japanese character outside the common set - a level-2 kanji, a rare symbol - so the second file is needed. */
+export function textNeedsJapaneseLevel2(text: string): boolean {
+  const common = commonJapaneseCharacters();
+  for (const char of text) if (isJapaneseCharacter(char) && !common.has(char)) return true;
   return false;
 }
