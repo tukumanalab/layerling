@@ -1,4 +1,5 @@
 import type { ManifoldToplevel } from "manifold-3d";
+import { commonJapaneseCharacters } from "@/lib/japaneseText";
 import type { Font as OpentypeFont, Glyph as OpentypeGlyph, GsubSubtable, GsubTable } from "opentype.js";
 import type { FontData } from "three/examples/jsm/loaders/FontLoader.js";
 import { arabicLetterForms, lamAlefLigatures, shapeText } from "@/lib/arabicShaping";
@@ -25,7 +26,7 @@ import { sha256Hex } from "@/lib/projectAssets";
 export const CUSTOM_FONT_PREFIX = "custom:";
 /** Font files larger than this are refused: a full CJK font is well past it. */
 export const MAX_CUSTOM_FONT_BYTES = 40 * 1024 * 1024;
-/** Characters kept from one font; a font with more keeps the first ones by code point. */
+/** Characters kept from one font; a font with more keeps the common Japanese ones first, then the rest by code point. */
 export const MAX_CUSTOM_FONT_CHARACTERS = 8000;
 /** A glyph outline longer than this is refused when a design brings it along. */
 const MAX_GLYPH_OUTLINE_LENGTH = 400_000;
@@ -353,7 +354,11 @@ export async function typefaceFromFontFile(bytes: ArrayBuffer, fileName: string,
     }
   }
   addArabicForms(font, byCharacter);
-  const codes = [...byCharacter.keys()].sort((a, b) => a - b).slice(0, MAX_CUSTOM_FONT_CHARACTERS);
+  // By code point, a Japanese font would keep the first 8,000 characters and lose the common
+  // kanji that come late in the block (郎, 高, 鈴): the common characters come first instead.
+  const common = commonJapaneseCharacters();
+  const rank = (code: number) => (common.has(String.fromCodePoint(code)) ? 0 : 1);
+  const codes = [...byCharacter.keys()].sort((a, b) => rank(a) - rank(b) || a - b).slice(0, MAX_CUSTOM_FONT_CHARACTERS);
   const glyphs: Record<string, TypefaceGlyph> = {};
   for (const code of codes) {
     const glyph = byCharacter.get(code);
