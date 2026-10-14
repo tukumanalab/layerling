@@ -6,6 +6,7 @@ code still carries it - so a lower number further down is older, not newer.
 
 ## Unreleased
 
+- **Japanese text, name tags in Japanese:** The seven built-in typefaces have no kana and no kanji, so a Japanese name on a text or a name tag came out as question marks. Every typeface now borrows them from M PLUS Rounded 1c (the Japanese font three.js ships, under the SIL Open Font License), cut down to ASCII, the kana, symbols, Greek and Cyrillic of JIS X 0208 and its 2,965 level-1 kanji. The face is a typeface of its own, **Japanese**, and is fetched (2.6 MB) only the first time a text needs it or it is chosen; a text waiting for it shows question marks for a moment and is drawn again when it arrives. Fonts of your own now keep the common Japanese characters first when they have more than 8,000: by code point, a Japanese font lost the common kanji late in the block (郎, 高, 鈴).
 ## 1.73.0
 
 - **The corner ruler no longer draws a fan of lines:** With the camera close above the ruler, looking along one of its arms, the part of the arm that lay behind the camera was drawn mirrored on the screen: a fan of fine lines that crossed the picture. Lines, ticks and numbers of the ruler (and the arrows and guide lines of its distances) are now cut off where they pass the camera, so only what is in front of it is drawn. Reported in the forum.
