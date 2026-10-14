@@ -1,6 +1,7 @@
 import { FontLoader, type Font, type FontData } from "three/examples/jsm/loaders/FontLoader.js";
 import { isCustomFontId, type CustomTypeface } from "@/lib/customFonts";
-import { textNeedsJapanese } from "@/lib/japaneseText";
+import { withBasePath } from "@/lib/basePath";
+import { textNeedsJapanese, textNeedsJapaneseLevel2 } from "@/lib/japaneseText";
 
 /**
  * The typefaces the text shape offers, loaded on demand.
@@ -142,40 +143,58 @@ export function textFont(name: string | undefined): Font {
 
 /*
  * Japanese. The built-in faces have no kana and no kanji; M PLUS Rounded 1c, cut down to what
- * Japanese text needs (scripts/build-japanese-typeface.mjs, 2.6 MB gzipped), is a face of its
- * own and lends those characters to every other face. It is fetched the first time a text
- * needs it - `ensureJapaneseGlyphs` - or the face is chosen, never before: most visitors never
- * write Japanese. Until it is here such a text shows "?" for them; when it arrives, every text
- * is drawn again (`onCustomFontsChanged`, `customFontRevision`).
+ * Japanese text needs (scripts/build-japanese-typeface.mjs), is a face of its own and lends those
+ * characters to every other face. It comes in two files under /fonts/japanese/<version>/, plain
+ * files and not chunks, which the service worker keeps out of the install download and stores
+ * on first use: `base` (about 2.6 MB gzipped: Latin, kana, symbols and the 2,965 level-1 kanji) and
+ * `level2` (the rare kanji of names and places: 澤, 槇, 檜). Each is fetched the first time a text
+ * needs it - `ensureJapaneseGlyphs` - or, for base, the face is chosen, never before: most
+ * visitors never write Japanese. Until it is here such a text shows "?" for them; when it
+ * arrives, every text is drawn again (`onCustomFontsChanged`, `customFontRevision`).
  */
 export const JAPANESE_FONT = "Japanese";
 
+type JapaneseFile = "base" | "level2";
+
+async function fetchJapaneseFile(file: JapaneseFile): Promise<FontData> {
+  const response = await fetch(withBasePath(`/fonts/japanese/${process.env.NEXT_PUBLIC_JAPANESE_FONT_VERSION ?? ""}/${file}.typeface.json`));
+  if (!response.ok) throw new Error(`Japanese typeface ${file}: HTTP ${response.status}`);
+  return (await response.json()) as FontData;
+}
+
+let japaneseFetcher: (file: JapaneseFile) => Promise<FontData> = fetchJapaneseFile;
 let japaneseData: FontData | null = null;
 let japaneseFont: Font | null = null;
 let japanesePromise: Promise<void> | null = null;
+let japaneseLevel2Promise: Promise<void> | null = null;
+let japaneseLevel2Done = false;
 let japaneseRevision = 0;
 
 export function japaneseTypefaceLoaded() {
   return japaneseFont !== null;
 }
 
+export function japaneseLevel2Loaded() {
+  return japaneseLevel2Done;
+}
+
+/** Adds the characters a font lacks, in place: the parsed Font reads its glyphs at drawing time, so nothing is parsed again. */
+function lend(font: { data: unknown }, borrowed: Record<string, GlyphData>) {
+  const glyphs = (font.data as FontData).glyphs as Record<string, GlyphData>;
+  for (const char of Object.keys(borrowed)) if (!glyphs[char]) glyphs[char] = borrowed[char];
+}
+
 /** Fetches the Japanese face once and lends its characters to every face the editor has. */
 export function loadJapaneseTypeface(): Promise<void> {
   if (japaneseFont) return Promise.resolve();
-  japanesePromise ??= import("@/generated/mplus-rounded-1c-ja.typeface.json")
-    .then((module) => {
-      const data = (module as unknown as { default: FontData }).default;
+  japanesePromise ??= japaneseFetcher("base")
+    .then((data) => {
       japaneseData = data;
       // Its own Latin is complete; the Greek and Cyrillic it lacks come from Sans like everywhere.
       japaneseFont = new FontLoader().parse(sansData ? withFallbackGlyphs(data, sansData) : data);
       const borrowed = data.glyphs as Record<string, GlyphData>;
-      const lend = (font: Font) => {
-        const glyphs = (font.data as FontData).glyphs as Record<string, GlyphData>;
-        // Added in place: the parsed Font reads its glyphs at drawing time, so nothing is parsed again.
-        for (const char of Object.keys(borrowed)) if (!glyphs[char]) glyphs[char] = borrowed[char];
-      };
-      for (const font of new Set(Object.values(loadedFonts ?? {}))) lend(font);
-      for (const entry of customFonts.values()) if (entry.font) lend(entry.font);
+      for (const font of new Set(Object.values(loadedFonts ?? {}))) lend(font, borrowed);
+      for (const entry of customFonts.values()) if (entry.font) lend(entry.font, borrowed);
       japaneseRevision += 1;
       customFontListeners.forEach((listener) => listener());
     })
@@ -187,14 +206,42 @@ export function loadJapaneseTypeface(): Promise<void> {
 }
 
 /**
+ * Fetches the level-2 kanji once, after the base face, and adds them to it, to every face the
+ * editor has and to `japaneseData`, so a font of one's own parsed later has them too.
+ */
+export function loadJapaneseLevel2(): Promise<void> {
+  if (japaneseLevel2Done) return Promise.resolve();
+  japaneseLevel2Promise ??= loadJapaneseTypeface()
+    .then(() => japaneseFetcher("level2"))
+    .then((data) => {
+      const borrowed = data.glyphs as Record<string, GlyphData>;
+      if (japaneseData) lend({ data: japaneseData }, borrowed);
+      if (japaneseFont) lend(japaneseFont, borrowed);
+      for (const font of new Set(Object.values(loadedFonts ?? {}))) lend(font, borrowed);
+      for (const entry of customFonts.values()) if (entry.font) lend(entry.font, borrowed);
+      japaneseLevel2Done = true;
+      japaneseRevision += 1;
+      customFontListeners.forEach((listener) => listener());
+    })
+    .catch((error) => {
+      japaneseLevel2Promise = null;
+      throw error;
+    });
+  return japaneseLevel2Promise;
+}
+
+/**
  * Called with every text that is drawn: one with kana or kanji starts the fetch of the Japanese
- * face if it has not happened yet. Returns at once; the text is drawn again when the face is here.
+ * face if it has not happened yet, and one with a level-2 kanji the fetch of the second file.
+ * Returns at once; the text is drawn again when the face is here.
  */
 export function ensureJapaneseGlyphs(text: string) {
-  if (japaneseFont || japanesePromise || !textNeedsJapanese(text)) return;
-  loadJapaneseTypeface().catch(() => {
+  if (!textNeedsJapanese(text)) return;
+  const ignore = () => {
     // Without it the text keeps its question marks, as before - the next text tries again.
-  });
+  };
+  if (!japaneseFont && !japanesePromise) loadJapaneseTypeface().catch(ignore);
+  if (!japaneseLevel2Done && !japaneseLevel2Promise && textNeedsJapaneseLevel2(text)) loadJapaneseLevel2().catch(ignore);
 }
 
 /*
@@ -252,7 +299,15 @@ export function resetJapaneseTypefaceForTests() {
   japaneseData = null;
   japaneseFont = null;
   japanesePromise = null;
+  japaneseLevel2Promise = null;
+  japaneseLevel2Done = false;
   japaneseRevision = 0;
+  japaneseFetcher = fetchJapaneseFile;
+}
+
+/** Replaces the fetch of the Japanese files - for tests, which read them from disk. */
+export function setJapaneseTypefaceFetcherForTests(fetcher: (file: JapaneseFile) => Promise<FontData>) {
+  japaneseFetcher = fetcher;
 }
 
 export function onCustomFontsChanged(listener: () => void) {
