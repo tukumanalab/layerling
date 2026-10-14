@@ -10,10 +10,11 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "copy:occt": "node scripts/copy-occt-wasm.mjs",
+    "fonts:japanese": "node scripts/build-japanese-typeface.mjs",
     "clean:cache": "node scripts/clean-next-cache.mjs",
-    "predev": "npm run copy:occt && npm run guide",
+    "predev": "npm run copy:occt && npm run fonts:japanese && npm run guide",
     "dev": "next dev apps/web",
-    "prebuild": "npm run copy:occt && npm run guide",
+    "prebuild": "npm run copy:occt && npm run fonts:japanese && npm run guide",
     "build": "next build apps/web",
     "export": "node scripts/build-static-export.mjs",
     "verify:static-worker-assets": "node scripts/verify-static-worker-assets.mjs",

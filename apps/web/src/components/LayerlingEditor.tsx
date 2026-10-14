@@ -9107,7 +9107,7 @@ export function LayerlingEditor({
       if (command.action === "list_fonts") {
         const stored = new Set((await storedCustomFonts().catch(() => [])).map((font) => font.id));
         return {
-          builtIn: ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil"],
+          builtIn: ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Japanese"],
           custom: customFontList().map((font) => ({ id: font.id, name: font.name, stored: stored.has(font.id), complete: font.complete })),
         };
       }

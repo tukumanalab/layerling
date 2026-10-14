@@ -4,7 +4,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { Font } from "three/examples/jsm/loaders/FontLoader.js";
 import { shapeText, textNeedsShaping } from "@/lib/arabicShaping";
 import { normalizeSketchStroke } from "@/lib/sketchStroke";
-import { customFontRevision, textFont } from "@/lib/textFonts";
+import { customFontRevision, ensureJapaneseGlyphs, textFont } from "@/lib/textFonts";
 import { shapeDepth, shapeWidth } from "@/lib/workplaneShapes";
 import type { TextKeyring, TextKeyringSide, WorkplaneShape } from "@/types/layerling";
 
@@ -21,7 +21,10 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function textOf(shape: Pick<WorkplaneShape, "text">) {
-  return (shape.text ?? "TEXT").trim() || " ";
+  const text = (shape.text ?? "TEXT").trim() || " ";
+  // Kana or kanji: fetch the Japanese face if it is not here yet; the text is drawn again when it is.
+  ensureJapaneseGlyphs(text);
+  return text;
 }
 
 /**

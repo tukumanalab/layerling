@@ -1,5 +1,5 @@
 import { curvedTextPatch, DEFAULT_TEXT_SIZE, displayTextOf, textBoxAroundLetters, textLetterBox } from "@/lib/textGeometry";
-import { customFontRevision, textFont } from "@/lib/textFonts";
+import { customFontRevision, ensureJapaneseGlyphs, textFont } from "@/lib/textFonts";
 import { DEFAULT_TEXT_LAYERS, MAX_TEXT_LAYERS, MAX_TEXT_LAYER_GROW, type TextLayer, type textLayersOf } from "@/lib/textLayers";
 import type { WorkplaneShape } from "@/types/layerling";
 
@@ -52,7 +52,11 @@ export function removeTextLayer(layers: readonly TextLayer[]): TextLayer[] {
 // at this font size, its outlines sampled with these curve segments, an empty text as a space.
 const LAYOUT_SIZE = 20;
 const curveSegmentsOf = (fontName: string) => (fontName === "Stencil" ? 1 : 8);
-const wordsOf = (shape: Pick<WorkplaneShape, "text">) => (shape.text ?? "TEXT").trim() || " ";
+const wordsOf = (shape: Pick<WorkplaneShape, "text">) => {
+  const words = (shape.text ?? "TEXT").trim() || " ";
+  ensureJapaneseGlyphs(words);
+  return words;
+};
 
 const measuresCache = new Map<string, { width: number; depth: number; cap: number }>();
 
