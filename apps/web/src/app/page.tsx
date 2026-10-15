@@ -11,12 +11,12 @@ import { sharedProjectSaveTarget } from "@/lib/sharedProjectTarget";
 import { storeFolderNameProblem, suggestStoreFolderName } from "@/lib/storeFolderName";
 import dynamic from "next/dynamic";
 import { importFailureSummary, importModelFiles } from "@/lib/modelImport";
-import { loadTextFonts } from "@/lib/textFonts";
+import { loadJapaneseTypeface, loadTextFonts } from "@/lib/textFonts";
 import { loadStoredCustomFonts } from "@/lib/customFontStore";
 import { fetchServerDefaultTheme } from "@/lib/serverDefaults";
 import { applyAppTheme, getAppThemePreference, hasStoredAppTheme, readStoredAppTheme, resolveAppTheme, setAppTheme, storeAppTheme, subscribeToAppTheme, type AppThemePreference, type ResolvedAppTheme } from "@/lib/appTheme";
 import { hydrateEditorHistoryState, notesForHistoryIndex, type EditorHistoryEntry } from "@/lib/editorHistory";
-import { detectLanguage, setLanguage, t, translate, type Language } from "@/lib/i18n";
+import { detectLanguage, getLanguage, setLanguage, t, translate, type Language } from "@/lib/i18n";
 import { localizedError } from "@/lib/userErrors";
 import { WelcomeGuideBody } from "@/components/WelcomeGuide";
 import { InstallAppHint } from "@/components/InstallAppHint";
@@ -203,7 +203,13 @@ let editorModulePromise: Promise<typeof import("@/components/LayerlingEditor")> 
 function loadEditorModule() {
   // Fonts of one's own kept in this browser come along; without them the built-in ones still work.
   editorModulePromise ??= Promise.all([import("@/components/LayerlingEditor"), loadTextFonts(), loadStoredCustomFonts()])
-    .then(([editorModule]) => editorModule)
+    .then(([editorModule]) => {
+      // A Japanese interface means Japanese texts (a new name tag says 名前): the Japanese face
+      // is fetched from the start, not awaited, so they are drawn with it rather than with
+      // question marks first. Without it they still get it the moment one of them is drawn.
+      if (getLanguage() === "ja") loadJapaneseTypeface().catch(() => {});
+      return editorModule;
+    })
     .catch((error) => {
       editorModulePromise = null;
       throw error;

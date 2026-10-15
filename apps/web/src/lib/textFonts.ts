@@ -159,11 +159,15 @@ export function japaneseTypefaceLoaded() {
   return japaneseFont !== null;
 }
 
-/** Fetches the Japanese face once and lends its characters to every face the editor has. */
+/**
+ * Fetches the Japanese face once and lends its characters to every face the editor has. The
+ * built-in faces are awaited first: fetched ahead of them (a Japanese interface starts it with
+ * the editor) it would find no face to lend to yet.
+ */
 export function loadJapaneseTypeface(): Promise<void> {
   if (japaneseFont) return Promise.resolve();
-  japanesePromise ??= import("@/generated/mplus-rounded-1c-ja.typeface.json")
-    .then((module) => {
+  japanesePromise ??= Promise.all([import("@/generated/mplus-rounded-1c-ja.typeface.json"), loadTextFonts()])
+    .then(([module]) => {
       const data = (module as unknown as { default: FontData }).default;
       japaneseData = data;
       // Its own Latin is complete; the Greek and Cyrillic it lacks come from Sans like everywhere.
