@@ -40,6 +40,11 @@ A language is three things:
    npm test
    ```
 
+## Language style guides
+
+- **Japanese:** [TRANSLATING.ja.md](TRANSLATING.ja.md) - written for upper primary school children, with Tinkercad's
+  Japanese terms, and the glossary the interface keeps to.
+
 ## What has to be right
 
 - No sentence without an English original (a sentence removed from English must go from yours too), none empty, and
