@@ -202,14 +202,17 @@ let editorModulePromise: Promise<typeof import("@/components/LayerlingEditor")> 
 
 function loadEditorModule() {
   // Fonts of one's own kept in this browser come along; without them the built-in ones still work.
-  editorModulePromise ??= Promise.all([import("@/components/LayerlingEditor"), loadTextFonts(), loadStoredCustomFonts()])
-    .then(([editorModule]) => {
-      // A Japanese interface means Japanese texts (a new name tag says 名前): the Japanese face
-      // is fetched from the start, not awaited, so they are drawn with it rather than with
-      // question marks first. Without it they still get it the moment one of them is drawn.
-      if (getLanguage() === "ja") loadJapaneseTypeface().catch(() => {});
-      return editorModule;
-    })
+  editorModulePromise ??= Promise.all([
+    import("@/components/LayerlingEditor"),
+    loadTextFonts(),
+    loadStoredCustomFonts(),
+    // A Japanese interface means Japanese texts (a new name tag says 名前): the Japanese face is
+    // awaited with the editor, so they are drawn with it and not with question marks first. The
+    // browser keeps it, so only the first opening waits for it. Should it fail, the editor opens
+    // without it and the texts fetch it again the moment one of them is drawn.
+    getLanguage() === "ja" ? loadJapaneseTypeface().catch(() => undefined) : undefined,
+  ])
+    .then(([editorModule]) => editorModule)
     .catch((error) => {
       editorModulePromise = null;
       throw error;
