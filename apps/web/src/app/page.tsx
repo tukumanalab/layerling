@@ -11,12 +11,12 @@ import { sharedProjectSaveTarget } from "@/lib/sharedProjectTarget";
 import { storeFolderNameProblem, suggestStoreFolderName } from "@/lib/storeFolderName";
 import dynamic from "next/dynamic";
 import { importFailureSummary, importModelFiles } from "@/lib/modelImport";
-import { loadTextFonts } from "@/lib/textFonts";
+import { loadJapaneseTypeface, loadTextFonts } from "@/lib/textFonts";
 import { loadStoredCustomFonts } from "@/lib/customFontStore";
 import { fetchServerDefaultTheme } from "@/lib/serverDefaults";
 import { applyAppTheme, getAppThemePreference, hasStoredAppTheme, readStoredAppTheme, resolveAppTheme, setAppTheme, storeAppTheme, subscribeToAppTheme, type AppThemePreference, type ResolvedAppTheme } from "@/lib/appTheme";
 import { hydrateEditorHistoryState, notesForHistoryIndex, type EditorHistoryEntry } from "@/lib/editorHistory";
-import { detectLanguage, setLanguage, t, translate, type Language } from "@/lib/i18n";
+import { detectLanguage, requestedLanguage, setLanguage, t, translate, type Language } from "@/lib/i18n";
 import { localizedError } from "@/lib/userErrors";
 import { WelcomeGuideBody } from "@/components/WelcomeGuide";
 import { InstallAppHint } from "@/components/InstallAppHint";
@@ -202,7 +202,21 @@ let editorModulePromise: Promise<typeof import("@/components/LayerlingEditor")> 
 
 function loadEditorModule() {
   // Fonts of one's own kept in this browser come along; without them the built-in ones still work.
-  editorModulePromise ??= Promise.all([import("@/components/LayerlingEditor"), loadTextFonts(), loadStoredCustomFonts()])
+  editorModulePromise ??= Promise.all([
+    import("@/components/LayerlingEditor"),
+    loadTextFonts(),
+    loadStoredCustomFonts(),
+    // The 2D kernel builds the wider layers of a name tag and every text fill (#215); drawn before
+    // it is there, such a text stands as plain letters for a moment. It comes with the editor
+    // (0.6 MB, kept by the browser); should it fail, the editor opens and texts ask for it again.
+    import("@/lib/editorMeshCore").then((core) => core.getManifoldRuntime()).catch(() => undefined),
+    // A Japanese interface means Japanese texts (a new name tag says 名前): the Japanese face is
+    // awaited with the editor, so they are drawn with it and not with question marks first. The
+    // browser keeps it, so only the first opening waits for it. Should it fail, the editor opens
+    // without it and the texts fetch it again the moment one of them is drawn. The language asked
+    // for, as its own sentences may still be on their way while the editor starts.
+    requestedLanguage() === "ja" ? loadJapaneseTypeface().catch(() => undefined) : undefined,
+  ])
     .then(([editorModule]) => editorModule)
     .catch((error) => {
       editorModulePromise = null;
