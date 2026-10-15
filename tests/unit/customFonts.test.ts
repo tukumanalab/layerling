@@ -104,6 +104,11 @@ describe("fonts of one's own", () => {
     const curve = contoursFromCommands([{ type: "M", x: 0, y: 0 }, { type: "Q", x1: 50, y1: 100, x: 100, y: 0 }, { type: "Z" }]);
     const turned = normalizeGlyphContours(curve);
     expect(turned[0].segments.some((segment) => segment.type === "Q" && segment.x1 === 50 && segment.y1 === 100)).toBe(true);
+    // A line to where the pen already is, as opentype.js draws after the move and after a curve, is left out.
+    const lingering = contoursFromCommands([
+      { type: "M", x: 0, y: 0 }, { type: "L", x: 0, y: 0 }, { type: "Q", x1: 50, y1: 100, x: 100, y: 0 }, { type: "L", x: 100, y: 0 }, { type: "L", x: 0, y: 0 }, { type: "Z" },
+    ]);
+    expect(lingering[0].segments.map((segment) => segment.type)).toEqual(["Q", "L"]);
   });
 
   it("merges contours that overlap into one outline, as a variable or script font draws strokes", () => {
