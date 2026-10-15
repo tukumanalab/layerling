@@ -65,7 +65,7 @@ import { createThreadGeometry } from "@/lib/threadGeometry";
 import { createSpringGeometry } from "@/lib/springGeometry";
 import { textDisplayGeometry } from "@/lib/textFill";
 import { manifoldRevision } from "@/lib/manifoldHandle";
-import { customFontRevision } from "@/lib/textFonts";
+import { customFontRevision, onCustomFontsChanged } from "@/lib/textFonts";
 import { readDesignView, writeDesignView } from "@/lib/designView";
 import { DIMENSION_FORMULA_FIELDS, formulaMatchesMillimeters, formulaToRemember, withFieldFormula } from "@/lib/fieldFormulas";
 import { displayToMillimeters, formatLengthMm, lengthDisplayUnit, millimetersToDisplay, parseLengthMm, parseMeasurementInput, resolveLengthMm, setLengthUnit } from "@/lib/measurementUnits";
@@ -3111,6 +3111,10 @@ export function WorkplaneViewport({
   } | null) | null>(null);
   const cruisePreviewRef = useRef<{ object: THREE.Group; shape: WorkplaneShape } | null>(null);
   const cruisePointerRef = useRef<{ x: number; y: number } | null>(null);
+  // The ghost of a shape being placed is drawn once; a font that arrives meanwhile - the Japanese
+  // face a name tag's "名前" fetches - would leave it with question marks: it is built again then.
+  const [ghostFontRound, setGhostFontRound] = useState(0);
+  useEffect(() => onCustomFontsChanged(() => setGhostFontRound((round) => round + 1)), []);
   cruiseAssetRef.current = cruiseAsset;
   const projectNameRef = useRef(projectName);
   const projectIdRef = useRef(projectId);
@@ -4490,13 +4494,13 @@ export function WorkplaneViewport({
       if (cruisePreviewRef.current?.object === object) cruisePreviewRef.current = null;
       if (latest) latest.needsRender = true;
     };
-  }, [cruiseAsset, cruiseAsset ? workspace.shapeCustomizations[cruiseAsset.kind] : undefined]);
+  }, [cruiseAsset, cruiseAsset ? workspace.shapeCustomizations[cruiseAsset.kind] : undefined, ghostFontRound]);
 
   useEffect(() => {
     const pointer = cruisePointerRef.current;
     if (!cruiseAsset || !pointer) return;
     moveCruiseGhost(pointer.x, pointer.y);
-  }, [cruiseAsset, moveCruiseGhost, placementWorkplane]);
+  }, [cruiseAsset, moveCruiseGhost, placementWorkplane, ghostFontRound]);
 
   const storeTapeModel = useCallback((next: TapeModel) => {
     tapeModelRef.current = next;
