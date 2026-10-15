@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import type { FontData } from "three/examples/jsm/loaders/FontLoader.js";
 
 /*
- * Japanese text: the built-in faces have no kana and no kanji, so M PLUS Rounded 1c, cut down by
+ * Japanese text: the built-in faces have no kana and no kanji, so Zen Maru Gothic, cut down by
  * scripts/build-japanese-typeface.mjs, lends them to every face and is a face of its own.
  */
 const fontRoot = fileURLToPath(new URL("../../apps/web/public/fonts/japanese/", import.meta.url));
@@ -78,9 +78,25 @@ describe.skipIf(!generated)("the Japanese face", () => {
     expect(customFontRevision(undefined)).not.toBe(before);
     for (const name of names) {
       const glyphs = textFont(name).data.glyphs as Record<string, unknown>;
-      for (const char of "澤槇檜") expect(glyphs[char], `${name}: ${char}`).toBeDefined();
+      for (const char of "澤槇檜邉") expect(glyphs[char], `${name}: ${char}`).toBeDefined();
       expect(textFont(name).generateShapes("澤", 10).length).toBeGreaterThan(0);
     }
+  });
+
+  it("has every level-2 kanji, 邉 among them, and the letters a kanji is made of", async () => {
+    // M PLUS Rounded 1c lacked 1,447 of them, the 邉 of 渡邉 included; Zen Maru Gothic has them all.
+    const level2 = await readTypeface("level2");
+    const glyphs = level2.glyphs as Record<string, { o?: string }>;
+    expect(Object.keys(glyphs).length).toBe(level2JapaneseCharacters().length);
+    for (const char of "邉") expect(glyphs[char]?.o?.length ?? 0).toBeGreaterThan(0);
+    const base = await readTypeface("base");
+    expect(Object.keys(base.glyphs).length).toBe(commonJapaneseCharacters().size);
+    // Zen Maru Gothic's own units, so the glyphs are shared with the other faces rather than scaled copies.
+    expect(base.resolution).toBe(1000);
+    await loadTextFonts();
+    await loadJapaneseTypeface();
+    await loadJapaneseLevel2();
+    expect(textFont("Sans").generateShapes("渡邉", 10).length).toBeGreaterThan(0);
   });
 
   it("tries a failed file again the next time", async () => {

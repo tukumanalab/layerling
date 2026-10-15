@@ -141,7 +141,7 @@ export function textFont(name: string | undefined): Font {
 }
 
 /*
- * Japanese. The built-in faces have no kana and no kanji; M PLUS Rounded 1c, cut down to what
+ * Japanese. The built-in faces have no kana and no kanji; Zen Maru Gothic, cut down to what
  * Japanese text needs (scripts/build-japanese-typeface.mjs), is a face of its own and lends those
  * characters to every other face. It comes in two files under /fonts/japanese/<version>/, plain
  * files and not chunks, which the service worker keeps out of the install download and stores

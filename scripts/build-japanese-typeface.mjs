@@ -1,69 +1,98 @@
 // Builds the Japanese typeface the text shape falls back to for kana and kanji.
 //
-// three.js ships M PLUS Rounded 1c (SIL Open Font License, OFL.txt beside it) as
-// a typeface.json of 8,174 glyphs and 13.8 MB - too much to hand every visitor.
-// This cuts it into two files: base.typeface.json keeps what most Japanese text
-// needs (ASCII and Latin-1, the symbols, kana, Greek and Cyrillic of JIS X 0208
-// rows 1-8, and the 2,965 level-1 kanji of rows 16-47) and level2.typeface.json
-// the level-2 kanji of rows 48-84 (澤, 槇, 檜) the font has. Both go to
-// apps/web/public/fonts/japanese/<hash>/, which is gitignored like the occt
-// runtime, and the hash (also in version.txt, which next.config.ts reads) is of
-// their content, so a browser cannot pair new code with an older cut. They are
-// plain files, not chunks: textFonts.ts fetches them the first time a text needs
-// them, and the service worker keeps them out of the install download.
+// The source is Zen Maru Gothic Regular (SIL Open Font License, fonts/zen-maru-gothic/OFL.txt
+// beside it), a rounded sans with every kanji of JIS X 0208: the 2,965 of level 1 and the 3,390
+// of level 2 (邉, 澤, 槇, 檜). M PLUS Rounded 1c, which three.js ships and the face was cut from
+// before, lacks 1,447 of the level-2 kanji, among them the 邉 of 渡邉. The font file is read with
+// opentype.js and turned into the typeface format the way a font of one's own is (customFonts.ts),
+// cut into two files: base.typeface.json keeps what most Japanese text needs (ASCII and Latin-1,
+// the symbols, kana, Greek and Cyrillic of JIS X 0208 rows 1-8, and the level-1 kanji of rows
+// 16-47) and level2.typeface.json the level-2 kanji of rows 48-84. Both go to
+// apps/web/public/fonts/japanese/<hash>/, which is gitignored like the occt runtime, and the hash
+// (also in version.txt, which next.config.ts reads) is of their content, so a browser cannot pair
+// new code with an older cut. They are plain files, not chunks: textFonts.ts fetches them the
+// first time a text needs them, and the service worker keeps them out of the install download.
 // It runs before dev, build and export.
-import { inflateRawSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { register } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-// The character set lives with the interface, which keeps fonts of one's own by the same rule.
+// The character set and the outline conversion live with the interface, which keeps fonts of one's own by the same rules.
+register("./web-src-alias-hooks.mjs", import.meta.url);
 const { commonJapaneseCharacters, level2JapaneseCharacters } = await import(pathToFileURL(join(root, "apps", "web", "src", "lib", "japaneseText.ts")).href);
-const source = join(root, "node_modules", "three", "examples", "fonts", "MPLUSRounded1c", "MPLUSRounded1c-Regular.typeface.json.zip");
+const { contoursFromCommands, normalizeGlyphContours, outlineString } = await import(pathToFileURL(join(root, "apps", "web", "src", "lib", "customFonts.ts")).href);
+const { parse } = await import("opentype.js");
+const source = join(root, "fonts", "zen-maru-gothic", "ZenMaruGothic-Regular.ttf");
 const outRoot = join(root, "apps", "web", "public", "fonts", "japanese");
 
-/** The one file of a zip archive by name, read through the central directory (the local headers carry no sizes). */
-function unzipEntry(archive, wanted) {
-  const eocd = archive.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
-  if (eocd < 0) throw new Error("Not a zip archive");
-  const entries = archive.readUInt16LE(eocd + 10);
-  let offset = archive.readUInt32LE(eocd + 16);
-  for (let index = 0; index < entries; index++) {
-    if (archive.readUInt32LE(offset) !== 0x02014b50) throw new Error("Bad central directory");
-    const method = archive.readUInt16LE(offset + 10);
-    const compressedSize = archive.readUInt32LE(offset + 20);
-    const nameLength = archive.readUInt16LE(offset + 28);
-    const extraLength = archive.readUInt16LE(offset + 30);
-    const commentLength = archive.readUInt16LE(offset + 32);
-    const localOffset = archive.readUInt32LE(offset + 42);
-    const name = archive.toString("utf8", offset + 46, offset + 46 + nameLength);
-    if (name === wanted) {
-      const localNameLength = archive.readUInt16LE(localOffset + 26);
-      const localExtraLength = archive.readUInt16LE(localOffset + 28);
-      const start = localOffset + 30 + localNameLength + localExtraLength;
-      const data = archive.subarray(start, start + compressedSize);
-      if (method === 0) return data;
-      if (method === 8) return inflateRawSync(data);
-      throw new Error(`Unsupported zip compression ${method}`);
+/*
+ * JIS X 0208 symbols that Unicode has twice, and the font under the other code point only: the
+ * wave dash and the minus a Japanese IME types as the full-width ～ and －, the dash, the double
+ * bar, the full-width currency signs, the angstrom sign. They are drawn with the twin's glyph
+ * (escaped: an editor would fold the two spellings of Å into one).
+ */
+const TWINS = { "\u2015": "\u2014", "\uff5e": "\u301c", "\u2225": "\u2016", "\uff0d": "\u2212", "\uff04": "$", "\uffe0": "\u00a2", "\uffe1": "\u00a3", "\u212b": "\u00c5" };
+
+/** The font's glyph for each character it has, by the character; a twin's where only that exists. */
+function glyphsByCharacter(font) {
+  const byCharacter = new Map();
+  for (let index = 0; index < font.glyphs.length; index += 1) {
+    const glyph = font.glyphs.get(index);
+    for (const code of glyph.unicodes ?? (glyph.unicode !== undefined ? [glyph.unicode] : [])) {
+      const char = String.fromCodePoint(code);
+      if (!byCharacter.has(char)) byCharacter.set(char, glyph);
     }
-    offset += 46 + nameLength + extraLength + commentLength;
   }
-  throw new Error(`${wanted} not in the archive`);
+  for (const [char, twin] of Object.entries(TWINS)) {
+    if (!byCharacter.has(char) && byCharacter.has(twin)) byCharacter.set(char, byCharacter.get(twin));
+  }
+  return byCharacter;
+}
+
+/** A glyph in the typeface format: advance, horizontal bounds and the outline string FontLoader reads. */
+function typefaceGlyph(glyph, resolution) {
+  const contours = normalizeGlyphContours(contoursFromCommands(glyph.path.commands));
+  const xs = contours.flatMap((contour) => [contour.start.x, ...contour.segments.map((segment) => segment.x)]);
+  return {
+    ha: Math.round(glyph.advanceWidth ?? resolution),
+    x_min: Math.round(glyph.xMin ?? (xs.length ? Math.min(...xs) : 0)),
+    x_max: Math.round(glyph.xMax ?? (xs.length ? Math.max(...xs) : 0)),
+    o: outlineString(contours),
+  };
 }
 
 async function main() {
-  const archive = await readFile(source);
-  const full = JSON.parse(unzipEntry(archive, "MPLUSRounded1c-Regular.typeface.json").toString("utf8"));
+  const bytes = await readFile(source);
+  const font = parse(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+  const resolution = font.unitsPerEm || 1000;
+  const byCharacter = glyphsByCharacter(font);
+  const english = (record) => record?.en ?? (record ? Object.values(record)[0] : undefined);
+  const fullName = english(font.names.fullName) ?? "Zen Maru Gothic Regular";
+  const head = font.tables.head;
+  const header = {
+    familyName: english(font.names.fontFamily) ?? "Zen Maru Gothic",
+    ascender: font.ascender,
+    descender: font.descender,
+    underlinePosition: font.tables.post?.underlinePosition ?? -100,
+    underlineThickness: font.tables.post?.underlineThickness ?? 50,
+    boundingBox: head ? { xMin: head.xMin, yMin: head.yMin, xMax: head.xMax, yMax: head.yMax } : { xMin: 0, yMin: font.descender, xMax: resolution, yMax: font.ascender },
+    resolution,
+  };
   const cut = (characters, note) => {
     const glyphs = {};
-    for (const char of characters) if (full.glyphs[char]) glyphs[char] = full.glyphs[char];
-    return { glyphs, json: JSON.stringify({ ...full, glyphs, original_font_information: { ...full.original_font_information, note } }) };
+    for (const char of characters) {
+      const glyph = byCharacter.get(char);
+      if (glyph) glyphs[char] = typefaceGlyph(glyph, resolution);
+    }
+    const information = { format: 0, fullName, license: english(font.names.license), note: `Subset by scripts/build-japanese-typeface.mjs: ${note}` };
+    return { glyphs, json: JSON.stringify({ glyphs, ...header, original_font_information: information }) };
   };
-  const base = cut(commonJapaneseCharacters(), "Subset by scripts/build-japanese-typeface.mjs: Latin, JIS X 0208 rows 1-8 and 16-47");
+  const base = cut(commonJapaneseCharacters(), "Latin, JIS X 0208 rows 1-8 and 16-47");
   const level2Characters = level2JapaneseCharacters();
-  const level2 = cut(level2Characters, "Subset by scripts/build-japanese-typeface.mjs: JIS X 0208 rows 48-84");
+  const level2 = cut(level2Characters, "JIS X 0208 rows 48-84");
   const hash = createHash("sha256").update(base.json).update(level2.json).digest("hex").slice(0, 12);
   // Other cuts go: the folders of earlier releases would only pile up.
   await mkdir(outRoot, { recursive: true });
@@ -77,8 +106,9 @@ async function main() {
   await writeFile(join(outRoot, "version.txt"), hash);
   const size = (json) => `${(json.length / 1024 / 1024).toFixed(2)} MB`;
   const count = (cutFont) => Object.keys(cutFont.glyphs).length;
-  console.log(`[japanese-typeface] base ${count(base)} glyphs, ${size(base.json)}; level2 ${count(level2)} glyphs, ${size(level2.json)} -> apps/web/public/fonts/japanese/${hash}/`);
-  console.log(`[japanese-typeface] ${level2Characters.length - count(level2)} of ${level2Characters.length} level-2 kanji are not in the source font`);
+  console.log(`[japanese-typeface] ${fullName}: base ${count(base)} glyphs, ${size(base.json)}; level2 ${count(level2)} glyphs, ${size(level2.json)} -> apps/web/public/fonts/japanese/${hash}/`);
+  const missing = level2Characters.length - count(level2);
+  if (missing > 0) console.log(`[japanese-typeface] ${missing} of ${level2Characters.length} level-2 kanji are not in the source font`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main();
