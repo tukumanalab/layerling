@@ -24,6 +24,7 @@ function run(args, extraEnvironment = {}) {
 }
 
 run(["scripts/copy-occt-wasm.mjs"]);
+run(["scripts/build-japanese-typeface.mjs"]);
 run(["scripts/build-guide.mjs"]);
 // Next.js 16 builds with Turbopack unless told otherwise. The CAD worker is
 // bundled by webpack, and the check below looks for its webpack runtime, so

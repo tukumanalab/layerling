@@ -1,4 +1,5 @@
 import type { ManifoldToplevel } from "manifold-3d";
+import { commonJapaneseCharacters, level2JapaneseCharacters } from "@/lib/japaneseText";
 import type { Font as OpentypeFont, Glyph as OpentypeGlyph, GsubSubtable, GsubTable } from "opentype.js";
 import type { FontData } from "three/examples/jsm/loaders/FontLoader.js";
 import { arabicLetterForms, lamAlefLigatures, shapeText } from "@/lib/arabicShaping";
@@ -25,7 +26,7 @@ import { sha256Hex } from "@/lib/projectAssets";
 export const CUSTOM_FONT_PREFIX = "custom:";
 /** Font files larger than this are refused: a full CJK font is well past it. */
 export const MAX_CUSTOM_FONT_BYTES = 40 * 1024 * 1024;
-/** Characters kept from one font; a font with more keeps the first ones by code point. */
+/** Characters kept from one font; a font with more keeps the common Japanese ones first, then the rest by code point. */
 export const MAX_CUSTOM_FONT_CHARACTERS = 8000;
 /** A glyph outline longer than this is refused when a design brings it along. */
 const MAX_GLYPH_OUTLINE_LENGTH = 400_000;
@@ -132,7 +133,11 @@ function pointInPolygon(point: Point, polygon: Point[]) {
   return inside;
 }
 
-/** The contours of a glyph from opentype.js's path commands, in font units with y up. */
+/**
+ * The contours of a glyph from opentype.js's path commands, in font units with y up. A line to the
+ * point the pen is already on is left out: opentype.js draws one after the move and after many
+ * curves of a TrueType outline, a quarter of all segments in Zen Maru Gothic, and it draws nothing.
+ */
 export function contoursFromCommands(commands: ReadonlyArray<{ type: string; x?: number; y?: number; x1?: number; y1?: number; x2?: number; y2?: number }>): Contour[] {
   const contours: Contour[] = [];
   let current: Contour | null = null;
@@ -144,6 +149,8 @@ export function contoursFromCommands(commands: ReadonlyArray<{ type: string; x?:
     } else if (!current) {
       continue;
     } else if (command.type === "L" && finite(command.x, command.y)) {
+      const pen = current.segments[current.segments.length - 1] ?? current.start;
+      if (pen.x === command.x && pen.y === command.y) continue;
       current.segments.push({ type: "L", x: command.x as number, y: command.y as number });
     } else if (command.type === "Q" && finite(command.x, command.y, command.x1, command.y1)) {
       current.segments.push({ type: "Q", x1: command.x1 as number, y1: command.y1 as number, x: command.x as number, y: command.y as number });
@@ -353,7 +360,15 @@ export async function typefaceFromFontFile(bytes: ArrayBuffer, fileName: string,
     }
   }
   addArabicForms(font, byCharacter);
-  const codes = [...byCharacter.keys()].sort((a, b) => a - b).slice(0, MAX_CUSTOM_FONT_CHARACTERS);
+  // By code point, a Japanese font would keep the first 8,000 characters and lose the common
+  // kanji that come late in the block (郎, 高, 鈴): level 1 comes first, then level 2, then the rest.
+  const common = commonJapaneseCharacters();
+  const level2 = new Set(level2JapaneseCharacters());
+  const rank = (code: number) => {
+    const char = String.fromCodePoint(code);
+    return common.has(char) ? 0 : level2.has(char) ? 1 : 2;
+  };
+  const codes = [...byCharacter.keys()].sort((a, b) => rank(a) - rank(b) || a - b).slice(0, MAX_CUSTOM_FONT_CHARACTERS);
   const glyphs: Record<string, TypefaceGlyph> = {};
   for (const code of codes) {
     const glyph = byCharacter.get(code);
