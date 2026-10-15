@@ -206,6 +206,10 @@ function loadEditorModule() {
     import("@/components/LayerlingEditor"),
     loadTextFonts(),
     loadStoredCustomFonts(),
+    // The 2D kernel builds the wider layers of a name tag and every text fill (#215); drawn before
+    // it is there, such a text stands as plain letters for a moment. It comes with the editor
+    // (0.6 MB, kept by the browser); should it fail, the editor opens and texts ask for it again.
+    import("@/lib/editorMeshCore").then((core) => core.getManifoldRuntime()).catch(() => undefined),
     // A Japanese interface means Japanese texts (a new name tag says 名前): the Japanese face is
     // awaited with the editor, so they are drawn with it and not with question marks first. The
     // browser keeps it, so only the first opening waits for it. Should it fail, the editor opens
