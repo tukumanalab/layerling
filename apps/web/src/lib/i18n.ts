@@ -110,6 +110,14 @@ export function getLanguage(): Language {
   return current;
 }
 
+/**
+ * The language asked for, which `getLanguage()` becomes once its sentences are there: a language
+ * fetched on demand, Japanese among them, is still being fetched while the editor starts.
+ */
+export function requestedLanguage(): Language {
+  return requested;
+}
+
 function applyLanguage(language: Language, persist: boolean) {
   if (language === current) return;
   current = language;

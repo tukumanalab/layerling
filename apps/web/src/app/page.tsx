@@ -16,7 +16,7 @@ import { loadStoredCustomFonts } from "@/lib/customFontStore";
 import { fetchServerDefaultTheme } from "@/lib/serverDefaults";
 import { applyAppTheme, getAppThemePreference, hasStoredAppTheme, readStoredAppTheme, resolveAppTheme, setAppTheme, storeAppTheme, subscribeToAppTheme, type AppThemePreference, type ResolvedAppTheme } from "@/lib/appTheme";
 import { hydrateEditorHistoryState, notesForHistoryIndex, type EditorHistoryEntry } from "@/lib/editorHistory";
-import { detectLanguage, getLanguage, setLanguage, t, translate, type Language } from "@/lib/i18n";
+import { detectLanguage, requestedLanguage, setLanguage, t, translate, type Language } from "@/lib/i18n";
 import { localizedError } from "@/lib/userErrors";
 import { WelcomeGuideBody } from "@/components/WelcomeGuide";
 import { InstallAppHint } from "@/components/InstallAppHint";
@@ -209,8 +209,9 @@ function loadEditorModule() {
     // A Japanese interface means Japanese texts (a new name tag says 名前): the Japanese face is
     // awaited with the editor, so they are drawn with it and not with question marks first. The
     // browser keeps it, so only the first opening waits for it. Should it fail, the editor opens
-    // without it and the texts fetch it again the moment one of them is drawn.
-    getLanguage() === "ja" ? loadJapaneseTypeface().catch(() => undefined) : undefined,
+    // without it and the texts fetch it again the moment one of them is drawn. The language asked
+    // for, as its own sentences may still be on their way while the editor starts.
+    requestedLanguage() === "ja" ? loadJapaneseTypeface().catch(() => undefined) : undefined,
   ])
     .then(([editorModule]) => editorModule)
     .catch((error) => {

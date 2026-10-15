@@ -64,7 +64,7 @@ import { createBentTubeGeometry, createBentTubeSegmentGeometry } from "@/lib/ben
 import { createThreadGeometry } from "@/lib/threadGeometry";
 import { createSpringGeometry } from "@/lib/springGeometry";
 import { textDisplayGeometry } from "@/lib/textFill";
-import { manifoldRevision } from "@/lib/manifoldHandle";
+import { manifoldRevision, onManifoldReady } from "@/lib/manifoldHandle";
 import { customFontRevision, onCustomFontsChanged } from "@/lib/textFonts";
 import { readDesignView, writeDesignView } from "@/lib/designView";
 import { DIMENSION_FORMULA_FIELDS, formulaMatchesMillimeters, formulaToRemember, withFieldFormula } from "@/lib/fieldFormulas";
@@ -3111,11 +3111,13 @@ export function WorkplaneViewport({
   } | null) | null>(null);
   const cruisePreviewRef = useRef<{ object: THREE.Group; shape: WorkplaneShape } | null>(null);
   const cruisePointerRef = useRef<{ x: number; y: number } | null>(null);
-  // A text is drawn with what its font has when it is built; a font that arrives later - the
-  // Japanese face a name tag's "名前" fetches, after a reload too - would leave it with question
-  // marks. The shapes on the plate and the ghost of a shape being placed are built again then.
-  const [fontRound, setFontRound] = useState(0);
-  useEffect(() => onCustomFontsChanged(() => setFontRound((round) => round + 1)), []);
+  // A text is drawn with what is there when it is built: a font that arrives later - the Japanese
+  // face a name tag's "名前" fetches, after a reload too - would leave it with question marks, and
+  // the 2D kernel arriving later would leave a name tag's wider layers as plain letters (#215).
+  // The shapes on the plate and the ghost of a shape being placed are built again then.
+  const [drawRound, setDrawRound] = useState(0);
+  useEffect(() => onCustomFontsChanged(() => setDrawRound((round) => round + 1)), []);
+  useEffect(() => onManifoldReady(() => setDrawRound((round) => round + 1)), []);
   cruiseAssetRef.current = cruiseAsset;
   const projectNameRef = useRef(projectName);
   const projectIdRef = useRef(projectId);
@@ -3486,7 +3488,7 @@ export function WorkplaneViewport({
       );
       threeRef.current.needsRender = true;
     }
-  }, [shapes, fontRound]);
+  }, [shapes, drawRound]);
 
   useEffect(() => {
     alignReferenceShapesRef.current = alignReferenceShapes;
@@ -4495,13 +4497,13 @@ export function WorkplaneViewport({
       if (cruisePreviewRef.current?.object === object) cruisePreviewRef.current = null;
       if (latest) latest.needsRender = true;
     };
-  }, [cruiseAsset, cruiseAsset ? workspace.shapeCustomizations[cruiseAsset.kind] : undefined, fontRound]);
+  }, [cruiseAsset, cruiseAsset ? workspace.shapeCustomizations[cruiseAsset.kind] : undefined, drawRound]);
 
   useEffect(() => {
     const pointer = cruisePointerRef.current;
     if (!cruiseAsset || !pointer) return;
     moveCruiseGhost(pointer.x, pointer.y);
-  }, [cruiseAsset, moveCruiseGhost, placementWorkplane, fontRound]);
+  }, [cruiseAsset, moveCruiseGhost, placementWorkplane, drawRound]);
 
   const storeTapeModel = useCallback((next: TapeModel) => {
     tapeModelRef.current = next;
