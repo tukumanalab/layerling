@@ -68,6 +68,7 @@ import { useFileAccept } from "@/lib/fileAccept";
 import { lylFileAccessSupported, onLylFilesLaunched, pickFilesToImport, rememberLylFile, type LylFileHandle } from "@/lib/lylFileAccess";
 import { exportLylProject, importLylProject, inspectLylProjectPackage, LYL_CREATED_WITH_VERSION, LYL_MEDIA_TYPE } from "@/lib/lylProject";
 import { backupDesignAlreadyThere, backupEntryPaths, backupFileName, backupFolderPaths, backupThumbnailPath, unpackBackupFolders, isBackupFileName, packBackup, unpackBackup, zipHoldsDesigns } from "@/lib/projectBackup";
+import { getWorkshopConfig, WorkshopClient } from "@/lib/workshopBridge";
 import { customShapesBackupEntries, restoreCustomShapesFromBackup } from "@/lib/myShapes";
 import { SHARED_PROJECTS_ENDPOINT } from "@/lib/sharedProjectsEndpoint";
 import { PICTURE_FILE_ACCEPT } from "@/lib/pictureIcon";
@@ -970,6 +971,10 @@ export default function Home() {
   projectsRef.current = projects;
   const [projectSaveFailure, setProjectSaveFailure] = useState<{ message: string; at: number } | null>(null);
   const editorLoadingStartedAtRef = useRef(0);
+  // Workshop mode (?workshop=1): the design lives on the workshop service, not on the overview.
+  const [workshop, setWorkshop] = useState<WorkshopClient | null>(null);
+  const [workshopLoadError, setWorkshopLoadError] = useState("");
+  const workshopStartedRef = useRef(false);
 
   // Warm the editor chunk once the dashboard is idle, so opening a project
   // does not wait for the download the first page load skipped.
@@ -1114,6 +1119,17 @@ export default function Home() {
       });
     }
 
+    const workshopConfig = getWorkshopConfig();
+    if (workshopConfig) {
+      const client = new WorkshopClient(workshopConfig);
+      // Listening from the start, so the page around the editor gets its acknowledgement even while the design loads.
+      client.attach(window);
+      setWorkshop(client);
+      startEditorTransition();
+      setView("editor");
+      setMounted(true);
+      return;
+    }
     const params = new URLSearchParams(window.location.search);
     if (params.has("codexBooleanCase") || params.get("editor") === "1") {
       const requestedProjectId = params.get("project");
@@ -1387,7 +1403,8 @@ export default function Home() {
     setActiveProjectId(projectId);
     setEditorStarted(true);
     setView("editor");
-    if (typeof window !== "undefined") {
+    // In workshop mode the address keeps its ?workshop=1 parameters, so a reload opens the same design.
+    if (typeof window !== "undefined" && !getWorkshopConfig()) {
       const nextUrl = withBasePath(projectId ? `/?editor=1&project=${encodeURIComponent(projectId)}` : "/?editor=1");
       window.history.replaceState(null, "", nextUrl);
     }
@@ -1677,6 +1694,27 @@ export default function Home() {
       void openLaunchedFileRef.current(file, undefined, handle).finally(() => { taken = false; });
     });
   }, [mounted]);
+
+  // Workshop mode: open the design named in the address (or a blank one) and go straight to the editor.
+  useEffect(() => {
+    if (!mounted || !workshop || workshopStartedRef.current) return;
+    workshopStartedRef.current = true;
+    void (async () => {
+      try {
+        const bytes = await workshop.loadProject();
+        if (!bytes) {
+          createAndOpenProject();
+          return;
+        }
+        const opened = await openLylProjectFromFile(new File([bytes as BlobPart], "design.lyl"));
+        if (!opened.ok) throw new Error(opened.message);
+      } catch (error) {
+        // Not a blank design instead: saving that over the real one would lose it.
+        setEditorLoading(false);
+        setWorkshopLoadError(error instanceof Error ? localizedError(error.message) : t("workshop.loadFailed"));
+      }
+    })();
+  }, [mounted, workshop]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openSharedProject = useCallback(async (sharedProject: SharedProject) => {
     setDashboardNotice(t("notice.openingShared", { name: sharedProject.name }));
@@ -2483,6 +2521,9 @@ export default function Home() {
   if (!mounted) {
     return <StaticIntro />;
   }
+  if (workshopLoadError) {
+    return <p role="alert" style={{ padding: 24 }}>{t("workshop.loadFailed")} {workshopLoadError}</p>;
+  }
 
   const activeProject = activeProjectId ? projects.find((project) => project.id === activeProjectId) ?? null : null;
   const activeProjectShapeEntry = activeProjectId ? projectShapesById[activeProjectId] : null;
@@ -2650,7 +2691,8 @@ export default function Home() {
               initialWorkspace={activeProject?.workspace ?? DEFAULT_WORKPLANE_WORKSPACE}
               initialPlacementElevation={activeProject?.placementElevation ?? 0}
               initialPlacementWorkplane={activeProject?.placementWorkplane}
-              onHome={openDashboard}
+              onHome={workshop ? undefined : openDashboard}
+              workshop={workshop}
               onOpenLylProjectFile={openLylProjectFromFile}
               onSaveSharedProject={saveActiveProjectToShared}
               serverFileName={activeProject?.sharedProject?.fileName ?? null}

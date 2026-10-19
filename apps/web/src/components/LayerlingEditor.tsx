@@ -3,7 +3,7 @@
 import { GuideHelpLink } from "@/components/GuideHelpLink";
 import { withBasePath } from "@/lib/basePath";
 import { ShapeMenuPanel } from "@/components/workplane/ShapeMenuPanel";
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Blend, Check, CircleHelp, Percent, Circle as CircleIcon, CloudUpload, Download, Eye, EyeOff, FilePlus2, FolderOpen, Hexagon as HexagonIcon, Info, ListTree, Pencil, Pentagon as PentagonIcon, Rotate3d, Route as RouteIcon, Search, Square as SquareIcon, Star as StarIcon, Triangle as TriangleIcon, X } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Blend, Check, CircleHelp, Percent, Circle as CircleIcon, CloudUpload, Download, Eye, EyeOff, FilePlus2, FolderOpen, Hexagon as HexagonIcon, Info, ListTree, Pencil, Pentagon as PentagonIcon, Rotate3d, Route as RouteIcon, Search, Square as SquareIcon, Star as StarIcon, Triangle as TriangleIcon, X, Save as SaveIcon } from "lucide-react";
 import { ObjectListPanel } from "@/components/workplane/ObjectListPanel";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useWheelField } from "@/lib/useWheelField";
@@ -182,6 +182,7 @@ import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { ThemeSwitch } from "@/components/ThemeSwitch";
 import { useFileAccept } from "@/lib/fileAccept";
 import { exportLylProject, importLylProject, LYL_CREATED_WITH_VERSION, LYL_MEDIA_TYPE } from "@/lib/lylProject";
+import { pngBlobFromDataUrl, type WorkshopClient, type WorkshopSaveHandlerResult } from "@/lib/workshopBridge";
 import { isBuildMessage, reportWorkerBuild } from "@/lib/buildStamp";
 import {
   ensureLylFileWritable,
@@ -2406,6 +2407,7 @@ export function LayerlingEditor({
   initialPlacementElevation = 0,
   initialPlacementWorkplane,
   onHome,
+  workshop = null,
   onOpenLylProjectFile,
   onSaveSharedProject,
   serverFileName = null,
@@ -2436,6 +2438,8 @@ export function LayerlingEditor({
   initialPlacementElevation?: number;
   initialPlacementWorkplane?: PlacementWorkplane;
   onHome?: (leaving: { itemCount: number }) => void;
+  /** Workshop mode: Save (Ctrl+S) goes to the workshop service instead of a file. */
+  workshop?: WorkshopClient | null;
   onOpenLylProjectFile?: (file: File, shared?: undefined, fileHandle?: LylFileHandle) => Promise<{ ok: boolean; message: string } | void> | { ok: boolean; message: string } | void;
   onSaveSharedProject?: (request: { exportName: string; bytes: Uint8Array; thumbnailDataUrl: string; targetFileName?: string }) => Promise<string>;
   /** Set while the open project came from the server; then it saves back there by itself. */
@@ -11085,9 +11089,81 @@ export function LayerlingEditor({
     }
   }, [onSaveSharedProject, placementElevation, placementWorkplane, projectCreatedAt, projectModifiedAt, projectName, lylExporting, snapGrid]);
 
+  /**
+   * Workshop mode: the design as a .lyl with the current state only (no undo history, which can
+   * be most of a file's size) plus its card picture, to the workshop service. `explicit` is a click
+   * or Ctrl+S; the page asking before it closes only saves when something changed.
+   */
+  const [workshopSaving, setWorkshopSaving] = useState(false);
+  const workshopSavedRef = useRef<{ projectId: string | null; fingerprint: string } | null>(null);
+  const workshopSaveChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  const saveToWorkshop = (explicit: boolean): Promise<WorkshopSaveHandlerResult> => {
+    const run = async (): Promise<WorkshopSaveHandlerResult> => {
+      if (!workshop || workshop.config.readonly) return { ok: true, saved: false };
+      const fingerprint = projectSceneFingerprint(shapesRef.current, notesRef.current);
+      if (!explicit && workshopSavedRef.current?.fingerprint === fingerprint) return { ok: true, saved: false };
+      if (explicit && projectInteractionActiveRef.current) {
+        setNotice(t("status.finishBeforeSave"));
+        return { ok: false, saved: false };
+      }
+      setWorkshopSaving(true);
+      setNotice(t("workshop.saving"), true);
+      try {
+        const thumbnail = pngBlobFromDataUrl(await (window.layerlingCaptureCanvasAsync?.() ?? Promise.resolve("")));
+        const history = editorHistoryForExport(historyRef.current, historyIndexRef.current, 0);
+        const bytes = await exportLylProject({
+          projectId: projectInfoRef.current.projectId,
+          projectName,
+          createdAt: projectCreatedAt,
+          modifiedAt: Date.now(),
+          shapes: shapesRef.current,
+          notes: notesRef.current,
+          history: history.entries,
+          historyIndex: history.index,
+          assets: projectAssetsRef.current,
+          workspace: workspaceSettingsRef.current,
+          snapGrid,
+          placementElevation,
+          placementWorkplane,
+          sketchPlacementWorkplane: placementWorkplane,
+        });
+        await workshop.save({ bytes, thumbnail, title: projectName });
+        workshopSavedRef.current = { projectId: projectInfoRef.current.projectId ?? null, fingerprint };
+        setNotice(t("workshop.saved"));
+        return { ok: true, saved: true };
+      } catch (error) {
+        setNotice(`${t("workshop.saveFailed")} ${error instanceof Error ? localizedError(error.message) : ""}`.trim(), true);
+        return { ok: false, saved: false };
+      } finally {
+        setWorkshopSaving(false);
+      }
+    };
+    const result = workshopSaveChainRef.current.then(run, run);
+    workshopSaveChainRef.current = result;
+    return result;
+  };
+  const saveToWorkshopRef = useRef(saveToWorkshop);
+  saveToWorkshopRef.current = saveToWorkshop;
+  useEffect(() => {
+    if (!workshop) return;
+    workshop.setSaveHandler(() => saveToWorkshopRef.current(false));
+    return () => workshop.setSaveHandler(null);
+  }, [workshop]);
+  useEffect(() => {
+    if (!workshop) return;
+    // What the design looked like when it opened counts as saved.
+    if (workshopSavedRef.current?.projectId !== (projectId ?? null)) {
+      workshopSavedRef.current = { projectId: projectId ?? null, fingerprint: projectSceneFingerprint(shapes, notes) };
+    }
+  }, [notes, projectId, shapes, workshop]);
+
   /** Ctrl+S: into the file the design is tied to; the first time it asks for one (#251). */
   const saveDesignRef = useRef<() => void>(() => undefined);
   saveDesignRef.current = () => {
+    if (workshop) {
+      if (!workshop.config.readonly) void saveToWorkshopRef.current(true);
+      return;
+    }
     void exportLylDesign(projectName, workspaceSettingsRef.current.historyLimit, lylFileAccessSupported() ? "file" : "download");
   };
 
@@ -12250,6 +12326,8 @@ export function LayerlingEditor({
         onSketchFinish={finishSketch}
         onSketchCancel={cancelSketch}
         onHome={onHome ? leaveToDashboard : undefined}
+        onWorkshopSave={workshop && !workshop.config.readonly ? () => void saveToWorkshop(true) : undefined}
+        workshopSaving={workshopSaving}
         onAlign={toggleAlignMode}
         onChamfer={() => edgeModifier?.kind === "chamfer" || edgeModifier?.kind === "chamfillet" ? cancelEdgeModifier() : startEdgeModifier("chamfer")}
         onCopy={copySelected}
@@ -13223,6 +13301,8 @@ function SecondaryToolbar({
   onSketchFinish,
   onSketchCancel,
   onHome,
+  onWorkshopSave,
+  workshopSaving,
   onAlign,
   onChamfer,
   onCopy,
@@ -13347,6 +13427,8 @@ function SecondaryToolbar({
   onSketchFinish: () => void;
   onSketchCancel: () => void;
   onHome?: () => void;
+  onWorkshopSave?: () => void;
+  workshopSaving?: boolean;
   onAlign: () => void;
   onChamfer: () => void;
   onCopy: () => void;
@@ -13844,6 +13926,18 @@ function SecondaryToolbar({
             <div className="toolbar-section-tools">
               <button className="toolbar-icon editor-home-control" aria-label={t("editor.homeDashboard")} title={t("editor.homeDashboard")} onClick={onHome}>
                 <ToolbarHomeIcon />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {onWorkshopSave ? (
+        <div className="tool-group editor-nav-group">
+          <div className="toolbar-section" data-group="workshop-save">
+            <div className="toolbar-section-label">{t("common.save")}</div>
+            <div className="toolbar-section-tools">
+              <button className="toolbar-icon editor-workshop-save" aria-label={t("common.save")} title={`${t("common.save")} (Ctrl+S)`} disabled={workshopSaving} onClick={onWorkshopSave}>
+                <SaveIcon size={20} />
               </button>
             </div>
           </div>
