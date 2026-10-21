@@ -1,12 +1,18 @@
 "use client";
 
-import { Download, WifiOff, X } from "lucide-react";
+import { Download, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { t, type MessageKey } from "@/lib/i18n";
-import { installHintKey } from "@/lib/installHint";
+import { installHintKey, installHintSnoozed } from "@/lib/installHint";
+import { offlineAvailable } from "@/lib/offlineSupport";
 import { useLanguage } from "@/lib/useLanguage";
 
 const DISMISSED_KEY = "layerling.installHintDismissed";
+const SNOOZED_KEY = "layerling.installHintSnoozed";
+/** Set once layerling has run as an installed app or the browser reported the installation: from then on this browser stays quiet, also in an ordinary tab. */
+const INSTALLED_KEY = "layerling.installedApp";
+/** In the editor the card waits this long, so it does not meet someone who has just started. */
+const EDITOR_DELAY_MS = 30_000;
 
 type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
@@ -23,21 +29,35 @@ function runsAsInstalledApp() {
 }
 
 /**
- * A strip on the start page: layerling can be installed as an app and then
- * starts without internet. Shown only where both work - https with service
- * workers - so the plain-http home server never promises what it cannot do;
- * never inside the installed app itself, and gone for good once dismissed.
+ * A card on the start page that recommends installing layerling as an app: it
+ * starts faster, works without internet and need not be loaded again each time,
+ * and the update notice still reaches the person. Shown only where both work -
+ * https with service workers - so the plain-http home server never promises what
+ * it cannot do; never inside the installed app itself, and not in a browser tab either once the app has been installed on this computer. "Not now" hides it for two
+ * weeks, the cross for good.
  */
-export function InstallAppHint() {
+export function InstallAppHint({ variant = "dashboard" }: { variant?: "dashboard" | "editor" }) {
   useLanguage();
   const [visible, setVisible] = useState(false);
   const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
   const [fallbackKey, setFallbackKey] = useState<MessageKey>("installHint.chromium");
 
   useEffect(() => {
-    if (!window.isSecureContext || !("serviceWorker" in navigator) || runsAsInstalledApp()) return;
+    // Only where layerling really keeps itself for offline use: not in a build without a service worker, such as the Docker image.
+    if (!offlineAvailable()) return;
+    if (runsAsInstalledApp()) {
+      // Chromium and Safari keep the storage of the app and of the browser's tabs together, so the app leaves a note for them.
+      try {
+        window.localStorage.setItem(INSTALLED_KEY, "1");
+      } catch {
+        // nothing to remember it in
+      }
+      return;
+    }
     try {
+      if (window.localStorage.getItem(INSTALLED_KEY) === "1") return;
       if (window.localStorage.getItem(DISMISSED_KEY) === "1") return;
+      if (installHintSnoozed(window.localStorage.getItem(SNOOZED_KEY), Date.now())) return;
     } catch {
       // Storage blocked: show the hint, it just cannot remember being closed.
     }
@@ -47,10 +67,26 @@ export function InstallAppHint() {
       if (runsAsInstalledApp()) setVisible(false);
     };
     sync();
-    setVisible(true);
+    // On the start page it stands there at once; in the editor it comes after someone has worked a while,
+    // and floats above the work area until it is answered.
+    const timer = variant === "editor" ? window.setTimeout(() => setVisible(true), EDITOR_DELAY_MS) : null;
+    if (variant !== "editor") setVisible(true);
+    const installed = () => {
+      setVisible(false);
+      try {
+        window.localStorage.setItem(INSTALLED_KEY, "1");
+      } catch {
+        // nothing to remember it in
+      }
+    };
     window.addEventListener("layerling-install-prompt", sync);
-    return () => window.removeEventListener("layerling-install-prompt", sync);
-  }, []);
+    window.addEventListener("appinstalled", installed);
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+      window.removeEventListener("layerling-install-prompt", sync);
+      window.removeEventListener("appinstalled", installed);
+    };
+  }, [variant]);
 
   if (!visible) return null;
 
@@ -58,6 +94,15 @@ export function InstallAppHint() {
     setVisible(false);
     try {
       window.localStorage.setItem(DISMISSED_KEY, "1");
+    } catch {
+      // nothing to remember it in
+    }
+  };
+
+  const later = () => {
+    setVisible(false);
+    try {
+      window.localStorage.setItem(SNOOZED_KEY, String(Date.now()));
     } catch {
       // nothing to remember it in
     }
@@ -73,23 +118,28 @@ export function InstallAppHint() {
   };
 
   return (
-    <aside className="install-app-hint" aria-label={t("installHint.title")}>
+    <section className={variant === "editor" ? "install-app-hint install-app-hint-floating" : "install-app-hint"} aria-label={t("installHint.title")}>
       <span className="install-app-hint-icon" aria-hidden="true">
-        <WifiOff size={20} strokeWidth={2.4} />
+        <Download size={24} strokeWidth={2.4} />
       </span>
       <div className="install-app-hint-text">
         <strong>{t("installHint.title")}</strong>
         <span>{t("installHint.body")} {prompt ? null : t(fallbackKey)}</span>
       </div>
-      {prompt ? (
-        <button className="install-app-hint-button" type="button" onClick={install}>
-          <Download size={16} strokeWidth={2.6} />
-          <span>{t("installHint.install")}</span>
+      <div className="install-app-hint-actions">
+        {prompt ? (
+          <button className="install-app-hint-button" type="button" onClick={install}>
+            <Download size={16} strokeWidth={2.6} />
+            <span>{t("installHint.install")}</span>
+          </button>
+        ) : null}
+        <button className="install-app-hint-later" type="button" onClick={later}>
+          {t("installHint.later")}
         </button>
-      ) : null}
+      </div>
       <button className="install-app-hint-close" type="button" aria-label={t("installHint.dismiss")} title={t("installHint.dismiss")} onClick={dismiss}>
         <X size={16} />
       </button>
-    </aside>
+    </section>
   );
 }

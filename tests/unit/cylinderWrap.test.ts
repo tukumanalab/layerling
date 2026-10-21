@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { wrapMeshAroundCylinder, type CylinderWrapInput } from "@/lib/cylinderWrap";
+import { CYLINDER_WRAP_INWARD_OVERSHOOT_MM, wrapMeshAroundCylinder, type CylinderWrapInput } from "@/lib/cylinderWrap";
 import { validateClosedSolidTriangleSoup } from "@/lib/svgImport";
 
 /** A closed box lying on the plate, faces wound outward. */
@@ -71,7 +71,8 @@ describe("wrapping a flat body around a cylinder (#106)", () => {
     const radii: number[] = [];
     for (let i = 0; i < result.positions.length; i += 3) radii.push(Math.hypot(result.positions[i], result.positions[i + 2]));
     expect(Math.min(...radii)).toBeCloseTo(22, 6);
-    expect(Math.max(...radii)).toBeCloseTo(25, 6);
+    // The outside reaches a little over the wall, so that a hole cuts through the facets of a cylinder (#578).
+    expect(Math.max(...radii)).toBeCloseTo(25 + CYLINDER_WRAP_INWARD_OVERSHOOT_MM, 6);
     expect(result.outerRadius).toBeCloseTo(25, 6);
   });
 

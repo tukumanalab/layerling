@@ -14,6 +14,7 @@ import { createSlotGeometry } from "@/lib/slotGeometry";
 import { createDovetailGeometry } from "@/lib/dovetailGeometry";
 import { createLoftGeometry } from "@/lib/loftGeometry";
 import { createHingeGeometry } from "@/lib/hingeGeometry";
+import { createGridfinityGeometry } from "@/lib/gridfinityGeometry";
 import { createKnurlGeometry } from "@/lib/knurlGeometry";
 import { createTeardropGeometry } from "@/lib/teardropGeometry";
 import { createScrewHoleGeometry } from "@/lib/screwHoleGeometry";
@@ -30,7 +31,7 @@ import { textDisplayGeometry } from "@/lib/textFill";
 import { rememberManifoldRuntime, setManifoldLoader } from "@/lib/manifoldHandle";
 import { meshForTwist, twistBandCount } from "@/lib/heightSlices";
 import { groupedContentScale, scaleGroupedVertices } from "@/lib/groupScale";
-import { meshYawDegrees, mirroredAxisCount, mirrorSign, resizedImportedMeshPositions, shapeDepth, shapeExtrudeDeformAt, shapeHasExtrudeDeform, shapeHasTaper, shapeTaperScaleAt, shapeWidth } from "@/lib/workplaneShapes";
+import { deformsAboutOrigin, meshYawDegrees, mirroredAxisCount, mirrorSign, resizedImportedMeshPositions, shapeDepth, shapeExtrudeDeformAt, shapeHasExtrudeDeform, shapeHasTaper, shapeTaperScaleAt, shapeWidth } from "@/lib/workplaneShapes";
 import type { WorkplaneShape } from "@/types/layerling";
 
 export type Vec3 = [number, number, number];
@@ -134,6 +135,11 @@ export function transformMesh(mesh: MeshData, shape: WorkplaneShape): MeshData {
     });
     deformCenterX = (minX + maxX) / 2;
     deformCenterZ = (minZ + maxZ) / 2;
+    // A star turns about its own middle, not about the middle of its box (#476).
+    if (deformsAboutOrigin(shape.kind)) {
+      deformCenterX = 0;
+      deformCenterZ = 0;
+    }
   }
   const taperHeight = Math.max(1e-6, maxLocalY - minLocalY);
   // A twist needs vertices partway up to turn: cut the mesh into bands first, as the viewport does (#184).
@@ -451,6 +457,7 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
       break;
     case "counterbore":
     case "countersink":
+    case "doubleCountersink":
       geometry = createScrewHoleGeometry({ kind: shape.kind, width, depth, height, screwHoleShaft: shape.screwHoleShaft, screwHoleHeadDepth: shape.screwHoleHeadDepth, screwHoleAngle: shape.screwHoleAngle, sides: roundSideCount(shape.sides, width, depth) });
       break;
     case "teardrop":
@@ -468,7 +475,49 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         hingePinDiameter: shape.hingePinDiameter,
         hingeLeafThickness: shape.hingeLeafThickness,
         hingeClearance: shape.hingeClearance,
+        hingePinless: shape.hingePinless,
         sides: shape.sides,
+      });
+      break;
+    case "gridfinity":
+      geometry = createGridfinityGeometry({
+        width,
+        depth,
+        height,
+        gridfinityType: shape.gridfinityType,
+        gridfinityLip: shape.gridfinityLip,
+        gridfinityMagnets: shape.gridfinityMagnets,
+        gridfinityHalfGrid: shape.gridfinityHalfGrid,
+        gridfinityLabelBack: shape.gridfinityLabelBack,
+        gridfinityLabelFront: shape.gridfinityLabelFront,
+        gridfinityLabelLeft: shape.gridfinityLabelLeft,
+        gridfinityLabelRight: shape.gridfinityLabelRight,
+        gridfinityLabelBackWidth: shape.gridfinityLabelBackWidth,
+        gridfinityLabelBackLength: shape.gridfinityLabelBackLength,
+        gridfinityLabelBackOffset: shape.gridfinityLabelBackOffset,
+        gridfinityLabelFrontWidth: shape.gridfinityLabelFrontWidth,
+        gridfinityLabelFrontLength: shape.gridfinityLabelFrontLength,
+        gridfinityLabelFrontOffset: shape.gridfinityLabelFrontOffset,
+        gridfinityLabelLeftWidth: shape.gridfinityLabelLeftWidth,
+        gridfinityLabelLeftLength: shape.gridfinityLabelLeftLength,
+        gridfinityLabelLeftOffset: shape.gridfinityLabelLeftOffset,
+        gridfinityLabelRightWidth: shape.gridfinityLabelRightWidth,
+        gridfinityLabelRightLength: shape.gridfinityLabelRightLength,
+        gridfinityLabelRightOffset: shape.gridfinityLabelRightOffset,
+        gridfinityLabelCorner: shape.gridfinityLabelCorner,
+        gridfinityLabelCornerSize: shape.gridfinityLabelCornerSize,
+        gridfinityScoopBack: shape.gridfinityScoopBack,
+        gridfinityScoopFront: shape.gridfinityScoopFront,
+        gridfinityScoopLeft: shape.gridfinityScoopLeft,
+        gridfinityScoopRight: shape.gridfinityScoopRight,
+        gridfinityScoopRadius: shape.gridfinityScoopRadius,
+        gridfinityFloorHeight: shape.gridfinityFloorHeight,
+        gridfinityCompartmentsX: shape.gridfinityCompartmentsX,
+        gridfinityCompartmentsZ: shape.gridfinityCompartmentsZ,
+        gridfinityDividerThickness: shape.gridfinityDividerThickness,
+        gridfinityDividerPositionsX: shape.gridfinityDividerPositionsX,
+        gridfinityDividerPositionsZ: shape.gridfinityDividerPositionsZ,
+        gridfinityCompartmentLabels: shape.gridfinityCompartmentLabels,
       });
       break;
     case "loft":
@@ -549,6 +598,8 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         threadClearance: shape.threadClearance,
         threadBoltClearance: shape.threadBoltClearance,
         threadAxialClearance: shape.threadAxialClearance,
+        threadDepth: shape.threadDepth,
+        threadFlankAngle: shape.threadFlankAngle,
         threadQuality: shape.threadQuality,
         threadHeadHeight: shape.threadHeadHeight,
         threadChamfer: shape.threadChamfer,
@@ -591,6 +642,20 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
   }
 
   return geometry ? bufferGeometryToMeshData(sanitizeName(shape.name), geometry) : null;
+}
+
+/**
+ * How far a mesh reaches along a direction: the largest dot product of its vertices with it,
+ * -Infinity for none. A loop, because spreading a big import's vertices into Math.max overflows
+ * the call stack (about 100,000 values).
+ */
+export function meshReachAlong(mesh: Pick<MeshData, "vertices">, direction: { x: number; y: number; z: number }) {
+  let reach = -Infinity;
+  for (const [x, y, z] of mesh.vertices) {
+    const along = x * direction.x + y * direction.y + z * direction.z;
+    if (along > reach) reach = along;
+  }
+  return reach;
 }
 
 export function meshForShape(shape: WorkplaneShape): MeshData {

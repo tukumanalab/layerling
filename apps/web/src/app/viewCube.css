@@ -1,0 +1,276 @@
+/* The view cube's styles, kept apart from globals.css. layout.tsx imports
+   this file after globals.css; the rules that moved here are the cube's own,
+   so the order changes nothing for anything else.
+   scripts/generate-graphite-theme.mjs reads it after globals.css. */
+
+/* The placeholder cube of the loading screen. */
+.editor-loading-view-cube {
+  position: absolute;
+  top: 22px;
+  left: 28px;
+  z-index: 2;
+  width: 82px;
+  height: 82px;
+}
+
+.editor-loading-view-cube span {
+  position: absolute;
+  border-radius: 5px;
+}
+
+.editor-loading-cube-top {
+  top: 3px;
+  left: 13px;
+  width: 56px;
+  height: 39px;
+  clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%);
+}
+
+.editor-loading-cube-left {
+  top: 28px;
+  left: 9px;
+  width: 35px;
+  height: 48px;
+  clip-path: polygon(0 0, 100% 21%, 100% 100%, 0 79%);
+}
+
+.editor-loading-cube-right {
+  top: 28px;
+  left: 44px;
+  width: 35px;
+  height: 48px;
+  clip-path: polygon(0 21%, 100% 0, 100% 79%, 0 100%);
+}
+
+.view-cube {
+  position: absolute;
+  top: 22px;
+  /* Flush with the camera controls below it, so the left edge of the stage
+     reads as one column instead of two slightly different indents. */
+  left: 10px;
+  /* Above the movable object list (10), which passes underneath. */
+  z-index: 11;
+  width: 82px;
+  height: 82px;
+  perspective: 420px;
+  color: #afa294;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  filter: drop-shadow(0 2px 3px rgba(82, 64, 45, 0.14));
+  opacity: 0.9;
+  pointer-events: auto;
+  /* Touch drags orbit the camera instead of scrolling the page. */
+  touch-action: none;
+}
+
+.view-cube.dragging,
+.view-cube.dragging .cube-face {
+  cursor: grabbing;
+}
+
+.view-cube-inner {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  margin: 12px;
+  transform-style: preserve-3d;
+  transition: transform 80ms linear;
+  will-change: transform;
+}
+
+.cube-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #d7cdc3;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  backface-visibility: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+}
+
+.cube-face:hover,
+.cube-face:focus-visible {
+  color: #796148;
+  border-color: #b68f65;
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 0 0 2px rgba(185, 118, 46, 0.18);
+}
+
+.cube-top {
+  transform: rotateX(-90deg) translateZ(29px);
+  background: rgba(252, 250, 248, 0.94);
+}
+
+.cube-bottom {
+  transform: rotateX(90deg) translateZ(29px);
+  color: #bcb1a6;
+  background: rgba(247, 243, 238, 0.9);
+}
+
+.cube-front {
+  transform: translateZ(29px);
+  color: #a49686;
+}
+
+.cube-back {
+  transform: rotateY(180deg) translateZ(29px);
+  color: #bcb1a6;
+}
+
+.cube-right {
+  transform: rotateY(90deg) translateZ(29px);
+}
+
+.cube-left {
+  transform: rotateY(-90deg) translateZ(29px);
+}
+
+/* The bands along a face's sides and its corners look from that edge or corner (#202). */
+.cube-zone {
+  position: absolute;
+  cursor: pointer;
+}
+
+.cube-zone:hover {
+  background: rgba(185, 118, 46, 0.26);
+}
+
+/* A narrow window: the cube shrinks a little and moves closer to the edge. */
+@media (max-width: 640px) {
+  .view-cube {
+    left: 6px;
+    transform: scale(0.82);
+    transform-origin: top left;
+  }
+}
+
+/* A flat window: the cube shrinks so the camera controls below it fit. */
+@media (max-height: 780px) {
+  .view-cube {
+    transform: scale(0.8);
+    transform-origin: top left;
+  }
+}
+
+html[data-theme="dark"] .cube-face {
+  color: #c1a991;
+  background: rgba(56, 44, 31, 0.94);
+  border-color: #736353;
+  box-shadow: inset 0 0 0 1px rgba(221, 198, 173, 0.08);
+}
+
+html[data-theme="dark"] .cube-top {
+  color: #eee6d7;
+  background: rgba(70, 56, 42, 0.96);
+}
+
+html[data-theme="dark"] .cube-bottom {
+  color: #8c7761;
+  background: rgba(42, 32, 21, 0.94);
+}
+
+html[data-theme="dark"] .cube-face:hover,
+html[data-theme="dark"] .cube-face:focus-visible {
+  color: #faf7f2;
+  border-color: #d48636;
+  box-shadow: inset 0 0 0 1px rgba(218, 141, 57, 0.2), 0 0 0 2px rgba(199, 122, 40, 0.16);
+}
+
+html[data-theme="dark"] .cube-zone:hover {
+  background: rgba(212, 134, 54, 0.34);
+}
+
+/* ---------------------------------------------------------------------------
+   The cube's corner (Settings > View cube position, lib/viewCubePosition.ts).
+   Top left is the plain stylesheet and carries no attribute. In any other
+   corner the camera controls move up into the spot the cube left.
+   A phone-wide window has no room for it: the setting is hidden there and the
+   cube stays in the top left.
+   ------------------------------------------------------------------------- */
+@media (min-width: 641px) {
+  html[data-view-cube-position] .camera-controls {
+    top: 22px;
+  }
+
+  html[data-view-cube-position="top-right"] .view-cube,
+  html[data-view-cube-position="bottom-right"] .view-cube {
+    right: 10px;
+    left: auto;
+  }
+
+  html[data-view-cube-position="bottom-left"] .view-cube,
+  html[data-view-cube-position="bottom-right"] .view-cube {
+    top: auto;
+    bottom: 12px;
+  }
+
+  /* Bottom right stands on the snap grid control (bottom 11px, 22px tall). */
+  html[data-view-cube-position="bottom-right"] .view-cube {
+    bottom: 36px;
+  }
+
+  /* The smaller cube of a narrow or flat window shrinks toward its own corner. */
+  html[data-view-cube-position="top-right"] .view-cube {
+    transform-origin: top right;
+  }
+
+  html[data-view-cube-position="bottom-left"] .view-cube {
+    transform-origin: bottom left;
+  }
+
+  html[data-view-cube-position="bottom-right"] .view-cube {
+    transform-origin: bottom right;
+  }
+
+  /* The snap menu opens upward, over the cube rather than under it. */
+  html[data-view-cube-position="bottom-right"] .grid-settings {
+    z-index: 12;
+  }
+
+  /* The docked inspector covers the right edge, so a cube there steps left of
+     it. A minimized inspector covers only the top. */
+  html[data-view-cube-position="top-right"] .workplane-stage:has(.shape-inspector:not(.floating)) .view-cube,
+  html[data-view-cube-position="bottom-right"] .workplane-stage:has(.shape-inspector:not(.floating):not(.minimized)) .view-cube {
+    right: 330px;
+  }
+
+  /* The loading screen shows the cube and the controls where they will be. */
+  html[data-view-cube-position] .editor-loading-viewport-controls {
+    top: 75px;
+  }
+
+  html[data-view-cube-position="top-right"] .editor-loading-view-cube,
+  html[data-view-cube-position="bottom-right"] .editor-loading-view-cube {
+    right: 28px;
+    left: auto;
+  }
+
+  html[data-view-cube-position="bottom-left"] .editor-loading-view-cube {
+    top: auto;
+    bottom: 12px;
+  }
+
+  html[data-view-cube-position="bottom-right"] .editor-loading-view-cube {
+    top: auto;
+    bottom: 36px;
+  }
+}
+
+@media (max-width: 640px) {
+  .view-cube-position-setting {
+    display: none;
+  }
+}

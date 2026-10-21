@@ -5,9 +5,11 @@ import { importedShapesFromObj } from "@/lib/objImport";
 import { attachProjectAsset, projectAssetFromBytes, sourceFormatForFileName } from "@/lib/projectAssets";
 import { importedShapeFromStl } from "@/lib/stlImport";
 import { readKeepSvgPage } from "@/lib/importPreferences";
-import { importedShapeFromSvgWithReport } from "@/lib/svgImport";
+import { scaleSvgText } from "@/lib/svgScale";
+import { importedShapeFromSvgWithReport, prepareSvgImport } from "@/lib/svgImport";
 import { importedShapesFrom3mf } from "@/lib/threemfImport";
 import { sketchProfileFromSvg } from "@/lib/svgSketch";
+import { importedPictureSvg, isPictureFile, svgEmbeddedPicture } from "@/lib/pictureIcon";
 import type { ProjectAsset, SketchProfile, WorkplaneShape } from "@/types/layerling";
 
 /**
@@ -76,6 +78,8 @@ export async function importModelFiles(
     svgAsSketch?: (mesh: WorkplaneShape, profile: SketchProfile) => Promise<WorkplaneShape | null>;
     /** An SVG keeps its place on its drawing page, so files of one page line up (#258). Left out: the setting in the import window. */
     svgKeepPagePosition?: boolean;
+    /** An SVG or a picture comes in at this width in mm, scaled from its own size (#448). Null or left out: its own size. */
+    svgWidth?: number | null;
   } = {},
 ): Promise<ModelImportResult | null> {
   const prepared = await prepareImportFiles(selected);
@@ -98,7 +102,9 @@ export async function importModelFiles(
     const file = files[index];
     if (options.cancelled?.()) return null;
 
-    const sourceFormat = sourceFormatForFileName(file.name) ?? (file.type === "image/svg+xml" ? "svg" : null);
+    // A PNG or JPG comes in traced into an outline, as an SVG (#359).
+    const isPicture = isPictureFile(file);
+    const sourceFormat = isPicture ? "svg" : sourceFormatForFileName(file.name) ?? (file.type === "image/svg+xml" ? "svg" : null);
     const isStep = sourceFormat === "step";
     const isObj = sourceFormat === "obj";
     const isSvg = sourceFormat === "svg";
@@ -110,7 +116,10 @@ export async function importModelFiles(
 
     options.onProgress?.(index, files.length, file, isStep);
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
+      let bytes = new Uint8Array(await file.arrayBuffer());
+      // The project keeps a traced picture as the SVG of its outline.
+      let assetName = file.name;
+      let assetType = file.type;
       const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
       let shape: WorkplaneShape;
       // Eine farbige OBJ oder 3MF wird zu einem Koerper je Farbe, eine 3MF mit
@@ -121,6 +130,7 @@ export async function importModelFiles(
           ? importedShapesFromObj(file.name, new TextDecoder().decode(bytes), prepared.mtlSources)
           : importedShapesFrom3mf(file.name, buffer);
         if ("missingMaterialColors" in colored && colored.missingMaterialColors) result.notes.push(t("status.importObjNoMtl", { name: file.name }));
+        if ("droppedVertexColors" in colored && colored.droppedVertexColors) result.notes.push(t("status.importObjVertexColors", { name: file.name }));
         if ("painted" in colored && colored.painted > 0) result.notes.push(t("status.import3mfPainted", { name: file.name }));
         if (colored.split) {
           result.shapes.push(...colored.shapes);
@@ -134,10 +144,33 @@ export async function importModelFiles(
         const { importedShapeFromStep } = await import("@/lib/stepImport");
         shape = await importedShapeFromStep(file.name, buffer);
       } else if (isSvg) {
-        const text = new TextDecoder().decode(bytes);
+        let text = isPicture ? await importedPictureSvg(file) : new TextDecoder().decode(bytes);
+        const embedded = isPicture ? null : svgEmbeddedPicture(text);
+        if (embedded) text = await importedPictureSvg(embedded);
+        const traced = isPicture || Boolean(embedded);
+        if (traced) {
+          bytes = new TextEncoder().encode(text);
+          assetName = `${file.name.replace(/\.[^.]+$/, "")}.svg`;
+          assetType = "image/svg+xml";
+        }
         // The mesh lies mirrored top to bottom - turned up out of the drawing - and older designs
         // rebuild it so from their file. A new import mirrors it back to read right from above (#197).
-        const svg = importedShapeFromSvgWithReport(file.name, text, { keepPagePosition: options.svgKeepPagePosition ?? readKeepSvgPage() });
+        // A traced picture has no page of its own to keep.
+        await prepareSvgImport();
+        const keepPagePosition = !traced && (options.svgKeepPagePosition ?? readKeepSvgPage());
+        let svg = importedShapeFromSvgWithReport(file.name, text, { keepPagePosition });
+        // A width typed in the import window scales the drawing before the sketch of its outlines is read,
+        // so the body and its sketch agree; the file stored with the design is the scaled one too.
+        const wishedWidth = options.svgWidth;
+        if (wishedWidth && wishedWidth > 0 && svg.shape.width > 1e-6) {
+          const scaled = scaleSvgText(text, wishedWidth / svg.shape.width);
+          if (scaled !== text) {
+            text = scaled;
+            bytes = new TextEncoder().encode(text);
+            assetType = "image/svg+xml";
+            svg = importedShapeFromSvgWithReport(file.name, text, { keepPagePosition });
+          }
+        }
         shape = { ...svg.shape, mirrorZ: true };
         if (svg.pageKept === false) result.notes.push(t("status.importSvgNoPage", { name: file.name }));
         // A shape that does not build into a solid is left out; say so instead of leaving a gap unexplained (#258).
@@ -157,7 +190,7 @@ export async function importModelFiles(
       if (shape.importedMesh?.sourceFormat === "json") {
         result.shapes.push(shape);
       } else {
-        const asset = await projectAssetFromBytes(file.name, sourceFormat, bytes, file.type);
+        const asset = await projectAssetFromBytes(assetName, sourceFormat, bytes, assetType);
         result.shapes.push(attachProjectAsset(shape, asset.id));
         result.assets.push(asset);
       }

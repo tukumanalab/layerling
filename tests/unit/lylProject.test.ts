@@ -217,6 +217,27 @@ describe("layerling .lyl project packages", () => {
     expect(restored.shapes[0].importedMesh?.positions).toEqual(revolve.importedMesh?.positions);
   });
 
+  it("keeps the inset of a face tool body and refuses a negative one", async () => {
+    const pad = shape("mesh", "face-pad", {
+      name: "Face extrusion",
+      sketchOperation: "extrude",
+      sketchProfile: {
+        points: [{ id: "p1", x: 0, z: 0 }, { id: "p2", x: 40, z: 0 }, { id: "p3", x: 40, z: 30 }],
+        segments: [
+          { id: "s1", startId: "p1", endId: "p2", kind: "line" },
+          { id: "s2", startId: "p2", endId: "p3", kind: "line" },
+          { id: "s3", startId: "p3", endId: "p1", kind: "line" },
+        ],
+        inset: { distance: 3, radius: 1.5 },
+      },
+      importedMesh: { positions: [0, 0, 0, 1, 0, 0, 0, 1, 0], baseWidth: 40, baseDepth: 30, baseHeight: 3, triangleCount: 1, sourceFormat: "json" },
+    });
+    const restored = await importLylProject(await exportLylProject(input([pad])));
+    expect(restored.shapes[0].sketchProfile?.inset).toEqual({ distance: 3, radius: 1.5 });
+    const broken = { ...pad, sketchProfile: { ...pad.sketchProfile!, inset: { distance: -1, radius: 0 } } };
+    await expect(importLylProject(await exportLylProject(input([broken])))).rejects.toThrow(/inset/);
+  });
+
   it("preserves nested groups, holes, intersection metadata, edge history, B-Rep, and undo/redo", async () => {
     const solid = shape("box", "solid", { x: 0 });
     // Ein Zylinder bleibt beim Laden immer kreisrund (canonicalizeShape) - die
@@ -264,6 +285,19 @@ describe("layerling .lyl project packages", () => {
     expect(restored.shapes[0].groupOperation).toBe("intersection");
     expect(restored.shapes[0].cadBrep).toBe("BREP exact payload");
     expect(restored.shapes[0].edgeTreatmentHistory?.[0].before.kind).toBe("box");
+  });
+
+  it("saves deleted faces as their own operation and reads them back", async () => {
+    const body = shape("box", "body", {
+      cadBrep: "BREP exact payload",
+      edgeTreatments: [{ kind: "deleteFace", amount: 0, edgeCount: 0, faceIds: [6], faceCount: 1 }],
+    });
+    const exported = await exportLylProject(input([body]));
+    const { document } = packageDocument(exported);
+
+    expect(document.features.map((feature) => feature.type)).toEqual(["delete-face"]);
+    const restored = await importLylProject(exported);
+    expect(restored.shapes[0].edgeTreatments).toEqual([{ kind: "deleteFace", amount: 0, edgeCount: 0, faceIds: [6], faceCount: 1 }]);
   });
 
   it("keeps a bundle a bundle, with its hole as a part and no cut", async () => {

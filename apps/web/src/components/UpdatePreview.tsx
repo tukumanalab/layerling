@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { WhatsNewList } from "@/components/WhatsNewCard";
+import { WhatsNewList, WhatsNewNote } from "@/components/WhatsNewCard";
 import type { AppUpdateInfo } from "@/lib/appUpdate";
 import { t } from "@/lib/i18n";
 import { fetchUpdatePreview } from "@/lib/updatePreview";
@@ -49,7 +49,7 @@ export function UpdatePreview({ update, currentVersion }: { update: AppUpdateInf
         <div className="dashboard-update-preview-body" role="region" aria-label={t("update.previewShow")} aria-live="polite">
           {state.status === "loading" ? <p>{t("update.previewLoading")}</p> : null}
           {state.status === "unavailable" ? <p>{t("update.previewNone")}</p> : null}
-          {state.status === "ready" ? <WhatsNewList entries={state.entries} /> : null}
+          {state.status === "ready" ? <><WhatsNewNote /><WhatsNewList entries={state.entries} /></> : null}
         </div>
       ) : null}
     </div>

@@ -9,10 +9,14 @@ import { revolveProfileFitsAxis } from "@/lib/cadSketchRevolve";
 import { buildSketchRevolveMesh, normalizeSketchRevolveSettings } from "@/lib/sketchRevolve";
 import { placementWorkplaneCoordinates, type PlacementWorkplane } from "@/lib/placementWorkplane";
 import { silhouetteSketchProfile } from "@/lib/sketchCadProfile";
+import { sweepPlan } from "@/lib/cadSketchSweep";
 import { filledGrowPockets, strokedSketchProfile } from "@/lib/sketchStroke";
+import { keyringSketchProfile } from "@/lib/sketchKeyring";
+import type { ManifoldToplevel } from "manifold-3d";
 import type { CadModifierDeflection } from "@/lib/cadModifierTypes";
-import { SKETCH_STROKE_UNSUPPORTED, type SketchCadBuildResponse } from "@/lib/sketchCadTypes";
-import type { ParametricSource, ShapeKind, SketchProfile, SketchRevolveSettings, SketchStroke, WorkplaneShape } from "@/types/layerling";
+import { SKETCH_INSET_UNSUPPORTED, SKETCH_STROKE_UNSUPPORTED, type SketchCadBuildResponse } from "@/lib/sketchCadTypes";
+import { insetSketchProfile } from "@/lib/faceTool";
+import type { SketchInset, SketchOperation, SketchProfile, SketchRevolveSettings, SketchStroke, WorkplaneShape } from "@/types/layerling";
 import { MIN_SHAPE_DIMENSION, cleanModelDimension, getManifoldRuntime, meshForShape } from "@/lib/editorMeshCore";
 
 export function emptySketchProfile(): SketchProfile {
@@ -61,7 +65,7 @@ export async function cadShapeFromSketchProfile(profile: SketchProfile, height: 
   const safeHeight = Math.max(MIN_SHAPE_DIMENSION, height);
   // A silhouette leaves its holes out first, so its outer line runs round the outside only (#197).
   const buildProfile = profile.silhouette ? silhouetteSketchProfile(profile) : profile;
-  const buildOnWorker = (build: SketchProfile, stroke?: SketchStroke) => {
+  const buildOnWorker = (build: SketchProfile, stroke?: SketchStroke, inset?: SketchInset) => {
     const worker = ensureSketchCadWorker();
     const requestId = ++sketchCadRequestId;
     return new Promise<SketchCadBuildResponse>((resolve, reject) => {
@@ -70,16 +74,27 @@ export async function cadShapeFromSketchProfile(profile: SketchProfile, height: 
         reject(new Error("OpenCascade timed out while building the sketch"));
       }, 30_000);
       sketchCadPending.set(requestId, { resolve, reject, timer });
-      worker.postMessage({ type: "build", requestId, profile: cloneSketchProfile(build), height: safeHeight, ...(stroke ? { stroke } : {}) });
+      worker.postMessage({ type: "build", requestId, profile: cloneSketchProfile(build), height: safeHeight, ...(stroke ? { stroke } : {}), ...(inset ? { inset } : {}) });
     });
   };
   let response: SketchCadBuildResponse;
+  // A key ring hole (#391): the outline the sketch fills with its ear and its hole is worked out here and built as an area.
+  const withKeyring = profile.keyring ? keyringSketchProfile(await getManifoldRuntime(), profile) : null;
   // With No holes and a "Wider" line, parts that touch once wider can close a pocket between
   // them; without holes means without those too, as for a text (#215). Only then is the outline
   // worked out here, as the polygon stroke with its outer rings only, and built as an area.
-  const pocketsFilled = profile.stroke?.align === "grow" && profile.silhouette ? filledGrowPockets(await getManifoldRuntime(), buildProfile) : null;
-  if (pocketsFilled) {
+  const pocketsFilled = profile.stroke?.align === "grow" && profile.silhouette && !profile.inset ? filledGrowPockets(await getManifoldRuntime(), buildProfile) : null;
+  // A face tool body given a stroke: the stroke runs along the outline set in, built as straight lines.
+  const strokedInset = profile.stroke && profile.inset ? insetSketchProfile(await getManifoldRuntime(), buildProfile, profile.inset) : null;
+  if (profile.stroke && profile.inset && !strokedInset) throw new Error(t("faceTool.empty"));
+  if (withKeyring) {
+    response = await buildOnWorker(withKeyring);
+  } else if (pocketsFilled) {
     response = await buildOnWorker(pocketsFilled);
+  } else if (strokedInset && profile.stroke) {
+    const stroked = strokedSketchProfile(await getManifoldRuntime(), { ...strokedInset, stroke: profile.stroke });
+    if (!stroked) throw new Error(t("sketch.strokeEmpty"));
+    response = await buildOnWorker(stroked);
   } else if (profile.stroke) {
     // The kernel moves the outlines of a stroked sketch itself, so its walls stay planes, arcs and
     // single curves (#154); where it cannot (open lines, bevelled corners ...), a stroked outline of
@@ -89,6 +104,15 @@ export async function cadShapeFromSketchProfile(profile: SketchProfile, height: 
       const stroked = strokedSketchProfile(await getManifoldRuntime(), buildProfile);
       if (!stroked) throw new Error(t("sketch.strokeEmpty"));
       response = await buildOnWorker(stroked);
+    }
+  } else if (profile.inset) {
+    // The face tool's outline set in (cadSketchInset.ts): the kernel moves the lines and arcs
+    // itself; where it cannot, the polygon inset of the outline is built as an area.
+    response = await buildOnWorker(buildProfile, undefined, profile.inset);
+    if (response.type === "error" && response.message === SKETCH_INSET_UNSUPPORTED) {
+      const inset = insetSketchProfile(await getManifoldRuntime(), buildProfile, profile.inset);
+      if (!inset) throw new Error(t("faceTool.empty"));
+      response = await buildOnWorker(inset);
     }
   } else {
     response = await buildOnWorker(buildProfile);
@@ -115,9 +139,56 @@ export async function cadShapeFromSketchProfile(profile: SketchProfile, height: 
     cadDisplayEdges: undefined,
     cadDisplayEdgesVersion: undefined,
   });
-  const shape = shapeFromCadMesh(source, response.positions, response.normals, response.indices, response.brep, SKETCH_CAD_DEFLECTION);
+  const shape = shapeFromCadMesh(source, response.positions, response.normals, response.indices, response.brep, response.deflection ?? SKETCH_CAD_DEFLECTION);
   if (!shape) throw new Error("OpenCascade returned an empty sketch solid");
   return { ...shape, sketchProfile: cloneSketchProfile(profile), sketchOperation: "extrude" as const };
+}
+
+/**
+ * A sketch swept along its path (#400): the closed outlines are the cross-section, the construction
+ * line the path. An exact CAD body like an extruded one, so Fillet, Chamfer and the STEP export work.
+ * Throws with a sentence for what is missing or what the kernel cannot sweep.
+ */
+export async function cadShapeFromSketchSweep(profile: SketchProfile, existing?: WorkplaneShape | null) {
+  const planned = sweepPlan(profile);
+  if ("problem" in planned) {
+    throw new Error(t(planned.problem === "no-profile" ? "sketch.sweepNoProfile" : planned.problem === "no-path" ? "sketch.sweepNoPath" : "sketch.sweepManyPaths"));
+  }
+  const worker = ensureSketchCadWorker();
+  const requestId = ++sketchCadRequestId;
+  const response = await new Promise<SketchCadBuildResponse>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      sketchCadPending.delete(requestId);
+      reject(new Error("OpenCascade timed out while building the sketch"));
+    }, 30_000);
+    sketchCadPending.set(requestId, { resolve, reject, timer });
+    worker.postMessage({ type: "build", requestId, profile: cloneSketchProfile(profile), height: MIN_SHAPE_DIMENSION, sweep: true });
+  });
+  if (response.type === "error") throw new Error(t("sketch.sweepFailed"));
+  const source = canonicalizeShape({
+    ...(existing ?? {
+      id: createLocalId("sketch-sweep"),
+      name: "Sketch sweep",
+      kind: "mesh" as const,
+      color: "#3d8fb5",
+      x: 0,
+      z: 0,
+      size: 1,
+      width: 1,
+      depth: 1,
+      height: MIN_SHAPE_DIMENSION,
+      rotation: 0,
+    }),
+    sketchProfile: cloneSketchProfile(profile),
+    sketchOperation: "sweep",
+    edgeTreatments: undefined,
+    edgeTreatmentHistory: undefined,
+    cadDisplayEdges: undefined,
+    cadDisplayEdgesVersion: undefined,
+  });
+  const shape = shapeFromCadMesh(source, response.positions, response.normals, response.indices, response.brep, response.deflection ?? SKETCH_CAD_DEFLECTION);
+  if (!shape) throw new Error(t("sketch.sweepFailed"));
+  return { ...shape, sketchProfile: cloneSketchProfile(profile), sketchOperation: "sweep" as const };
 }
 
 /**
@@ -126,12 +197,26 @@ export async function cadShapeFromSketchProfile(profile: SketchProfile, height: 
  * triangles, not tens of thousands (#167). Null when the profile cannot be built that way (it
  * crosses the axis) or the kernel refuses; the mesh revolve takes over then.
  */
+/**
+ * What a revolve turns: the sketch as drawn, or, with a stroke, the band the line makes - an open
+ * line of a width turns into a thin wall, as a vase is drawn in Tinkercad (#347). The band is
+ * cut off at the axis. The body keeps the drawn line, as an extruded stroke does.
+ */
+export function revolveBuildProfile(runtime: ManifoldToplevel, profile: SketchProfile): SketchProfile {
+  if (!profile.stroke) return profile;
+  const stroked = strokedSketchProfile(runtime, profile, { clipToRevolveSide: true });
+  if (!stroked) throw new Error(t("sketch.strokeEmpty"));
+  return stroked;
+}
+
 async function cadShapeFromSketchRevolve(
   profile: SketchProfile,
   settings: SketchRevolveSettings,
   existing?: WorkplaneShape | null,
+  drawn: SketchProfile = profile,
 ): Promise<WorkplaneShape | null> {
-  if (!revolveProfileFitsAxis(profile)) return null;
+  // A helix has no exact body yet; the mesh revolve winds it.
+  if (!revolveProfileFitsAxis(profile) || settings.pitch) return null;
   try {
     const worker = ensureSketchCadWorker();
     const requestId = ++sketchCadRequestId;
@@ -164,13 +249,13 @@ async function cadShapeFromSketchRevolve(
       depth: 1,
       height: MIN_SHAPE_DIMENSION,
       rotation: 0,
-      sketchProfile: cloneSketchProfile(profile),
+      sketchProfile: cloneSketchProfile(drawn),
       sketchOperation: "revolve",
       sketchRevolve: settings,
       locked: existing?.locked ?? false,
       hidden: existing?.hidden ?? false,
     } satisfies WorkplaneShape);
-    const shape = shapeFromCadMesh(source, response.positions, response.normals, response.indices, response.brep, SKETCH_CAD_DEFLECTION);
+    const shape = shapeFromCadMesh(source, response.positions, response.normals, response.indices, response.brep, response.deflection ?? SKETCH_CAD_DEFLECTION);
     if (!shape) return null;
     // Like the mesh revolve: the body stands at the origin (or where the edited one stood); the
     // exact body keeps its own frame, so it follows the move.
@@ -179,7 +264,7 @@ async function cadShapeFromSketchRevolve(
       x: existing?.x ?? 0,
       z: existing?.z ?? 0,
       elevation: existing?.elevation ?? 0,
-      sketchProfile: cloneSketchProfile(profile),
+      sketchProfile: cloneSketchProfile(drawn),
       sketchOperation: "revolve",
       sketchRevolve: settings,
     });
@@ -193,11 +278,12 @@ export async function shapeFromRevolvedSketchProfile(
   settings: Partial<SketchRevolveSettings>,
   existing?: WorkplaneShape | null,
 ) {
-  const exact = await cadShapeFromSketchRevolve(profile, normalizeSketchRevolveSettings(settings), existing);
-  if (exact) return exact;
   const runtime = await getManifoldRuntime();
+  const buildProfile = revolveBuildProfile(runtime, profile);
+  const exact = await cadShapeFromSketchRevolve(buildProfile, normalizeSketchRevolveSettings(settings), existing, profile);
+  if (exact) return exact;
   const normalizedSettings = normalizeSketchRevolveSettings(settings);
-  const mesh = buildSketchRevolveMesh(runtime, profile, normalizedSettings);
+  const mesh = buildSketchRevolveMesh(runtime, buildProfile, normalizedSettings);
   return canonicalizeShape({
     id: existing?.id ?? createLocalId("sketch-revolve"),
     name: existing?.name ?? "Sketch revolve",
@@ -408,4 +494,65 @@ export function defaultMcpSketchProfile(width: number, depth: number): SketchPro
     ],
     images: [],
   };
+}
+
+/** The kind of body a sketch body was made as; bodies from before `sketchOperation` was kept tell it by their revolve settings. */
+export function sketchBodyOperation(shape: WorkplaneShape): SketchOperation {
+  return shape.sketchOperation ?? (shape.sketchRevolve ? "revolve" : "extrude");
+}
+
+/**
+ * An outline moved left until its rightmost point lies on a revolve's axis, x = 0 (#655): an imported SVG
+ * is centred on itself, so the half cross-section of a vase would reach across the axis. Pictures and a
+ * key ring hole move with it; an outline already left of the axis stays where it is.
+ */
+export function sketchProfileLeftOfAxis(profile: SketchProfile): SketchProfile {
+  if (!profile.points.length) return profile;
+  const shift = Math.max(...profile.points.map((point) => point.x));
+  if (shift <= 1e-6) return profile;
+  const move = (point: { x: number; z: number }) => ({ x: point.x - shift, z: point.z });
+  return {
+    ...profile,
+    points: profile.points.map((point) => ({
+      ...point,
+      x: point.x - shift,
+      ...(point.handleIn ? { handleIn: move(point.handleIn) } : {}),
+      ...(point.handleOut ? { handleOut: move(point.handleOut) } : {}),
+    })),
+    images: (profile.images ?? []).map((image) => ({ ...image, x: image.x - shift })),
+    ...(profile.keyring ? { keyring: { ...profile.keyring, x: profile.keyring.x - shift } } : {}),
+  };
+}
+
+/**
+ * A sketch body made again from its outline as another kind of body (#655): an imported SVG comes in
+ * extruded, revolved it gives a vase. The new body takes the old one's place, name and colour and stands
+ * where it stood, its foot at the same height. A revolve takes the outline left of its axis; an extrusion
+ * made from another kind is 10 mm high, as a new sketch is. Edge treatments go, as when a sketch is edited.
+ */
+export async function sketchBodyAsOperation(
+  existing: WorkplaneShape,
+  profile: SketchProfile,
+  operation: SketchOperation,
+  revolveSettings: Partial<SketchRevolveSettings> = existing.sketchRevolve ?? {},
+) {
+  const built = operation === "revolve"
+    ? await shapeFromRevolvedSketchProfile(sketchProfileLeftOfAxis(profile), revolveSettings, null)
+    : operation === "sweep"
+      ? await cadShapeFromSketchSweep(profile, null)
+      : await cadShapeFromSketchProfile(profile, 10, null);
+  if (!built) return null;
+  return canonicalizeShape({
+    ...built,
+    id: existing.id,
+    name: existing.name,
+    color: existing.color,
+    hole: existing.hole,
+    x: existing.x,
+    z: existing.z,
+    elevation: existing.elevation ?? 0,
+    rotation: existing.rotation,
+    locked: existing.locked,
+    hidden: existing.hidden,
+  });
 }

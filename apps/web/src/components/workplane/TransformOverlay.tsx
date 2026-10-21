@@ -42,6 +42,9 @@ export {
 import { selectWholeValue } from "@/lib/numberField";
 import { visibleWorkArea, type VisibleWorkArea } from "@/lib/visibleWorkArea";
 
+/** Below this many screen pixels across, the handles of a touch screen lose their wide catch zone (#574). */
+const SMALL_BODY_SCREEN_PX = 80;
+
 /** A figure's place, pulled in so the whole box of it stays inside the visible area. */
 function overlayPoint(area: VisibleWorkArea, x: number, y: number): CSSProperties {
   const halfWidth = 40;
@@ -83,6 +86,7 @@ export function TransformOverlay({
   onCancelCornerEdit,
   onEditingDimensionChange,
   onCommitDimensionEdit,
+  onTabDimensionEdit,
   onCancelDimensionEdit,
   onBeginRotationEdit,
   onEditingRotationChange,
@@ -96,7 +100,7 @@ export function TransformOverlay({
   const keepVisible = visibleWorkArea(rootRef.current, box.width, box.height);
   const marks = measureKey
     ? (box.dimensions[measureKey] ?? [])
-    : box.alwaysVisibleDimensionKeys.flatMap((key) => box.dimensions[key] ?? []);
+    : box.alwaysVisibleDimensionKeys.flatMap((key) => (box.dimensions[key] ?? []).filter((mark) => !mark.labelOnly));
   const visibleMarks = (hideDimensionMarks ? [] : marks).filter((mark) => mark.key !== editingDimension?.key && !editingCorner?.entries.some((entry) => entry.key === mark.key));
   const handleMeasureKey = (handle: TransformOverlayState["handles"][number]) => measureKeyForHandle(handle.kind, handle.key, box);
   // A tick for every step the turn snaps to: 22.5°, and 11.25° while Shift is held inside the wheel.
@@ -132,10 +136,17 @@ export function TransformOverlay({
   const wheel = pinnedWheel?.wheel ?? box.rotationWheels[rotationWheelAxis] ?? box.rotationWheel;
   // A locked selection wears a lock beside the arrow that lifts it.
   const liftHandle = locked ? box.handles.find((handle) => handle.kind === "lift") : undefined;
+  // A body that is small on the screen: the wide catch zone the handles have for a finger would cover all of it (#574).
+  const scaleHandles = box.handles.filter((handle) => handle.kind === "scale");
+  const smallOnScreen = scaleHandles.length > 0
+    && Math.max(
+      Math.max(...scaleHandles.map((handle) => handle.x)) - Math.min(...scaleHandles.map((handle) => handle.x)),
+      Math.max(...scaleHandles.map((handle) => handle.y)) - Math.min(...scaleHandles.map((handle) => handle.y)),
+    ) < SMALL_BODY_SCREEN_PX;
   return (
     <div
       ref={rootRef}
-      className={`transform-overlay ${hideSelectionChrome ? "hide-selection-chrome" : ""} ${locked ? "locked" : ""}`}
+      className={`transform-overlay ${hideSelectionChrome ? "hide-selection-chrome" : ""} ${locked ? "locked" : ""} ${smallOnScreen ? "small-body" : ""}`}
       onPointerDownCapture={(event) => {
         if (event.button === 1 || event.button === 2) {
           onHoverMeasure(null);
@@ -194,7 +205,7 @@ export function TransformOverlay({
         {box.guides.map((line, index) => (
           <line key={`guide-${index}`} x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} />
         ))}
-        {visibleMarks.map((mark) => (
+        {visibleMarks.filter((mark) => !mark.labelOnly).map((mark) => (
           <g key={mark.key} className="dimension-mark">
             <line className="dimension-extension" x1={mark.e1x1} y1={mark.e1y1} x2={mark.e1x2} y2={mark.e1y2} />
             <line className="dimension-extension" x1={mark.e2x1} y1={mark.e2y1} x2={mark.e2x2} y2={mark.e2y2} />
@@ -225,13 +236,17 @@ export function TransformOverlay({
           onPointerDown={(event) => event.stopPropagation()}
           onFocus={(event) => selectWholeValue(event.currentTarget)}
           onChange={(event) => onEditingDimensionChange(event.target.value)}
-          onBlur={onCommitDimensionEdit}
+          onBlur={() => onCommitDimensionEdit()}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
-              onCommitDimensionEdit();
+              onCommitDimensionEdit(event.altKey);
             }
             if (event.key === "Escape") {
               onCancelDimensionEdit();
+            }
+            if (event.key === "Tab") {
+              event.preventDefault();
+              onTabDimensionEdit(event.shiftKey);
             }
           }}
         />
@@ -255,7 +270,7 @@ export function TransformOverlay({
             onCommitCornerEdit();
           }}
           onKeyDown={(event) => {
-            if (event.key === "Enter") onCommitCornerEdit();
+            if (event.key === "Enter") onCommitCornerEdit(event.altKey);
             if (event.key === "Escape") onCancelCornerEdit();
           }}
         />

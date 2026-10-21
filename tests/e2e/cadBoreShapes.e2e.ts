@@ -26,7 +26,7 @@ function worldMesh(source: WorkplaneShape) {
   const { width, depth, height } = source;
   const geometry = source.kind === "teardrop"
     ? createTeardropGeometry({ width, depth, height })
-    : createScrewHoleGeometry({ kind: source.kind as "counterbore" | "countersink", width, depth, height, screwHoleShaft: source.screwHoleShaft, screwHoleHeadDepth: source.screwHoleHeadDepth, screwHoleAngle: source.screwHoleAngle });
+    : createScrewHoleGeometry({ kind: source.kind as "counterbore" | "countersink" | "doubleCountersink", width, depth, height, screwHoleShaft: source.screwHoleShaft, screwHoleHeadDepth: source.screwHoleHeadDepth, screwHoleAngle: source.screwHoleAngle });
   const position = geometry.getAttribute("position");
   const index = geometry.getIndex();
   const centerY = height / 2;
@@ -138,6 +138,31 @@ describe("exact bodies for the bore shapes with the real OCCT kernel", () => {
     expect(rim.length).toBeGreaterThan(0);
     const chamfered = cad.chamfer(solid, rim, 0.3);
     expect(cad.isValid(chamfered)).toBe(true);
+  });
+
+  it("double countersink: five faces, two real cones and a shaft, and a chamfer works on a rim (#392)", () => {
+    const source = shape("doubleCountersink", { width: 6.6, depth: 6.6, height: 6, screwHoleShaft: 3.4, screwHoleAngle: 90 });
+    const { solid } = exact(source);
+    expect(cad.subShapeCount(solid, "face")).toBe(5);
+    expect(surfaceTypes(solid)).toEqual(["cone", "cone", "cylinder", "plane", "plane"]);
+    const cone = (Math.PI * 1.6 / 3) * (1.7 ** 2 + 1.7 * 3.3 + 3.3 ** 2);
+    expect(cad.getVolume(solid)).toBeCloseTo(2 * cone + Math.PI * 1.7 ** 2 * 2.8, 2);
+    const rim = cad.getSubShapes(solid, "edge").filter((edge) => {
+      const box = cad.getBoundingBox(edge);
+      return Math.abs(box.ymin - 6) < 1e-6 && Math.abs(box.ymax - 6) < 1e-6;
+    });
+    expect(rim.length).toBeGreaterThan(0);
+    expect(cad.isValid(cad.chamfer(solid, rim, 0.3))).toBe(true);
+  });
+
+  it("double countersink: too short for two cones, they meet in the middle (#392)", () => {
+    // Head 10, shaft 6, 90 degrees, length 2: two cones from 10 down to 8 in the middle.
+    const source = shape("doubleCountersink", { width: 10, depth: 10, height: 2, screwHoleShaft: 6, screwHoleAngle: 90 });
+    const { solid } = exact(source);
+    expect(cad.subShapeCount(solid, "face")).toBe(4);
+    expect(surfaceTypes(solid)).toEqual(["cone", "cone", "plane", "plane"]);
+    const cone = (Math.PI * 1 / 3) * (4 ** 2 + 4 * 5 + 5 ** 2);
+    expect(cad.getVolume(solid)).toBeCloseTo(2 * cone, 2);
   });
 
   it("screw holes: an oval footprint keeps the display mesh", () => {

@@ -87,7 +87,9 @@ export function buildStrokedSketchSolid(cad: OcctKernel, profile: SketchProfile,
         ? [stroke.width, 0]
         : stroke.align === "grow"
           ? [stroke.width, null]
-          : [stroke.width / 2, -stroke.width / 2];
+          : stroke.align === "shrink"
+            ? [-stroke.width, null]
+            : [stroke.width / 2, -stroke.width / 2];
     let result: ShapeHandle | null = null;
     for (const region of regions) {
       const outer = regionPrism(cad, region, outerDelta, join, height);

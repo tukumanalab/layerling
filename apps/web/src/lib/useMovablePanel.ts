@@ -67,13 +67,16 @@ export function useMovablePanel<T extends HTMLElement = HTMLDivElement>(storageK
     const base = parent && parentRect
       ? { left: parentRect.left + parent.clientLeft, top: parentRect.top + parent.clientTop }
       : { left: 0, top: 0 };
-    const scale = parent && parentRect && parent.offsetWidth > 0 ? parentRect.width / parent.offsetWidth || 1 : 1;
+    const computed = window.getComputedStyle(panel);
+    // The panel's own CSS zoom (the shape library follows the toolbar size, #509) scales its lengths, its offsets
+    // and its left and top alike: an offset of 10 lies 7.5 screen pixels from its parent at a zoom of 0.75.
+    const ownZoom = Number.parseFloat(computed.zoom);
+    const scale = (parent && parentRect && parent.offsetWidth > 0 ? parentRect.width / parent.offsetWidth || 1 : 1) * (Number.isFinite(ownZoom) && ownZoom > 0 ? ownZoom : 1);
     const areaRect = areaElement.getBoundingClientRect();
     const current = {
       left: base.left + panel.offsetLeft * scale - (areaRect.left + areaElement.clientLeft),
       top: base.top + panel.offsetTop * scale - (areaRect.top + areaElement.clientTop),
     };
-    const computed = window.getComputedStyle(panel);
     // Floating, the panel is placed absolutely: its left/top count from the offset parent's corner.
     // A panel the stylesheet only sets in the flow - the settings window is centred by its
     // container and is `position: relative` - stands somewhere else when docked, and taking that
@@ -93,11 +96,11 @@ export function useMovablePanel<T extends HTMLElement = HTMLDivElement>(storageK
     };
   }, []);
 
-  const place = useCallback((next: PanelPosition) => {
+  const place = useCallback((next: PanelPosition, screenWidth?: number) => {
     const measured = measure();
     if (!measured) return null;
     const { panel, area: areaElement, origin, scale } = measured;
-    const position = clampPanelPosition(next, { width: panel.offsetWidth * scale }, { width: areaElement.clientWidth, height: areaElement.clientHeight });
+    const position = clampPanelPosition(next, { width: screenWidth ?? panel.offsetWidth * scale }, { width: areaElement.clientWidth, height: areaElement.clientHeight });
     return { position, origin, scale, areaHeight: areaElement.clientHeight };
   }, [measure]);
 
@@ -130,6 +133,28 @@ export function useMovablePanel<T extends HTMLElement = HTMLDivElement>(storageK
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [place]);
+
+  /**
+   * Where the panel stands in its area right now, in screen pixels, and the scale between its own pixels and the
+   * screen's - for a panel that is pulled larger from its left edge and has to move with it.
+   */
+  const currentPosition = useCallback(() => {
+    const measured = measure();
+    return measured ? { ...measured.current, scale: measured.scale } : null;
+  }, [measure]);
+
+  /** Puts the panel at `next` as if it had been dragged there; `screenWidth` is the width it is about to have. */
+  const moveTo = useCallback((next: PanelPosition, screenWidth?: number) => {
+    const placed = place(next, screenWidth);
+    if (placed) setPlacement(placed);
+    return placed?.position ?? null;
+  }, [place]);
+
+  /** Keeps where the panel stands now, after a move that was not a drag of the title bar. */
+  const keepPosition = useCallback(() => {
+    const position = placementRef.current?.position;
+    if (position) store(position);
+  }, [store]);
 
   const onPointerDown = useCallback((event: PointerEvent<HTMLElement>) => {
     const measured = measure();
@@ -191,6 +216,9 @@ export function useMovablePanel<T extends HTMLElement = HTMLDivElement>(storageK
     /** True once the panel has been moved away from where the stylesheet puts it. */
     moved: placement !== null,
     dragging,
+    currentPosition,
+    moveTo,
+    keepPosition,
     handleProps: { onPointerDown, onPointerMove, onPointerUp: endDrag, onPointerCancel: endDrag, onDoubleClick },
   };
 }

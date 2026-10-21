@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import type { Font } from "three/examples/jsm/loaders/FontLoader.js";
+import { Font } from "three/examples/jsm/loaders/FontLoader.js";
 import { shapeText, textNeedsShaping } from "@/lib/arabicShaping";
 import { normalizeSketchStroke } from "@/lib/sketchStroke";
 import { customFontRevision, ensureJapaneseGlyphs, textFont } from "@/lib/textFonts";
@@ -38,11 +38,55 @@ export function displayTextOf(shape: Pick<WorkplaneShape, "text" | "font">) {
   return shapeText(text, (char) => Boolean(glyphs[char]));
 }
 
+/** The space between letters (#594), in per cent of the letter size, either way. */
+export const MIN_TEXT_SPACING = -50;
+export const MAX_TEXT_SPACING = 300;
+
+/** The spacing a shape asks for, in per cent: 0 when it has none. */
+export function textSpacingOf(shape: Pick<WorkplaneShape, "textSpacing">): number {
+  const value = Number(shape.textSpacing);
+  return Number.isFinite(value) ? clamp(value, MIN_TEXT_SPACING, MAX_TEXT_SPACING) : 0;
+}
+
+const spacedFonts = new WeakMap<Font, Map<number, Font>>();
+
+/**
+ * The typeface with every glyph's advance widened or narrowed by `percent` of the letter size (#594). The layout of
+ * three.js moves the pen by each glyph's own advance, so a copy of the font with those advances changed is the one
+ * place the spacing has to enter: the straight line, its measure and the curved text all read it from there.
+ */
+export function spacedFont(font: Font, percent: number): Font {
+  if (!percent) return font;
+  let byPercent = spacedFonts.get(font);
+  if (!byPercent) {
+    byPercent = new Map();
+    spacedFonts.set(font, byPercent);
+  }
+  const known = byPercent.get(percent);
+  if (known) return known;
+  const data = font.data as unknown as { resolution?: number; glyphs?: Record<string, { ha?: number }> };
+  const extra = ((data.resolution || 1000) * percent) / 100;
+  const glyphs: Record<string, unknown> = {};
+  Object.entries(data.glyphs ?? {}).forEach(([char, glyph]) => {
+    glyphs[char] = { ...glyph, ha: (glyph.ha ?? 0) + extra };
+  });
+  const made = new Font({ ...(font.data as object), glyphs } as ConstructorParameters<typeof Font>[0]);
+  byPercent.set(percent, made);
+  return made;
+}
+
+/** The typeface a shape's text is laid out with: its font, with its spacing. */
+export function textLayoutFont(shape: Pick<WorkplaneShape, "font" | "text" | "textSpacing">): Font {
+  // Arabic and Hebrew letters join up and read from the right: a gap between them would break the words (#594).
+  const spaced = textNeedsShaping(shape.text ?? "") ? 0 : textSpacingOf(shape);
+  return spacedFont(textFont(shape.font ?? "Multilanguage"), spaced);
+}
+
 function textOptions(shape: WorkplaneShape, size: number) {
   const bevel = clamp(shape.bevel ?? 0, 0, 8);
   const fontName = shape.font ?? "Multilanguage";
   return {
-    font: textFont(fontName),
+    font: textLayoutFont(shape),
     size,
     depth: shape.height,
     curveSegments: fontName === "Stencil" ? 1 : 8,
@@ -108,18 +152,20 @@ export function normalizeTextKeyring(value: unknown): TextKeyring | undefined {
   const candidate = value as Partial<TextKeyring>;
   const diameter = Number(candidate.diameter);
   const offset = Number(candidate.offset);
+  const along = Number(candidate.along ?? 0);
   if (!Number.isFinite(diameter) || diameter <= 0 || !Number.isFinite(offset)) return undefined;
   return {
     side: TEXT_KEYRING_SIDES.includes(candidate.side as TextKeyringSide) ? candidate.side as TextKeyringSide : "left",
     diameter: clamp(diameter, MIN_KEYRING_DIAMETER, MAX_KEYRING_DIAMETER),
     offset: clamp(offset, -MAX_KEYRING_OFFSET, MAX_KEYRING_OFFSET),
+    ...(Number.isFinite(along) && along !== 0 ? { along: clamp(along, -MAX_KEYRING_OFFSET, MAX_KEYRING_OFFSET) } : {}),
     ...(candidate.ear ? { ear: true } : {}),
   };
 }
 
 /**
  * Whether a stored key ring hole is one layerling writes (#215): a known side, a diameter within
- * range, an offset within MAX_KEYRING_OFFSET mm either way and the ear switch. A file with
+ * range, an offset and a shift along the side within MAX_KEYRING_OFFSET mm either way and the ear switch. A file with
  * anything else is refused rather than read as something else.
  */
 export function isTextKeyring(value: unknown): value is TextKeyring {
@@ -129,6 +175,7 @@ export function isTextKeyring(value: unknown): value is TextKeyring {
   return TEXT_KEYRING_SIDES.includes(candidate.side as TextKeyringSide)
     && finite(candidate.diameter) && candidate.diameter >= MIN_KEYRING_DIAMETER && candidate.diameter <= MAX_KEYRING_DIAMETER
     && finite(candidate.offset) && Math.abs(candidate.offset) <= MAX_KEYRING_OFFSET
+    && (candidate.along === undefined || (finite(candidate.along) && Math.abs(candidate.along) <= MAX_KEYRING_OFFSET))
     && (candidate.ear === undefined || typeof candidate.ear === "boolean");
 }
 
@@ -143,6 +190,14 @@ export function keyringEarRadius(diameter: number) {
 }
 
 /**
+ * How far a key ring tab can be moved off the middle of its side (#671), either way: its whole
+ * width stays within the side of the bottom layer, `across` mm long, so the box keeps its size.
+ */
+export function keyringAlongLimit(across: number, diameter: number) {
+  return Math.max(0, across / 2 - keyringEarRadius(diameter));
+}
+
+/**
  * How far the ear of a key ring hole reaches out beyond the letters and the fill's reach, on
  * its side: what the box gains there. 0 for a text without an ear.
  */
@@ -150,6 +205,19 @@ export function textKeyringReach(shape: Pick<WorkplaneShape, "textKeyring" | "te
   const keyring = textKeyringOf(shape);
   if (!keyring?.ear) return 0;
   return Math.max(0, keyring.offset + keyringEarRadius(keyring.diameter) - textFillExtent(shape));
+}
+
+/**
+ * The scale that fits a straight line of this size into the letters' box (#382): one for both
+ * directions, so the letters keep their proportions, or - with `textStretch` - one for each, so
+ * they fill the box and can be made lower or narrower.
+ */
+export function textFitScale(shape: Pick<WorkplaneShape, "textStretch" | "textCurved">, letters: { width: number; depth: number }, line: { width: number; depth: number }) {
+  const x = letters.width / line.width;
+  const y = letters.depth / line.depth;
+  if (shape.textStretch && !shape.textCurved) return { x, y };
+  const scale = Math.min(x, y);
+  return { x: scale, y: scale };
 }
 
 /** The box the letters themselves are laid out in: the shape's box less the fill's reach and the ear's. */
@@ -185,12 +253,21 @@ export function textLetterOffset(shape: WorkplaneShape): { x: number; z: number 
   return { x: side === "right" ? -reach / 2 : side === "left" ? reach / 2 : 0, z: side === "top" ? reach / 2 : 0 };
 }
 
+/**
+ * Where along its side the middle of a key ring hole lies (#671), in the shape's own frame: the
+ * letters' middle moved by `along`, up on the left and right (towards -z, where the tops of the
+ * letters are), to the right on top.
+ */
+export function keyringBandCenter(middle: { x: number; z: number }, side: TextKeyringSide, along = 0) {
+  return side === "top" ? { x: middle.x + along, z: middle.z } : { x: middle.x, z: middle.z - along };
+}
+
 /** The middle of the key ring hole in the shape's own frame, or null without one. */
 export function textKeyringCenter(shape: WorkplaneShape): { x: number; z: number } | null {
   const keyring = textKeyringOf(shape);
   if (!keyring) return null;
   const letters = textLetterBox(shape);
-  const middle = textLetterOffset(shape);
+  const middle = keyringBandCenter(textLetterOffset(shape), keyring.side, keyring.along);
   if (keyring.side === "top") return { x: middle.x, z: middle.z - letters.depth / 2 - keyring.offset };
   const direction = keyring.side === "right" ? 1 : -1;
   return { x: middle.x + direction * (letters.width / 2 + keyring.offset), z: middle.z };
@@ -231,7 +308,9 @@ export function textFillPatch(shape: WorkplaneShape, patch: Partial<WorkplaneSha
 export function curvedTextLayout(shape: WorkplaneShape) {
   const text = displayTextOf(shape);
   const radius = curvedRadius(shape);
-  const font = textFont(shape.font ?? "Multilanguage");
+  const baseFont = textFont(shape.font ?? "Multilanguage");
+  // The spacing (#594) goes into the advances; a glyph still sits in the middle of its own natural width.
+  const font = textLayoutFont(shape);
   let size = curvedSize(shape);
   const chars = [...text];
 
@@ -274,8 +353,9 @@ export function curvedTextLayout(shape: WorkplaneShape) {
         .multiply(new THREE.Matrix4().makeRotationY(Math.PI))
         .multiply(new THREE.Matrix4().makeTranslation(0, 0, bandMiddle));
     }
-    // Centre the advance box on its arc point - horizontally only, the baseline stays at z = 0.
-    matrix.multiply(new THREE.Matrix4().makeTranslation(-advance / 2, 0, 0));
+    // Centre the glyph's own width on its arc point - horizontally only, the baseline stays at z = 0. With spacing the
+    // arc point is the middle of the wider box, so the extra room lies half before and half behind the glyph.
+    matrix.multiply(new THREE.Matrix4().makeTranslation(-advanceOf(baseFont, char, size) / 2, 0, 0));
     // Flat on the workplane: letter height points to -Z, thickness to +Y.
     matrix.multiply(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
     glyphs.push({ char, matrix });
@@ -326,7 +406,7 @@ const footprintCache = new Map<string, { width: number; depth: number }>();
 
 /** The width and depth curved text takes at its own radius and letter size. */
 export function curvedTextFootprint(shape: WorkplaneShape): { width: number; depth: number } {
-  const key = JSON.stringify([textOf(shape), shape.font ?? "Multilanguage", customFontRevision(shape.font), curvedSize(shape), curvedRadius(shape), Boolean(shape.textInward), Boolean(shape.textFlipped), shape.bevel ?? 0]);
+  const key = JSON.stringify([textOf(shape), shape.font ?? "Multilanguage", customFontRevision(shape.font), curvedSize(shape), curvedRadius(shape), Boolean(shape.textInward), Boolean(shape.textFlipped), shape.bevel ?? 0, textSpacingOf(shape)]);
   const cached = footprintCache.get(key);
   if (cached) return cached;
   const geometry = buildCurvedText({ ...shape, height: 1 });
@@ -349,7 +429,7 @@ function straightTextExtent(shape: WorkplaneShape) {
   return extent;
 }
 
-const CURVE_KEYS = ["textCurved", "textRadius", "textInward", "textFlipped", "textSize", "text", "font", "bevel", "textStroke"] as const;
+const CURVE_KEYS = ["textCurved", "textRadius", "textInward", "textFlipped", "textSize", "text", "font", "bevel", "textStroke", "textSpacing"] as const;
 
 /**
  * Keeps curved text and its box in step. Straight text simply fills its box;
@@ -437,7 +517,7 @@ export function textGlyphShapes(shape: WorkplaneShape): { glyphs: TextGlyphShape
       options.font.generateShapes(char, options.size).forEach((glyph) => glyphs.push({ glyph, map }));
     });
   } else {
-    const shapes = textFont(fontName).generateShapes(displayTextOf(shape), LAYOUT_SIZE);
+    const shapes = textLayoutFont(shape).generateShapes(displayTextOf(shape), LAYOUT_SIZE);
     let minX = Infinity;
     let maxX = -Infinity;
     let minY = Infinity;
@@ -452,12 +532,12 @@ export function textGlyphShapes(shape: WorkplaneShape): { glyphs: TextGlyphShape
       }));
     });
     const letters = textLetterBox(shape);
-    const scale = Math.min(letters.width / Math.max(1, maxX - minX), letters.depth / Math.max(1, maxY - minY));
+    const scale = textFitScale(shape, letters, { width: Math.max(1, maxX - minX), depth: Math.max(1, maxY - minY) });
     // Scaled, turned flat (font y becomes -z) and centred, as the display does - beside an ear, off centre by it.
     const middle = textLetterOffset(shape);
     const map = (point: THREE.Vector2) => ({
-      x: scale * point.x - (scale * (minX + maxX)) / 2 + middle.x,
-      z: -scale * point.y + (scale * (minY + maxY)) / 2 + middle.z,
+      x: scale.x * point.x - (scale.x * (minX + maxX)) / 2 + middle.x,
+      z: -scale.y * point.y + (scale.y * (minY + maxY)) / 2 + middle.z,
     });
     shapes.forEach((glyph) => glyphs.push({ glyph, map }));
   }
@@ -483,8 +563,8 @@ export function createTextGeometry(shape: WorkplaneShape): THREE.BufferGeometry 
     const textWidth = Math.max(1, box.max.x - box.min.x);
     const textDepth = Math.max(1, box.max.y - box.min.y);
     const letters = textLetterBox(shape);
-    const scale = Math.min(letters.width / textWidth, letters.depth / textDepth);
-    geometry.scale(scale, scale, 1);
+    const scale = textFitScale(shape, letters, { width: textWidth, depth: textDepth });
+    geometry.scale(scale.x, scale.y, 1);
   }
 
   geometry.rotateX(-Math.PI / 2);

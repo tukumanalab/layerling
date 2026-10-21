@@ -13,7 +13,7 @@ Open [layerling.com](https://layerling.com/). On the start page click {{ui:dashb
 
 If you already have a file to continue with, use {{ui:dashboard.importGeometry}}. That works for layerling designs (`.lyl`) as well as STL, OBJ, 3MF, STEP or SVG files.
 
-All your designs later appear on the start page with a preview picture. They are kept in your browser's storage and saved automatically after every change, so there is no save button. How to pack designs into a file and pass them on is covered in [Files and saving](chapter:files-and-saving).
+All your designs later appear on the start page with a preview picture. They are kept in your browser's storage and saved automatically after every change, so there is no save button. **layerling takes no responsibility for designs kept in the browser.** A browser can fail, or a browser update can cause problems, so back up your designs from time to time with {{ui:dashboard.backupAll}} on the start page, or save them as files. A backup comes back with {{ui:dashboard.restoreBackup}}. How to pack designs into a file and pass them on is covered in [Files and saving](chapter:files-and-saving).
 
 ## The editor at a glance
 
@@ -24,6 +24,66 @@ All your designs later appear on the start page with a preview picture. They are
 - **On the right** appear the settings of the selected shape: colour, dimensions, position and whatever else makes up the shape. Typing numbers is more exact than dragging.
 - **On the left** are the camera controls with the view cube above them. They move you around the scene, more in [View and workplane](chapter:view-and-workplane).
 - **At the very top** you switch between {{ui:editor.modeGeometry}} and {{ui:editor.modeSketch}}, rename the design and choose language and colour scheme.
+
+## The buttons around the work area
+
+Hover over a button to see its name. If you are not sure what a button does, click {{ui:interactiveHelp.title}} in the {{ui:editor.group.help}} area ([[Shift]]+[[F1]]) and then the button. These are the ones asked about most.
+
+### Paste
+
+{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) adds what you copied with {{ui:editor.tool.copy}} to the design. {{ui:common.duplicate}} copies and pastes in one step.
+
+### Delete
+
+{{ui:common.delete}} ([[Delete]]) removes the selected shapes. {{ui:editor.tool.undo}} brings them back.
+
+### Ungroup
+
+{{ui:editor.tool.ungroup}} ([[Ctrl]]+[[Shift]]+[[G]]) takes the selected group apart again into the shapes it was made of.
+
+### Workspace settings
+
+{{ui:editor.workspaceSettings}} opens the settings of the work area: unit, size of the plate, printer, grid, colours, light and more. More in [View and workplane](chapter:view-and-workplane).
+
+### Theme
+
+{{ui:common.theme}} at the very top chooses how layerling looks: as your system, light, dark or graphite.
+
+### Rename design
+
+{{ui:editor.renameProject}}: the pencil beside the name at the very top. Type the new name and press [[Enter]].
+
+### Design name
+
+The name of the design ({{ui:confirm.projectName}}) stands at the very top. Click it, type, and [[Enter]] keeps the name.
+
+### Visibility options
+
+{{ui:editor.visibilityOptions}}, the arrow beside the eye icon, holds what you can show or hide: the list of objects, everything you hid, the notes and the overhangs of the print. More in [Select and arrange](chapter:select-and-arrange).
+
+### Hide selected
+
+{{ui:editor.tool.hideSelected}} ([[Ctrl]]+[[H]]) hides the selected shapes. They stay in the design and in the object list; {{ui:editor.visibilityOptions}} shows them again.
+
+### Search commands
+
+{{ui:palette.open}}: type what you look for, a tool, a shape or a setting, and click the result.
+
+### Hide camera controls
+
+{{ui:camera.hide}} folds the camera controls on the left away and gives the work area more room; {{ui:camera.show}} brings them back.
+
+### Snap Grid
+
+{{ui:inspector.snapGrid}}, at the bottom of the properties, is the step that moving and resizing snaps to. Beside it the small switch **mm | in** changes the unit. More in [View and workplane](chapter:view-and-workplane).
+
+### Unit: millimetres or inches
+
+The switch **mm | in** beside {{ui:inspector.snapGrid}} changes the unit, the plate's grid and the snap step, for this design.
+
+### The footer
+
+At the foot of the window: {{ui:dashboard.sponsor}} leads to the page where you can support the project; {{ui:dashboard.userGuide}} opens this guide; {{ui:dashboard.forum}} leads to the place for questions, ideas and bug reports (the discussions on GitHub, in German the forum of drucktipps3d); {{ui:editor.bugReport}} makes a ZIP for a bug report; {{ui:dashboard.projectOnGitHub}} leads to the project on GitHub, and the version number opens the release notes. The links to the imprint and the privacy policy belong to whoever runs the copy of layerling you use.
 
 ## Your first part
 

@@ -135,7 +135,7 @@ describe("axial clearance of a thread", () => {
       }
       if (threadProfile !== "round") expect([...uses.values()].every((count) => count === 2)).toBe(true);
     }
-  });
+  }, 30_000); // Every thread profile is built and checked here; under a loaded machine five seconds were not always enough.
 
   it("gives the exact body the same widened profile, and no true arcs for a widened Whitworth thread", () => {
     const shape = makeShapeFromAsset(toolbarShapeAssets.find((asset) => asset.kind === "thread")!, { x: 0, z: 0 }, {

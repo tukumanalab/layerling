@@ -80,10 +80,48 @@ describe("screw holes", () => {
     const kinds = toolbarShapeAssets.map((entry) => entry.kind);
     expect(kinds.indexOf("counterbore")).toBe(kinds.indexOf("bentTube") + 1);
     expect(kinds.indexOf("countersink")).toBe(kinds.indexOf("counterbore") + 1);
-    expect(kinds.indexOf("teardrop")).toBe(kinds.indexOf("countersink") + 1);
+    expect(kinds.indexOf("doubleCountersink")).toBe(kinds.indexOf("countersink") + 1);
+    expect(kinds.indexOf("teardrop")).toBe(kinds.indexOf("doubleCountersink") + 1);
     const counterbore = makeShapeFromAsset(toolbarShapeAssets.find((entry) => entry.kind === "counterbore")!);
     expect(counterbore).toMatchObject({ width: 6.4, depth: 6.4, height: 12, screwHoleShaft: 3.4, screwHoleHeadDepth: 3.2 });
     const countersink = makeShapeFromAsset(toolbarShapeAssets.find((entry) => entry.kind === "countersink")!);
     expect(countersink).toMatchObject({ width: 6.6, depth: 6.6, height: 8, screwHoleShaft: 3.4, screwHoleAngle: 90 });
+    const double = makeShapeFromAsset(toolbarShapeAssets.find((entry) => entry.kind === "doubleCountersink")!);
+    expect(double).toMatchObject({ width: 6.6, depth: 6.6, height: 6, screwHoleShaft: 3.4, screwHoleAngle: 90 });
+  });
+
+  describe("doubleCountersink (#392)", () => {
+    it("is a cone at each end with the shaft between them", () => {
+      const profile = screwHoleProfile({ kind: "doubleCountersink", width: 10, height: 20, screwHoleShaft: 6, screwHoleAngle: 90 });
+      expect(profile).toEqual([
+        { r: 5, y: 0 },
+        { r: 3, y: expect.closeTo(2, 6) },
+        { r: 3, y: expect.closeTo(18, 6) },
+        { r: 5, y: 20 },
+      ]);
+    });
+
+    it("lets the cones meet in the middle when the hole is too short, the shaft staying wider than set", () => {
+      // The example of the request: head 10, shaft 6, 90 degrees, length 2 - two cones from 10 down to 8.
+      const profile = screwHoleProfile({ kind: "doubleCountersink", width: 10, height: 2, screwHoleShaft: 6, screwHoleAngle: 90 });
+      expect(profile).toHaveLength(3);
+      expect(profile[1].y).toBeCloseTo(1, 6);
+      expect(profile[1].r * 2).toBeCloseTo(8, 6);
+      expect(profile[0].r).toBe(5);
+      expect(profile[2]).toEqual({ r: 5, y: 2 });
+    });
+
+    it("builds a closed body with outward faces, symmetric top to bottom, and the right volume", () => {
+      const geometry = createScrewHoleGeometry({ kind: "doubleCountersink", width: 6.6, depth: 6.6, height: 6, screwHoleShaft: 3.4, screwHoleAngle: 90 });
+      const { volume, closed } = stats(geometry);
+      expect(closed).toBe(true);
+      const cone = (Math.PI * 1.6 / 3) * (1.7 ** 2 + 1.7 * 3.3 + 3.3 ** 2);
+      const exact = 2 * cone + Math.PI * 1.7 ** 2 * (6 - 3.2);
+      expect(volume).toBeGreaterThan(exact * 0.99);
+      expect(volume).toBeLessThan(exact * 1.001);
+      expect(geometry.boundingBox?.min.y).toBeCloseTo(0, 6);
+      expect(geometry.boundingBox?.max.y).toBeCloseTo(6, 6);
+      expect(geometry.boundingBox?.max.x).toBeCloseTo(3.3, 2);
+    });
   });
 });

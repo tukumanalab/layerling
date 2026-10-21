@@ -194,6 +194,7 @@ export function ObjectListPanel({
       inert={inert}
       role="region"
       aria-label={t("outliner.title")}
+      data-help-section-all="objectList"
     >
       <header className="outliner-header" title={t("outliner.moveHint")} {...movable.handleProps}>
         <div className="outliner-title-wrap">

@@ -21,6 +21,11 @@ export function setManifoldLoader(load: () => Promise<ManifoldToplevel>) {
   loader = load;
 }
 
+/** Whether the editor has said how the runtime is loaded; without it nothing can be asked for. */
+export function manifoldLoaderKnown() {
+  return loader !== null;
+}
+
 export function loadedManifoldRuntime(): ManifoldToplevel | null {
   return loaded;
 }

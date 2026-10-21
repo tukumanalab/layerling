@@ -73,6 +73,10 @@ describe("the matching", () => {
     expect(core.fold("Größe Über").length).toBe("Größe Über".length);
   });
 
+  it("folds the Polish ł to l, which has no decomposition", () => {
+    expect(core.fold("Własne czcionki Łódź")).toBe("wlasne czcionki lodz");
+  });
+
   it("finds a section by a word in its heading first", () => {
     expect(find("mirror")[0]).toBe("/guide/selecting.html#mirror");
     expect(find("mirror")).toContain("/guide/shapes.html");

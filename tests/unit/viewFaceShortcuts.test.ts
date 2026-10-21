@@ -65,6 +65,7 @@ describe("view face shortcut wiring in the viewport", () => {
 
   it("keeps focusSelection a no-op without a selection", () => {
     const focus = source.slice(source.indexOf("const focusSelection = useCallback"), source.indexOf("const resetView = useCallback"));
-    expect(focus).toContain("if (bounds.isEmpty()) return;");
+    // It says so (false), so F can show the whole scene instead (#465).
+    expect(focus).toContain("if (bounds.isEmpty()) return false;");
   });
 });

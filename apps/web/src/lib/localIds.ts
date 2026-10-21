@@ -19,6 +19,10 @@ export function createLocalId(prefix: string) {
  * and closing a group again and again does not grow the id each time.
  */
 export function derivedLocalId(sourceId: string, role: "group-child" | "ungroup") {
-  const base = sourceId.split(/-(?:group-child|ungroup)-/)[0] || sourceId;
-  return createLocalId(`${base}-${role}`);
+  return createLocalId(`${localIdBase(sourceId)}-${role}`);
+}
+
+/** The id an object had before any grouping or ungrouping gave it a derived one. */
+export function localIdBase(id: string) {
+  return id.split(/-(?:group-child|ungroup)-/)[0] || id;
 }

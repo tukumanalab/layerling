@@ -234,23 +234,38 @@ function colorFromMaterialName(name: string) {
 }
 
 /**
+ * Mehr verschiedene Eckpunktfarben als das sind keine Farbteile mehr, sondern
+ * ein Farbverlauf (Scans, KI-Modelle): eine Datei mit 125 000 Farben wuerde
+ * 125 000 Koerper, und der Editor bricht zusammen (#351). Sie kommt dann als
+ * ein Koerper, ohne die Eckpunktfarben.
+ */
+export const MAX_OBJ_VERTEX_COLOR_PARTS = 64;
+
+class ObjVertexColorOverflow extends Error {}
+
+/**
  * Liest die Dreiecke einer OBJ und ordnet sie nach Farbe: Eckpunktfarben
  * (`v x y z r g b`, so schreibt layerling selbst) gehen vor, sonst das
  * Material aus `usemtl`. Ohne beides bleibt alles ein Teil.
  */
-function parseObjParts(source: string, materialColors: ReadonlyMap<string, string>, legacyAxes = false) {
+function parseObjParts(source: string, materialColors: ReadonlyMap<string, string>, legacyAxes = false, ignoreVertexColors = false) {
   // Nur sehr alte Exporte waren Z-oben und sagen das im Kopf. Seit 1.0.0
   // schreibt layerling Y-oben wie jedes OBJ-Programm; die erkannte Kopfzeile
   // allein drehte die eigene Datei beim Wiedereinlesen auf die Seite.
   // `legacyAxes` haelt diese alte Lesart fuer Projekte, die ihr Netz aus der
   // mitgespeicherten Datei neu bauen - sonst kippte dort ein Koerper um.
   const layerlingZUpExport = isLayerlingObj(source) && (legacyAxes || /^#.*\bZ-up\b/m.test(source));
+  // Tinkercad writes its OBJ with Z up and says so in the first line (#599). A project that stored
+  // such a file never rebuilds it from the file (see `importedShapesFromObj`), so `legacyAxes`
+  // leaves it alone.
+  const zUp = layerlingZUpExport || (!legacyAxes && isTinkercadObj(source));
   const vertices: THREE.Vector3[] = [];
   const vertexColors: Array<string | undefined> = [];
   const normals: THREE.Vector3[] = [];
   const parts = new Map<string, ObjPart>();
   let material: string | undefined;
   let faceCount = 0;
+  let vertexColorParts = 0;
 
   source.split(/\r?\n/).forEach((sourceLine) => {
     const line = sourceLine.split("#", 1)[0].trim();
@@ -263,7 +278,7 @@ function parseObjParts(source: string, materialColors: ReadonlyMap<string, strin
       const values = fields.slice(1, 4).map(Number);
       if (values.some((value) => !Number.isFinite(value))) throw new Error("OBJ contains a non-finite vertex");
       vertices.push(new THREE.Vector3(values[0], values[1], values[2]));
-      const rgb = fields.length >= 7 ? fields.slice(4, 7).map(Number) : null;
+      const rgb = fields.length >= 7 && !ignoreVertexColors ? fields.slice(4, 7).map(Number) : null;
       vertexColors.push(rgb && rgb.every(Number.isFinite) ? hexColor(rgb[0], rgb[1], rgb[2]) : undefined);
       return;
     }
@@ -299,6 +314,7 @@ function parseObjParts(source: string, materialColors: ReadonlyMap<string, strin
     const key = vertexColor ? `rgb:${vertexColor}` : material !== undefined ? `mtl:${material}` : "";
     let part = parts.get(key);
     if (!part) {
+      if (vertexColor && (vertexColorParts += 1) > MAX_OBJ_VERTEX_COLOR_PARTS) throw new ObjVertexColorOverflow();
       part = {
         key,
         color: vertexColor ?? (material !== undefined ? materialColors.get(material) ?? colorFromMaterialName(material) : undefined),
@@ -318,13 +334,13 @@ function parseObjParts(source: string, materialColors: ReadonlyMap<string, strin
         const ref = refs[faceIndex];
         const point = vertices[ref.vertexIndex];
         const position: [number, number, number] = [point.x, point.y, point.z];
-        target.positions.push(...(layerlingZUpExport ? zUpToLayerling(position) : position));
+        target.positions.push(...(zUp ? zUpToLayerling(position) : position));
         if (ref.normalIndex === undefined) {
           target.completeNormals = false;
         } else {
           const normal = normals[ref.normalIndex];
           const sourceNormal: [number, number, number] = [normal.x, normal.y, normal.z];
-          target.normals.push(...(layerlingZUpExport ? zUpToLayerling(sourceNormal) : sourceNormal));
+          target.normals.push(...(zUp ? zUpToLayerling(sourceNormal) : sourceNormal));
         }
       });
       faceCount += 1;
@@ -335,6 +351,16 @@ function parseObjParts(source: string, materialColors: ReadonlyMap<string, strin
     throw new Error("OBJ has no readable mesh geometry");
   }
   return [...parts.values()].filter((part) => part.positions.length >= 9);
+}
+
+/** Wie `parseObjParts`, aber mit der Grenze fuer Eckpunktfarben: darueber ohne sie noch einmal lesen. */
+function parseObjPartsLimited(source: string, materialColors: ReadonlyMap<string, string>, legacyAxes = false) {
+  try {
+    return { parts: parseObjParts(source, materialColors, legacyAxes), droppedVertexColors: false };
+  } catch (error) {
+    if (!(error instanceof ObjVertexColorOverflow)) throw error;
+    return { parts: parseObjParts(source, materialColors, legacyAxes, true), droppedVertexColors: true };
+  }
 }
 
 function partNormals(part: ObjPart) {
@@ -349,8 +375,15 @@ function isLayerlingObj(source: string) {
   return /^# Layerling OBJ export\b/m.test(source);
 }
 
+function isTinkercadObj(source: string) {
+  return /^# Object Export From Tinkercad\b/m.test(source);
+}
+
 export function importedShapeFromObj(fileName: string, source: string, legacyAxes = false): WorkplaneShape {
-  const parts = parseObjParts(source, new Map(), legacyAxes);
+  return wholeShapeFromObjParts(fileName, parseObjPartsLimited(source, new Map(), legacyAxes).parts);
+}
+
+function wholeShapeFromObjParts(fileName: string, parts: readonly ObjPart[]): WorkplaneShape {
   const positions = parts.flatMap((part) => part.positions);
   const complete = parts.every((part) => partNormals(part));
   return importedObjShapeFromTriangles(fileName, positions, complete ? parts.flatMap((part) => part.normals) : undefined);
@@ -362,6 +395,8 @@ export type ObjImportResult = {
   split: boolean;
   /** Materialien ohne bekannte Farbe - die .mtl fehlte vermutlich. */
   missingMaterialColors: boolean;
+  /** Zu viele Eckpunktfarben (ein Farbverlauf): die Datei kam ohne sie als ein Koerper (#351). */
+  droppedVertexColors: boolean;
 };
 
 /**
@@ -372,16 +407,16 @@ export type ObjImportResult = {
 export function importedShapesFromObj(fileName: string, source: string, mtlSources: readonly string[] = []): ObjImportResult {
   const materialColors = new Map<string, string>();
   mtlSources.forEach((mtl) => parseMtlColors(mtl).forEach((color, name) => materialColors.set(name, color)));
-  const parts = parseObjParts(source, materialColors);
+  const { parts, droppedVertexColors } = parseObjPartsLimited(source, materialColors);
   const missingMaterialColors = parts.some((part) => part.material !== undefined && !part.color);
 
-  const whole = importedShapeFromObj(fileName, source);
+  const whole = wholeShapeFromObjParts(fileName, parts);
   if (parts.length <= 1) {
     const color = parts[0]?.color;
     // Eine eigene OBJ traegt ihr Netz selbst: die .lyl baut OBJ-Quellen in der
     // alten Achsen-Lesart nach (siehe `legacyAxes`).
-    const own = isLayerlingObj(source) ? { ...whole, importedMesh: { ...whole.importedMesh!, sourceFormat: "json" as const } } : whole;
-    return { shapes: [color ? { ...own, color } : own], split: false, missingMaterialColors };
+    const own = isLayerlingObj(source) || isTinkercadObj(source) ? { ...whole, importedMesh: { ...whole.importedMesh!, sourceFormat: "json" as const } } : whole;
+    return { shapes: [color ? { ...own, color } : own], split: false, missingMaterialColors, droppedVertexColors };
   }
 
   const shapes = placeColoredParts(
@@ -394,5 +429,5 @@ export function importedShapesFromObj(fileName: string, source: string, mtlSourc
     })),
     (positions, normals) => importedObjShapeFromTriangles(fileName, positions, normals),
   );
-  return { shapes, split: true, missingMaterialColors };
+  return { shapes, split: true, missingMaterialColors, droppedVertexColors };
 }

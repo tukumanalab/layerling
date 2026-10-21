@@ -86,7 +86,7 @@ function mcpShapeSettings(shape: WorkplaneShape): Record<string, string | number
     const value = shape[key];
     if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
       settings[key] = value;
-    } else if (key === "bentTubeSegments" && Array.isArray(value)) {
+    } else if ((key === "bentTubeSegments" || key === "gridfinityDividerPositionsX" || key === "gridfinityDividerPositionsZ" || key === "gridfinityCompartmentLabels") && Array.isArray(value)) {
       // Eine Liste passt nicht in die flache Auskunft; als Text geht sie
       // hinaus und wird so auch wieder angenommen.
       settings[key] = JSON.stringify(value);
@@ -146,15 +146,17 @@ export function mcpShapeSummary(shape: WorkplaneShape): LayerlingMcpShapeSummary
     cadDisplayEdgeCount: shape.cadDisplayEdges?.length ?? null,
     sketchPointCount: shape.sketchProfile?.points.length ?? 0,
     sketchSegmentCount: shape.sketchProfile?.segments.length ?? 0,
-    ...(shape.sketchProfile && shape.sketchOperation !== "revolve"
-      ? { sketchStroke: shape.sketchProfile.stroke ?? null, silhouette: Boolean(shape.sketchProfile.silhouette) }
+    ...(shape.sketchProfile && shape.sketchOperation !== "revolve" && shape.sketchOperation !== "sweep"
+      ? { sketchStroke: shape.sketchProfile.stroke ?? null, silhouette: Boolean(shape.sketchProfile.silhouette), sketchInset: shape.sketchProfile.inset ?? null }
       : {}),
     // A text's fill (#215) reads like a sketch body's: its stroke, and whether the counters are left out.
-    ...(shape.kind === "text" ? { textStroke: shape.textStroke ?? null, textSilhouette: Boolean(shape.textSilhouette), textEdge: shape.textEdge ?? null } : {}),
+    ...(shape.kind === "text" ? { textStroke: shape.textStroke ?? null, textSilhouette: Boolean(shape.textSilhouette), textStretch: Boolean(shape.textStretch), textSpacing: shape.textSpacing ?? 0, textEdge: shape.textEdge ?? null } : {}),
     // A name tag's key ring hole (#215), on the layers it goes through; the bottom one carries the ear.
     ...(shape.kind === "text" && shape.textKeyring ? { textKeyring: shape.textKeyring } : {}),
     ...(shape.layeredText ? { layeredText: true } : {}),
     ...(shape.layeredIcon ? { layeredIcon: true } : {}),
+    // A QR code (#553): the text and the choices it was made with.
+    ...(shape.qrCode ? { qrCode: shape.qrCode } : {}),
     children: shape.groupedShapes?.map(mcpShapeSummary),
   };
 }

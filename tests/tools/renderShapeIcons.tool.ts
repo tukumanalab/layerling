@@ -12,6 +12,7 @@ import { createCrescentGeometry } from "@/lib/crescentGeometry";
 import { createSlotGeometry } from "@/lib/slotGeometry";
 import { createDovetailGeometry } from "@/lib/dovetailGeometry";
 import { createHingeGeometry } from "@/lib/hingeGeometry";
+import { createGridfinityGeometry } from "@/lib/gridfinityGeometry";
 import { createKnurlGeometry } from "@/lib/knurlGeometry";
 import { createTeardropGeometry, teardropHeightForTipAngle } from "@/lib/teardropGeometry";
 import { createLoftGeometry } from "@/lib/loftGeometry";
@@ -434,6 +435,14 @@ describe("palette icons", () => {
       build: () => createScrewHoleGeometry({ kind: "countersink", width: 16, depth: 16, height: 20, screwHoleShaft: 8, screwHoleAngle: 90 }),
     });
     render({
+      name: "apps/web/public/assets/editor/shape-icons-gray/doubleCountersink.png",
+      height: 12,
+      lay: false,
+      azimuth: 35,
+      elevation: 32,
+      build: () => createScrewHoleGeometry({ kind: "doubleCountersink", width: 16, depth: 16, height: 20, screwHoleShaft: 8, screwHoleAngle: 90 }),
+    });
+    render({
       // Schraeg von vorn auf die Stirnseite, damit Rundung und Spitze zu sehen sind.
       name: "apps/web/public/assets/editor/shape-icons-gray/teardrop.png",
       height: teardropHeightForTipAngle(16, 90),
@@ -487,6 +496,15 @@ describe("palette icons", () => {
       azimuth: 30,
       elevation: 34,
       build: () => createHingeGeometry({ width: 36, depth: 30, height: 8, hingeKnuckles: 5 }),
+    });
+    render({
+      // A bin of two units from above at an angle: the stacking lip and the inside show.
+      name: "apps/web/public/assets/editor/shape-icons-gray/gridfinity.png",
+      height: 18.4,
+      lay: false,
+      azimuth: 30,
+      elevation: 34,
+      build: () => createGridfinityGeometry({ width: 83.5, depth: 41.5, height: 18.4, gridfinityType: "bin", gridfinityLip: true }),
     });
     render({
       // Gekreuzt, weil man eine Raendelung an den Rauten erkennt; schraeg von oben.

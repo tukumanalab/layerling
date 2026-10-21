@@ -1,3 +1,17 @@
+import { displayShapeName } from "@/lib/shapeCatalog";
+import type { WorkplaneNote, WorkplaneShape } from "@/types/layerling";
+
+/**
+ * One group being edited: the group as it was, the ids of its loose parts,
+ * and the notes pinned to it when it was opened, where they stood - cancelling
+ * puts them back.
+ */
+export type OpenGroupLevel = { original: WorkplaneShape; childIds: string[]; notes: WorkplaneNote[] };
+
+export function mcpOpenGroupSummary(level: OpenGroupLevel) {
+  return { groupId: level.original.id, name: displayShapeName(level.original), partIds: level.childIds };
+}
+
 /**
  * Which objects on the workplane belong to the groups that are open for editing.
  *

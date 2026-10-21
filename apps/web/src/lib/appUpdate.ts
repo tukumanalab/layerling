@@ -3,6 +3,13 @@ export const DEFAULT_SOURCE_CODE_URL = "https://github.com/henmedia/layerling";
 export const SOURCE_CODE_URL =
   process.env.NEXT_PUBLIC_SOURCE_CODE_URL?.trim() || DEFAULT_SOURCE_CODE_URL;
 
+// The release list rather than the tag of this build: a fork that never
+// publishes a release still lands on a page that exists, and readers see what
+// came after the version they are running.
+export function releaseNotesUrl(sourceCodeUrl: string = SOURCE_CODE_URL) {
+  return `${sourceCodeUrl.replace(/\/+$/, "")}/releases`;
+}
+
 export type Semver = {
   major: number;
   minor: number;

@@ -303,6 +303,19 @@ export function ToolbarHolePatternIcon(props: IconProps) {
   );
 }
 
+/** A slab with a pad set in from its edges standing on top, and an arrow out of the face: the face tool. */
+export function ToolbarFaceToolIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M6 28h36v13H6Z" {...SOLID} />
+      <path d="M6 28h36v13H6Z" />
+      <rect x="13" y="18" width="22" height="10" rx="3" {...SOLID} />
+      <rect x="13" y="18" width="22" height="10" rx="3" />
+      <path d="M24 14V4M19 9l5-5 5 5" />
+    </ToolbarVectorIcon>
+  );
+}
+
 /** A dashed line with a dot at each end: a construction line in a sketch (#229). */
 export function ToolbarConstructionLineIcon(props: IconProps) {
   return (
@@ -310,6 +323,16 @@ export function ToolbarConstructionLineIcon(props: IconProps) {
       <path d="M12 36 36 12" strokeDasharray="5 5" />
       <circle cx="10" cy="38" r="3.6" fill="currentColor" stroke="none" />
       <circle cx="38" cy="10" r="3.6" fill="currentColor" stroke="none" />
+    </ToolbarVectorIcon>
+  );
+}
+
+export function ToolbarMiddleLineIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M8 38 40 10" />
+      <circle cx="24" cy="24" r="4.6" fill="currentColor" stroke="none" />
+      <path d="m8 30 0 8 8 0M40 18l0-8-8 0" />
     </ToolbarVectorIcon>
   );
 }
@@ -352,6 +375,17 @@ export function ToolbarHollowIcon(props: IconProps) {
     <ToolbarVectorIcon {...props}>
       <path d="M8 10h7v23h18V10h7v30H8Z" {...SOLID} />
       <path d="M8 10h7v23h18V10h7v30H8Z" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A block whose boss on top is drawn dashed: the faces that go, the top closed again. */
+export function ToolbarDeleteFaceIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M8 20h32v20H8Z" {...SOLID} />
+      <path d="M8 20h32v20H8Z" />
+      <path d="M17 20V9h14v11" strokeDasharray="4 3" />
     </ToolbarVectorIcon>
   );
 }

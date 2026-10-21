@@ -212,9 +212,9 @@ function outsideThreadBound(cad: OcctKernel, part: CadModifierThreadPart, bottom
   // chamfer cones run on to that width, past the crest, where they cut
   // nothing more but cross the crest instead of touching it.
   const clear = major + Math.max(0.1, part.pitch);
-  const broken = chamfer > 0.001;
+  const broken = chamfer > 0;
   const outline: Point[] = [[0, bottom]];
-  if (chamferLow > 0.001 && chamferBottom) outline.push([major - chamferLow, bottom], [clear, bottom + chamferLow + (clear - major)]);
+  if (chamferLow > 0 && chamferBottom) outline.push([major - chamferLow, bottom], [clear, bottom + chamferLow + (clear - major)]);
   else outline.push([clear, bottom]);
   if (broken) outline.push([clear, height - chamfer - (clear - major)], [major - chamfer, height]);
   else outline.push([clear, height]);
@@ -232,8 +232,8 @@ function outsideThread(cad: OcctKernel, part: CadModifierThreadPart, bottom: num
   const unit = halfTurnFaces(cad, part, climbsCounterClockwise);
   const bound = outsideThreadBound(cad, part, bottom, part.chamferBottom);
   const { first, last } = halfTurnRange(bottom, height, crestZ, pitch);
-  const broken = chamfer > 0.001;
-  const clearOfBottom = bottom + (chamferLow > 0.001 && part.chamferBottom ? chamferLow + Math.max(0.1, pitch) : 0) + pitch * 0.01;
+  const broken = chamfer > 0;
+  const clearOfBottom = bottom + (chamferLow > 0 && part.chamferBottom ? chamferLow + Math.max(0.1, pitch) : 0) + pitch * 0.01;
   const clearOfTop = height - (broken ? chamfer + Math.max(0.1, pitch) : 0) - pitch * 0.01;
   const low: ShapeHandle[] = [];
   const middle: ShapeHandle[] = [];
@@ -298,8 +298,8 @@ export function threadPartSolid(cad: OcctKernel, part: CadModifierThreadPart): S
     // past both faces, and the chamfer cones that widen its mouths.
     const tap = helicalSolid(cad, part, -pitch, height + pitch, 0, counterClockwise);
     const cones = [
-      ...(part.chamferBottom && part.chamferLow > 0.001 ? [insideChamferCone(cad, part, 0, 1, part.chamferLow)] : []),
-      ...(part.chamfer > 0.001 ? [insideChamferCone(cad, part, height, -1, part.chamfer)] : []),
+      ...(part.chamferBottom && part.chamferLow > 0 ? [insideChamferCone(cad, part, 0, 1, part.chamferLow)] : []),
+      ...(part.chamfer > 0 ? [insideChamferCone(cad, part, height, -1, part.chamfer)] : []),
     ];
     if (role === "nut" && part.nut) {
       let body = hexPrism(cad, part.nut.acrossFlats, height);

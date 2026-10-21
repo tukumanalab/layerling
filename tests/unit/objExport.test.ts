@@ -14,12 +14,16 @@ function duplicatedTetrahedron(): ObjExportMesh {
 }
 
 describe("OBJ export", () => {
-  it("preserves OBJ's conventional Y-up coordinates", () => {
+  it("writes Z-up coordinates, as slicers read an OBJ, and says so in the header (#541)", () => {
     const obj = exportMeshesToObj([duplicatedTetrahedron()]);
     const vertices = obj.split("\n").filter((line) => line.startsWith("v "));
 
+    // The editor's point (0, 0, 10) lies 10 mm to the front; in Z up that is Y = -10, and the
+    // editor's height (0, 10, 0) becomes Z.
+    expect(vertices).toContain("v 0 -10 0");
     expect(vertices).toContain("v 0 0 10");
-    expect(vertices).toContain("v 0 10 0");
+    expect(obj).toContain("# Z-up");
+    expect(obj).not.toContain("# Y-up");
   });
 
   it("welds coincident triangle vertices so a closed mesh has no boundary edges", () => {

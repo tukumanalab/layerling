@@ -11,6 +11,8 @@ export function cloneSketchProfile(profile: SketchProfile): SketchProfile {
     images: (profile.images ?? []).map((image) => ({ ...image })),
     ...(profile.stroke ? { stroke: { ...profile.stroke } } : {}),
     ...(profile.silhouette ? { silhouette: true } : {}),
+    ...(profile.keyring ? { keyring: { ...profile.keyring } } : {}),
+    ...(profile.inset ? { inset: { ...profile.inset } } : {}),
   };
 }
 

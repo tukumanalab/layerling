@@ -86,6 +86,17 @@ describe("a stroked or widened sketch as an exact solid, with the real OCCT kern
     expect(kernel.getVolume(grown)).toBeCloseTo((roundedArea + perimeter * 2 + Math.PI * 4) * HEIGHT, 0);
   });
 
+  it("narrows the outline for 'shrink', its rounded corner kept as a cylinder (#558)", () => {
+    const narrowed = buildStrokedSketchSolid(kernel, roundedRectangle(), stroke("shrink", 2), HEIGHT)!;
+    expect(narrowed).not.toBeNull();
+    expect(kernel.isValid(narrowed)).toBe(true);
+    // A 36 x 26 outline with a corner of radius 8: the same inner outline the 'inside' frame leaves empty.
+    expect(kernel.getVolume(narrowed)).toBeCloseTo((36 * 26 - (1 - Math.PI / 4) * 64) * HEIGHT, 0);
+    expect(surfaceTypes(kernel.toBREP(narrowed))["2"]).toBe(1);
+    // Wider than the outline allows: no solid, so the caller falls back to the polygon route.
+    expect(buildStrokedSketchSolid(kernel, roundedRectangle(), stroke("shrink", 20), HEIGHT)).toBeNull();
+  });
+
   it("grows the holes smaller and shrinks them wider, as an outline with a hole in it asks", () => {
     const outer = loop("o", [[0, 0], [40, 0], [40, 30], [0, 30]]);
     const hole = loop("h", [[15, 10], [25, 10], [25, 20], [15, 20]]);

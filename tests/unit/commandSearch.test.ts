@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { COMMAND_KEYWORDS } from "@/lib/commandKeywords";
 import { rememberCommand, searchCommands, searchWords, type SearchableCommand } from "@/lib/commandSearch";
 
 type Cmd = SearchableCommand & { id: string };
@@ -79,5 +80,24 @@ describe("searchCommands", () => {
 
   it("splits words in both spellings", () => {
     expect(searchWords("Aushöhlen")).toEqual(expect.arrayContaining(["aushoehlen", "aushohlen"]));
+  });
+
+  it("finds a Polish label by its word without the ł", () => {
+    const commands: Cmd[] = [{ id: "flat", label: "Połóż płasko na ścianie", group: "Edycja" }];
+    const found = (query: string) => searchCommands(commands, query).map((command) => command.id);
+    expect(found("polóz")).toEqual(["flat"]);
+    expect(found("poloz plasko")).toEqual(["flat"]);
+    expect(found("połóż")).toEqual(["flat"]);
+  });
+
+  it("finds Delete face by the words other programs use, in both languages", () => {
+    const commands: Cmd[] = [
+      { id: "delete", label: "Delete", group: "Edit", keywords: COMMAND_KEYWORDS.delete },
+      { id: "deleteFace", label: "Delete face", group: "Modify", keywords: COMMAND_KEYWORDS.deleteFace },
+    ];
+    const found = (query: string) => searchCommands(commands, query).map((command) => command.id);
+    expect(found("defeature")).toEqual(["deleteFace"]);
+    expect(found("remove fillet")).toEqual(["deleteFace"]);
+    expect(found("Fläche löschen")).toEqual(["deleteFace"]);
   });
 });

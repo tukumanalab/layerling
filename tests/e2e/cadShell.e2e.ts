@@ -288,4 +288,48 @@ describe("hollowing a solid with the real OCCT kernel", () => {
     }
     kernel.release(joined);
   });
+
+  // #302: a block 20 x 10 x 20 with a pocket 10 x 10 and 5 deep from the top. The top face is a ring
+  // round the pocket; the kernel's thick solid cannot leave a face like that open, so the body is
+  // grown over it and hollowed from its inward offset.
+  function blockWithPocket(depthOfPocket: number) {
+    const block = yUp(kernel.makeBox(20, 20, 10));
+    const pocket = yUp(kernel.translate(kernel.makeBox(10, 10, 10), 5, 5, 10 - depthOfPocket));
+    const cut = kernel.cut(block, pocket);
+    kernel.release(block);
+    kernel.release(pocket);
+    return cut;
+  }
+
+  it("leaves the top open on a block with a blind pocket (#302)", () => {
+    const body = blockWithPocket(5);
+    const result = shellSolid(kernel, body, 1.5, "top", "sharp");
+    expect(kernel.isValid(result)).toBe(true);
+    // The cavity: a ring 17 x 17 minus 13 x 13 up to the open top (8.5 high), and 13 x 13 under the pocket (2 high).
+    const cavity = (17 * 17 - 13 * 13) * 8.5 + 13 * 13 * 2;
+    expect(kernel.getVolume(result)).toBeCloseTo(20 * 20 * 10 - 10 * 10 * 5 - cavity, 3);
+    const bounds = kernel.getBoundingBox(result, false);
+    expect(bounds.ymax - bounds.ymin).toBeCloseTo(10, 4);
+    kernel.release(result);
+    kernel.release(body);
+  });
+
+  it("hollows a block with a pocket from any side it can be opened on, and through a hole", () => {
+    const body = blockWithPocket(5);
+    for (const openings of ["bottom", "top-bottom", "none"] as const) {
+      const result = shellSolid(kernel, body, 1, openings);
+      expect(kernel.isValid(result)).toBe(true);
+      expect(kernel.getVolume(result)).toBeGreaterThan(0);
+      expect(kernel.getVolume(result)).toBeLessThan(kernel.getVolume(body));
+      kernel.release(result);
+    }
+    kernel.release(body);
+    // A pocket right through the block: a square tube, open at the top.
+    const tube = blockWithPocket(10);
+    const result = shellSolid(kernel, tube, 1.5, "top");
+    expect(kernel.isValid(result)).toBe(true);
+    expect(kernel.getVolume(result)).toBeLessThan(kernel.getVolume(tube));
+    kernel.release(result);
+    kernel.release(tube);
+  });
 });

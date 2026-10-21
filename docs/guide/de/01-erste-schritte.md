@@ -13,7 +13,7 @@ layerling ist ein Konstruktionsprogramm für den 3D-Druck, das direkt im Browser
 
 Hast du schon eine Datei, die du weiterbearbeiten willst, nimmst du {{ui:dashboard.importGeometry}}. Das geht mit layerling-Entwürfen (`.lyl`) genauso wie mit STL-, OBJ-, 3MF-, STEP- oder SVG-Dateien.
 
-Alle deine Entwürfe erscheinen später auf der Startseite mit einem Vorschaubild. Sie liegen im Speicher deines Browsers und werden bei jeder Änderung automatisch gesichert. Ein Knopf zum Speichern gibt es deshalb nicht. Wie du Entwürfe in eine Datei packst und weitergibst, steht im Kapitel [Dateien und Speichern](chapter:dateien-und-speichern).
+Alle deine Entwürfe erscheinen später auf der Startseite mit einem Vorschaubild. Sie liegen im Speicher deines Browsers und werden bei jeder Änderung automatisch gesichert. Ein Knopf zum Speichern gibt es deshalb nicht. **layerling übernimmt keine Verantwortung für Entwürfe, die im Browser gespeichert sind.** Ein Browser kann Fehler machen, und ein Update kann Probleme bereiten. Sichere deine Entwürfe deshalb von Zeit zu Zeit mit {{ui:dashboard.backupAll}} auf der Startseite oder speichere sie als Dateien. Eine Sicherung holst du mit {{ui:dashboard.restoreBackup}} zurück. Wie du Entwürfe in eine Datei packst und weitergibst, steht im Kapitel [Dateien und Speichern](chapter:dateien-und-speichern).
 
 ## Der Editor im Überblick
 
@@ -24,6 +24,66 @@ Alle deine Entwürfe erscheinen später auf der Startseite mit einem Vorschaubil
 - **Rechts** erscheinen die Einstellungen der ausgewählten Form: Farbe, Maße, Lage und alles, was die Form sonst noch ausmacht. Zahlen tippen ist genauer als ziehen.
 - **Links** liegt die Kamerasteuerung mit dem Ansichtswürfel darüber. Mit ihr bewegst du dich durch die Szene, mehr dazu im Kapitel [Ansicht und Arbeitsebene](chapter:ansicht-und-arbeitsebene).
 - **Ganz oben** wechselst du zwischen {{ui:editor.modeGeometry}} und {{ui:editor.modeSketch}}, benennst den Entwurf um und stellst Sprache und Farbschema ein.
+
+## Die Knöpfe rund um die Arbeitsfläche
+
+Fahre mit der Maus über einen Knopf, dann siehst du seinen Namen. Wenn du nicht sicher bist, was ein Knopf tut, klicke im Bereich {{ui:editor.group.help}} auf {{ui:interactiveHelp.title}} ([[Umschalt]]+[[F1]]) und dann auf den Knopf. Hier stehen die, nach denen am häufigsten gefragt wird.
+
+### Einfügen
+
+{{ui:editor.tool.paste}} ([[Strg]]+[[V]]) fügt in den Entwurf ein, was du mit {{ui:editor.tool.copy}} kopiert hast. {{ui:common.duplicate}} kopiert und fügt in einem Schritt ein.
+
+### Löschen
+
+{{ui:common.delete}} ([[Entf]]) entfernt die gewählten Formen. {{ui:editor.tool.undo}} holt sie zurück.
+
+### Gruppierung aufheben
+
+{{ui:editor.tool.ungroup}} ([[Strg]]+[[Umschalt]]+[[G]]) zerlegt die gewählte Gruppe wieder in die Formen, aus denen sie gemacht wurde.
+
+### Arbeitsbereich-Einstellungen
+
+{{ui:editor.workspaceSettings}} öffnet die Einstellungen der Arbeitsfläche: Einheit, Größe der Platte, Drucker, Raster, Farben, Licht und mehr. Mehr dazu in [Ansicht und Arbeitsebene](chapter:ansicht-und-arbeitsebene).
+
+### Farbschema
+
+{{ui:common.theme}} ganz oben bestimmt, wie layerling aussieht: wie dein System, hell, dunkel oder Graphit.
+
+### Entwurf umbenennen
+
+{{ui:editor.renameProject}}: der Stift neben dem Namen ganz oben. Tippe den neuen Namen und drücke [[Enter]].
+
+### Entwurfsname
+
+Der Name des Entwurfs ({{ui:confirm.projectName}}) steht ganz oben. Klicke ihn an, tippe, und [[Enter]] behält den Namen.
+
+### Sichtbarkeitsoptionen
+
+{{ui:editor.visibilityOptions}}, der Pfeil neben dem Augensymbol, enthält, was du ein- oder ausblenden kannst: die Objektliste, alles, was du ausgeblendet hast, die Notizen und die Überhänge des Drucks. Mehr dazu in [Auswählen und anordnen](chapter:auswaehlen-und-anordnen).
+
+### Auswahl ausblenden
+
+{{ui:editor.tool.hideSelected}} ([[Strg]]+[[H]]) blendet die gewählten Formen aus. Sie bleiben im Entwurf und in der Objektliste; {{ui:editor.visibilityOptions}} zeigt sie wieder.
+
+### Befehle suchen
+
+{{ui:palette.open}}: Tippe, was du suchst, ein Werkzeug, eine Form oder eine Einstellung, und klicke auf das Ergebnis.
+
+### Kamerasteuerung ausblenden
+
+{{ui:camera.hide}} klappt die Kamerasteuerung links weg und gibt der Arbeitsfläche mehr Platz; {{ui:camera.show}} holt sie zurück.
+
+### Raster
+
+{{ui:inspector.snapGrid}}, unten in den Eigenschaften, ist die Stufe, auf die Verschieben und Größenändern einrasten. Daneben ändert der kleine Schalter **mm | in** die Einheit. Mehr dazu in [Ansicht und Arbeitsebene](chapter:ansicht-und-arbeitsebene).
+
+### Einheit: Millimeter oder Zoll
+
+Der Schalter **mm | in** neben {{ui:inspector.snapGrid}} ändert die Einheit, das Raster der Platte und die Fangstufe, für diesen Entwurf.
+
+### Die Fußzeile
+
+Am Fuß des Fensters: {{ui:dashboard.sponsor}} führt zur Seite, auf der du das Projekt unterstützen kannst; {{ui:dashboard.userGuide}} öffnet diese Anleitung; {{ui:dashboard.forum}} führt zum Ort für Fragen, Ideen und Fehlermeldungen (die Diskussionen auf GitHub, auf Deutsch das Forum von drucktipps3d); {{ui:editor.bugReport}} macht ein ZIP für eine Fehlermeldung; {{ui:dashboard.projectOnGitHub}} führt zum Projekt auf GitHub, und die Versionsnummer öffnet die Versionshinweise. Die Links zu Impressum und Datenschutz gehören dem, der die Kopie von layerling betreibt, die du benutzt.
 
 ## Dein erstes Teil
 

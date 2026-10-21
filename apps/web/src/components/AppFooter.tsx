@@ -5,9 +5,12 @@ import { withBasePath } from "@/lib/basePath";
 import { useEffect, useState, type ReactNode } from "react";
 import { LANGUAGE_INFO, t, type Language } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
-import { SOURCE_CODE_URL, type AppUpdateInfo } from "@/lib/appUpdate";
+import { SOURCE_CODE_URL, releaseNotesUrl, type AppUpdateInfo } from "@/lib/appUpdate";
 import { useAppUpdate } from "@/lib/useAppUpdate";
 import { SHOW_WHATS_NEW_EVENT } from "@/lib/useWhatsNew";
+import { InstallAppHint } from "@/components/InstallAppHint";
+import { TabletHint } from "@/components/TabletHint";
+import { PenHoverTips } from "@/components/PenHoverTips";
 import { SupportNudge } from "@/components/SupportNudge";
 import { supportCardEnabled, supportLink, type SupportSettings } from "@/lib/supportLink";
 
@@ -16,13 +19,6 @@ export { SOURCE_CODE_URL };
 /** Der Verweis in der Fußzeile zeigt auf die Anleitung in der gewählten Sprache. */
 function readmeUrl(language: Language) {
   return `${SOURCE_CODE_URL.replace(/\/+$/, "")}/blob/main/${LANGUAGE_INFO[language].readme}`;
-}
-
-// The release list rather than the tag of this build: a fork that never
-// publishes a release still lands on a page that exists, and readers see what
-// came after the version they are running.
-function releaseNotesUrl() {
-  return `${SOURCE_CODE_URL.replace(/\/+$/, "")}/releases`;
 }
 
 // German readers are already gathered in the drucktipps3d forum this project
@@ -123,6 +119,9 @@ export function AppFooter({
 
   return (
     <>
+    {variant === "editor" ? <InstallAppHint variant="editor" /> : null}
+    {variant === "editor" ? <TabletHint variant="editor" /> : null}
+    {variant === "editor" ? <PenHoverTips /> : null}
     {sponsor && supportCardEnabled(SUPPORT_SETTINGS) ? <SupportNudge href={sponsor.href} /> : null}
     <footer className={variant === "editor" ? "dashboard-legal editor-legal" : "dashboard-legal"}>
       <div className="dashboard-legal-group">
@@ -185,7 +184,7 @@ export function AppFooter({
               {t("whatsNew.footerLink")}
             </a>
           ) : null,
-          <a href={releaseNotesUrl()} target="_blank" rel="noreferrer" key="releases">
+          <a href={releaseNotesUrl()} target="_blank" rel="noreferrer" key="releases" data-help={t("dashboard.footerHelp")}>
             {t("dashboard.releaseNotes", { version })}
           </a>,
           update ? (

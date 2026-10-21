@@ -5,13 +5,15 @@ summary: Selecting shapes, finding them in the object list, aligning, mirroring,
 
 ## Selecting
 
-A click on a shape selects it. With [[Shift]] you add more or take them away again. A click on empty space clears the selection, and so does [[Esc]]. Drag a frame on the empty workplane to select everything it touches; with [[Shift]] held, the frame adds what was not selected and takes away what was. And [[Ctrl]]+[[A]] selects all visible bodies.
+A click on a shape selects it. With [[Shift]] you add more or take them away again. While [[Shift]] is held and two or more shapes are selected, a small number below the mouse pointer counts them. A click on empty space clears the selection, and so does [[Esc]]. Drag a frame on the empty workplane to select everything it touches; with [[Shift]] held, the frame adds what was not selected and takes away what was. If you would rather pick one part out of a cluster, switch on {{ui:workspace.frameByDirection}} in the settings (area {{ui:workspace.appearance}}): a frame dragged to the right then takes only what lies completely inside it, one dragged to the left still everything it touches, and its line is dashed. Hold [[Alt]] while you drag to turn the frame around for that one drag, for example to take whole bodies from the side where the direction would not allow it. And [[Ctrl]]+[[A]] selects all visible bodies. While you drag a body or a handle of the frame, [[Esc]] cancels as long as the mouse button is still held: everything goes back as it was, and nothing is added to the history.
 
 What is in your way you hide ({{ui:editor.tool.hideSelected}}, [[Ctrl]]+[[H]]). Hidden shapes stay in the design, they are just not visible and stay out of the export; the export window says beforehand how many there are. [[Ctrl]]+[[Shift]]+[[H]] brings them all back. What should stay put you lock with the padlock at the top of the settings or with [[Ctrl]]+[[L]]. A locked shape cannot be moved, resized, turned, recoloured or deleted: its handles turn grey, a padlock shows beside the arrow on top, and the tools that would change it are greyed out. Hovering a handle still shows its sizes, and a key that would change it says "Object locked". While one locked shape is in the selection, nothing changes for the others either. Hiding, renaming, copying and duplicating still work.
 
+A number on the button of the group {{ui:editor.group.visibility}} says how many shapes are hidden, and a click on it shows them all again. A design that is opened with hidden shapes says so once, with a button to show them.
+
 ## The object list
 
-With many parts it is easy to lose track in the view. The object list ({{ui:editor.tool.showOutliner}} or [[Ctrl]]+[[Shift]]+[[O]]) shows all shapes as a list.
+With many parts it is easy to lose track in the view. The object list ({{ui:editor.tool.showOutliner}} or [[Ctrl]]+[[Shift]]+[[O]]) shows all shapes as a list. It stays open or closed as you left it, for every design, until you close it; the choice is kept in the browser.
 
 ![The object list: the group "Group" with two parts and a sphere beside it. A folder icon opens the group.](shot:object-list)
 
@@ -42,7 +44,7 @@ With [[Alt]] already held when the drag begins, you drag a copy, as in Tinkercad
 
 ## Aligning
 
-Two or more selected shapes are lined up with {{ui:editor.tool.align}}: points appear around the selection for left, centre and right, front, centre and back, and top, centre and bottom. A click on a point moves all shapes there. If you first click one of the selected shapes, it stays in place and the others line up with it. A locked shape in the selection is that fixed shape by itself.
+Two or more selected shapes are lined up with {{ui:editor.tool.align}}: points appear around the selection for left, centre and right, front, centre and back, and top, centre and bottom. A click on a point moves all shapes there. If you first click one of the selected shapes, it stays in place and the others line up with it. A locked shape in the selection is that fixed shape by itself. Left, right, front, back, top and bottom go by the box round a shape; the centre of a triangle, a pentagon or a star is its own middle, so a hole centred on one sits in the middle of the shape and not of its box.
 
 A shape turned at an angle, say by 45°, has its box round it to line up with, not its own edges. To line up with the edges, set a workplane on a face of that shape first ({{ui:camera.placeWorkplane}}, then click the face): the points then stand on the axes of that plane, and the shapes are measured and moved along them, as in Tinkercad. Reset the workplane to line up along the plate again.
 
@@ -72,9 +74,11 @@ Two parts should meet face to face, or line up flush? Select the part that shoul
 
 ![The Align faces panel: the part that moves is picked, a face of the other part comes next, then face to face or flush, and an optional gap.](shot:mate-faces)
 
+**An exact angle between two faces:** {{ui:editor.tool.mateFaces}} leaves the faces parallel; there is no tool of its own for an angle between them, but this gets you there. First bring the faces together with {{ui:editor.tool.mateFaces}}, so they are parallel. Then set the pivot on the edge where they meet ({{ui:editor.tool.rotationPivot}}, click the edge or a corner) and type the angle, 15 or 30 say, in the {{ui:inspector.rotation}} card of the part. It turns about that pivot. The card's axes are the axes of the plate, so this works when the edge runs along X, Y or Z.
+
 Just as simple are {{ui:editor.tool.dropToWorkplane}} ([[D]]), which drops the selection onto the workplane, and {{ui:editor.tool.centerOnWorkplane}}.
 
-[[C]] picks the selection up, like Cruise in Tinkercad: it follows the mouse pointer and lies down on the face of another body you are over, sloped ones too. A click sets it down there, [[Esc]] leaves it where it was. Its underside then rests on the face, lined up with the face's edges as a new shape would be; it keeps its own turn about its up axis. Several parts travel together and keep their spacing. Over the empty plate, [[C]] stands a tilted part upright on the workplane again.
+[[C]] picks the selection up, like Cruise in Tinkercad: it follows the mouse pointer and lies down on the face of another body you are over, sloped ones too. A click sets it down there, [[Esc]] leaves it where it was. Its underside then rests on the face, lined up with the face's edges as a new shape would be; it keeps its own turn about its up axis. Several parts travel together and keep their spacing. Over the empty plate, [[C]] stands a tilted part upright on the workplane again. Without a keyboard, the menu of a long press has {{ui:contextMenu.carry}} for the same.
 
 ## Patterns: row and circle
 
@@ -83,7 +87,7 @@ For hole grids, bolt circles and rings of teeth there is the {{ui:editor.tool.ar
 ![The pattern in "Circle" mode: the copies first appear as a preview.](shot:pattern-tool)
 
 - **{{ui:array.mode.row}}:** The selection is repeated at equal distances. The row steps along all three axes at once, with {{ui:array.spacingX}}, {{ui:array.spacingY}} and {{ui:array.spacingZ}}: one of them gives a straight row, two or three a diagonal row or a staircase. A negative spacing lays the row the other way.
-- **{{ui:array.mode.circle}}:** The selection is spread around a centre. How many copies there are you set under {{ui:array.count}}, and the {{ui:array.angle}} is 360° for a full circle. Choose whether the copies turn along. {{ui:array.rise}} lifts every copy a little more than the one before (a screw or an ascending spiral), and {{ui:array.radiusChange}} moves it further from the centre or closer to it (a flat spiral); together they give a conical spiral.
+- **{{ui:array.mode.circle}}:** The selection is spread around a centre. How many copies there are you set under {{ui:array.count}}, and the {{ui:array.angle}} is 360° for a full circle. Choose whether the copies turn along. {{ui:array.rise}} lifts every copy a little more than the one before (a screw or an ascending spiral), and {{ui:array.radiusChange}} moves it further from the centre or closer to it (a flat spiral); together they give a conical spiral. A spiral winds once around at most: an angle above 360° counts as a full circle, and there are at most 100 copies.
 
 Tip: first set the pivot on a face with {{ui:editor.tool.rotationPivot}}, then the centre of the circle lies exactly there.
 
@@ -111,6 +115,23 @@ The holes are ordinary holes grouped with the body, just as after {{ui:editor.to
 
 An AI can do the same through the MCP bridge with `layerling_perforate_face` (see the chapter [AI with MCP](chapter:ai-with-mcp)).
 
+## Pushing a face out or in
+
+For a thicker wall, a raised pad on a face or a pocket cut into it, the {{ui:faceTool.title}} tool works on one flat face. It works on an imported STL too, where there is no sketch to change. Select exactly one body and click {{ui:faceTool.title}} in the {{ui:editor.group.modify}} group of the toolbar, next to the hole pattern. You can also right-click the body, or find it with [[Ctrl]]+[[K]].
+
+1. Click a flat face of the body. As with the hole pattern, the whole flat face around your click counts; a curved face does not work.
+2. In the window:
+   - **{{ui:faceTool.direction}}:** choose {{ui:faceTool.direction.out}} for material standing on the face or {{ui:faceTool.direction.in}} for a pocket cut into it. A pocket goes no deeper than the body behind the face; on a hollow body it can still reach the cavity.
+   - **{{ui:faceTool.inset}}:** how far the new outline stays inside the face's edge. Going out, 0 takes the whole face, which makes a wall thicker. Openings in the face grow by the same amount.
+   - **{{ui:faceTool.radius}}:** rounds every corner of the outline, the inner ones too, so a sharp tip ends in an arc. A notch narrower than twice the radius closes, and a part of the face narrower than twice the inset and the radius together is left out.
+   - **{{ui:faceTool.depth}}:** how far the new part stands out of the face, or how deep the pocket goes.
+3. The result shows at once as a preview and follows every value. {{ui:faceTool.repick}} chooses another face, [[Esc]] closes the tool.
+4. Only {{ui:faceTool.apply}} makes it.
+
+What the tool adds is an ordinary sketch body grouped with the body: nothing is baked in. {{ui:group.edit}} opens the group, and {{ui:inspector.editSketch}} on the new part shows the outline it follows. On the top or the bottom of a plain sketch body - one area, not grouped, mirrored, tapered, twisted or leaning, and without a stroke, key ring, fillet or chamfer - that is the body's own outline, set in when it is built, so its lines and arcs stay exact wherever the CAD kernel can set them in, for the edge tools and the STEP export. Resized later, the part keeps its inset. On any other face, and on every face of an imported mesh, the outline follows the face's triangles, and a curve is made of short straight pieces. The whole thing is one step for {{ui:editor.tool.undo}}. To change the inset or the radius later, undo and run the tool again. To round the top edge afterwards, use {{ui:editor.tool.fillet}} with {{ui:edge.topEdges}} on the group as the last step: like every edge treatment on a group, it joins the group into one body.
+
+An AI can do the same through the MCP bridge with `layerling_push_face` (see the chapter [AI with MCP](chapter:ai-with-mcp)).
+
 ## Changing several parts at once
 
 With several parts selected, the properties panel on the right shows how many there are and offers what applies to all of them together: {{ui:inspector.solid}} or {{ui:inspector.hole}}, one colour for all (a click on {{ui:inspector.solid}} opens the colours) and the lock. With a mixed selection, one click makes them all solids or all holes. If any of the parts is locked, only the lock can be used. Sizes are changed with the handles, with {{ui:scalePercent.title}} or by typing a number into a size label. With several parts the number is the size of the whole selection: every part grows with it, the spaces between them too, as when you drag a handle. Solid and hole also work with a right-click or the [[S]] and [[H]] keys.
@@ -134,8 +155,10 @@ Only {{ui:scalePercent.apply}} changes the design, and one step back undoes it. 
 
 ## Looking back: the history view
 
-{{ui:editor.tool.history}}, next to undo and redo, opens a view of your history without changing anything. The work area shows the design as it was, and a slider at the bottom runs through every undo step: all the way to the right is the current state, each step to the left is one undo earlier, and states you have undone sit to the right of the current one. The arrow keys step through the states, [[Esc]] returns to the current state. You can turn and zoom the view meanwhile, but nothing can be selected or moved; the design itself stays exactly as it is. If the bar covers something, drag it away by its title bar; a double-click on it brings it back.
+{{ui:editor.tool.history}}, next to undo and redo, opens a view of your history without changing anything. The work area shows the design as it was, and a slider at the bottom runs through every undo step: all the way to the right is the current state, each step to the left is one undo earlier, and states you have undone sit to the right of the current one. The arrow keys step through the states, [[Esc]] returns to the current state. You can turn and zoom the view meanwhile and click objects to bring them back (see below), but nothing can be moved; the design itself stays exactly as it is. If the bar covers something, drag it away by its title bar; a double-click on it brings it back.
 
 Two things you can take along from an earlier state. {{ui:historyView.createProject}} puts that state into a new design in the overview, named after this one with the time of that state in brackets - a design saved before layerling recorded times says "copy" instead - and with the history up to that point, so undo keeps working there. {{ui:historyView.export}} opens the usual export with that state as the design, so you can save it as STL, 3MF, STEP, a picture or a LYL file with the history up to that state.
+
+You can also bring single objects back into the design. Click an object in the state shown - [[Shift]]+click adds more or takes one off again, a click on empty space picks nothing - and choose {{ui:historyView.bringBack}}. The view closes and a copy of each object lands in the current design exactly as it was in that state and at the spot it had there, selected, next to whatever the design holds now; nothing else changes. It is one step, so undo takes it back. Use it for a version of a part you changed since, or for one you deleted. A group comes back whole; notes and reference points on an object stay behind. Its name carries the time of that state, such as “Box (12:32)”, so it is easy to tell from the version the design has now. To bring back a part from inside a group, select the group and choose {{ui:historyView.openGroup}} or press [[E]], as in the design: its parts are laid out where editing the group would put them, ready to pick, and the bar says which group you are in. {{ui:historyView.backOut}} closes it again. This is only to look - the group, the design and the history stay as they are.
 
 {{ui:historyView.delete}} sits alone at the bottom left of the bar. After a question it removes every earlier step for good: the design keeps the state it has now (not the one shown), Undo has nothing to go back to and a file saved afterwards carries no history. Use it to share a design without its past, or to start the undo steps over. It cannot be undone; to share a file without touching your own design, choose {{ui:export.historyNone}} when exporting instead.

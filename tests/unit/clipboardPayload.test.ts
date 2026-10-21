@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeClipboardPayload, encodeClipboardPayload, newestClipboard } from "@/lib/clipboardPayload";
+import { copyViaSelectionField, decodeClipboardPayload, encodeClipboardPayload, LOCAL_CLIPBOARD_LIMIT, newestClipboard } from "@/lib/clipboardPayload";
 
 describe("layerling clipboard", () => {
   it("carries the moment of the copy", () => {
@@ -20,5 +20,14 @@ describe("layerling clipboard", () => {
     expect(newestClipboard([{ copiedAt: 50, shapes: ["hier"] }, { copiedAt: 90, shapes: ["anderer Tab"] }])?.shapes).toEqual(["anderer Tab"]);
     expect(newestClipboard([{ copiedAt: 900, shapes: [] }, null, staleLocal])?.shapes).toEqual(["kleiner Quader"]);
     expect(newestClipboard([null, undefined])).toBeNull();
+  });
+
+  it("keeps a huge copy out of the hidden text field, which froze the page (#431)", () => {
+    expect(copyViaSelectionField(5_000, true)).toBe(true);
+    expect(copyViaSelectionField(LOCAL_CLIPBOARD_LIMIT, true)).toBe(true);
+    expect(copyViaSelectionField(LOCAL_CLIPBOARD_LIMIT + 1, true)).toBe(false);
+    expect(copyViaSelectionField(40_000_000, true)).toBe(false);
+    // without the clipboard API the field is the only way to the system clipboard
+    expect(copyViaSelectionField(40_000_000, false)).toBe(true);
   });
 });

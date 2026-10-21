@@ -10,14 +10,18 @@ import type { SketchProfile, SketchStroke, SketchStrokeAlign, SketchStrokeCap, S
  * drawn line; the stroked outline is worked out when the body is built.
  */
 
-export const SKETCH_STROKE_ALIGNS: readonly SketchStrokeAlign[] = ["center", "inside", "outside", "grow"];
+export const SKETCH_STROKE_ALIGNS: readonly SketchStrokeAlign[] = ["center", "inside", "outside", "grow", "shrink"];
 export const SKETCH_STROKE_JOINS: readonly SketchStrokeJoin[] = ["miter", "round", "bevel"];
 export const SKETCH_STROKE_CAPS: readonly SketchStrokeCap[] = ["flat", "square", "round"];
 export const DEFAULT_SKETCH_STROKE: SketchStroke = { width: 2, align: "center", join: "miter", cap: "flat" };
 export const MIN_SKETCH_STROKE_WIDTH = 0.05;
 export const MAX_SKETCH_STROKE_WIDTH = 500;
 
+/** The most pieces a curve is cut into, and the fewest; a short or flat curve needs few (#461). */
 const CURVE_SAMPLES = 32;
+const MIN_CURVE_SAMPLES = 4;
+/** How far, in mm, the straight pieces may stray from the curve. */
+const CURVE_TOLERANCE = 0.01;
 const MITER_LIMIT = 4;
 
 type Vec = { x: number; z: number };
@@ -35,6 +39,18 @@ export function normalizeSketchStroke(value: unknown): SketchStroke | undefined 
   };
 }
 
+/**
+ * How many straight pieces a cubic curve is cut into so none strays more than CURVE_TOLERANCE: the
+ * error of n pieces is at most (1/8) * |B''| / n^2, with |B''| at most 6 times the larger second
+ * difference of the control points. A traced drawing has hundreds of short curves; cutting each
+ * into 32 made tens of thousands of edges that the kernel could not build in time (#461).
+ */
+function curveSampleCount(a: Vec, b: Vec, c: Vec, d: Vec): number {
+  const second = Math.max(Math.hypot(a.x - 2 * b.x + c.x, a.z - 2 * b.z + c.z), Math.hypot(b.x - 2 * c.x + d.x, b.z - 2 * c.z + d.z));
+  const pieces = Math.ceil(Math.sqrt((0.75 * second) / CURVE_TOLERANCE));
+  return Math.max(MIN_CURVE_SAMPLES, Math.min(CURVE_SAMPLES, pieces));
+}
+
 /** A path as points, curves broken into short straight pieces; a closed path does not repeat its start. */
 export function sampledPath(path: OrderedCadSketchPath): Vec[] {
   const samples: Vec[] = [];
@@ -47,8 +63,9 @@ export function sampledPath(path: OrderedCadSketchPath): Vec[] {
       samples.push({ x: to.x, z: to.z });
       return;
     }
-    for (let index = 1; index <= CURVE_SAMPLES; index += 1) {
-      const t = index / CURVE_SAMPLES;
+    const pieces = curveSampleCount(from, first, second, to);
+    for (let index = 1; index <= pieces; index += 1) {
+      const t = index / pieces;
       const u = 1 - t;
       samples.push({
         x: u ** 3 * from.x + 3 * u ** 2 * t * first.x + 3 * u * t ** 2 * second.x + t ** 3 * to.x,
@@ -149,13 +166,14 @@ function strokeOpenPath(runtime: ManifoldToplevel, keep: Keep, points: Vec[], st
 
 /**
  * A filled region as the stroke asks: a frame of `width` inside, outside or centred on its
- * edge, or ("grow", #215) the region itself widened by `width` - a filled base layer under a
+ * edge, or ("grow", #215) the region itself widened by `width`, or ("shrink", #558) narrowed by it - a filled base layer under a
  * text or logo for a multicolour print. Text fills (textFill.ts) use this for their letters.
  */
-export function strokeRegion(runtime: ManifoldToplevel, keep: Keep, region: CrossSection, stroke: SketchStroke): CrossSection {
+export function strokeRegion(keep: Keep, region: CrossSection, stroke: SketchStroke): CrossSection {
   const joinType = stroke.join === "round" ? "Round" : stroke.join === "bevel" ? "Square" : "Miter";
   const grow = (delta: number) => (delta === 0 ? region : keep(region.offset(delta, joinType, MITER_LIMIT, 48)));
   if (stroke.align === "grow") return grow(stroke.width);
+  if (stroke.align === "shrink") return grow(-stroke.width);
   const [outerDelta, innerDelta] = stroke.align === "inside"
     ? [0, -stroke.width]
     : stroke.align === "outside"
@@ -168,14 +186,14 @@ export function strokeRegion(runtime: ManifoldToplevel, keep: Keep, region: Cros
 function strokeClosedPaths(runtime: ManifoldToplevel, keep: Keep, loops: Vec[][], stroke: SketchStroke): CrossSection | null {
   if (!loops.length) return null;
   const region = keep(new runtime.CrossSection(loops.map(toPolygon), "EvenOdd"));
-  return strokeRegion(runtime, keep, region, stroke);
+  return strokeRegion(keep, region, stroke);
 }
 
 /**
  * The outline the stroked sketch fills, as a sketch of straight lines the usual extrusion builds.
  * Null when there is nothing to stroke (no stroke set, or the lines left no area).
  */
-export function strokedSketchProfile(runtime: ManifoldToplevel, profile: SketchProfile): SketchProfile | null {
+export function strokedSketchProfile(runtime: ManifoldToplevel, profile: SketchProfile, options: { clipToRevolveSide?: boolean } = {}): SketchProfile | null {
   const stroke = normalizeSketchStroke(profile.stroke);
   if (!stroke) return null;
   const paths = orderedCadSketchPaths(profile);
@@ -191,7 +209,11 @@ export function strokedSketchProfile(runtime: ManifoldToplevel, profile: SketchP
     const parts = [strokeClosedPaths(runtime, keep, closed, stroke), ...open.map((line) => strokeOpenPath(runtime, keep, line, stroke))]
       .filter((part): part is CrossSection => Boolean(part));
     if (!parts.length) return null;
-    const result = keep(keep(runtime.CrossSection.union(parts)).simplify(1e-6));
+    const stroked = keep(keep(runtime.CrossSection.union(parts)).simplify(1e-6));
+    // A revolve turns what lies left of its axis (x <= 0); a wide line near the axis may reach across it.
+    const result = options.clipToRevolveSide
+      ? keep(stroked.intersect(keep(new runtime.CrossSection([[[-1e6, -1e6], [0, -1e6], [0, 1e6], [-1e6, 1e6]]]))))
+      : stroked;
     polygons = result.toPolygons();
     if (!polygons.length || result.area() <= 1e-9) return null;
   } finally {

@@ -15,6 +15,14 @@ const extraAllowedDevOrigins = (process.env.LAYERLING_ALLOWED_DEV_ORIGINS ?? "")
 const occtRuntimeVersion: string = JSON.parse(
   readFileSync(path.resolve(process.cwd(), "node_modules", "occt-wasm", "package.json"), "utf8"),
 ).version;
+// The cut of the Japanese typeface scripts/build-japanese-typeface.mjs staged (the folder under
+// public/fonts/japanese/); empty before it has run, and the text then finds no Japanese letters.
+let japaneseFontVersion = "";
+try {
+  japaneseFontVersion = readFileSync(path.resolve(process.cwd(), "apps", "web", "public", "fonts", "japanese", "version.txt"), "utf8").trim();
+} catch {
+  // not built yet
+}
 // The app's own version, so files with a fixed name (the Graphite stylesheet)
 // can carry it and a browser cache cannot hand out last release's copy.
 const appVersion: string = JSON.parse(readFileSync(path.resolve(process.cwd(), "package.json"), "utf8")).version;
@@ -32,6 +40,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_STATIC_EXPORT: isStaticExport ? "true" : "false",
     NEXT_PUBLIC_BASE_PATH: basePath,
     NEXT_PUBLIC_OCCT_RUNTIME_VERSION: occtRuntimeVersion,
+    NEXT_PUBLIC_JAPANESE_FONT_VERSION: japaneseFontVersion,
     NEXT_PUBLIC_APP_VERSION: appVersion,
     // Page and CAD workers compare it (lib/buildStamp.ts); the export script sets one per build.
     NEXT_PUBLIC_BUILD_ID: process.env.LAYERLING_BUILD_ID || appVersion,
@@ -46,10 +55,14 @@ const nextConfig: NextConfig = {
   // without a `turbopack` entry. The empty entry accepts Turbopack's defaults
   // there; Next.js 15 ignores it for webpack builds (#217).
   turbopack: {},
-  webpack: (config) => {
+  webpack: (config, { dev }) => {
     // The webpack cache on disk grew to gigabytes over many builds; entries nobody used for three
-    // days can go (the default is two months).
-    if (config.cache && typeof config.cache === "object") config.cache.maxAge = 3 * 24 * 60 * 60 * 1000;
+    // days can go (the default is two months). Production builds write it uncompressed by default
+    // (Next leaves that to its own hosting), which was about three times the size.
+    if (config.cache && typeof config.cache === "object") {
+      config.cache.maxAge = 3 * 24 * 60 * 60 * 1000;
+      if (!dev) config.cache.compression = "gzip";
+    }
     config.resolve.alias = {
       ...config.resolve.alias,
       "brepkit-wasm": false,

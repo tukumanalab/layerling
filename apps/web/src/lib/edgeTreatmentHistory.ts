@@ -50,6 +50,20 @@ export function compactEdgeTreatmentHistory(history: EdgeTreatmentHistoryEntry[]
   }));
 }
 
+/**
+ * Whether this body was a group before its fillets and chamfers (#514): a group that got an edge feature is one mesh
+ * with the history of its features, and the first of them remembers the group as it was. Cheap, for the buttons.
+ */
+export function wasGroupBeforeEdgeTreatments(shape: WorkplaneShape) {
+  return !shape.groupedShapes?.length && Boolean(shape.edgeTreatmentHistory?.[0]?.before.groupedShapes?.length);
+}
+
+/** The group such a body was before its first edge feature, with the body's own place and size; null when it was none. */
+export function groupBeforeEdgeTreatments(shape: WorkplaneShape): WorkplaneShape | null {
+  if (!wasGroupBeforeEdgeTreatments(shape)) return null;
+  return restoreShapeBeforeEdgeTreatment(shape, shape.edgeTreatmentHistory![0]);
+}
+
 export function restoreShapeBeforeEdgeTreatment(shape: WorkplaneShape, entry: EdgeTreatmentHistoryEntry) {
   const before = cloneWorkplaneShapeSnapshot(entry.before);
   const entryIndex = (shape.edgeTreatmentHistory ?? []).findIndex((candidate) => candidate.id === entry.id);

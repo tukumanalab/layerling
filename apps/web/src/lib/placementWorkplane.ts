@@ -10,6 +10,31 @@ export type PlacementWorkplane = {
   zAxis: PlacementPoint;
 };
 
+/**
+ * The plane a revolve sketch is drawn on, seen from the front (#525): x across, the height up, through the origin, where the axis stands.
+ * The other bodies are shown projected onto it - their side view, in the same view as the profile - instead of their outline from above.
+ */
+export const REVOLVE_REFERENCE_WORKPLANE: PlacementWorkplane = {
+  origin: { x: 0, y: 0, z: 0 },
+  normal: { x: 0, y: 0, z: -1 },
+  xAxis: { x: 1, y: 0, z: 0 },
+  zAxis: { x: 0, y: -1, z: 0 },
+};
+/**
+ * Whether a revolved body stands with its axis upright (#525). Such a body was drawn on a horizontal plane, and when its
+ * sketch is opened again to edit it, the other bodies are shown from the front like while drawing it. The workplane the
+ * edit starts from is the body's own foot, at the height it stands at, which is no longer the base plate - so the plate
+ * alone cannot tell the two cases apart.
+ */
+export function revolveBodyStandsUpright(shape: Pick<WorkplaneShape, "rotation" | "rotationX" | "rotationZ">): boolean {
+  const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+    THREE.MathUtils.degToRad(shape.rotationX ?? 0),
+    THREE.MathUtils.degToRad(shape.rotation),
+    THREE.MathUtils.degToRad(shape.rotationZ ?? 0),
+    "XYZ",
+  ));
+  return new THREE.Vector3(0, 1, 0).applyQuaternion(quaternion).y > 1 - 1e-6;
+}
 const EPSILON = 1e-8;
 
 function vector(point: PlacementPoint) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeCornerRulerRelativeCoordinates,
+  cornerRulerAxisModes,
   computeCornerRulerShift,
   cornerRulerFlatRotation,
   cornerRulerFrameForWorkplane,
@@ -10,11 +11,15 @@ import {
   cornerRulerDimensionMatches,
   cornerRulerDimensionMatchesFromCorner,
   cornerRulerTicks,
+  worldAxisNameOfDirection,
+  rulerTicks,
   pointAlongRuler,
   rulerDimensionMatch,
   type CornerRulerPose,
   type RulerCandidatePose,
   type RulerPose,
+  toggledCornerRulerAxis,
+  toggledCornerRulerMode,
 } from "@/lib/rulerDimensions";
 
 function ruler(overrides: Partial<RulerPose> = {}): RulerPose {
@@ -176,6 +181,22 @@ describe("computeCornerRulerRelativeCoordinates", () => {
     max: { x: 16.5, y: 15, z: 11.5 },
   };
 
+  it("legt die Hilfslinien auf den Boden: der Zielpunkt liegt in der Ebene des Lineals, nicht auf der Hoehe des Koerpers (Forum)", () => {
+    for (const mode of ["endpoint", "midpoint"] as const) {
+      const coords = computeCornerRulerRelativeCoordinates({ rulerCorner: { x: 0, y: 0, z: 0 }, rulerRotation: 0, mode, bounds });
+      expect(coords.xTargetPoint.y).toBeCloseTo(0, 6);
+      expect(coords.zTargetPoint.y).toBeCloseTo(0, 6);
+      expect(coords.xTargetPoint.x).toBeCloseTo(coords.x, 6);
+      expect(coords.xTargetPoint.z).toBeCloseTo(coords.z, 6);
+      // Die Hoehe hat ihren eigenen Pfeil, am Koerper entlang.
+      expect(coords.elevationTargetPoint.y).toBeCloseTo(coords.elevation, 6);
+      // ... und er steht dort, wo sich die beiden Hilfslinien am Boden treffen.
+      expect(coords.elevationBasePoint.x).toBeCloseTo(coords.xTargetPoint.x, 6);
+      expect(coords.elevationBasePoint.z).toBeCloseTo(coords.xTargetPoint.z, 6);
+      expect(coords.elevationBasePoint.y).toBeCloseTo(0, 6);
+    }
+  });
+
   it("berechnet im Eckpunkt-Modus die minimale Ecke", () => {
     const coords = computeCornerRulerRelativeCoordinates({
       rulerCorner: { x: 0, y: 0, z: 0 },
@@ -302,3 +323,95 @@ describe("computeCornerRulerShift", () => {
   });
 });
 
+describe("framing square: one mode for each number", () => {
+  const bounds = { min: { x: 10, y: 5, z: 5 }, max: { x: 16.5, y: 15, z: 11.5 } };
+
+  it("counts a standing body to the middle in x and z and to the bottom in height", () => {
+    const coords = computeCornerRulerRelativeCoordinates({ rulerCorner: { x: 0, y: 0, z: 0 }, rulerRotation: 0, mode: "endpoint", axisModes: { x: "midpoint", z: "midpoint" }, bounds });
+    expect(coords.x).toBeCloseTo(13.25, 6);
+    expect(coords.z).toBeCloseTo(8.25, 6);
+    expect(coords.elevation).toBeCloseTo(5, 6);
+    expect(coords.modes).toEqual({ x: "midpoint", z: "midpoint", elevation: "endpoint" });
+    expect(coords.xEndpointOnAxis).toEqual({ x: 13.25, y: 0, z: 0 });
+  });
+
+  it("lets a single axis differ from the overall mode the other way round", () => {
+    const coords = computeCornerRulerRelativeCoordinates({ rulerCorner: { x: 0, y: 0, z: 0 }, rulerRotation: 0, mode: "midpoint", axisModes: { x: "endpoint" }, bounds });
+    expect(coords.x).toBeCloseTo(10, 6);
+    expect(coords.z).toBeCloseTo(8.25, 6);
+    expect(coords.elevation).toBeCloseTo(10, 6);
+  });
+
+  it("knows the modes of the three axes", () => {
+    expect(cornerRulerAxisModes(undefined)).toEqual({ x: "endpoint", z: "endpoint", elevation: "endpoint" });
+    expect(cornerRulerAxisModes("midpoint", { z: "endpoint" })).toEqual({ x: "midpoint", z: "endpoint", elevation: "midpoint" });
+  });
+
+  it("switches one axis and keeps the others", () => {
+    expect(toggledCornerRulerAxis("endpoint", undefined, "z")).toEqual({ mode: "endpoint", axisModes: { x: "endpoint", z: "midpoint", elevation: "endpoint" } });
+    expect(toggledCornerRulerAxis("midpoint", { x: "endpoint" }, "x")).toEqual({ mode: "midpoint" });
+  });
+
+  it("goes back to one overall mode when all three agree", () => {
+    const one = toggledCornerRulerAxis("endpoint", undefined, "x");
+    const two = toggledCornerRulerAxis(one.mode, one.axisModes, "z");
+    const three = toggledCornerRulerAxis(two.mode, two.axisModes, "elevation");
+    expect(three).toEqual({ mode: "midpoint" });
+  });
+
+  it("switches the whole square, and goes to the edge when the axes differ", () => {
+    expect(toggledCornerRulerMode("endpoint")).toEqual({ mode: "midpoint" });
+    expect(toggledCornerRulerMode("midpoint")).toEqual({ mode: "endpoint" });
+    expect(toggledCornerRulerMode("endpoint", { z: "midpoint" })).toEqual({ mode: "endpoint" });
+  });
+});
+
+describe("the printed scale of a ruler (#500)", () => {
+  it("has a line every millimetre, longer at five and ten, and numbers the tens", () => {
+    const ticks = rulerTicks(150);
+    expect(ticks).toHaveLength(151);
+    expect(ticks[0]).toEqual({ offset: 0, height: 0.62, label: "0" });
+    expect(ticks[1].height).toBe(0.26);
+    expect(ticks[5].height).toBe(0.42);
+    expect(ticks[10]).toEqual({ offset: 10, height: 0.62, label: "10" });
+    expect(ticks.filter((tick) => tick.label !== undefined)).toHaveLength(16);
+  });
+
+  it("has a line every sixteenth of an inch for a ruler in inches, with the whole inches numbered", () => {
+    const ticks = rulerTicks(101.6, true);
+    // 4 inches = 64 sixteenths, with both ends.
+    expect(ticks).toHaveLength(65);
+    expect(ticks[16].offset).toBeCloseTo(25.4, 9);
+    expect(ticks.filter((tick) => tick.label !== undefined).map((tick) => tick.label)).toEqual(["0", "1", "2", "3", "4"]);
+    expect([ticks[1], ticks[2], ticks[4], ticks[8], ticks[16]].map((tick) => tick.height)).toEqual([0.26, 0.34, 0.42, 0.5, 0.62]);
+  });
+
+  it("stops at the end of the ruler and has no scale without a length", () => {
+    const ticks = rulerTicks(30, true);
+    expect(ticks.at(-1)!.offset).toBeLessThanOrEqual(30);
+    expect(ticks).toHaveLength(Math.floor((30 / 25.4) * 16) + 1);
+    expect(rulerTicks(0)).toEqual([]);
+    expect(rulerTicks(Number.NaN, true)).toEqual([]);
+  });
+});
+
+describe("the name of the axis a ruler arm runs along (#597)", () => {
+  it("calls an arm along the plate's x axis X, along its z axis Y (to the back) and an upright one Z", () => {
+    expect(worldAxisNameOfDirection({ x: 1, y: 0, z: 0 })).toBe("X");
+    expect(worldAxisNameOfDirection({ x: -1, y: 0, z: 0 })).toBe("X");
+    expect(worldAxisNameOfDirection({ x: 0, y: 0, z: 1 })).toBe("Y");
+    expect(worldAxisNameOfDirection({ x: 0, y: 0, z: -1 })).toBe("Y");
+    expect(worldAxisNameOfDirection({ x: 0, y: 1, z: 0 })).toBe("Z");
+  });
+
+  it("names the arms of a corner ruler on the plate by where they point: the first arm runs to the back, so it is Y, the other X", () => {
+    const frame = cornerRulerFrameForWorkplane({ xAxis: { x: 1, y: 0, z: 0 }, zAxis: { x: 0, y: 0, z: 1 }, normal: { x: 0, y: 1, z: 0 } });
+    expect(worldAxisNameOfDirection(frame.xAxis)).toBe("Y");
+    expect(worldAxisNameOfDirection(frame.zAxis)).toBe("X");
+    expect(worldAxisNameOfDirection(frame.normal)).toBe("Z");
+    // One more quarter turn and the arms trade places.
+    const turned = rotateCornerRulerFrame(frame);
+    expect(worldAxisNameOfDirection(turned.xAxis)).toBe("X");
+    expect(worldAxisNameOfDirection(turned.zAxis)).toBe("Y");
+  });
+});

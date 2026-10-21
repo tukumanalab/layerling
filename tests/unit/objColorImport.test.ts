@@ -3,7 +3,7 @@ import { editorHistoryEntry } from "@/lib/editorHistory";
 import { exportLylProject, importLylProject } from "@/lib/lylProject";
 import { DEFAULT_SNAP_GRID, DEFAULT_WORKPLANE_WORKSPACE } from "@/lib/workplaneSettings";
 import { exportMeshesToObj, type ObjExportMesh } from "@/lib/objExport";
-import { importedShapeFromObj, importedShapesFromObj, parseMtlColors } from "@/lib/objImport";
+import { importedShapeFromObj, importedShapesFromObj, MAX_OBJ_VERTEX_COLOR_PARTS, parseMtlColors } from "@/lib/objImport";
 
 /** Ein Quader als Netz in layerlings Koordinaten (Y oben). */
 function box(name: string, color: string | undefined, [cx, cy, cz]: [number, number, number], [w, h, d]: [number, number, number]): ObjExportMesh {
@@ -107,8 +107,12 @@ describe("OBJ import with colours (Discussion #79)", () => {
     expect(shape.color).toBe("#2f9e44");
     expect(shape.height).toBeCloseTo(4, 6);
     expect(shape.importedMesh?.sourceFormat).toBe("json");
-    // Was eine .lyl aus einer mitgespeicherten Quelle nachbaut, bleibt wie es war.
-    expect(importedShapeFromObj("teil.obj", obj, true).height).toBeCloseTo(20, 6);
+    // Was eine .lyl aus einer mitgespeicherten Quelle nachbaut, bleibt wie es war: eine OBJ aus der
+    // Zeit, als layerling noch Y-oben schrieb (Kopfzeile "Y-up"), wird mit der alten Lesart gelesen.
+    const oldYUp = obj
+      .replace("# Z-up", "# Y-up")
+      .replace(/^v (\S+) (\S+) (\S+)(.*)$/gm, (_line, x: string, y: string, z: string, rest: string) => `v ${x} ${Number(z)} ${-Number(y)}${rest}`);
+    expect(importedShapeFromObj("teil.obj", oldYUp, true).height).toBeCloseTo(20, 6);
   });
 
   it("leaves an OBJ without colours as it was", () => {
@@ -146,5 +150,52 @@ describe("OBJ import with colours (Discussion #79)", () => {
       expect(shape.importedMesh?.positions).toEqual(shapes[index].importedMesh?.positions);
       expect(shape.elevation ?? 0).toBeCloseTo(shapes[index].elevation ?? 0, 9);
     });
+  });
+});
+
+/** Eine Strecke von Dreiecken, bei der jeder Punkt eine eigene Eckpunktfarbe traegt (Scan, KI-Modell). */
+function gradientObj(triangles: number) {
+  const lines = ["o scan"];
+  for (let index = 0; index < triangles; index += 1) {
+    const base = index * 3;
+    const shade = (offset: number) => ((base + offset) % 997) / 997;
+    lines.push(
+      `v ${index} 0 0 ${shade(0).toFixed(4)} 0.5 0.2`,
+      `v ${index} 1 0 ${shade(1).toFixed(4)} 0.5 0.2`,
+      `v ${index} 0 1 ${shade(2).toFixed(4)} 0.5 0.2`,
+    );
+  }
+  for (let index = 0; index < triangles; index += 1) lines.push(`f ${index * 3 + 1} ${index * 3 + 2} ${index * 3 + 3}`);
+  return lines.join("\n");
+}
+
+describe("OBJ with a colour on every point (#351)", () => {
+  it("comes in as one body instead of one body per colour", () => {
+    const source = gradientObj(600);
+    const result = importedShapesFromObj("scan.obj", source);
+    expect(result.droppedVertexColors).toBe(true);
+    expect(result.split).toBe(false);
+    expect(result.shapes).toHaveLength(1);
+    expect(result.shapes[0].importedMesh?.triangleCount).toBe(600);
+  });
+
+  it("keeps the colour parts of a file with only a few vertex colours", () => {
+    const source = ["v 0 0 0 1 0 0", "v 1 0 0 1 0 0", "v 0 1 0 1 0 0", "v 0 0 1 0 0 1", "v 1 0 1 0 0 1", "v 0 1 1 0 0 1", "f 1 2 3", "f 4 5 6"].join("\n");
+    const result = importedShapesFromObj("two.obj", source);
+    expect(result.droppedVertexColors).toBe(false);
+    expect(result.split).toBe(true);
+    expect(result.shapes).toHaveLength(2);
+  });
+
+  it("still splits at the limit itself", () => {
+    const lines: string[] = [];
+    for (let index = 0; index < MAX_OBJ_VERTEX_COLOR_PARTS; index += 1) {
+      const red = (index / 255).toFixed(6);
+      lines.push(`v ${index} 0 0 ${red} 0 0`, `v ${index} 1 0 ${red} 0 0`, `v ${index} 0 1 ${red} 0 0`);
+    }
+    for (let index = 0; index < MAX_OBJ_VERTEX_COLOR_PARTS; index += 1) lines.push(`f ${index * 3 + 1} ${index * 3 + 2} ${index * 3 + 3}`);
+    const result = importedShapesFromObj("limit.obj", lines.join("\n"));
+    expect(result.droppedVertexColors).toBe(false);
+    expect(result.shapes).toHaveLength(MAX_OBJ_VERTEX_COLOR_PARTS);
   });
 });

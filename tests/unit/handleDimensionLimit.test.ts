@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_WORKPLANE_WORKSPACE, handleDimensionLimit } from "@/lib/workplaneSettings";
+import { DEFAULT_WORKPLANE_WORKSPACE, handleDimensionLimit, RULER_MAX_LENGTH } from "@/lib/workplaneSettings";
 
 const plate = (width: number, depth: number, maxDimension?: number) => ({
   ...DEFAULT_WORKPLANE_WORKSPACE,
@@ -26,5 +26,12 @@ describe("how far the handles pull a body (#181)", () => {
   it("lets a custom size limit win over the plate", () => {
     expect(handleDimensionLimit(plate(350, 350, 120), "box", 220, "across", 20)).toBe(120);
     expect(handleDimensionLimit(plate(350, 350, 120), "box", 220, "across", 150)).toBe(150);
+  });
+
+  it("lets the handles pull a ruler as far as its slider goes, whatever the plate (#500)", () => {
+    expect(handleDimensionLimit(plate(220, 220), "ruler", 220, "across", 150)).toBe(RULER_MAX_LENGTH);
+    expect(handleDimensionLimit(plate(200, 200), "ruler", 220, "across", 20)).toBe(500);
+    expect(handleDimensionLimit(plate(700, 650), "ruler", 220, "across", 20)).toBe(700);
+    expect(handleDimensionLimit(plate(220, 220), "ruler", 220, "across", 620)).toBe(620);
   });
 });

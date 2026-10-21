@@ -26,6 +26,27 @@ function edgeUseCounts(position: { count: number; getX: (index: number) => numbe
   return uses;
 }
 
+// Every edge must be walked once in each direction (a closed mesh with outward faces). A lid turned
+// the wrong way against the walls still passes the undirected count above, but a boolean union
+// with such a mesh failed and a slicer showed the overlap as hollow (#493).
+function directedEdgesPaired(position: { count: number; getX: (index: number) => number; getY: (index: number) => number; getZ: (index: number) => number }) {
+  const keyForPoint = (index: number) => [position.getX(index), position.getY(index), position.getZ(index)]
+    .map((value) => value.toFixed(5))
+    .join(",");
+  const walked = new Map<string, number>();
+  for (let index = 0; index + 2 < position.count; index += 3) {
+    const triangle = [keyForPoint(index), keyForPoint(index + 1), keyForPoint(index + 2)];
+    for (let edge = 0; edge < 3; edge += 1) {
+      const key = `${triangle[edge]}>${triangle[(edge + 1) % 3]}`;
+      walked.set(key, (walked.get(key) ?? 0) + 1);
+    }
+  }
+  return [...walked.entries()].every(([key, count]) => {
+    const [a, b] = key.split(">");
+    return count === 1 && walked.get(`${b}>${a}`) === 1;
+  });
+}
+
 function signedVolume(position: { count: number; getX: (index: number) => number; getY: (index: number) => number; getZ: (index: number) => number }) {
   let volume = 0;
   for (let i = 0; i + 2 < position.count; i += 3) {
@@ -52,6 +73,7 @@ describe("crescent geometry", () => {
     expect(position.count).toBeGreaterThan(40);
     expect(signedVolume(position)).toBeGreaterThan(0);
     expect([...edgeUseCounts(position).values()].every((uses) => uses === 2)).toBe(true);
+    expect(directedEdgesPaired(position)).toBe(true);
 
     expect(geometry.boundingBox?.min.y).toBeCloseTo(0, 4);
     expect(geometry.boundingBox?.max.y).toBeCloseTo(10, 4);
@@ -72,8 +94,17 @@ describe("crescent geometry", () => {
 
     expect(signedVolume(position)).toBeGreaterThan(0);
     expect([...edgeUseCounts(position).values()].every((uses) => uses === 2)).toBe(true);
+    expect(directedEdgesPaired(position)).toBe(true);
     expect(geometry.boundingBox?.min.y).toBeCloseTo(0, 4);
     expect(geometry.boundingBox?.max.y).toBeCloseTo(12, 4);
+  });
+
+  it("keeps lids and walls facing the same way at the default size and fillet", () => {
+    for (const size of [{ width: 100, depth: 70, height: 3 }, { width: 40, depth: 40, height: 10 }]) {
+      const position = createCrescentGeometry(size).getAttribute("position");
+      expect(directedEdgesPaired(position)).toBe(true);
+      expect(signedVolume(position)).toBeGreaterThan(0);
+    }
   });
 
   it("participates cleanly in CSG boolean operations", () => {

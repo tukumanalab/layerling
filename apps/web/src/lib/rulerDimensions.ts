@@ -108,6 +108,18 @@ export type CornerRulerPose = {
  * Nullpunkt der Skala. Die Ecke ist ein abgeleiteter Punkt, eine halbe
  * Armlaenge je Achse von der Mitte entfernt, in Richtung der eigenen Drehung.
  */
+/**
+ * The name the position fields give to the axis a ruler arm runs along: X to the right, Y to the back, Z up.
+ * The arms of a placed corner ruler do not stand along fixed axes (the one that is called x here runs to the
+ * back at first, and the corner turns by quarter turns), so the numbers on them are named by where the arm
+ * points and not by which arm it is (#597).
+ */
+export function worldAxisNameOfDirection(direction: { x: number; y: number; z: number }): "X" | "Y" | "Z" {
+  const along = { x: Math.abs(direction.x), y: Math.abs(direction.y), z: Math.abs(direction.z) };
+  if (along.y >= along.x && along.y >= along.z) return "Z";
+  return along.x >= along.z ? "X" : "Y";
+}
+
 export function cornerRulerCorner(pose: CornerRulerPose): { x: number; z: number } {
   const quaternion = quaternionForShape({ rotation: pose.rotation });
   const local = new THREE.Vector3(-pose.armLengthX / 2, 0, -pose.armLengthZ / 2).applyQuaternion(quaternion);
@@ -170,6 +182,39 @@ export function cornerRulerTicks(length: number): CornerRulerTick[] {
 }
 
 export type CornerRulerMode = "endpoint" | "midpoint";
+
+/** The three numbers a framing square gives a body: along its two arms and in height. */
+export type CornerRulerAxis = "x" | "z" | "elevation";
+
+/** A mode for single axes; what is not named follows the square's overall mode. */
+export type CornerRulerAxisModes = Partial<Record<CornerRulerAxis, CornerRulerMode>>;
+
+const CORNER_RULER_AXES: readonly CornerRulerAxis[] = ["x", "z", "elevation"];
+
+/** What each of the three numbers counts to: the edge of the body or its middle. */
+export function cornerRulerAxisModes(mode: CornerRulerMode | undefined, axisModes?: CornerRulerAxisModes): Record<CornerRulerAxis, CornerRulerMode> {
+  const base: CornerRulerMode = mode === "midpoint" ? "midpoint" : "endpoint";
+  return { x: axisModes?.x ?? base, z: axisModes?.z ?? base, elevation: axisModes?.elevation ?? base };
+}
+
+/**
+ * One axis switched between the edge and the middle, the others as they were. When all three agree
+ * again that is the square's overall mode and no single settings are kept (a standing cylinder:
+ * the middle in x and z, the bottom in height).
+ */
+export function toggledCornerRulerAxis(mode: CornerRulerMode | undefined, axisModes: CornerRulerAxisModes | undefined, axis: CornerRulerAxis): { mode: CornerRulerMode; axisModes?: CornerRulerAxisModes } {
+  const current = cornerRulerAxisModes(mode, axisModes);
+  const next = { ...current, [axis]: current[axis] === "midpoint" ? "endpoint" : "midpoint" } as Record<CornerRulerAxis, CornerRulerMode>;
+  if (CORNER_RULER_AXES.every((entry) => next[entry] === next.x)) return { mode: next.x };
+  return { mode: mode === "midpoint" ? "midpoint" : "endpoint", axisModes: next };
+}
+
+/** The whole square switched at once: to the other mode, or to the edge when the axes differ. */
+export function toggledCornerRulerMode(mode: CornerRulerMode | undefined, axisModes?: CornerRulerAxisModes): { mode: CornerRulerMode; axisModes?: CornerRulerAxisModes } {
+  const current = cornerRulerAxisModes(mode, axisModes);
+  const same = CORNER_RULER_AXES.every((entry) => current[entry] === current.x);
+  return { mode: same && current.x === "endpoint" ? "midpoint" : "endpoint" };
+}
 
 type CornerRulerVector = { x: number; y: number; z: number };
 
@@ -236,6 +281,8 @@ export type CornerRulerCoordinateInput = {
   /** The plane the square lies in; when given it replaces `rulerRotation`. */
   frame?: CornerRulerFrame;
   mode?: CornerRulerMode;
+  /** Single axes that count differently from `mode`. */
+  axisModes?: CornerRulerAxisModes;
   bounds: {
     min: { x: number; y: number; z: number };
     max: { x: number; y: number; z: number };
@@ -244,6 +291,8 @@ export type CornerRulerCoordinateInput = {
 
 export type CornerRulerRelativeCoordinates = {
   mode: CornerRulerMode;
+  /** What each number counts to, with the single settings applied. */
+  modes: Record<CornerRulerAxis, CornerRulerMode>;
   x: number;
   z: number;
   elevation: number;
@@ -262,6 +311,7 @@ export function computeCornerRulerRelativeCoordinates(
   input: CornerRulerCoordinateInput
 ): CornerRulerRelativeCoordinates {
   const mode: CornerRulerMode = input.mode === "midpoint" ? "midpoint" : "endpoint";
+  const modes = cornerRulerAxisModes(mode, input.axisModes);
   const rulerQuat = quaternionForShape({ rotation: input.rulerRotation });
   const axisX = input.frame ? toVector(input.frame.xAxis).normalize() : new THREE.Vector3(1, 0, 0).applyQuaternion(rulerQuat);
   const axisZ = input.frame ? toVector(input.frame.zAxis).normalize() : new THREE.Vector3(0, 0, 1).applyQuaternion(rulerQuat);
@@ -270,35 +320,24 @@ export function computeCornerRulerRelativeCoordinates(
   const rulerCorner = new THREE.Vector3(input.rulerCorner.x, input.rulerCorner.y ?? 0, input.rulerCorner.z);
   const { min, max } = input.bounds;
 
-  let x: number;
-  let z: number;
-  let elevation: number;
-
-  if (mode === "midpoint") {
-    x = (min.x + max.x) / 2;
-    z = (min.z + max.z) / 2;
-    elevation = (min.y + max.y) / 2;
-  } else {
-    x = min.x;
-    z = min.z;
-    elevation = min.y;
-  }
+  const x = modes.x === "midpoint" ? (min.x + max.x) / 2 : min.x;
+  const z = modes.z === "midpoint" ? (min.z + max.z) / 2 : min.z;
+  const elevation = modes.elevation === "midpoint" ? (min.y + max.y) / 2 : min.y;
 
   const xEndpointOnAxis = rulerCorner.clone().addScaledVector(axisX, x);
   const zEndpointOnAxis = rulerCorner.clone().addScaledVector(axisZ, z);
 
+  // The guide lines run along the floor - the plane the ruler lies in - to the point below (or beside) the body
+  // that the numbers count to; the height has its own arrow (DrJones, forum).
   const xTargetPoint = rulerCorner
     .clone()
     .addScaledVector(axisX, x)
-    .addScaledVector(axisZ, z)
-    .addScaledVector(axisY, elevation);
+    .addScaledVector(axisZ, z);
 
   const zTargetPoint = xTargetPoint.clone();
 
-  const elevationBasePoint = rulerCorner
-    .clone()
-    .addScaledVector(axisX, max.x)
-    .addScaledVector(axisZ, mode === "midpoint" ? z : min.z);
+  // The height arrow stands where the two guide lines meet, not at a corner of its own (DrJones, forum).
+  const elevationBasePoint = xTargetPoint.clone();
 
   const elevationTargetPoint = elevationBasePoint
     .clone()
@@ -306,6 +345,7 @@ export function computeCornerRulerRelativeCoordinates(
 
   return {
     mode,
+    modes,
     x,
     z,
     elevation,
@@ -334,3 +374,32 @@ export function computeCornerRulerShift(
   return { x: shift.x, z: shift.z };
 }
 
+/** One line of a ruler's printed scale: how far along it stands (mm), how long it is across the ruler (a share of its width), and a number when it carries one. */
+export type RulerTick = { offset: number; height: number; label?: string };
+
+const MM_PER_INCH = 25.4;
+
+/**
+ * The printed scale of a ruler `length` mm long (#500): a line every millimetre, longer at five and at ten, with
+ * the tens numbered; or, for someone who works in inches, a line every sixteenth of an inch, longer at the eighths,
+ * quarters, halves and whole inches, with the whole inches numbered.
+ */
+export function rulerTicks(length: number, inches = false): RulerTick[] {
+  const ticks: RulerTick[] = [];
+  if (!(length > 0)) return ticks;
+  if (inches) {
+    const last = Math.floor((length / MM_PER_INCH) * 16);
+    for (let step = 0; step <= last; step += 1) {
+      const whole = step % 16 === 0;
+      const height = whole ? 0.62 : step % 8 === 0 ? 0.5 : step % 4 === 0 ? 0.42 : step % 2 === 0 ? 0.34 : 0.26;
+      ticks.push({ offset: (step * MM_PER_INCH) / 16, height, ...(whole ? { label: String(step / 16) } : {}) });
+    }
+    return ticks;
+  }
+  const last = Math.floor(length);
+  for (let value = 0; value <= last; value += 1) {
+    const ten = value % 10 === 0;
+    ticks.push({ offset: value, height: ten ? 0.62 : value % 5 === 0 ? 0.42 : 0.26, ...(ten ? { label: String(value) } : {}) });
+  }
+  return ticks;
+}

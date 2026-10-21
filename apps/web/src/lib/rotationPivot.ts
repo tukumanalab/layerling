@@ -159,6 +159,25 @@ function shapePivotFrame(shape: WorkplaneShape) {
   return { size, mirror, center, turn: quaternionForShape(shape) };
 }
 
+/**
+ * A body stands on its base: x, z and the elevation are the middle of its bottom face, and a turn is made about its
+ * centre. Changing the height of a turned body by the number alone moves the centre straight up by half the change,
+ * not along the body's own up axis, so the base slides: a pocket on a sloped workplane wandered along the plane when
+ * its height was changed with the slider (forum, DrJones). The patch gets the position that keeps the middle of the
+ * base where it was. A patch that sets the position itself, or a body that is not turned, stays as it is.
+ */
+export function heightPatchKeepingBase(shape: WorkplaneShape, patch: Partial<WorkplaneShape>): Partial<WorkplaneShape> {
+  const height = patch.height;
+  if (typeof height !== "number" || !Number.isFinite(height) || height === shape.height) return patch;
+  if ("x" in patch || "z" in patch || "elevation" in patch) return patch;
+  const turn = quaternionForShape(shape);
+  if (Math.abs(turn.w) > 1 - 1e-9) return patch;
+  const up = new THREE.Vector3(0, mirrorSign(shape.mirrorY), 0).applyQuaternion(turn);
+  const base = new THREE.Vector3(shape.x, (shape.elevation ?? 0) + shape.height / 2, shape.z).addScaledVector(up, -shape.height / 2);
+  const centre = base.addScaledVector(up, height / 2);
+  return { ...patch, x: centre.x, z: centre.z, elevation: centre.y - height / 2 };
+}
+
 /** Where a body's own pivot lies in the world, or null if it has none. */
 export function shapePivotWorld(shape: WorkplaneShape): PivotPoint | null {
   const stored = shape.rotationPivot;

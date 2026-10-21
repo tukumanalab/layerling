@@ -1,0 +1,410 @@
+/* The History view's styles, kept apart from globals.css. layout.tsx imports
+   this file right after globals.css; nothing that came after these rules there
+   touches the History view, so the order changes nothing.
+   scripts/generate-graphite-theme.mjs reads both files, in that order. */
+
+/* ---------------------------------------------------------------------------
+   The history view: a bar at the foot of the work area while the viewport
+   shows an earlier state. The ribbon stays visible but asleep, except for the
+   history button that closes the view again; nothing in the bar changes the
+   design, it only looks back and lets you take a state along.
+   ------------------------------------------------------------------------- */
+.history-view-bar {
+  position: fixed;
+  bottom: calc(var(--editor-footer-height) + 16px);
+  /* Centred by arithmetic, not by auto margins: the movable-panel hook reads
+     the docked spot from left/top, and a margin that goes away when the bar
+     floats would shift it. */
+  left: calc((100vw - min(760px, 100vw - 28px)) / 2);
+  z-index: 46;
+  display: grid;
+  gap: 10px;
+  width: min(760px, calc(100vw - 28px));
+  padding: 12px 16px 14px;
+  color: #584027;
+  background: rgba(254, 252, 250, 0.98);
+  border: 1px solid #dacbbb;
+  border-radius: 12px;
+  box-shadow: 0 14px 38px rgba(74, 53, 30, 0.2);
+  backdrop-filter: blur(12px);
+}
+
+.history-view-head.movable {
+  cursor: grab;
+  touch-action: none;
+}
+
+.history-view-bar.moving,
+.history-view-bar.moving .history-view-head.movable {
+  cursor: grabbing;
+}
+
+.history-view-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.history-view-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.history-view-heading strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.history-view-heading span {
+  font-size: 12px;
+  color: #8a7560;
+}
+
+.history-view-head .panel-header-actions button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.history-view-head .panel-header-actions button:hover,
+.history-view-head .guide-help-link:hover {
+  background: #f3ece2;
+}
+
+.history-view-slider {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-view-slider > button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: #745e48;
+  background: #fff;
+  border: 1px solid #d8c8b7;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.history-view-slider > button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.history-view-slider .range-control {
+  height: 32px;
+}
+
+.history-view-slider input[type="range"]:focus-visible {
+  outline: 2px solid #d07313;
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+.history-view-steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px 14px;
+  font-size: 13px;
+}
+
+.history-view-step {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.history-view-step.next {
+  justify-content: flex-end;
+}
+
+.history-view-step > svg {
+  flex: none;
+  color: #a08a73;
+}
+
+.history-view-step-label {
+  flex: none;
+  color: #8a7560;
+}
+
+.history-view-step-text {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-view-step.none .history-view-step-text {
+  font-weight: 400;
+  color: #a08a73;
+}
+
+@media (max-width: 560px) {
+  .history-view-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .history-view-step.next {
+    justify-content: flex-start;
+  }
+}
+
+.history-view-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 14px;
+  font-size: 13px;
+}
+
+.history-view-state strong {
+  font-weight: 800;
+}
+
+.history-view-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: #8a7560;
+}
+
+.history-view-facts .current {
+  color: #2a8f57;
+  font-weight: 700;
+}
+
+.history-view-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.history-view-actions button {
+  display: inline-flex;
+  min-height: 34px;
+  padding: 0 13px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #d8c8b7;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.history-view-actions .secondary {
+  color: #745e48;
+  background: white;
+}
+
+.history-view-actions .primary {
+  color: white;
+  background: #cc7011;
+  border-color: #b35f07;
+}
+
+.history-view-actions button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* Delete history: alone at the left of the row, in a colour that says it is not like the others. */
+.history-view-actions .delete-history {
+  margin-right: auto;
+  color: #a33a2a;
+  background: white;
+  border-color: #e3bdb4;
+}
+
+.history-view-actions .delete-history:hover:not(:disabled) {
+  background: #fdf1ee;
+}
+
+.history-view-confirm {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  color: #6b2a1f;
+  background: #fdf1ee;
+  border: 1px solid #e3bdb4;
+  border-radius: 8px;
+}
+
+.history-view-confirm p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.history-view-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.history-view-confirm-actions button {
+  display: inline-flex;
+  min-height: 34px;
+  padding: 0 13px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #d8c8b7;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.history-view-confirm-actions .secondary {
+  color: #745e48;
+  background: white;
+}
+
+.history-view-confirm-actions .danger {
+  color: white;
+  background: #b4402e;
+  border-color: #962f1f;
+}
+
+.history-view-spinner {
+  animation: history-view-spin 0.9s linear infinite;
+}
+
+@keyframes history-view-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Asleep while looking back: every tool but the one that ends the view. The
+   buttons are disabled and their sections inert in the markup; this only
+   shows it. */
+.layerling-editor.history-view-active .tool-group .toolbar-section:not([data-group="history"]),
+.layerling-editor.history-view-active .toolbar-section[data-group="history"] .toolbar-icon:not(.active),
+.layerling-editor.history-view-active .outliner-panel,
+.layerling-editor.history-view-active .toolbar-title-row-actions {
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.layerling-editor.history-view-active :is(.action-icon-button, .toolbar-workspace-tabs button):disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+@media (max-width: 640px) {
+  .history-view-bar {
+    left: 8px;
+    width: calc(100vw - 16px);
+    padding: 10px 12px 12px;
+  }
+
+  .history-view-state {
+    flex-direction: column;
+  }
+
+  .history-view-actions button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+html[data-theme="dark"] .history-view-bar {
+  color: #ede4d4;
+  background: rgba(40, 30, 20, 0.97);
+  border-color: #5b4b3a;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.34);
+}
+
+html[data-theme="dark"] .history-view-heading span,
+html[data-theme="dark"] .history-view-step-label,
+html[data-theme="dark"] .history-view-step > svg,
+html[data-theme="dark"] .history-view-step.none .history-view-step-text,
+html[data-theme="dark"] .history-view-facts {
+  color: #b9a68f;
+}
+
+html[data-theme="dark"] .history-view-facts .current {
+  color: #5fd394;
+}
+
+html[data-theme="dark"] .history-view-head .panel-header-actions button:hover,
+html[data-theme="dark"] .history-view-head .guide-help-link:hover {
+  background: #3f3022;
+}
+
+html[data-theme="dark"] .history-view-slider > button,
+html[data-theme="dark"] .history-view-actions .secondary,
+html[data-theme="dark"] .history-view-inside button {
+  color: #f0e7d9;
+  background: #413121;
+  border-color: #65503b;
+}
+
+html[data-theme="dark"] .history-view-slider .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #e0862a 0 var(--slider-pos), #5b4b3a var(--slider-pos) 100%);
+}
+
+html[data-theme="dark"] .history-view-slider .range-control input[type="range"]::-moz-range-track {
+  background: #5b4b3a;
+}
+
+html[data-theme="dark"] .history-view-slider .range-control input[type="range"]::-moz-range-progress {
+  background: #e0862a;
+}
+
+/* The groups opened to look inside, with the way back out. */
+.history-view-inside {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0b6f96;
+  background: #e6f6fc;
+  border: 1px solid #a9dcef;
+  border-radius: 8px;
+}
+
+.history-view-inside > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-view-inside button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  font: inherit;
+  font-weight: 700;
+  color: #745e48;
+  background: #fff;
+  border: 1px solid #d8c8b7;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] .history-view-inside {
+  color: #8fdaf5;
+  background: rgba(0, 174, 234, 0.12);
+  border-color: rgba(0, 174, 234, 0.4);
+}

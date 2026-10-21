@@ -297,6 +297,20 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
     expect(near(await reimportVolume(blob), expected, 1e-4)).toBe(true);
   });
 
+  it("exports a Gridfinity bin and baseplate as their exact bodies", async () => {
+    const { cadModifierGridfinityForShape } = await import("@/lib/cadProfileExtrusion");
+    const { gridfinityPartSolid } = await import("@/lib/gridfinitySolid");
+    const { occtKernel } = await import("@/lib/brepKernel");
+    const bin = shape({ kind: "gridfinity", name: "Bin", x: -60, width: 83.5, depth: 41.5, height: 25.4, gridfinityType: "bin", gridfinityMagnets: true, rotation: 90 });
+    const plate = shape({ kind: "gridfinity", name: "Baseplate", x: 60, width: 84, depth: 84, height: 5, gridfinityType: "baseplate" });
+    const { blob, exportedCount, skipped } = await exportShapesToStep([bin, plate]);
+    expect(skipped).toEqual([]);
+    expect(exportedCount).toBe(2);
+    const kernel = occtKernel()!;
+    const volume = (source: WorkplaneShape) => kernel.getVolume(gridfinityPartSolid(kernel, cadModifierGridfinityForShape(source)!));
+    expect(near(await reimportVolume(blob), volume(bin) + volume(plate), 1e-4)).toBe(true);
+  });
+
   it("exports a star, a heart and a teardrop instead of skipping them", async () => {
     const star = shape({ kind: "star", name: "Star", x: -30, width: 20, depth: 20, height: 5 });
     const heart = shape({ kind: "heart", name: "Heart", x: 0, width: 20, depth: 20, height: 5 });

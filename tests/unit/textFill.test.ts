@@ -1,7 +1,8 @@
+import * as THREE from "three";
 import manifoldModule, { type ManifoldToplevel } from "manifold-3d";
 import { beforeAll, describe, expect, it } from "vitest";
 import { loadTextFonts } from "@/lib/textFonts";
-import { textFillComponents, textFillPieceGeometry, textHasFill, type TextFillComponent } from "@/lib/textFill";
+import { textFillClosedGeometry, textFillComponents, textFillPieceGeometry, textHasFill, type TextFillComponent } from "@/lib/textFill";
 import { textFillExtent, textFillPatch, textLetterBox } from "@/lib/textGeometry";
 import type { SketchStroke, WorkplaneShape } from "@/types/layerling";
 
@@ -114,5 +115,59 @@ describe("text fill modes (#215)", () => {
     // Inside stays within the letters' box; the silhouette alone changes nothing.
     expect(textFillPatch(plain, { textStroke: stroke("inside", 2) })).toEqual({ textStroke: stroke("inside", 2) });
     expect(textFillPatch(plain, { textSilhouette: true })).toEqual({ textSilhouette: true });
+  });
+});
+
+// #352: a line round a block font made a mesh with gaps along letters that touch, which the 3D kernel refused
+// ("not manifold"), so the text could not be cut out of a plate. The 2D kernel extrudes the region instead.
+describe("the closed body of a text fill (#352)", () => {
+  const openEdges = (geometry: THREE.BufferGeometry) => {
+    const position = geometry.getAttribute("position");
+    const index = geometry.index;
+    const count = index ? index.count : position.count;
+    const at = (k: number) => (index ? index.getX(k) : k);
+    const key = (i: number) => [position.getX(i), position.getY(i), position.getZ(i)].map((value) => Math.round(value * 1e4)).join(",");
+    const edges = new Map<string, number>();
+    for (let t = 0; t < count; t += 3) {
+      for (const [a, b] of [[0, 1], [1, 2], [2, 0]]) {
+        const from = key(at(t + a));
+        const to = key(at(t + b));
+        if (from !== to) edges.set(`${from}>${to}`, (edges.get(`${from}>${to}`) ?? 0) + 1);
+      }
+    }
+    let open = 0;
+    edges.forEach((times, edge) => {
+      const [from, to] = edge.split(">");
+      if ((edges.get(`${to}>${from}`) ?? 0) !== times) open += 1;
+    });
+    return open;
+  };
+  const volume = (geometry: THREE.BufferGeometry) => {
+    const position = geometry.getAttribute("position");
+    const index = geometry.index;
+    const count = index ? index.count : position.count;
+    const at = (k: number) => (index ? index.getX(k) : k);
+    const point = (i: number) => new THREE.Vector3(position.getX(i), position.getY(i), position.getZ(i));
+    let total = 0;
+    for (let t = 0; t < count; t += 3) total += point(at(t)).dot(new THREE.Vector3().crossVectors(point(at(t + 1)), point(at(t + 2)))) / 6;
+    return total;
+  };
+
+  it.each(["outside", "inside", "center", "grow"] as const)("is closed, stands on the floor and faces outward (%s)", (align) => {
+    const shape = text({ text: "PIERCE COUNTY", width: 160, depth: 25, height: 1.5, textStroke: stroke(align) });
+    const geometry = textFillClosedGeometry(runtime, shape);
+    expect(geometry).not.toBeNull();
+    expect(openEdges(geometry!)).toBe(0);
+    const box = geometry!.boundingBox!;
+    expect(box.min.y).toBeCloseTo(0, 6);
+    expect(box.max.y).toBeCloseTo(1.5, 6);
+    // Faces outward: the signed volume is positive, and equals the area of the pieces times the height.
+    const components = textFillComponents(runtime, shape)!;
+    expect(volume(geometry!)).toBeGreaterThan(0);
+    expect(volume(geometry!)).toBeCloseTo(area(components) * 1.5, 0);
+  });
+
+  it("has nothing to give a text without a fill mode", () => {
+    expect(textFillClosedGeometry(runtime, text({ text: "O" }))).toBeNull();
   });
 });

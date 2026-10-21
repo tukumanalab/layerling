@@ -1,3 +1,4 @@
+import { normalizeHexColor } from "@/lib/coloredImport";
 import { makeShapeFromAsset, toolbarShapeAssets } from "@/lib/shapeCatalog";
 import { normalizeShapeCustomizations } from "@/lib/workplaneSettings";
 import { shapeDepth, shapeWidth } from "@/lib/workplaneShapes";
@@ -13,11 +14,11 @@ const SHAPE_DEFAULT_FIELDS = [
   "cornerFillet", "topBottomFillet", "roundedBoxQuality", "steps", "sides", "bevel", "segments", "topRadius", "baseRadius",
   "topWidth", "topDepth", "teeth", "toothSize", "toothWidth", "centerHoleSize", "gearType", "helixAngle", "helixQuality", "gearProfile", "gearPressureAngle", "gearBacklash", "gearRim",
   "threadRole", "threadHead", "threadHand", "threadProfile", "threadDiameter", "threadPitch", "threadClearance",
-  "threadBoltClearance", "threadAxialClearance", "threadQuality", "threadHeadHeight", "threadChamfer", "threadChamferBottom", "threadHeadChamfer", "springTurns",
+  "threadBoltClearance", "threadAxialClearance", "threadDepth", "threadFlankAngle", "threadQuality", "threadHeadHeight", "threadChamfer", "threadChamferBottom", "threadHeadChamfer", "springTurns",
   "springWire", "springHand", "springQuality", "starPoints", "starInnerSize", "starOuterFillet", "starInnerFillet",
   "starQuality", "heartTipFillet", "heartQuality", "crescentThickness", "crescentTipFillet", "crescentQuality",
   "honeycombCellSize", "honeycombWallThickness", "honeycombFrameWidth", "hingeKnuckles", "hingePinDiameter",
-  "hingeLeafThickness", "hingeClearance", "knurlPattern", "knurlCount", "knurlDepth", "knurlAngle", "knurlChamfer",
+  "hingeLeafThickness", "hingeClearance", "hingePinless", "gridfinityType", "gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCorner", "gridfinityLabelCornerSize", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness", "knurlPattern", "knurlCount", "knurlDepth", "knurlAngle", "knurlChamfer",
   "dovetailNeckWidth", "dovetailClearance", "loftBottomOutline", "loftTopOutline", "loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftBottomSides", "loftTopSides", "loftOffsetX", "loftOffsetZ", "loftWall", "loftTwist", "loftSmooth", "loftTiltX", "loftTiltZ", "slotEndRatio", "screwHoleShaft", "screwHoleHeadDepth", "screwHoleAngle", "bentTubeProfile",
   "bentTubeInnerProfile", "bentTubeSize", "bentTubeWall", "bentTubeQuality", "font", "textCurved", "textRadius",
   "textSize", "textInward", "textFlipped",
@@ -50,6 +51,8 @@ export function shapeDefaultsFromShape(shape: WorkplaneShape, existing: ShapeCus
     picked[key] = value;
     appValues[key] = appValue;
   };
+  // The colour counts as a setting of the kind, too: a new shape of it starts with the colour saved here.
+  take("color", normalizeHexColor(shape.color), normalizeHexColor(app.color));
   take("width", shapeWidth(shape), shapeWidth(app));
   take("depth", shapeDepth(shape), shapeDepth(app));
   take("height", shape.height, app.height);

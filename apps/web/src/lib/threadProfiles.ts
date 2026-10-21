@@ -12,6 +12,7 @@ const PROFILE_SET: Record<ThreadProfile, true> = {
   trapezoidal: true,
   round: true,
   whitworth: true,
+  custom: true,
 };
 
 export const THREAD_PROFILES = Object.keys(PROFILE_SET) as readonly ThreadProfile[];

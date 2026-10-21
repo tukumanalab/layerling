@@ -58,14 +58,16 @@ export function selectedClosedSketchPoints(
   return selectedPoints;
 }
 
-export function rotateSketchPoints(points: readonly SketchPoint[], degrees = 45): SketchPoint[] {
-  if (points.length === 0) return [];
+/** The middle of the box round the points: what a selection turns about. */
+export function sketchPointsPivot(points: readonly SketchPoint[]): { x: number; z: number } {
+  if (points.length === 0) return { x: 0, z: 0 };
+  const xs = points.map((point) => point.x);
+  const zs = points.map((point) => point.z);
+  return { x: (Math.min(...xs) + Math.max(...xs)) / 2, z: (Math.min(...zs) + Math.max(...zs)) / 2 };
+}
 
-  const minX = Math.min(...points.map((point) => point.x));
-  const maxX = Math.max(...points.map((point) => point.x));
-  const minZ = Math.min(...points.map((point) => point.z));
-  const maxZ = Math.max(...points.map((point) => point.z));
-  const pivot = { x: (minX + maxX) / 2, z: (minZ + maxZ) / 2 };
+/** The points, with their curve handles, turned by `degrees` about `pivot` (the sketch's z runs down the screen). */
+export function rotateSketchPointsAbout(points: readonly SketchPoint[], pivot: { x: number; z: number }, degrees: number): SketchPoint[] {
   const radians = degrees * Math.PI / 180;
   const cosine = Math.cos(radians);
   const sine = Math.sin(radians);
@@ -77,11 +79,33 @@ export function rotateSketchPoints(points: readonly SketchPoint[], degrees = 45)
       z: pivot.z + deltaX * sine + deltaZ * cosine,
     };
   };
-
   return points.map((point) => ({
     ...point,
     ...rotatePosition(point),
     handleIn: point.handleIn ? rotatePosition(point.handleIn) : undefined,
     handleOut: point.handleOut ? rotatePosition(point.handleOut) : undefined,
   }));
+}
+
+/**
+ * The turn a drag of the rotation handle stands for: how far the pointer has gone round `pivot` since it
+ * took hold at `start`, in degrees from -180 to 180. A `snapStep` (15 with Shift) rounds it.
+ */
+export function dragRotationDegrees(
+  pivot: { x: number; z: number },
+  start: { x: number; z: number },
+  current: { x: number; z: number },
+  snapStep = 0,
+): number {
+  const angle = (point: { x: number; z: number }) => Math.atan2(point.z - pivot.z, point.x - pivot.x);
+  let degrees = ((angle(current) - angle(start)) * 180) / Math.PI;
+  while (degrees > 180) degrees -= 360;
+  while (degrees <= -180) degrees += 360;
+  if (snapStep > 0) degrees = Math.round(degrees / snapStep) * snapStep;
+  return Object.is(degrees, -0) ? 0 : degrees;
+}
+
+export function rotateSketchPoints(points: readonly SketchPoint[], degrees = 45): SketchPoint[] {
+  if (points.length === 0) return [];
+  return rotateSketchPointsAbout(points, sketchPointsPivot(points), degrees);
 }

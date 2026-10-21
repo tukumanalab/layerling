@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import { createLocalId } from "@/lib/localIds";
+import { loadedManifoldRuntime, manifoldLoaderKnown, onManifoldReady, requestManifoldRuntime } from "@/lib/manifoldHandle";
+import type { ManifoldToplevel } from "manifold-3d";
 import type { WorkplaneShape } from "@/types/layerling";
 
 export const MAX_SVG_BYTES = 2 * 1024 * 1024;
@@ -112,9 +114,11 @@ export function validateSvgSourcePreflight(source: string) {
   }
 
   for (const href of [...attributeValues(source, "href"), ...attributeValues(source, "xlink:href")]) {
-    if (href && !href.trim().startsWith("#")) {
-      throw new Error("SVG external references are not supported; embed referenced artwork in the file");
-    }
+    const target = href.trim();
+    if (!target || target.startsWith("#")) continue;
+    // A picture inside the SVG is not a drawing; the icon tag traces it when it is all the SVG holds (#359).
+    if (/^data:/i.test(target)) throw new Error("SVG embedded pictures are not drawings; only an SVG that holds nothing but one picture is traced");
+    throw new Error("SVG external references are not supported; embed referenced artwork in the file");
   }
 }
 
@@ -247,7 +251,35 @@ function cleanRingPoints(points: THREE.Vector2[]) {
   // first.
   const closeEnough = (extent * 1e-5) ** 2;
   if (cleaned.length > 3 && cleaned[0].distanceToSquared(cleaned[cleaned.length - 1]) <= closeEnough) cleaned.pop();
-  return cleaned;
+  return withoutStraightPoints(cleaned, extent * 1e-7);
+}
+
+/**
+ * A point that lies on the straight line between its two neighbours - font outlines, LightBurn and
+ * Inkscape text have many - adds nothing to the outline but makes the extrusion put a triangle of no
+ * area there, and a letter with such a triangle was left out of the import as no solid (#304, the
+ * letters of a LightBurn text). A spike that runs out and back along the same line goes with it.
+ * `tolerance` is how far from the line a point may lie and still count as on it.
+ */
+function withoutStraightPoints(points: THREE.Vector2[], tolerance: number) {
+  let result = points;
+  for (let pass = 0; pass < 8; pass += 1) {
+    const kept: THREE.Vector2[] = [];
+    for (let index = 0; index < result.length; index += 1) {
+      const point = result[index];
+      const before = kept.length ? kept[kept.length - 1] : result[result.length - 1];
+      const after = result[(index + 1) % result.length];
+      const line = after.clone().sub(before);
+      const length = line.length();
+      const offset = length > 0 ? Math.abs(line.cross(point.clone().sub(before))) / length : point.distanceTo(before);
+      // Never below a triangle: what is left after dropping this point is what is kept so far and what is still to come.
+      if (kept.length + (result.length - index - 1) >= 3 && offset <= tolerance) continue;
+      kept.push(point);
+    }
+    if (kept.length === result.length || kept.length < 3) return kept.length < 3 ? result : kept;
+    result = kept;
+  }
+  return result;
 }
 
 function ringSamplePoint(points: THREE.Vector2[]) {
@@ -309,10 +341,44 @@ function ringsIntersect(a: THREE.Vector2[], b: THREE.Vector2[]) {
   return false;
 }
 
+/** The longest piece of a curve is this fraction of the drawing's size (#420). */
+const SVG_CURVE_CHORD_FRACTION = 1 / 200;
+const SVG_MAX_CURVE_SEGMENTS = 400;
+
+/**
+ * The points of a path, each curve cut into pieces by its length: three.js cuts every curve into the same few
+ * pieces, so a large circle had about 32 corners that could be seen. A short curve keeps the old number
+ * of pieces, a long one gets as many as it needs to stay round.
+ */
+function pathPointsByLength(path: THREE.Path, longestPiece: number) {
+  const points: THREE.Vector2[] = [];
+  for (const curve of path.curves) {
+    let pieces = 1;
+    if (!(curve instanceof THREE.LineCurve)) {
+      // three.js gave an ellipse twice the pieces of other curves; that stays the least it gets.
+      const fewest = curve instanceof THREE.EllipseCurve ? SVG_CURVE_SEGMENTS * 2 : SVG_CURVE_SEGMENTS;
+      pieces = Math.min(SVG_MAX_CURVE_SEGMENTS, Math.max(fewest, Math.ceil(curve.getLength() / longestPiece)));
+    }
+    for (const point of curve.getPoints(pieces)) {
+      const last = points[points.length - 1];
+      if (last && last.equals(point)) continue;
+      points.push(point);
+    }
+  }
+  if (path.autoClose && points.length > 1 && !points[0].equals(points[points.length - 1])) points.push(points[0]);
+  return points;
+}
+
 function composeNestedRings(shapes: THREE.Shape[]) {
   const rings: SvgRing[] = [];
+  // The size of the drawing, from a rough reading of its outlines.
+  let extentOfDrawing = 0;
   for (const shape of shapes) {
-    const extracted = shape.extractPoints(SVG_CURVE_SEGMENTS);
+    for (const rough of shape.getPoints(SVG_CURVE_SEGMENTS)) extentOfDrawing = Math.max(extentOfDrawing, Math.abs(rough.x), Math.abs(rough.y));
+  }
+  const longestPiece = Math.max(extentOfDrawing * SVG_CURVE_CHORD_FRACTION, 1e-6);
+  for (const shape of shapes) {
+    const extracted = { shape: pathPointsByLength(shape, longestPiece), holes: shape.holes.map((hole) => pathPointsByLength(hole, longestPiece)) };
     for (const rawPoints of [extracted.shape, ...extracted.holes]) {
       const points = cleanRingPoints(rawPoints);
       if (points.length < 3) continue;
@@ -509,6 +575,25 @@ export function validateClosedSolidTriangleSoup(positions: readonly number[], la
   return analysis;
 }
 
+/**
+ * The check of a body the kernel made: closed, watertight and with volume, as for any import, but a sliver
+ * of no area is allowed - where two outlines meet at a single point the kernel's body has one, and it is
+ * harmless (#420).
+ */
+function validateKernelSolid(positions: readonly number[]) {
+  const analysis = analyzeTriangleSoup(positions);
+  if (analysis.triangleCount > MAX_SVG_TRIANGLES) {
+    throw new Error(`SVG is too complex (${analysis.triangleCount} triangles; maximum ${MAX_SVG_TRIANGLES})`);
+  }
+  if (analysis.boundaryEdges > 0 || analysis.nonManifoldEdges > 0) {
+    throw new Error("SVG is not a watertight manifold");
+  }
+  if (analysis.width <= 0 || analysis.height <= 0 || analysis.depth <= 0 || analysis.surfaceArea <= 0 || analysis.volume <= analysis.volumeTolerance) {
+    throw new Error("SVG does not enclose a non-zero volume");
+  }
+  return analysis;
+}
+
 /** The paths that make the body: visibly filled ones, and the closed parts of visibly stroked ones. */
 export function svgProfilePaths(paths: readonly THREE.ShapePath[]) {
   return paths.map(extrusionProfileFromPath).filter((path): path is THREE.ShapePath => Boolean(path));
@@ -524,6 +609,113 @@ export function parseSvgForImport(source: string) {
     throw new Error("SVG is not valid XML");
   }
   return parsed;
+}
+
+/**
+ * Waits for the exact kernel before an SVG is built (#420): the build below then lets the kernel make the
+ * bodies, which stay clean solids where outlines touch or overlap. Without a kernel (a test, a page that
+ * has none) it returns at once, and the plain build is used.
+ */
+export async function prepareSvgImport(timeoutMs = 10_000) {
+  if (loadedManifoldRuntime() || !manifoldLoaderKnown()) return;
+  await new Promise<void>((resolve) => {
+    const stop = onManifoldReady(() => {
+      stop();
+      resolve();
+    });
+    globalThis.setTimeout(() => {
+      stop();
+      resolve();
+    }, timeoutMs);
+    requestManifoldRuntime();
+  });
+}
+
+/**
+ * The shapes as one body, made by the kernel: every outline with its holes becomes a face (even-odd, as a
+ * drawing is filled), is extruded, and all of them are joined. Outlines that touch or lie over each other come
+ * out as one clean solid, where the caps built from each outline alone can overlap or turn the wrong way and
+ * leave a body that no cut can use (#420). Null when the kernel cannot make it; the plain build then goes on.
+ */
+const SVG_TOUCH_CLOSING = 0.05;
+const SVG_TOUCH_SIMPLIFY = 0.002;
+const SVG_TOUCH_CLOSING_LARGER = [0.1, 0.2, 0.35];
+
+function extrudeShapesWithKernel(runtime: ManifoldToplevel, shapes: readonly THREE.Shape[]): { positions: number[]; skippedShapes: number } | null {
+  const made: Array<{ delete(): void }> = [];
+  try {
+    const sections: InstanceType<typeof runtime.CrossSection>[] = [];
+    let skippedShapes = 0;
+    for (const shape of shapes) {
+      const points = shape.extractPoints(SVG_CURVE_SEGMENTS);
+      const rings = [points.shape, ...points.holes]
+        .map((ring) => ring.map((point) => [point.x, point.y] as [number, number]))
+        .filter((ring) => ring.length >= 3);
+      if (!rings.length) {
+        skippedShapes += 1;
+        continue;
+      }
+      const section = new runtime.CrossSection(rings, "EvenOdd");
+      made.push(section);
+      if (section.isEmpty()) {
+        skippedShapes += 1;
+        continue;
+      }
+      sections.push(section);
+    }
+    if (!sections.length) return null;
+    // The outlines are joined as flat areas first, then extruded once: two bodies that touch along a line or at a
+    // point (the islands of a traced picture meeting its outline) made edges of four triangles when joined as bodies (#584).
+    const joined = sections.length === 1 ? sections[0] : runtime.CrossSection.union(sections);
+    made.push(joined);
+    // Areas that meet in a single corner still pinch there and make an edge of four triangles. Shrinking them a hair and
+    // growing them back with rounded corners parts the corner for good.
+    const closeBy = (closing: number) => {
+      const grown = joined.offset(-closing, "Miter", 2, 0);
+      made.push(grown);
+      const rounded = grown.offset(closing, "Round", 2, 8);
+      made.push(rounded);
+      // The rounding leaves points a hair apart; the checks below merge those and see edges of four triangles.
+      const closed = rounded.simplify(SVG_TOUCH_SIMPLIFY);
+      made.push(closed);
+      return closed;
+    };
+    // The same turn as the plain build (extrude along z, then rotate about x by -90 degrees): (x, y, z) -> (x, z, -y).
+    const extrudeArea = (face: InstanceType<typeof runtime.CrossSection>): number[] | null => {
+      const merged = runtime.Manifold.extrude(face, SVG_EXTRUSION_DEPTH);
+      made.push(merged);
+      if (merged.status() !== "NoError" || merged.numTri() < 1) return null;
+      const mesh = merged.getMesh();
+      const stride = mesh.numProp;
+      const result: number[] = [];
+      for (let index = 0; index < mesh.triVerts.length; index += 1) {
+        const base = mesh.triVerts[index] * stride;
+        result.push(mesh.vertProperties[base], mesh.vertProperties[base + 2], -mesh.vertProperties[base + 1]);
+      }
+      return result;
+    };
+    const isClean = (candidate: number[]) => {
+      const analysis = analyzeTriangleSoup(candidate);
+      return analysis.boundaryEdges === 0 && analysis.nonManifoldEdges === 0;
+    };
+    const positions = extrudeArea(closeBy(SVG_TOUCH_CLOSING));
+    if (!positions) return null;
+    if (isClean(positions)) return { positions, skippedShapes };
+    // A drawing traced from a picture has many corners where outlines meet; a little more closing parts those that the
+    // first one left as an edge of four triangles (#584). The picture loses a few hundredths of a millimetre at its thinnest.
+    for (const closing of SVG_TOUCH_CLOSING_LARGER) {
+      const wider = extrudeArea(closeBy(closing));
+      if (wider && isClean(wider)) return { positions: wider, skippedShapes };
+    }
+    // The closing can leave edges of four triangles on an outline with many fine holes (a stencil, #626) that the
+    // plain join does not have. Then the joined outlines are used as they are; if they are no cleaner, the result stays as it was.
+    const plain = extrudeArea(joined);
+    return { positions: plain && isClean(plain) ? plain : positions, skippedShapes };
+  } catch {
+    return null;
+  } finally {
+    new Set(made).forEach((item) => item.delete());
+  }
 }
 
 export function buildSvgExtrusionFromPaths(paths: readonly THREE.ShapePath[]) {
@@ -542,7 +734,23 @@ export function buildSvgExtrusionFromPaths(paths: readonly THREE.ShapePath[]) {
   // Shapes that do not build into a solid are left out; the import says how many (#258).
   let skippedShapes = 0;
 
-  for (const shape of shapes) {
+  const runtime = loadedManifoldRuntime();
+  const kernelBuild = runtime ? extrudeShapesWithKernel(runtime, shapes) : null;
+  let kernelAnalysis: TriangleSoupAnalysis | null = null;
+  if (kernelBuild) {
+    try {
+      kernelAnalysis = validateKernelSolid(kernelBuild.positions);
+    } catch {
+      kernelAnalysis = null;
+    }
+  }
+  if (kernelBuild && kernelAnalysis) {
+    for (let index = 0; index < kernelBuild.positions.length; index += 1) rawPositions.push(kernelBuild.positions[index]);
+    acceptedAnalyses.push(kernelAnalysis);
+    skippedShapes = kernelBuild.skippedShapes;
+  }
+
+  for (const shape of kernelAnalysis ? [] : shapes) {
     const rawGeometry = new THREE.ExtrudeGeometry(shape, {
       depth: SVG_EXTRUSION_DEPTH,
       bevelEnabled: false,
@@ -568,7 +776,8 @@ export function buildSvgExtrusionFromPaths(paths: readonly THREE.ShapePath[]) {
       throw new Error(`SVG is too complex (maximum ${MAX_SVG_TRIANGLES} triangles)`);
     }
     if (candidateAnalysis) {
-      rawPositions.push(...candidatePositions);
+      // A loop, not push(...list): a detailed outline has more numbers than a call can take (#340).
+      for (let index = 0; index < candidatePositions.length; index += 1) rawPositions.push(candidatePositions[index]);
       acceptedAnalyses.push(candidateAnalysis);
     } else {
       skippedShapes += 1;

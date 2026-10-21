@@ -495,6 +495,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-ui);
   letter-spacing: 0;
+  /* On a Mac the default smoothing makes the heavy weights look thick and soft on Retina screens. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
@@ -692,44 +695,6 @@ button {
   content: "";
   background: radial-gradient(ellipse, rgba(99, 79, 58, 0.09), transparent 68%);
   transform: translate(-50%, -50%);
-}
-
-.editor-loading-view-cube {
-  position: absolute;
-  top: 22px;
-  left: 28px;
-  z-index: 2;
-  width: 82px;
-  height: 82px;
-}
-
-.editor-loading-view-cube span {
-  position: absolute;
-  border-radius: 5px;
-}
-
-.editor-loading-cube-top {
-  top: 3px;
-  left: 13px;
-  width: 56px;
-  height: 39px;
-  clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%);
-}
-
-.editor-loading-cube-left {
-  top: 28px;
-  left: 9px;
-  width: 35px;
-  height: 48px;
-  clip-path: polygon(0 0, 100% 21%, 100% 100%, 0 79%);
-}
-
-.editor-loading-cube-right {
-  top: 28px;
-  left: 44px;
-  width: 35px;
-  height: 48px;
-  clip-path: polygon(0 21%, 100% 0, 100% 79%, 0 100%);
 }
 
 .editor-loading-model {
@@ -1411,56 +1376,55 @@ html[data-theme="dark"] .dashboard-trademark {
   font-weight: 800;
 }
 
-/* Installed as an app, layerling also starts offline - a quiet strip under the
-   start tiles says so, with the browser's own install button where it has one. */
-.install-app-hint {
+/* The designs live in this browser and nowhere else: said in bold, and it stays. */
+.storage-notice {
   display: flex;
   align-items: center;
   gap: 14px;
   margin: -8px 0 22px;
-  padding: 12px 12px 12px 16px;
-  background: #fff8ee;
-  border: 1px solid #f0d9b8;
+  padding: 14px 14px 14px 16px;
+  background: #fff1dc;
+  border: 2px solid #e08a2c;
   border-radius: 10px;
 }
 
-.install-app-hint-icon {
+.storage-notice-icon {
   display: grid;
   flex: none;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   place-items: center;
-  color: #bf6508;
-  background: #fdebd3;
-  border-radius: 9px;
+  color: #ffffff;
+  background: #d9730d;
+  border-radius: 10px;
 }
 
-.install-app-hint-text {
+.storage-notice-text {
   display: grid;
   flex: 1;
   min-width: 0;
-  gap: 2px;
+  gap: 3px;
 }
 
-.install-app-hint-text strong {
-  color: #573f26;
-  font-size: 14px;
-  font-weight: 800;
+.storage-notice-text strong {
+  color: #4a2f10;
+  font-size: 16px;
+  font-weight: 900;
 }
 
-.install-app-hint-text span {
-  color: #7a6650;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.45;
+.storage-notice-text span {
+  color: #5e4630;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
-.install-app-hint-button {
+.storage-notice-button {
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: 7px;
-  padding: 8px 14px;
+  padding: 9px 15px;
   color: #ffffff;
   font-size: 13px;
   font-weight: 800;
@@ -1470,13 +1434,154 @@ html[data-theme="dark"] .dashboard-trademark {
   cursor: pointer;
 }
 
+.storage-notice-button:hover {
+  background: #a95805;
+}
+
+/* "Back up all" and "Restore backup" side by side; the restore one is the quieter of the two. */
+.storage-notice-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.storage-notice-button.secondary {
+  color: #8a4a05;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 2px #bf6508;
+}
+
+.storage-notice-button.secondary:hover {
+  background: #ffe9cc;
+}
+
+.storage-notice-help {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  /* In the heading: a box of the usual 30 px would make its line taller than the others. */
+  margin-block: -6px;
+  vertical-align: middle;
+  color: #8a5312;
+}
+
+.storage-notice-help:hover {
+  color: #4a2f10;
+}
+
+@media (max-width: 560px) {
+  .storage-notice {
+    flex-wrap: wrap;
+  }
+
+  .storage-notice-actions {
+    width: 100%;
+  }
+
+  .storage-notice-button {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+}
+
+/* The recommendation to install layerling as an app: a card under the start tiles that is meant
+   to be seen - what it brings, an install button where the browser has one, "Not now" for two
+   weeks and a cross for good. */
+.install-app-hint {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: -8px 0 22px;
+  padding: 14px 14px 14px 16px;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe6c2 100%);
+  border: 2px solid #e08a2c;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(191, 101, 8, 0.14);
+}
+
+.install-app-hint-icon {
+  display: grid;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: #ffffff;
+  background: #d9730d;
+  border-radius: 10px;
+}
+
+.install-app-hint-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
+}
+
+.install-app-hint-text strong {
+  color: #4a2f10;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.install-app-hint-text span {
+  color: #5e4630;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.install-app-hint-actions {
+  display: grid;
+  flex: none;
+  gap: 6px;
+  justify-items: stretch;
+}
+
+.install-app-hint-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  background: #bf6508;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+a.install-app-hint-button {
+  text-decoration: none;
+}
+
 .install-app-hint-button:hover {
   background: #a95805;
+}
+
+.install-app-hint-later {
+  padding: 5px 10px;
+  color: #7a5a35;
+  font-size: 13px;
+  font-weight: 700;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.install-app-hint-later:hover {
+  color: #573f26;
+  background: #fbe1bd;
 }
 
 .install-app-hint-close {
   display: grid;
   flex: none;
+  align-self: flex-start;
   width: 30px;
   height: 30px;
   place-items: center;
@@ -1489,17 +1594,68 @@ html[data-theme="dark"] .dashboard-trademark {
 
 .install-app-hint-close:hover {
   color: #573f26;
-  background: #f6e9d6;
+  background: #fbe1bd;
 }
 
-@media (max-width: 560px) {
+/* In the editor the same card floats at the foot of the work area, above the footer, until it is
+   answered; the start page keeps it in the flow. */
+.install-app-hint.install-app-hint-floating {
+  position: fixed;
+  bottom: 52px;
+  left: 50%;
+  z-index: 55;
+  width: min(680px, calc(100vw - 32px));
+  margin: 0;
+  transform: translateX(-50%);
+  box-shadow: 0 10px 28px rgba(60, 40, 10, 0.28);
+}
+
+/* Where the support reminder shares the foot of the screen, the install card steps up above it
+   instead of covering it (its 380 px sit at the right, the card is centred). */
+@media (max-width: 1400px) {
+  body:has(.support-nudge) .install-app-hint.install-app-hint-floating {
+    bottom: 190px;
+  }
+}
+
+/* The name of a control under a hovering Apple Pencil, like a mouse's tooltip (#495). */
+.pen-hover-tip {
+  position: fixed;
+  z-index: 3000;
+  box-sizing: border-box;
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #2b2118;
+  color: #fff7ea;
+  box-shadow: 0 4px 14px rgba(43, 33, 24, 0.35);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+/* On a tablet over https both cards can float at once (install and tablet): the tablet card steps up. */
+body:has(.install-app-hint-floating:not(.tablet-hint)) .install-app-hint.install-app-hint-floating.tablet-hint {
+  bottom: 230px;
+}
+
+@media (max-width: 700px) {
+  .install-app-hint.install-app-hint-floating {
+    left: 16px;
+    transform: none;
+    width: calc(100vw - 32px);
+  }
+
   .install-app-hint {
     flex-wrap: wrap;
   }
 
-  .install-app-hint-button {
+  .install-app-hint-actions {
     order: 3;
-    margin-left: 52px;
+    margin-left: 56px;
   }
 }
 
@@ -1876,6 +2032,19 @@ html[data-theme="dark"] .dashboard-trademark {
   overflow-y: auto;
 }
 
+.whats-new-note {
+  margin: 0;
+  color: #7a6650;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.whats-new-note a {
+  color: #bf6508;
+  font-weight: 800;
+}
+
 .whats-new-version h2 {
   margin: 0 0 6px;
   color: #bf6508;
@@ -1969,6 +2138,14 @@ html[data-theme="dark"] .whats-new-icon {
   background: #3a2c16;
 }
 
+html[data-theme="dark"] .whats-new-note {
+  color: #bda78e;
+}
+
+html[data-theme="dark"] .whats-new-note a {
+  color: #f3a452;
+}
+
 html[data-theme="dark"] .whats-new-version h2 {
   color: #f3a452;
 }
@@ -1999,7 +2176,7 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   gap: 14px;
   padding: 14px 16px;
   color: #573f26;
-  background: #ffffff;
+  background: #fcfbf8;
   border: 1px solid #ede5d7;
   border-radius: 8px;
   cursor: pointer;
@@ -2014,9 +2191,9 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   transform: translateY(-1px);
 }
 
+/* All three start tiles have the same cream ground, which the grey-beige icon squares of the two plain ones belong to; the create tile only differs by its orange border and icon. */
 .dashboard-action-tile.create {
   border-color: #f3a452;
-  background: #fcfbf8;
 }
 
 .dashboard-action-icon {
@@ -2030,9 +2207,10 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   border-radius: 8px;
 }
 
+/* No square behind the icon of the plain tiles: only the create tile has one (solid orange). */
 .dashboard-action-tile:not(.create) .dashboard-action-icon {
   color: #563e25;
-  background: #f7f3ed;
+  background: transparent;
 }
 
 .dashboard-action-tile span:last-child {
@@ -2040,6 +2218,52 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   overflow-wrap: anywhere;
   font-size: 16px;
   font-weight: 800;
+}
+
+/*
+ * On a phone the start page used to put the designs more than a screen down, behind three big tiles and the backup
+ * note. Once there are designs, the tiles become one short row and the note moves behind the designs, so the designs
+ * start in the first screen (a donor's wish by mail). Without designs nothing changes: the note and the tiles come first.
+ */
+@media (max-width: 560px) {
+  .dashboard-main.has-projects {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dashboard-main.has-projects .storage-notice {
+    order: 1;
+    margin: 22px 0;
+  }
+
+  .dashboard-main.has-projects .dashboard-welcome {
+    order: 2;
+  }
+
+  .dashboard-main.has-projects .dashboard-actions-band {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-main.has-projects .dashboard-action-tile {
+    min-height: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+
+  .dashboard-main.has-projects .dashboard-action-tile span:last-child {
+    font-size: 12.5px;
+    line-height: 1.2;
+  }
+
+  .dashboard-main.has-projects .dashboard-action-icon {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 .dashboard-section-header {
@@ -2129,6 +2353,16 @@ html[data-theme="dark"] .whats-new-earlier:hover {
 
 .dashboard-backup-button:hover {
   border-color: #e3b77c;
+}
+
+.dashboard-new-on-server {
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.dashboard-new-on-server input {
+  margin: 0;
+  accent-color: #c9731d;
 }
 
 .dashboard-select select {
@@ -2838,41 +3072,6 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   white-space: nowrap;
 }
 
-.preview-shape {
-  position: absolute;
-  display: block;
-  border-radius: 5px;
-  box-shadow: inset -10px -9px 0 rgba(0, 0, 0, 0.14);
-}
-
-.preview-shape.cube {
-  left: 33%;
-  top: 29%;
-  width: 32%;
-  height: 36%;
-  background: #d91f2b;
-  transform: skewY(-8deg);
-}
-
-.preview-shape.cylinder {
-  right: 19%;
-  top: 39%;
-  width: 18%;
-  height: 28%;
-  border-radius: 50% / 18%;
-  background: #2f9a62;
-}
-
-.preview-shadow {
-  position: absolute;
-  left: 31%;
-  right: 18%;
-  bottom: 19%;
-  height: 18%;
-  background: rgba(87, 63, 38, 0.16);
-  transform: skewX(-22deg);
-}
-
 .project-preview.accent-cyan {
   background: #f7f3ed;
 }
@@ -2964,101 +3163,6 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   height: calc(43px * var(--toolbar-scale));
 }
 
-.dashboard-settings-panel {
-  position: fixed;
-  right: 22px;
-  bottom: 22px;
-  z-index: 12;
-  display: grid;
-  width: min(380px, calc(100vw - 32px));
-  max-height: calc(100vh - 44px);
-  overflow-y: auto;
-  gap: 14px;
-  padding: 16px;
-  color: #573f26;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid #ece3d3;
-  border-radius: 8px;
-  box-shadow: 0 12px 32px rgba(62, 44, 24, 0.18);
-}
-
-.dashboard-settings-panel header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.dashboard-settings-panel header strong {
-  font-size: 17px;
-}
-
-.dashboard-settings-panel header button {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  color: #7d6852;
-  background: #f7f3ed;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.dashboard-setting-row {
-  display: grid;
-  gap: 7px;
-  color: #7d6852;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.dashboard-setting-row input,
-.dashboard-setting-row select {
-  width: 100%;
-  height: 38px;
-  min-width: 0;
-  border: 1px solid #dccebf;
-  border-radius: 6px;
-  outline: 0;
-  padding: 0 10px;
-  color: #573f26;
-  background: #ffffff;
-  font: inherit;
-  font-weight: 600;
-}
-
-.dashboard-setting-row input:disabled {
-  color: #9b8671;
-  background: #f7f3ec;
-}
-
-.dashboard-version-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 13px;
-  color: #7d6852;
-  border-top: 1px solid #eee7da;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.dashboard-version-row strong {
-  color: #573f26;
-  font-size: 14px;
-}
-
-.dashboard-version-row a {
-  color: #ad6206;
-  font-size: 13px;
-  font-weight: 850;
-  text-decoration: none;
-}
-
-.dashboard-version-row a:hover {
-  text-decoration: underline;
-}
-
 @media (max-width: 860px) {
   .dashboard-topbar {
     grid-template-columns: 1fr auto;
@@ -3093,101 +3197,18 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   background: var(--background);
 }
 
-.top-nav {
-  position: fixed;
-  inset: 0 0 auto 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  height: 48px;
-  background: var(--topbar);
-  border-bottom: 1px solid var(--border);
+/* The working surface answers the finger, it is not a page of text (#524): on an iPad a long press that meets a word
+   - in the menu it opens, in the toolbar, in the foot of the page - starts the system's text selection, and the
+   touches that follow go to the selection and not to the program. Fields keep their text selectable. */
+.layerling-editor {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
-.sf-logo {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  place-items: center;
-  cursor: pointer;
-}
-
-.sf-logo img {
-  width: 48px;
-  height: 48px;
-  display: block;
-}
-
-.nav-icon {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  place-items: center;
-  color: #5d4328;
-  background: transparent;
-  cursor: pointer;
-}
-
-.nav-icon:hover,
-.mode-tab:hover {
-  background: #f8f4ed;
-}
-
-.menu-button {
-  color: #5f462c;
-}
-
-.nav-spacer {
-  flex: 1;
-}
-
-.mode-tabs {
-  display: flex;
-  height: 48px;
-  border-left: 1px solid var(--border);
-}
-
-.mode-tab {
-  display: grid;
-  width: 50px;
-  height: 48px;
-  place-items: center;
-  color: #5f462c;
-  background: transparent;
-  border-right: 1px solid var(--border);
-  cursor: pointer;
-}
-
-.mode-tab svg {
-  width: 39px;
-  height: 39px;
-}
-
-.mode-tab.active {
-  color: white;
-  background: var(--active-tab);
-}
-
-.mode-tab.active:hover {
-  background: var(--active-tab);
-}
-
-.collaborator {
-  width: 52px;
-  border-left: 1px solid var(--border);
-}
-
-.avatar {
-  position: relative;
-  width: 49px;
-  height: 48px;
-  background:
-    radial-gradient(circle at 50% 39%, #faf8f4 0 12px, transparent 13px),
-    radial-gradient(circle at 50% 77%, #faf8f4 0 22px, transparent 23px),
-    #d5822c;
-  border-left: 1px solid var(--border);
-  box-shadow: inset 0 0 0 3px #de9243;
-  cursor: pointer;
+.layerling-editor :is(input, textarea, [contenteditable="true"], [contenteditable=""]) {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .secondary-toolbar {
@@ -3318,6 +3339,7 @@ html[data-theme="dark"] .whats-new-earlier:hover {
 }
 
 .edge-modifier-quick-actions {
+  flex-wrap: wrap;
   gap: 7px;
   margin-bottom: 12px;
 }
@@ -3336,6 +3358,44 @@ html[data-theme="dark"] .whats-new-earlier:hover {
 .edge-modifier-quick-actions button {
   color: #6d5133;
   background: #fbf8f4;
+}
+
+/* The quick buttons answer the pointer and show which one made the edges picked now (#517). */
+.edge-modifier-quick-actions button:hover:not(:disabled),
+.edge-modifier-footer button:hover:not(:disabled) {
+  background: #f3e7d8;
+  border-color: #c9ae92;
+}
+
+.edge-modifier-footer .primary:hover:not(:disabled) {
+  background: #b9620c;
+}
+
+.edge-modifier-quick-actions button.active {
+  color: #9f5508;
+  background: #fff1e0;
+  border-color: #e08a2c;
+}
+
+.edge-modifier-quick-actions button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+html[data-theme="dark"] .edge-modifier-quick-actions button:hover:not(:disabled),
+html[data-theme="dark"] .edge-modifier-footer button:hover:not(:disabled) {
+  background: #43331f;
+  border-color: #7a6450;
+}
+
+html[data-theme="dark"] .edge-modifier-footer .primary:hover:not(:disabled) {
+  background: #d98021;
+}
+
+html[data-theme="dark"] .edge-modifier-quick-actions button.active {
+  color: #f3a452;
+  background: #3a2c16;
+  border-color: #b9741f;
 }
 
 .shell-opening-options {
@@ -4025,87 +4085,6 @@ html[data-theme="dark"] .shell-openings-summary {
 .sketch-command-button:disabled {
   opacity: 0.32;
   cursor: default;
-}
-
-.sketch-create-menu {
-  position: relative;
-  height: calc(43px * var(--toolbar-scale));
-}
-
-.sketch-create-menu-trigger {
-  position: relative;
-  min-width: 112px;
-  padding-right: 20px;
-}
-
-.sketch-create-menu-trigger.active {
-  color: #5d3b17;
-  background: #f7f3eb;
-  border-color: #e3c8ad;
-}
-
-.sketch-command-button .sketch-create-menu-chevron {
-  position: absolute;
-  right: 4px;
-  bottom: 5px;
-  width: calc(13px * var(--toolbar-scale));
-  height: calc(13px * var(--toolbar-scale));
-}
-
-/* The heading of the "Sketch to 3D" menu, with its question mark. */
-.sketch-create-dropdown .sketch-create-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 3px 6px 5px;
-  color: #84715d;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.sketch-create-dropdown {
-  position: absolute;
-  top: calc(100% + 5px);
-  left: 0;
-  z-index: 70;
-  display: grid;
-  width: 232px;
-  padding: 5px;
-  background: rgba(253, 252, 250, 0.99);
-  border: 1px solid #dccdbe;
-  border-radius: 7px;
-  box-shadow: 0 12px 28px rgba(66, 47, 26, 0.22);
-}
-
-.sketch-create-dropdown button {
-  display: grid;
-  gap: 3px;
-  width: 100%;
-  padding: 9px 10px;
-  color: #614931;
-  background: transparent;
-  border: 0;
-  border-radius: 5px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.sketch-create-dropdown button:hover,
-.sketch-create-dropdown button:focus-visible {
-  background: #f7f3eb;
-  outline: none;
-}
-
-.sketch-create-dropdown strong {
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.sketch-create-dropdown span {
-  color: #97836e;
-  font-size: 10px;
-  font-weight: 700;
 }
 
 .toolbar-icon.disabled .sketch-reference-icon,
@@ -4835,6 +4814,101 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   }
 }
 
+/* A library pulled to its own size (#505). The width and height come from the title bar's edges and corners; the
+   stylesheet's columns give way to as many as fit, and the list scrolls inside the height that was chosen. */
+.shape-menu-dropdown.shape-menu-sized-width .shape-menu-list {
+  /* A column needs 190 px, not 206: two columns then fit in the width of the Properties panel, so a pinned library takes
+     no more of the screen than that panel does (#527). */
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+
+.shape-menu-dropdown.shape-menu-sized-height:not(.sketch-shape-menu-dropdown) .shape-menu-body,
+.shape-menu-dropdown.shape-menu-sized-height.sketch-shape-menu-dropdown > .shape-menu-list {
+  max-height: calc(var(--shape-menu-height) - 46px);
+}
+
+/* Narrow: only the pictures stay, as in Tinkercad. The name is in each tile's tooltip. */
+.shape-menu-dropdown.shape-menu-icons-only .shape-menu-list {
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 2px;
+  padding: 6px;
+}
+
+.shape-menu-icons-only .shape-menu-item {
+  justify-content: center;
+  padding: 5px;
+}
+
+.shape-menu-icons-only .shape-menu-item > span:not(.my-shape-no-preview) {
+  display: none;
+}
+
+.shape-menu-icons-only .shape-menu-title {
+  padding: 0 8px;
+}
+
+.shape-menu-icons-only .shape-menu-subtitle {
+  padding-inline: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shape-menu-resize {
+  position: absolute;
+  z-index: 3;
+  touch-action: none;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.shape-menu-resize:hover,
+.shape-menu-resize:focus-visible {
+  background: rgba(217, 120, 19, 0.32);
+  outline: none;
+}
+
+.shape-menu-resize-left,
+.shape-menu-resize-right {
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: ew-resize;
+}
+
+.shape-menu-resize-left {
+  left: 0;
+}
+
+.shape-menu-resize-right {
+  right: 0;
+}
+
+.shape-menu-resize-bottom {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 7px;
+  cursor: ns-resize;
+}
+
+.shape-menu-resize-bottom-left,
+.shape-menu-resize-bottom-right {
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.shape-menu-resize-bottom-left {
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.shape-menu-resize-bottom-right {
+  right: 0;
+  cursor: nwse-resize;
+}
+
 .shape-menu-subtitle {
   padding: 8px 15px 0;
   color: #8a6d4c;
@@ -4842,291 +4916,6 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.my-shapes-section {
-  border-bottom: 1px solid #efe7d9;
-  background: #fffdf9;
-}
-
-.my-shapes-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px 8px 8px;
-}
-
-.my-shapes-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  color: #604529;
-  background: transparent;
-  border: 0;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.my-shapes-toggle:hover {
-  background: #f6efe4;
-}
-
-.my-shapes-toggle svg {
-  width: 16px;
-  height: 16px;
-}
-
-.my-shapes-count {
-  min-width: 20px;
-  padding: 1px 6px;
-  color: #6b4f30;
-  background: #efe4d3;
-  border-radius: 999px;
-  font-size: 12px;
-  text-align: center;
-}
-
-.my-shapes-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.my-shapes-save-button,
-.my-shapes-icon-button,
-.my-shapes-name-form button {
-  display: inline-flex;
-  height: 30px;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 0 10px;
-  color: #5c442c;
-  background: #fbfaf8;
-  border: 1px solid #dccdbe;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.my-shapes-icon-button {
-  width: 30px;
-  padding: 0;
-}
-
-.my-shapes-save-button svg,
-.my-shapes-icon-button svg {
-  width: 16px;
-  height: 16px;
-}
-
-.my-shapes-save-button:hover:not(:disabled),
-.my-shapes-icon-button:hover:not(:disabled),
-.my-shapes-name-form button:hover:not(:disabled) {
-  background: #fff;
-  border-color: #c9b49c;
-}
-
-.my-shapes-save-button:disabled,
-.my-shapes-icon-button:disabled {
-  cursor: default;
-  opacity: 0.45;
-}
-
-.my-shapes-body {
-  padding: 0 8px 8px;
-}
-
-.my-shapes-body .my-shapes-list {
-  padding: 0;
-}
-
-.my-shapes-empty {
-  margin: 0;
-  padding: 2px 8px 6px;
-  color: #7b6249;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.my-shapes-name-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 0 0 8px;
-}
-
-.my-shapes-name-form label {
-  color: #6b4f30;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.my-shapes-name-form input,
-.my-shape-rename input {
-  flex: 1 1 100px;
-  min-width: 0;
-  height: 30px;
-  padding: 0 8px;
-  color: #3f2e1c;
-  background: #fff;
-  border: 1px solid #cdb9a2;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.my-shapes-name-form button[type="submit"] {
-  color: #fff;
-  background: #a8662a;
-  border-color: #a8662a;
-}
-
-.my-shapes-name-form button[type="submit"]:hover:not(:disabled) {
-  background: #94571f;
-  border-color: #94571f;
-}
-
-.my-shape-tile {
-  position: relative;
-  min-width: 0;
-}
-
-.my-shape-tile .shape-menu-item {
-  width: 100%;
-}
-
-.my-shape-tile .shape-menu-item img,
-.my-shape-no-preview,
-.my-shape-rename img {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-}
-
-.my-shape-no-preview {
-  flex: 0 0 auto;
-  display: block;
-  background: #f1eadf;
-  border-radius: 6px;
-}
-
-.my-shape-tile-actions {
-  position: absolute;
-  top: 50%;
-  right: 6px;
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  background: rgba(255, 255, 255, 0.94);
-  border-radius: 6px;
-  transform: translateY(-50%);
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-
-.my-shape-tile:hover .my-shape-tile-actions,
-.my-shape-tile:focus-within .my-shape-tile-actions,
-.my-shape-tile-actions:has(.danger) {
-  opacity: 1;
-}
-
-/* Without a mouse the buttons are always there, so the name makes room. */
-@media (hover: none) {
-  .my-shape-tile-actions {
-    opacity: 1;
-  }
-
-  .my-shape-tile .shape-menu-item {
-    padding-right: 62px;
-  }
-
-  .my-shape-tile .shape-menu-item:has(+ .my-shape-tile-actions.three) {
-    padding-right: 90px;
-  }
-}
-
-.my-shape-tile-action {
-  display: inline-flex;
-  min-width: 26px;
-  height: 26px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 5px;
-  color: #6b4f30;
-  background: #fff;
-  border: 1px solid #e3d6c6;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.my-shape-tile-action svg {
-  width: 14px;
-  height: 14px;
-}
-
-.my-shape-tile-action:hover {
-  border-color: #c9b49c;
-}
-
-.my-shape-tile-action.danger {
-  color: #fff;
-  background: #b42318;
-  border-color: #b42318;
-}
-
-.my-shapes-location {
-  display: inline-flex;
-  overflow: hidden;
-  border: 1px solid #dccdbe;
-  border-radius: 4px;
-}
-
-.my-shapes-name-form .my-shapes-location button {
-  height: 28px;
-  border: 0;
-  border-radius: 0;
-  font-weight: 700;
-}
-
-.my-shapes-name-form .my-shapes-location button + button {
-  border-left: 1px solid #dccdbe;
-}
-
-.my-shapes-name-form .my-shapes-location button.active {
-  color: #fff;
-  background: #7d6245;
-}
-
-.my-shapes-group + .my-shapes-group {
-  margin-top: 8px;
-}
-
-.my-shapes-group-title {
-  padding: 0 4px 4px;
-  color: #8a6d4c;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-
-.my-shape-rename {
-  display: flex;
-  min-height: 58px;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 6px 5px 7px;
-  background: #fff;
-  border: 1px solid #dccdbe;
-  border-radius: 4px;
 }
 
 .action-buttons button {
@@ -5175,37 +4964,6 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
 .action-buttons .action-icon-button .vector-toolbar-sprite-icon {
   width: var(--toolbar-icon-size);
   height: var(--toolbar-icon-size);
-}
-
-.top-dropdown {
-  position: fixed;
-  top: var(--editor-toolbar-height);
-  left: 96px;
-  z-index: 45;
-  width: 218px;
-  padding: 6px 0;
-  color: #563e26;
-  background: #fff;
-  border: 1px solid #ded0c2;
-  border-radius: 3px;
-  box-shadow: 0 8px 22px rgba(66, 48, 29, 0.18);
-}
-
-.top-dropdown button {
-  display: flex;
-  width: 100%;
-  min-height: 36px;
-  align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  color: #563e26;
-  text-align: left;
-  background: transparent;
-  cursor: pointer;
-}
-
-.top-dropdown button:hover {
-  background: #f9f6f1;
 }
 
 .top-action-panel {
@@ -5294,6 +5052,8 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
 
 .export-dialog-body {
   display: grid;
+  /* One column that never grows past the window: a long file name in the footer made it as wide as the name (#563). */
+  grid-template-columns: minmax(0, 1fr);
   max-height: calc(100vh - var(--editor-toolbar-height) - var(--editor-footer-height) - 96px);
   overflow-y: auto;
   background: #fcfaf6;
@@ -5372,6 +5132,21 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   border-radius: 6px;
 }
 
+.print-estimate-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.print-estimate-settings label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #96836f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .print-estimate-values {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -5390,6 +5165,13 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   color: #96836f;
   font-size: 11px;
   font-weight: 650;
+}
+
+/* The number is for a solid body, and a slicer's infill makes it much smaller: that is said in the open (Stefan, 14.10.2026). */
+.print-estimate-infill {
+  color: #7a6347;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .print-estimate-values dd {
@@ -5433,7 +5215,7 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
 .export-format-slider {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   height: 38px;
   padding: 3px;
   overflow: hidden;
@@ -5447,7 +5229,7 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   top: 3px;
   bottom: 3px;
   left: 3px;
-  width: calc((100% - 6px) / 7);
+  width: calc((100% - 6px) / 8);
   content: "";
   background: #fff;
   border: 1px solid #ddab78;
@@ -5480,10 +5262,16 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   transform: translateX(600%);
 }
 
+.export-format-slider[data-format="drawing"]::before {
+  transform: translateX(700%);
+}
+
 .export-format-slider button {
   position: relative;
   z-index: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 0 5px;
   color: #94816c;
   font-size: 11px;
@@ -5502,6 +5290,33 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
 
 .export-format-slider button[aria-checked="true"] {
   color: #9f5508;
+}
+
+@media (max-width: 480px) {
+  .export-format-slider {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    height: auto;
+    gap: 3px;
+  }
+
+  .export-format-slider::before {
+    display: none;
+  }
+
+  .export-format-slider button {
+    min-height: 32px;
+    border: 1px solid transparent;
+  }
+
+  .export-format-slider button[aria-checked="true"] {
+    background: #fff;
+    border-color: #ddab78;
+  }
+
+  html[data-theme="dark"] .export-format-slider button[aria-checked="true"] {
+    background: #473726;
+    border-color: #986e43;
+  }
 }
 
 .lyl-history-section {
@@ -5661,6 +5476,7 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
 
 .export-dialog-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
@@ -5670,14 +5486,13 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
 }
 
 .export-dialog-footer .export-linked-file {
+  /* The file name has the row to itself, however long, and the buttons stand under it (#563). */
+  flex: 1 1 100%;
   min-width: 0;
-  margin-right: auto;
-  overflow: hidden;
   color: #897662;
   font-size: 11px;
   font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .export-dialog-footer > div {
@@ -5898,6 +5713,24 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   accent-color: #b3680f;
 }
 
+/* The width an SVG or a picture comes in at (#448): a number field, not a tick box. */
+.import-option.import-width-option input {
+  width: 6.5em;
+  height: auto;
+  padding: 4px 6px;
+  border: 1px solid #d8c4a5;
+  border-radius: 6px;
+  background: #fffaf1;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .import-option.import-width-option input {
+  border-color: #5a4a36;
+  background: #2a241c;
+}
+
 html[data-theme="dark"] .import-option {
   color: #f0e7d9;
 }
@@ -5955,7 +5788,11 @@ html[data-theme="dark"] .import-option {
   border: 1px solid #ded0c2;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(68, 49, 28, 0.16);
-  pointer-events: none;
+  /* The pointer on it keeps it, and the cross closes it (#422). */
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 /* Die 400 px Abstand gelten der Einstellungstafel rechts. Auf einem schmalen
@@ -5965,6 +5802,88 @@ html[data-theme="dark"] .import-option {
   .editor-status {
     max-width: calc(100vw - 120px);
   }
+}
+
+.editor-status-text {
+  min-width: 0;
+}
+
+/* The button a message may carry (#489): what can be done about it right away. */
+.editor-status-action {
+  flex: none;
+  margin: 0 2px 0 4px;
+  padding: 3px 10px;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  background: #cf6a12;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.editor-status-action:hover,
+.editor-status-action:focus-visible {
+  background: #b45a0c;
+}
+
+/* The number of hidden shapes on the visibility button, so that it is seen without opening the menu (#489). */
+.visibility-trigger-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.visibility-hidden-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 2;
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  place-items: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  background: #d9730d;
+  border: 2px solid #fffaf2;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(60, 40, 10, 0.35);
+  cursor: pointer;
+}
+
+.visibility-hidden-badge:hover,
+.visibility-hidden-badge:focus-visible {
+  background: #b45a0c;
+}
+
+html[data-theme="dark"] .visibility-hidden-badge {
+  border-color: #2a2118;
+}
+
+.editor-status-close {
+  display: grid;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.editor-status-close:hover,
+.editor-status-close:focus-visible {
+  background: rgba(127, 127, 127, 0.2);
+  opacity: 1;
 }
 
 .editor-body {
@@ -6043,6 +5962,33 @@ html[data-theme="dark"] .import-option {
   font-weight: 900;
   transform: translateX(-50%);
   pointer-events: none;
+}
+
+/* The badge picks what the sketch becomes (#655). */
+.sketch-mode-badge.switchable {
+  padding: 0;
+  pointer-events: auto;
+}
+
+.sketch-mode-badge.switchable select {
+  padding: 4px 24px 4px 10px;
+  color: inherit;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.sketch-mode-badge.switchable select:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 1px;
+}
+
+.sketch-mode-badge.switchable option {
+  color: #1f2a24;
+  background: #ffffff;
 }
 
 .sketch-revolve-preview {
@@ -6128,21 +6074,6 @@ html[data-theme="dark"] .import-option {
   stroke: rgba(166, 86, 0, 0.86);
   stroke-width: 1;
   stroke-dasharray: 4 3;
-  vector-effect: non-scaling-stroke;
-}
-
-.sketch-primitive-preview {
-  fill: rgba(166, 86, 0, 0.12);
-  stroke: rgba(123, 63, 0, 0.92);
-  stroke-width: 1.5;
-  stroke-dasharray: 5 3;
-  vector-effect: non-scaling-stroke;
-}
-
-.sketch-primitive-center {
-  fill: #ffffff;
-  stroke: rgba(123, 63, 0, 0.95);
-  stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 
@@ -6328,6 +6259,14 @@ html[data-theme="dark"] .sketch-shape-options .unit {
   fill: none;
   stroke: rgba(188, 113, 18, 0.7);
   stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The parts seen through (#354): all their edges on the sketch plane, thin and faint, under the sketch. */
+.sketch-reference-edges {
+  fill: none;
+  stroke: rgba(160, 98, 18, 0.6);
+  stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
@@ -6532,6 +6471,11 @@ html[data-theme="dark"] .sketch-image-hint {
   stroke-width: 3;
 }
 
+/* A locked outline (#653): paler, in any theme, so it reads as fixed. */
+.sketch-segments path.locked {
+  stroke-opacity: 0.5;
+}
+
 .sketch-preview-line {
   stroke: #ce7416;
   stroke-width: 2;
@@ -6552,6 +6496,12 @@ html[data-theme="dark"] .sketch-image-hint {
   stroke: #f08036;
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
+}
+
+.sketch-curve-handles circle.sketch-handle-selected {
+  fill: #f08036;
+  stroke: #ffffff;
+  stroke-width: 3;
 }
 
 .sketch-drag-handles circle,
@@ -7006,112 +6956,6 @@ html[data-theme="dark"] .sketch-image-hint {
   cursor: default;
 }
 
-.view-cube {
-  position: absolute;
-  top: 22px;
-  /* Flush with the camera controls below it, so the left edge of the stage
-     reads as one column instead of two slightly different indents. */
-  left: 10px;
-  /* Above the movable object list (10), which passes underneath. */
-  z-index: 11;
-  width: 82px;
-  height: 82px;
-  perspective: 420px;
-  color: #afa294;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-  text-align: center;
-  text-transform: uppercase;
-  filter: drop-shadow(0 2px 3px rgba(82, 64, 45, 0.14));
-  opacity: 0.9;
-  pointer-events: auto;
-  /* Touch drags orbit the camera instead of scrolling the page. */
-  touch-action: none;
-}
-
-.view-cube.dragging,
-.view-cube.dragging .cube-face {
-  cursor: grabbing;
-}
-
-.view-cube-inner {
-  position: relative;
-  width: 58px;
-  height: 58px;
-  margin: 12px;
-  transform-style: preserve-3d;
-  transition: transform 80ms linear;
-  will-change: transform;
-}
-
-.cube-face {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  width: 58px;
-  height: 58px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 2px solid #d7cdc3;
-  padding: 0;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  appearance: none;
-  backface-visibility: hidden;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
-}
-
-.cube-face:hover,
-.cube-face:focus-visible {
-  color: #796148;
-  border-color: #b68f65;
-  outline: none;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
-    0 0 0 2px rgba(185, 118, 46, 0.18);
-}
-
-.cube-top {
-  transform: rotateX(-90deg) translateZ(29px);
-  background: rgba(252, 250, 248, 0.94);
-}
-
-.cube-bottom {
-  transform: rotateX(90deg) translateZ(29px);
-  color: #bcb1a6;
-  background: rgba(247, 243, 238, 0.9);
-}
-
-.cube-front {
-  transform: translateZ(29px);
-  color: #a49686;
-}
-
-.cube-back {
-  transform: rotateY(180deg) translateZ(29px);
-  color: #bcb1a6;
-}
-
-.cube-right {
-  transform: rotateY(90deg) translateZ(29px);
-}
-
-.cube-left {
-  transform: rotateY(-90deg) translateZ(29px);
-}
-
-/* The bands along a face's sides and its corners look from that edge or corner (#202). */
-.cube-zone {
-  position: absolute;
-  cursor: pointer;
-}
-
-.cube-zone:hover {
-  background: rgba(185, 118, 46, 0.26);
-}
-
 .camera-controls {
   position: absolute;
   /* Der Ansichtswuerfel endet bei 104 Pixeln; darunter reichen 16 Pixel Luft.
@@ -7423,6 +7267,13 @@ html[data-theme="dark"] .panel-grip:hover {
   transition: all 100ms ease;
 }
 
+/* Axes, workplane, view (#644): words, not letters, so they may not squeeze to nothing. */
+.camera-controls .section-tool-popover .section-orientation-btn {
+  flex: 1 1 auto;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
 .camera-controls .section-tool-popover .section-axis-btn:hover {
   background: rgba(255, 255, 255, 0.5);
   color: #2b1f14;
@@ -7483,12 +7334,6 @@ html[data-theme="dark"] .panel-grip:hover {
   min-width: 34px;
   font-size: 11px;
   color: #8b7d6e;
-}
-
-.section-slider-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .section-slider {
@@ -7697,6 +7542,24 @@ html[data-theme="dark"] .inspector-bundle-note {
   stroke-width: 2;
 }
 
+.section-measure-center-halo {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 4;
+  opacity: 0.85;
+}
+
+.section-measure-center {
+  fill: none;
+  stroke: #7a3d00;
+  stroke-width: 1.5;
+}
+
+.section-measure-hover.center,
+.section-measure-hover.opposite {
+  fill: rgba(200, 106, 18, 0.22);
+}
+
 .section-measure-hover.free {
   stroke: #9a8b7b;
   stroke-dasharray: 3 2;
@@ -7789,6 +7652,28 @@ html[data-theme="dark"] .inspector-bundle-note {
   height: 100%;
 }
 
+.selection-counter {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: #fff;
+  background: #bf6508;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.selection-counter[hidden] {
+  display: none;
+}
+
 .selection-marquee {
   position: absolute;
   z-index: 3;
@@ -7796,6 +7681,13 @@ html[data-theme="dark"] .inspector-bundle-note {
   border: 1px solid rgba(166, 86, 0, 0.82);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.42);
   pointer-events: none;
+}
+
+/* A frame that takes whatever it touches, where the direction of the drag decides (#430). */
+.selection-marquee.touching {
+  background: rgba(34, 139, 84, 0.12);
+  border-color: rgba(26, 118, 70, 0.86);
+  border-style: dashed;
 }
 
 .move-dimension-overlay {
@@ -8015,6 +7907,12 @@ html[data-theme="dark"] .inspector-bundle-note {
   gap: 8px;
 }
 
+.point-card .point-delete-all {
+  width: 100%;
+  justify-content: center;
+  white-space: nowrap;
+}
+
 .note-card-end {
   display: inline-flex;
   align-items: center;
@@ -8117,13 +8015,15 @@ html[data-theme="dark"] .inspector-bundle-note {
   filter: drop-shadow(0 0 4px rgba(129, 67, 0, 0.4));
 }
 
-.tape-overlay.delete-mode .tape-segment-group:hover .tape-segment {
+.tape-overlay.delete-mode .tape-segment-group:hover .tape-segment,
+.tape-overlay.quick-delete .tape-segment-group:hover .tape-segment {
   stroke: var(--hover-accent-color);
   stroke-width: 3;
   filter: drop-shadow(0 0 2px rgba(220, 63, 54, 0.3));
 }
 
-.tape-overlay.delete-mode .tape-point:hover {
+.tape-overlay.delete-mode .tape-point:hover,
+.tape-overlay.quick-delete .tape-point:hover {
   fill: #fff0ee;
   stroke: var(--hover-accent-color);
   filter: drop-shadow(0 0 3px rgba(220, 63, 54, 0.36));
@@ -8168,6 +8068,31 @@ html[data-theme="dark"] .inspector-bundle-note {
   text-align: center;
   pointer-events: none;
   transform: translate(-50%, -50%);
+}
+
+/* The button under a measurement that puts a reference point in its middle (#323). */
+.tape-mark {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: #3a2816;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(224, 208, 190, 0.96);
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(58, 40, 20, 0.12);
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+}
+
+.tape-mark:hover,
+.tape-mark:focus-visible {
+  color: #ad5900;
+  border-color: #ad5900;
 }
 
 /* --- Winkellineal-Werkzeug ---------------------------------------------
@@ -8270,25 +8195,69 @@ html[data-theme="dark"] .inspector-bundle-note {
   transition: all 0.15s ease;
 }
 
+/* The little switch beside each green number: that number counts to the edge or the middle on its own. */
+.ruler-axis-mode-toggle {
+  width: 18px;
+  height: 18px;
+  z-index: 5;
+}
+
+/* The switch sits in the same frame as its number, the number's left edge (forum). */
+.ruler-coordinate-field {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: stretch;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1.5px solid #4caf50;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(46, 125, 50, 0.18);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.ruler-coordinate-field .corner-ruler-mode-toggle {
+  position: static;
+  width: 22px;
+  height: auto;
+  flex: none;
+  border: 0;
+  border-right: 1px solid rgba(129, 199, 132, 0.8);
+  border-radius: 2px 0 0 2px;
+  box-shadow: none;
+  transform: none;
+  pointer-events: all;
+}
+
+.ruler-coordinate-field .ruler-coordinate-badge {
+  position: static;
+  min-width: 40px;
+  border: 0;
+  border-radius: 0 2px 2px 0;
+  box-shadow: none;
+  background: transparent;
+  transform: none;
+}
+
+/* The ruler's lines stay in view over bodies (the eye is open) or hide behind them. */
+.corner-ruler-occlude-toggle {
+  color: #6b5b46;
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(182, 97, 8, 0.45);
+}
+
+.corner-ruler-occlude-toggle.active {
+  color: #b66108;
+}
+
+.corner-ruler-tick-label.hidden,
+.ruler-dimension-label.hidden {
+  opacity: 0.2;
+}
+
 .corner-ruler-mode-toggle:hover {
   background: #e8f5e9;
   border-color: #2e7d32;
-}
-
-.ruler-coordinate-arrow {
-  stroke: #4caf50;
-  stroke-width: 6;
-  stroke-opacity: 0.35;
-  stroke-linecap: round;
-  pointer-events: none;
-}
-
-.ruler-coordinate-guide {
-  stroke: #81c784;
-  stroke-width: 1.2;
-  stroke-dasharray: 4, 3;
-  stroke-opacity: 0.85;
-  pointer-events: none;
 }
 
 .ruler-coordinate-badge {
@@ -8769,6 +8738,29 @@ html[data-theme="dark"] .inspector-bundle-note {
   will-change: transform;
 }
 
+/* A finger drags a handle without the browser taking the gesture for a scroll and ending the drag (#337). */
+.transform-handle,
+.rotate-handle {
+  touch-action: none;
+}
+
+/* For a finger or a rubber-tip stylus the handles keep their look and catch from further away. */
+@media (pointer: coarse) {
+  .transform-handle::before,
+  .rotate-handle::before {
+    position: absolute;
+    inset: -15px;
+    content: "";
+  }
+}
+
+/* A small body: the wide zones of its handles would cover all of it and every touch would grab one (#574). */
+@media (pointer: coarse) {
+  .transform-overlay.small-body .transform-handle::before {
+    inset: 0;
+  }
+}
+
 .transform-handle {
   z-index: 5;
   background: #f2eee8;
@@ -8779,7 +8771,6 @@ html[data-theme="dark"] .inspector-bundle-note {
 
 .transform-handle.corner,
 .transform-handle.height-top,
-.transform-handle.height-mid,
 .transform-handle.height-lift {
   width: 10px;
   height: 10px;
@@ -9076,12 +9067,16 @@ html[data-theme="dark"] .rotation-angle-badge {
   width: 320px;
   max-height: none;
   overflow-y: auto;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  /* A thin bar that shows: on a laptop's touchpad the panel is easier to scroll by its bar. */
+  scrollbar-color: #cdbfa9 transparent;
+  scrollbar-width: thin;
   color: #563e24;
   background: rgba(248, 246, 244, 0.96);
   border-left: 1px solid #e9e2d6;
   box-shadow: -2px 0 10px rgba(86, 62, 36, 0.08);
+  /* The toolbar size (Small, Medium, Large) scales the panel as it does the shape library (mail, 21.10.2026);
+     useMovablePanel reads this zoom when the panel is moved. */
+  zoom: var(--toolbar-scale);
 }
 
 .shape-inspector.minimized {
@@ -9096,7 +9091,20 @@ html[data-theme="dark"] .rotation-angle-badge {
 }
 
 .shape-inspector::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+}
+
+.shape-inspector::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.shape-inspector::-webkit-scrollbar-thumb {
+  background: #cdbfa9;
+  border-radius: 4px;
+}
+
+.shape-inspector::-webkit-scrollbar-thumb:hover {
+  background: #b8a88f;
 }
 
 .shape-inspector-header {
@@ -9329,6 +9337,19 @@ html[data-theme="dark"] .rotation-angle-badge {
 
 .shape-state-card button.active {
   color: #f7a146;
+}
+
+/* The key beside a name in the shape card, "Solid (S)" (#367). */
+.shape-state-card button .key-hint {
+  display: block;
+  text-align: center;
+}
+
+.key-hint {
+  opacity: 0.62;
+  font-size: 0.86em;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .large-solid-swatch,
@@ -10264,29 +10285,7 @@ html[data-theme="dark"] .mesh-compare-actions .secondary {
   line-height: 1.4;
 }
 
-.text-layers-body .text-layers-color {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #6c5a46;
-}
-
-.text-layers-body .text-layers-color > span:first-child {
-  flex: 1;
-}
-
-.text-layers-body .text-layers-swatch {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: var(--swatch);
-}
-
-html[data-theme="dark"] .text-layers-body .text-layers-names,
-html[data-theme="dark"] .text-layers-body .text-layers-color {
+html[data-theme="dark"] .text-layers-body .text-layers-names {
   color: #d8ccb8;
 }
 
@@ -10707,30 +10706,6 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
   transform: translateX(-50%);
 }
 
-.selected-shape-name {
-  display: grid;
-  min-width: 0;
-  flex: 1;
-  gap: 2px;
-}
-
-.selected-shape-name strong {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.selected-shape-name span {
-  color: #867360;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.1;
-  white-space: nowrap;
-}
-
 .shape-control-cluster {
   display: flex;
   gap: 6px;
@@ -10753,28 +10728,6 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
   border-color: #c4a27f;
 }
 
-.sidebar-collapse {
-  position: absolute;
-  top: 500px;
-  right: -1px;
-  z-index: 5;
-  display: grid;
-  width: 18px;
-  height: 56px;
-  place-items: center;
-  background: #f8f7f5;
-  border: 1px solid var(--border);
-  border-right: 0;
-  cursor: pointer;
-}
-
-.sidebar-collapse span {
-  width: 13px;
-  height: 25px;
-  background: #111;
-  clip-path: polygon(22% 0, 100% 50%, 22% 100%, 0 84%, 56% 50%, 0 16%);
-}
-
 .grid-settings {
   position: absolute;
   right: 12px;
@@ -10784,16 +10737,10 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
   font-size: 13px;
 }
 
-.settings-button {
-  display: block;
-  width: 90px;
-  height: 22px;
-  margin: 0 0 10px auto;
-  color: #94806a;
-  background: #fcfcfb;
-  border: 1px solid #e9e2d7;
-  border-radius: 3px;
-  cursor: pointer;
+/* The open snap grid menu lies over the floating panels, not behind them (#616): the corner and the properties panel it sits in are stacking contexts of their own. */
+.grid-settings:has(.snap-menu),
+.shape-inspector:has(.snap-menu) {
+  z-index: 40;
 }
 
 .snap-row {
@@ -10806,6 +10753,38 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
   font-weight: 500;
   line-height: 22px;
   white-space: nowrap;
+}
+
+.snap-units {
+  display: inline-flex;
+  margin-left: 2px;
+  overflow: hidden;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  opacity: 0.85;
+}
+
+.snap-units button {
+  min-width: 26px;
+  height: 20px;
+  margin: 0;
+  padding: 0 6px;
+  color: inherit;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 20px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.snap-units button + button {
+  border-left: 1px solid currentColor;
+}
+
+.snap-units button[aria-pressed="true"] {
+  background: rgba(127, 127, 127, 0.28);
 }
 
 .snap-select {
@@ -10847,6 +10826,9 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
   min-width: 92px;
   width: max-content;
   padding: 4px 0;
+  /* On a low window the menu scrolls instead of running off the top (#616). */
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
   background: white;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
@@ -11059,12 +11041,13 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
   position: fixed;
   bottom: 44px;
   left: 50%;
-  z-index: 40;
+  /* Below the windows (.workspace-modal is 30): it lay over the settings (#640). */
+  z-index: 29;
   display: flex;
   align-items: center;
   gap: 8px;
   max-width: min(640px, calc(100vw - 32px));
-  padding: 8px 14px;
+  padding: 8px 6px 8px 14px;
   color: #8a3b00;
   font-size: 13px;
   font-weight: 700;
@@ -11079,6 +11062,30 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
 .bed-overhang-warning svg {
   flex: none;
   color: #d86a00;
+}
+
+.bed-overhang-dismiss {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.bed-overhang-dismiss:hover,
+.bed-overhang-dismiss:focus-visible {
+  background: rgba(216, 106, 0, 0.14);
+}
+
+.bed-overhang-dismiss svg {
+  color: inherit;
 }
 
 .workspace-select {
@@ -11520,14 +11527,6 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
   background: #403021;
 }
 
-.workspace-global-note {
-  margin: -10px 0 0 153px;
-  color: #756656;
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1.45;
-}
-
 .workspace-divider {
   border: 0;
   border-top: 1px solid #f0eae0;
@@ -11656,6 +11655,47 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
   opacity: 0.48;
 }
 
+/* "Reset grid" at the end of the Workplane page (#503), a button like the one of the shape defaults. */
+.workspace-reset-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 14px;
+  color: #7a6550;
+  border-top: 1px solid #f0eae0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.workspace-reset-row button {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  color: #72583d;
+  background: #fff;
+  border: 1px solid #dacfc2;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+html[data-theme="dark"] .workspace-reset-row {
+  color: #cbbba6;
+  border-top-color: #4a3b2c;
+}
+
+html[data-theme="dark"] .workspace-reset-row button {
+  color: #e1ceba;
+  background: #35281b;
+  border-color: #5d4d3c;
+}
+
 .workspace-shape-dimensions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -11777,111 +11817,6 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
   background: #f9f6f1;
 }
 
-.shapes-sidebar {
-  position: relative;
-  z-index: 10;
-  width: 276px;
-  height: calc(100vh - var(--editor-toolbar-height) - var(--editor-footer-height));
-  flex: 0 0 276px;
-  overflow: hidden;
-  background: var(--panel);
-  border-left: 1px solid #f5f2ed;
-}
-
-.category-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 62px;
-  padding: 5px 4px 10px 9px;
-}
-
-.category-button {
-  display: flex;
-  width: 208px;
-  height: 47px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 11px 0 14px;
-  color: #6e5740;
-  font-size: 16px;
-  background: #fbfaf9;
-  border: 1px solid #efe8dd;
-  border-radius: 3px;
-  box-shadow: 0 1px 3px rgba(60, 41, 20, 0.07);
-  cursor: pointer;
-}
-
-.search-button {
-  display: grid;
-  width: 48px;
-  height: 47px;
-  place-items: center;
-  color: #050505;
-  background: #fbfaf9;
-  border: 1px solid #efe8dd;
-  border-radius: 3px;
-  box-shadow: 0 1px 3px rgba(60, 41, 20, 0.07);
-  cursor: pointer;
-}
-
-.category-button:hover,
-.search-button:hover {
-  background: #ffffff;
-}
-
-.sidebar-search {
-  display: flex;
-  height: 38px;
-  align-items: center;
-  gap: 7px;
-  margin: -3px 9px 8px;
-  padding: 0 9px;
-  background: white;
-  border: 1px solid #efe8dd;
-  border-radius: 3px;
-  box-shadow: var(--shadow);
-}
-
-.sidebar-search input {
-  min-width: 0;
-  flex: 1;
-  color: #6e5740;
-  background: transparent;
-  border: 0;
-  outline: 0;
-}
-
-.category-menu {
-  position: absolute;
-  top: 128px;
-  right: 55px;
-  z-index: 12;
-  width: 228px;
-  max-height: min(70vh, 560px);
-  overflow: auto;
-  background: white;
-  border: 1px solid #e9e2d7;
-  box-shadow: 0 8px 20px rgba(66, 49, 30, 0.16);
-}
-
-.category-menu button {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  color: #6e5740;
-  font-size: 14px;
-  text-align: left;
-  background: white;
-  cursor: pointer;
-}
-
-.category-menu button:hover,
-.category-menu .selected {
-  background: #f8f4ed;
-}
-
 .shape-scroll {
   height: calc(100vh - 230px);
   padding: 0 4px 18px 9px;
@@ -11937,219 +11872,6 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
   pointer-events: none;
 }
 
-.more-shapes {
-  display: block;
-  width: 119px;
-  height: 38px;
-  margin: 10px auto 22px;
-  color: #5d4731;
-  font-size: 14px;
-  background: #fff;
-  border: 1px solid #e9e2d7;
-  border-radius: 3px;
-  box-shadow: 0 1px 2px rgba(65, 46, 25, 0.06);
-  cursor: pointer;
-}
-
-.placed-shape {
-  position: absolute;
-  width: var(--shape-size);
-  height: var(--shape-size);
-  padding: 0;
-  background: transparent;
-  border: 0;
-  cursor: grab;
-  outline: 0;
-  transform: translate(-50%, -72%) rotate(var(--shape-rotation));
-  transform-origin: center bottom;
-  user-select: none;
-}
-
-.placed-shape:active {
-  cursor: grabbing;
-}
-
-.placed-visual {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: var(--shape-color);
-  filter: drop-shadow(0 9px 9px rgba(70, 47, 23, 0.2));
-}
-
-.placed-visual.hole {
-  opacity: 0.7;
-  filter: grayscale(0.2) drop-shadow(0 7px 7px rgba(70, 47, 23, 0.16));
-}
-
-.placed-visual.hole::after {
-  position: absolute;
-  inset: 7%;
-  content: "";
-  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.38) 0 5px, rgba(69, 59, 49, 0.28) 5px 10px);
-  mix-blend-mode: screen;
-  pointer-events: none;
-}
-
-.kind-box {
-  width: 72%;
-  height: 62%;
-  align-self: end;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--shape-color), white 16%), var(--shape-color));
-  border: 1px solid color-mix(in srgb, var(--shape-color), black 32%);
-  transform: skewY(5deg);
-}
-
-.kind-box::before,
-.kind-box::after {
-  position: absolute;
-  content: "";
-}
-
-.kind-box::before {
-  right: -17%;
-  bottom: 8%;
-  width: 17%;
-  height: 91%;
-  background: color-mix(in srgb, var(--shape-color), black 22%);
-  transform: skewY(-28deg);
-  transform-origin: left bottom;
-}
-
-.kind-box::after {
-  top: -19%;
-  left: 8%;
-  width: 92%;
-  height: 20%;
-  background: color-mix(in srgb, var(--shape-color), white 22%);
-  transform: skewX(-42deg);
-  transform-origin: left bottom;
-}
-
-.kind-cylinder,
-.kind-tube,
-.kind-ring {
-  width: 64%;
-  height: 70%;
-  align-self: end;
-  border-radius: 50% / 18%;
-  background:
-    radial-gradient(ellipse at 50% 11%, color-mix(in srgb, var(--shape-color), white 36%) 0 34%, transparent 35%),
-    linear-gradient(90deg, color-mix(in srgb, var(--shape-color), black 16%), var(--shape-color) 45%, color-mix(in srgb, var(--shape-color), white 20%) 72%, color-mix(in srgb, var(--shape-color), black 14%));
-  border: 1px solid color-mix(in srgb, var(--shape-color), black 32%);
-}
-
-.kind-torus,
-.kind-tube,
-.kind-ring {
-  height: 42%;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, transparent 0 28%, color-mix(in srgb, var(--shape-color), black 20%) 30% 39%, var(--shape-color) 40% 66%, color-mix(in srgb, var(--shape-color), white 20%) 67% 100%);
-}
-
-.kind-sphere,
-.kind-halfSphere {
-  width: 68%;
-  height: 68%;
-  align-self: end;
-  border-radius: 50%;
-  background: radial-gradient(circle at 33% 25%, color-mix(in srgb, var(--shape-color), white 45%), var(--shape-color) 47%, color-mix(in srgb, var(--shape-color), black 24%) 100%);
-}
-
-.kind-halfSphere {
-  height: 40%;
-  border-radius: 50% 50% 12% 12% / 82% 82% 18% 18%;
-}
-
-.kind-cone {
-  width: 70%;
-  height: 76%;
-  align-self: end;
-  clip-path: polygon(50% 0, 86% 84%, 50% 100%, 14% 84%);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--shape-color), black 20%), var(--shape-color) 52%, color-mix(in srgb, var(--shape-color), white 24%));
-}
-
-.kind-pyramid,
-.kind-roof,
-.kind-wedge {
-  width: 76%;
-  height: 70%;
-  align-self: end;
-  clip-path: polygon(50% 4%, 95% 88%, 44% 100%, 7% 77%);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--shape-color), white 24%), var(--shape-color) 48%, color-mix(in srgb, var(--shape-color), black 24%));
-  border: 1px solid color-mix(in srgb, var(--shape-color), black 24%);
-}
-
-.kind-roof,
-.kind-wedge {
-  clip-path: polygon(8% 68%, 62% 16%, 96% 54%, 42% 88%);
-}
-
-.kind-sketch,
-.kind-scribble {
-  width: 76%;
-  height: 55%;
-  align-self: end;
-  border-radius: 44% 56% 50% 45%;
-  background: color-mix(in srgb, var(--shape-color), white 12%);
-  border: 2px solid color-mix(in srgb, var(--shape-color), black 26%);
-  transform: rotate(-14deg);
-}
-
-.kind-scribble {
-  border-radius: 22% 48% 30% 58%;
-}
-
-.kind-polygon,
-.kind-icosahedron {
-  width: 72%;
-  height: 72%;
-  align-self: end;
-  clip-path: polygon(50% 0, 91% 25%, 91% 73%, 50% 100%, 10% 74%, 10% 25%);
-  background: linear-gradient(145deg, color-mix(in srgb, var(--shape-color), white 18%), var(--shape-color) 45%, color-mix(in srgb, var(--shape-color), black 26%));
-}
-
-.kind-text {
-  width: 90%;
-  height: 50%;
-  align-self: end;
-  color: var(--shape-color);
-  font-size: calc(var(--shape-size) * 0.34);
-  font-weight: 900;
-  letter-spacing: 0;
-  text-shadow: 2px 2px 0 color-mix(in srgb, var(--shape-color), black 35%);
-}
-
-.selection-outline {
-  position: absolute;
-  inset: 1px;
-  border: 2px solid #c37421;
-  border-radius: 2px;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.82);
-  pointer-events: none;
-}
-
-.selection-outline::before,
-.selection-outline::after {
-  position: absolute;
-  width: 9px;
-  height: 9px;
-  content: "";
-  background: #fff;
-  border: 2px solid #c37421;
-}
-
-.selection-outline::before {
-  top: -6px;
-  left: -6px;
-}
-
-.selection-outline::after {
-  right: -6px;
-  bottom: -6px;
-}
-
 .shape-size-tag {
   position: absolute;
   left: 50%;
@@ -12196,10 +11918,6 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
   background: #f9f6f1;
 }
 
-.more-shapes:hover {
-  background: #f8f4ed;
-}
-
 @media (max-width: 1240px) {
   .shape-menu-dropdown {
     position: fixed;
@@ -12228,15 +11946,6 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
 
   .shape-menu-dropdown .shape-menu-body .shape-menu-list {
     flex: none;
-  }
-
-  /* Haengt am Fenster statt an seinem Ausloeser, direkt unter der Leiste -
-     auch wenn sie zweizeilig ist, denn deren Hoehe steht in der Variablen.
-     (Frueher rollte die Leiste hier waagerecht und schnitt jedes Menue ab.) */
-  .sketch-create-dropdown {
-    position: fixed;
-    top: var(--editor-toolbar-height);
-    left: 10px;
   }
 
   .workspace-modal {
@@ -12331,11 +12040,6 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
     padding-inline: 16px;
   }
 
-  .mode-tabs,
-  .collaborator {
-    display: none;
-  }
-
   .action-buttons button {
     width: calc(43px * var(--toolbar-scale));
     min-width: calc(43px * var(--toolbar-scale));
@@ -12347,11 +12051,6 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
     min-width: calc(43px * var(--toolbar-scale));
   }
 
-  .view-cube {
-    left: 6px;
-    transform: scale(0.82);
-    transform-origin: top left;
-  }
 
   .camera-controls {
     left: 7px;
@@ -12531,8 +12230,7 @@ html[data-theme="dark"] .dashboard-segmented,
 html[data-theme="dark"] .shared-projects-refresh,
 html[data-theme="dark"] .project-empty,
 html[data-theme="dark"] .project-card-menu,
-html[data-theme="dark"] .dashboard-confirm-dialog,
-html[data-theme="dark"] .dashboard-settings-panel {
+html[data-theme="dark"] .dashboard-confirm-dialog {
   color: #eee4d4;
   background: #2d2217;
   border-color: #514130;
@@ -12543,13 +12241,8 @@ html[data-theme="dark"] .dashboard-section-header h1,
 html[data-theme="dark"] .project-card-title,
 html[data-theme="dark"] .project-empty strong,
 html[data-theme="dark"] .dashboard-confirm-dialog header strong,
-html[data-theme="dark"] .dashboard-confirm-dialog p span,
-html[data-theme="dark"] .dashboard-version-row strong {
+html[data-theme="dark"] .dashboard-confirm-dialog p span {
   color: #f3ede3;
-}
-
-html[data-theme="dark"] .dashboard-version-row a {
-  color: #f79a3a;
 }
 
 html[data-theme="dark"] .dashboard-legal {
@@ -12618,10 +12311,15 @@ html[data-theme="dark"] .store-trail button.drop-target:not(:disabled) {
   box-shadow: inset 0 0 0 1px #f3a452;
 }
 
-html[data-theme="dark"] .install-app-hint,
 html[data-theme="dark"] .support-nudge {
   background: var(--panel);
   border-color: #6a4a26;
+}
+
+html[data-theme="dark"] .install-app-hint {
+  background: #33230f;
+  border-color: #d9863a;
+  box-shadow: none;
 }
 
 html[data-theme="dark"] .support-nudge-icon {
@@ -12643,23 +12341,51 @@ html[data-theme="dark"] .support-nudge-close:hover {
   background: #3a2c16;
 }
 
-html[data-theme="dark"] .install-app-hint-icon {
+html[data-theme="dark"] .storage-notice {
+  background: #33230f;
+  border-color: #d9863a;
+}
+
+html[data-theme="dark"] .storage-notice-text strong {
+  color: #fbeed9;
+}
+
+html[data-theme="dark"] .storage-notice-text span {
+  color: #e2cfb6;
+}
+
+html[data-theme="dark"] .storage-notice-button.secondary {
+  color: #fbeed9;
+  background: #33230f;
+  box-shadow: inset 0 0 0 2px #d9863a;
+}
+
+html[data-theme="dark"] .storage-notice-button.secondary:hover {
+  background: #4a3318;
+}
+
+html[data-theme="dark"] .storage-notice-help {
   color: #f3a452;
-  background: #3a2c16;
+}
+
+html[data-theme="dark"] .storage-notice-help:hover {
+  color: #fbeed9;
 }
 
 html[data-theme="dark"] .install-app-hint-text strong {
-  color: #f3ede3;
+  color: #fbeed9;
 }
 
 html[data-theme="dark"] .install-app-hint-text span,
-html[data-theme="dark"] .install-app-hint-close {
-  color: #bda78e;
+html[data-theme="dark"] .install-app-hint-close,
+html[data-theme="dark"] .install-app-hint-later {
+  color: #e2cfb6;
 }
 
-html[data-theme="dark"] .install-app-hint-close:hover {
-  color: #f3ede3;
-  background: #3a2c16;
+html[data-theme="dark"] .install-app-hint-close:hover,
+html[data-theme="dark"] .install-app-hint-later:hover {
+  color: #fbeed9;
+  background: #4a3318;
 }
 
 html[data-theme="dark"] .dashboard-welcome {
@@ -12836,20 +12562,10 @@ html[data-theme="dark"] .store-move-targets button:focus-visible {
 html[data-theme="dark"] .dashboard-section-subtitle,
 html[data-theme="dark"] .project-card-meta,
 html[data-theme="dark"] .dashboard-import-notice,
-html[data-theme="dark"] .dashboard-setting-row,
-html[data-theme="dark"] .dashboard-version-row,
 html[data-theme="dark"] .dashboard-confirm-dialog p {
   color: #a89179;
 }
 
-html[data-theme="dark"] .dashboard-setting-row input:disabled {
-  color: #b19b83;
-  background: #372b1e;
-  border-color: #564534;
-}
-
-html[data-theme="dark"] .dashboard-setting-row input,
-html[data-theme="dark"] .dashboard-setting-row select,
 html[data-theme="dark"] .dashboard-rename-dialog input,
 html[data-theme="dark"] .dashboard-confirm-cancel,
 html[data-theme="dark"] .dashboard-confirm-dialog header button {
@@ -12898,14 +12614,12 @@ html[data-theme="dark"] .project-menu-trigger {
 
 html[data-theme="dark"] .dashboard-action-tile.create {
   color: #f7f3ec;
-  background: rgba(183, 100, 11, 0.14);
   border-color: #a3682b;
 }
 
-html[data-theme="dark"] .dashboard-action-tile:not(.create) .dashboard-action-icon,
-html[data-theme="dark"] .dashboard-settings-panel header button {
+html[data-theme="dark"] .dashboard-action-tile:not(.create) .dashboard-action-icon {
   color: #d5c2af;
-  background: #3e3022;
+  background: transparent;
 }
 
 html[data-theme="dark"] .project-preview {
@@ -12951,9 +12665,6 @@ html[data-theme="dark"] .toolbar-workspace-tabs {
   border-color: #524333;
 }
 
-html[data-theme="dark"] .nav-icon,
-html[data-theme="dark"] .menu-button,
-html[data-theme="dark"] .mode-tab,
 html[data-theme="dark"] .toolbar-icon,
 html[data-theme="dark"] .shape-menu-trigger,
 html[data-theme="dark"] .toolbar-workspace-tabs button,
@@ -12961,8 +12672,6 @@ html[data-theme="dark"] .toolbar-section-label {
   color: #c0a890;
 }
 
-html[data-theme="dark"] .nav-icon:hover,
-html[data-theme="dark"] .mode-tab:hover,
 html[data-theme="dark"] .toolbar-icon:not(.disabled):hover,
 html[data-theme="dark"] .shape-menu-trigger:hover,
 html[data-theme="dark"] .shape-menu-trigger.active,
@@ -13253,6 +12962,18 @@ html[data-theme="dark"] .shape-inspector {
   box-shadow: -3px 0 14px rgba(0, 0, 0, 0.28);
 }
 
+html[data-theme="dark"] .shape-inspector {
+  scrollbar-color: #5a4a3a transparent;
+}
+
+html[data-theme="dark"] .shape-inspector::-webkit-scrollbar-thumb {
+  background: #5a4a3a;
+}
+
+html[data-theme="dark"] .shape-inspector::-webkit-scrollbar-thumb:hover {
+  background: #6e5c49;
+}
+
 html[data-theme="dark"] .shape-inspector.floating {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
 }
@@ -13446,7 +13167,6 @@ html[data-theme="dark"] .workspace-dimensions label,
 html[data-theme="dark"] .workspace-range small,
 html[data-theme="dark"] .workspace-history-labels,
 html[data-theme="dark"] .workspace-history-note,
-html[data-theme="dark"] .workspace-global-note,
 html[data-theme="dark"] .workspace-toggle-copy small,
 html[data-theme="dark"] .workspace-section-heading span {
   color: #9f866c;
@@ -13666,8 +13386,7 @@ html[data-theme="dark"] .sketch-command-button.cancel {
   color: #f08d98;
 }
 
-html[data-theme="dark"] .sketch-command-button:hover:not(:disabled),
-html[data-theme="dark"] .sketch-create-menu-trigger.active {
+html[data-theme="dark"] .sketch-command-button:hover:not(:disabled) {
   color: #f9f7f2;
   background: #4d3b29;
   border-color: #745d46;
@@ -13677,25 +13396,6 @@ html[data-theme="dark"] .sketch-command-button.disabled,
 html[data-theme="dark"] .sketch-command-button:disabled {
   color: #a58d75;
   opacity: 0.54;
-}
-
-html[data-theme="dark"] .sketch-create-dropdown {
-  background: rgba(41, 31, 20, 0.99);
-  border-color: #5a4a3a;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
-}
-
-html[data-theme="dark"] .sketch-create-dropdown button {
-  color: #eee5d6;
-}
-
-html[data-theme="dark"] .sketch-create-dropdown button:hover,
-html[data-theme="dark"] .sketch-create-dropdown button:focus-visible {
-  background: #4d3b29;
-}
-
-html[data-theme="dark"] .sketch-create-dropdown span {
-  color: #a79078;
 }
 
 html[data-theme="dark"] .sketch-point-actions {
@@ -13846,10 +13546,15 @@ html[data-theme="dark"] .print-estimate-values dd {
   color: #f0e7d9;
 }
 
+html[data-theme="dark"] .print-estimate-settings label,
 html[data-theme="dark"] .print-estimate-values dt,
 html[data-theme="dark"] .print-estimate-busy,
 html[data-theme="dark"] .print-estimate-note {
   color: #9f866c;
+}
+
+html[data-theme="dark"] .print-estimate-infill {
+  color: #c0a888;
 }
 
 html[data-theme="dark"] .export-file-input-wrap > span,
@@ -13888,34 +13593,6 @@ html[data-theme="dark"] .export-format-slider button:hover {
 
 html[data-theme="dark"] .export-format-slider button[aria-checked="true"] {
   color: #f09639;
-}
-
-html[data-theme="dark"] .cube-face {
-  color: #c1a991;
-  background: rgba(56, 44, 31, 0.94);
-  border-color: #736353;
-  box-shadow: inset 0 0 0 1px rgba(221, 198, 173, 0.08);
-}
-
-html[data-theme="dark"] .cube-top {
-  color: #eee6d7;
-  background: rgba(70, 56, 42, 0.96);
-}
-
-html[data-theme="dark"] .cube-bottom {
-  color: #8c7761;
-  background: rgba(42, 32, 21, 0.94);
-}
-
-html[data-theme="dark"] .cube-face:hover,
-html[data-theme="dark"] .cube-face:focus-visible {
-  color: #faf7f2;
-  border-color: #d48636;
-  box-shadow: inset 0 0 0 1px rgba(218, 141, 57, 0.2), 0 0 0 2px rgba(199, 122, 40, 0.16);
-}
-
-html[data-theme="dark"] .cube-zone:hover {
-  background: rgba(212, 134, 54, 0.34);
 }
 
 html[data-theme="dark"] .grid-settings {
@@ -14103,6 +13780,123 @@ html[data-theme="dark"] .shortcuts-or {
   color: #9b8a76;
 }
 
+/* The printed list of shortcuts (Print button of the window, or Ctrl+P while it is open): black on
+   white and in large type, with nothing else of the app. The sheet is a child of the body, hidden on
+   screen; while the attribute is on <html>, every other child of the body goes. */
+.shortcuts-print-sheet {
+  display: none;
+}
+
+@media print {
+  /* The whole list on one side of a sheet, as a reference to keep at hand (#490): three columns in smaller, still sharp type. */
+  @page {
+    margin: 10mm;
+  }
+
+  html[data-print-shortcuts],
+  html[data-print-shortcuts] body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  html[data-print-shortcuts] body > *:not(.shortcuts-print-sheet) {
+    display: none !important;
+  }
+
+  html[data-print-shortcuts] .shortcuts-print-sheet {
+    display: block;
+    color: #000;
+    background: #fff;
+    font-size: 9pt;
+    /* The arrows must not turn into coloured emoji on a black-and-white sheet. */
+    font-variant-emoji: text;
+  }
+
+  /* No heading: the room is for the list. */
+  html[data-print-shortcuts] .shortcuts-print-sheet h1 {
+    display: none;
+  }
+
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-groups {
+    columns: 3;
+    column-gap: 6mm;
+  }
+
+  /* A long group may run over into the next column; a heading never stays alone at the foot of one. */
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-group {
+    margin-bottom: 3mm;
+    break-inside: auto;
+  }
+
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-group h3 {
+    break-after: avoid;
+    margin: 0 0 1mm;
+    color: #000;
+    border-bottom: 0.3mm solid #000;
+    font-size: 9.5pt;
+  }
+
+  /* Plain blocks, not grids: a block fragments across the columns, a grid does not (the sketch's list is one long group). */
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-group {
+    display: contents;
+  }
+
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-group dl {
+    display: block;
+    margin: 0;
+  }
+
+  /* The name on the left, the keys on the right on one line where they fit, else the keys below the name. */
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0 2mm;
+    padding-bottom: 0.7mm;
+    margin-bottom: 0.7mm;
+    border-bottom: 0.1mm solid #bbb;
+    break-inside: avoid;
+  }
+
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-row dd {
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    gap: 0.8mm;
+  }
+
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-row dt {
+    line-height: 1.25;
+  }
+
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-row dt {
+    color: #000;
+    font-size: 9pt;
+    font-weight: 600;
+  }
+
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-row kbd {
+    color: #000;
+    background: #fff;
+    padding: 0 1.2mm;
+    border: 0.25mm solid #000;
+    border-bottom-width: 0.25mm;
+    border-radius: 0.8mm;
+    font-size: 8pt;
+    line-height: 1.3;
+    /* Fonts whose arrows are plain strokes, not coloured emoji. */
+    font-family: "Segoe UI Symbol", "Apple Symbols", "DejaVu Sans", Arial, sans-serif;
+  }
+
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-plus,
+  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-or {
+    color: #000;
+    font-size: 8.5pt;
+  }
+}
+
 @media (max-width: 960px) {
   .shortcuts-modal {
     padding-top: 18px;
@@ -14116,10 +13910,14 @@ html[data-theme="dark"] .shortcuts-or {
 /* Das Menueband traegt neun Gruppen. Zwischen Laptop und breitem Schirm passen
    sie nicht mehr in voller Groesse nebeneinander - bisher wurde die letzte
    Gruppe einfach abgeschnitten, jetzt gehen die Symbole eine Stufe zurueck.
-   Gemessen (mit Lupen-, Vereinfachen- und Verlaufsknopf): in voller Groesse
-   braucht das Band 1818 px, in der mittleren Stufe 1540 px, in der kleinen
-   1415 px. Jeder neue Knopf verschiebt alle drei Schwellen: neu messen. */
-@media (max-width: 1910px) {
+   Gemessen (Breite von der linken Kante der ersten bis zur rechten der letzten
+   Gruppe, mit Lupen-, Anleitungs-, Kuerzel- und Hilfeknopf und "Flaeche
+   loeschen"): in voller Groesse braucht das Band 2081 px, in der mittleren
+   Stufe 1765 px, in der kleinen 1615 px. Ohne "Flaeche loeschen" waren es
+   2038, 1728 und 1582 px, ohne den Knopf der Interaktiven Hilfe 1990, 1688
+   und 1544 px: Jeder neue Knopf verschiebt alle drei Schwellen um das, was
+   er braucht - neu messen. */
+@media (max-width: 2081px) {
   :root {
     --toolbar-icon-size: calc(37px * var(--toolbar-scale));
   }
@@ -14140,7 +13938,7 @@ html[data-theme="dark"] .shortcuts-or {
   }
 }
 
-@media (max-width: 1620px) {
+@media (max-width: 1765px) {
   :root {
     --toolbar-icon-size: calc(34px * var(--toolbar-scale));
   }
@@ -14155,13 +13953,14 @@ html[data-theme="dark"] .shortcuts-or {
   }
 }
 
-/* Below the width even the smallest step needs (1415 px, measured with the
-   command search, simplify and history buttons; the middle step needs 1540 px) the groups
-   wrap onto a further row instead of scrolling sideways: a scrolling bar
-   hides tools and cuts off every menu that hangs beneath it. The bar grows,
-   and the editor passes its real height on (see --editor-toolbar-height).
-   A new button in the bar moves both thresholds up: measure again. */
-@media (max-width: 1489px) {
+/* Below the width even the smallest step needs (1615 px, measured with the
+   command search, guide, shortcuts, Interactive Help and Delete face buttons;
+   the middle step needs 1765 px and the full size 2081 px) the groups wrap onto a
+   further row instead of scrolling sideways: a scrolling bar hides tools and
+   cuts off every menu that hangs beneath it. The bar grows, and the editor
+   passes its real height on (see --editor-toolbar-height). A new button in
+   the bar moves all three thresholds up: measure again. */
+@media (max-width: 1615px) {
   .toolbar-mode-content,
   .sketch-toolbar-ribbon {
     flex-wrap: wrap;
@@ -14245,11 +14044,6 @@ html[data-theme="dark"] .theme-check {
    nicht die Breite, und genau daran hing es: Die einzige Regel dafuer war an
    die Breite geknuepft und griff auf einem breiten, flachen Fenster nie. */
 @media (max-height: 780px) {
-  .view-cube {
-    transform: scale(0.8);
-    transform-origin: top left;
-  }
-
   /* Der Wuerfel ist hier kleiner, also rueckt das Statusfenster mit - sonst
      stuende es mit einer Handbreit Abstand daneben statt neben ihm. */
   .editor-status {
@@ -15060,6 +14854,61 @@ html[data-theme="dark"] .open-group-cancel {
   justify-content: space-between;
 }
 
+/* The title bar moves the panel (#433); the pin keeps it open. */
+.shape-menu-title {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.shape-menu-dropdown.moving .shape-menu-title {
+  cursor: grabbing;
+}
+
+.shape-menu-title-text {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.shape-menu-pin {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: #8c735d;
+  background: transparent;
+  cursor: pointer;
+}
+
+.shape-menu-pin:hover {
+  background: #f3e7d8;
+}
+
+.shape-menu-pin.active {
+  color: #bf6508;
+  background: #fdf0dc;
+}
+
+html[data-theme="dark"] .shape-menu-pin {
+  color: #bda78e;
+}
+
+html[data-theme="dark"] .shape-menu-pin:hover {
+  background: #3a2c16;
+}
+
+html[data-theme="dark"] .shape-menu-pin.active {
+  color: #f3a452;
+  background: #3a2c16;
+}
+
 .shape-menu-title .guide-help-link,
 .guide-modal h3 .guide-help-link,
 .outliner-help-link {
@@ -15135,87 +14984,8 @@ html[data-theme="dark"] .inspector-help-link {
   color: #e8322a;
 }
 
-html[data-theme="dark"] .my-shapes-section {
-  background: rgba(52, 40, 28, 0.6);
-  border-color: #594a3a;
-}
-
-html[data-theme="dark"] .my-shapes-toggle,
-html[data-theme="dark"] .my-shapes-name-form label {
-  color: #f0e7d9;
-}
-
-html[data-theme="dark"] .my-shapes-toggle:hover {
-  background: #463625;
-}
-
-html[data-theme="dark"] .my-shapes-count {
-  color: #f0e7d9;
-  background: #5b4733;
-}
-
-html[data-theme="dark"] .shape-menu-subtitle,
-html[data-theme="dark"] .my-shapes-empty {
+html[data-theme="dark"] .shape-menu-subtitle {
   color: #cdbca6;
-}
-
-html[data-theme="dark"] .my-shapes-save-button,
-html[data-theme="dark"] .my-shapes-icon-button,
-html[data-theme="dark"] .my-shapes-name-form button,
-html[data-theme="dark"] .my-shape-tile-action,
-html[data-theme="dark"] .my-shape-rename {
-  color: #ede4d4;
-  background: #3a2c1f;
-  border-color: #5b4b3a;
-}
-
-html[data-theme="dark"] .my-shapes-save-button:hover:not(:disabled),
-html[data-theme="dark"] .my-shapes-icon-button:hover:not(:disabled),
-html[data-theme="dark"] .my-shapes-name-form button:hover:not(:disabled),
-html[data-theme="dark"] .my-shape-tile-action:hover {
-  background: #463625;
-  border-color: #7a644c;
-}
-
-html[data-theme="dark"] .my-shapes-name-form button[type="submit"] {
-  color: #fff;
-  background: #a8662a;
-  border-color: #a8662a;
-}
-
-html[data-theme="dark"] .my-shapes-name-form input,
-html[data-theme="dark"] .my-shape-rename input {
-  color: #f0e7d9;
-  background: #2c2117;
-  border-color: #6b5741;
-}
-
-html[data-theme="dark"] .my-shape-no-preview {
-  background: #463625;
-}
-
-html[data-theme="dark"] .my-shape-tile-action.danger {
-  color: #fff;
-  background: #b42318;
-  border-color: #b42318;
-}
-
-html[data-theme="dark"] .my-shapes-location,
-html[data-theme="dark"] .my-shapes-name-form .my-shapes-location button + button {
-  border-color: #5b4b3a;
-}
-
-html[data-theme="dark"] .my-shapes-name-form .my-shapes-location button.active {
-  color: #fff;
-  background: #8a6a46;
-}
-
-html[data-theme="dark"] .my-shapes-group-title {
-  color: #cdbca6;
-}
-
-html[data-theme="dark"] .my-shape-tile-actions {
-  background: rgba(58, 44, 31, 0.94);
 }
 
 /* Bild der Ansicht im Export-Fenster: zwei Schalter. */
@@ -15254,6 +15024,49 @@ html[data-theme="dark"] .my-shape-tile-actions {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+/* The row of kept colours: its label carries the pin that keeps or lets go of the colour chosen now (#507). */
+.color-kept-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.color-keep-button {
+  display: grid;
+  width: 24px;
+  height: 22px;
+  place-items: center;
+  padding: 0;
+  color: #72583d;
+  background: transparent;
+  border: 1px solid rgba(68, 50, 31, 0.22);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.color-keep-button[aria-pressed="true"] {
+  color: #fff;
+  background: #c06a12;
+  border-color: #c06a12;
+}
+
+.color-keep-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+html[data-theme="dark"] .color-keep-button {
+  color: #e1ceba;
+  border-color: rgba(237, 228, 212, 0.28);
+}
+
+html[data-theme="dark"] .color-keep-button[aria-pressed="true"] {
+  color: #1d1308;
+  background: #e0903a;
+  border-color: #e0902f;
 }
 
 /* Rechtsklick-Menue auf Koerpern. */
@@ -15363,318 +15176,6 @@ html[data-theme="dark"] .color-recent-label {
 
 html[data-theme="dark"] .color-recent {
   border-top-color: rgba(237, 228, 212, 0.14);
-}
-
-/* ---------------------------------------------------------------------------
-   The history view: a bar at the foot of the work area while the viewport
-   shows an earlier state. The ribbon stays visible but asleep, except for the
-   history button that closes the view again; nothing in the bar changes the
-   design, it only looks back and lets you take a state along.
-   ------------------------------------------------------------------------- */
-.history-view-bar {
-  position: fixed;
-  bottom: calc(var(--editor-footer-height) + 16px);
-  /* Centred by arithmetic, not by auto margins: the movable-panel hook reads
-     the docked spot from left/top, and a margin that goes away when the bar
-     floats would shift it. */
-  left: calc((100vw - min(760px, 100vw - 28px)) / 2);
-  z-index: 46;
-  display: grid;
-  gap: 10px;
-  width: min(760px, calc(100vw - 28px));
-  padding: 12px 16px 14px;
-  color: #584027;
-  background: rgba(254, 252, 250, 0.98);
-  border: 1px solid #dacbbb;
-  border-radius: 12px;
-  box-shadow: 0 14px 38px rgba(74, 53, 30, 0.2);
-  backdrop-filter: blur(12px);
-}
-
-.history-view-head.movable {
-  cursor: grab;
-  touch-action: none;
-}
-
-.history-view-bar.moving,
-.history-view-bar.moving .history-view-head.movable {
-  cursor: grabbing;
-}
-
-.history-view-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.history-view-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
-}
-
-.history-view-heading strong {
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.history-view-heading span {
-  font-size: 12px;
-  color: #8a7560;
-}
-
-.history-view-head .panel-header-actions button {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  color: inherit;
-  background: transparent;
-  border: 0;
-  border-radius: 7px;
-  cursor: pointer;
-}
-
-.history-view-head .panel-header-actions button:hover,
-.history-view-head .guide-help-link:hover {
-  background: #f3ece2;
-}
-
-.history-view-slider {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-}
-
-.history-view-slider > button {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  color: #745e48;
-  background: #fff;
-  border: 1px solid #d8c8b7;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.history-view-slider > button:disabled {
-  cursor: default;
-  opacity: 0.4;
-}
-
-.history-view-slider .range-control {
-  height: 32px;
-}
-
-.history-view-slider input[type="range"]:focus-visible {
-  outline: 2px solid #d07313;
-  outline-offset: 4px;
-  border-radius: 999px;
-}
-
-.history-view-state {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px 14px;
-  font-size: 13px;
-}
-
-.history-view-state strong {
-  font-weight: 800;
-}
-
-.history-view-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  color: #8a7560;
-}
-
-.history-view-facts .current {
-  color: #2a8f57;
-  font-weight: 700;
-}
-
-.history-view-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.history-view-actions button {
-  display: inline-flex;
-  min-height: 34px;
-  padding: 0 13px;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid #d8c8b7;
-  border-radius: 7px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.history-view-actions .secondary {
-  color: #745e48;
-  background: white;
-}
-
-.history-view-actions .primary {
-  color: white;
-  background: #cc7011;
-  border-color: #b35f07;
-}
-
-.history-view-actions button:disabled {
-  cursor: default;
-  opacity: 0.55;
-}
-
-/* Delete history: alone at the left of the row, in a colour that says it is not like the others. */
-.history-view-actions .delete-history {
-  margin-right: auto;
-  color: #a33a2a;
-  background: white;
-  border-color: #e3bdb4;
-}
-
-.history-view-actions .delete-history:hover:not(:disabled) {
-  background: #fdf1ee;
-}
-
-.history-view-confirm {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 10px;
-  padding: 10px 12px;
-  color: #6b2a1f;
-  background: #fdf1ee;
-  border: 1px solid #e3bdb4;
-  border-radius: 8px;
-}
-
-.history-view-confirm p {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.history-view-confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.history-view-confirm-actions button {
-  display: inline-flex;
-  min-height: 34px;
-  padding: 0 13px;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid #d8c8b7;
-  border-radius: 7px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.history-view-confirm-actions .secondary {
-  color: #745e48;
-  background: white;
-}
-
-.history-view-confirm-actions .danger {
-  color: white;
-  background: #b4402e;
-  border-color: #962f1f;
-}
-
-.history-view-spinner {
-  animation: history-view-spin 0.9s linear infinite;
-}
-
-@keyframes history-view-spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Asleep while looking back: every tool but the one that ends the view. The
-   buttons are disabled and their sections inert in the markup; this only
-   shows it. */
-.layerling-editor.history-view-active .tool-group .toolbar-section:not([data-group="history"]),
-.layerling-editor.history-view-active .toolbar-section[data-group="history"] .toolbar-icon:not(.active),
-.layerling-editor.history-view-active .outliner-panel,
-.layerling-editor.history-view-active .toolbar-title-row-actions {
-  pointer-events: none;
-  opacity: 0.45;
-}
-
-.layerling-editor.history-view-active :is(.action-icon-button, .toolbar-workspace-tabs button):disabled {
-  cursor: default;
-  opacity: 0.45;
-}
-
-@media (max-width: 640px) {
-  .history-view-bar {
-    left: 8px;
-    width: calc(100vw - 16px);
-    padding: 10px 12px 12px;
-  }
-
-  .history-view-state {
-    flex-direction: column;
-  }
-
-  .history-view-actions button {
-    flex: 1 1 auto;
-    justify-content: center;
-  }
-}
-
-html[data-theme="dark"] .history-view-bar {
-  color: #ede4d4;
-  background: rgba(40, 30, 20, 0.97);
-  border-color: #5b4b3a;
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.34);
-}
-
-html[data-theme="dark"] .history-view-heading span,
-html[data-theme="dark"] .history-view-facts {
-  color: #b9a68f;
-}
-
-html[data-theme="dark"] .history-view-facts .current {
-  color: #5fd394;
-}
-
-html[data-theme="dark"] .history-view-head .panel-header-actions button:hover,
-html[data-theme="dark"] .history-view-head .guide-help-link:hover {
-  background: #3f3022;
-}
-
-html[data-theme="dark"] .history-view-slider > button,
-html[data-theme="dark"] .history-view-actions .secondary {
-  color: #f0e7d9;
-  background: #413121;
-  border-color: #65503b;
-}
-
-html[data-theme="dark"] .history-view-slider .range-control input[type="range"]::-webkit-slider-runnable-track {
-  background: linear-gradient(to right, #e0862a 0 var(--slider-pos), #5b4b3a var(--slider-pos) 100%);
-}
-
-html[data-theme="dark"] .history-view-slider .range-control input[type="range"]::-moz-range-track {
-  background: #5b4b3a;
-}
-
-html[data-theme="dark"] .history-view-slider .range-control input[type="range"]::-moz-range-progress {
-  background: #e0862a;
 }
 
 /* The safe-mode screen: shown instead of a blank page when the editor or the page stops with an
@@ -15805,6 +15306,17 @@ html[data-theme="dark"] .history-view-slider .range-control input[type="range"]:
   line-height: 1.45;
 }
 
+/* The module in the line can be selected and copied (#645); the editor is otherwise not text to select. */
+.layerling-editor .selection-gear-pair {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.shape-inspector .inspector-action-button.selection-gear-fit {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
 .selection-inspector-hint {
   margin: 10px 14px 12px;
   color: var(--muted-strong);
@@ -15816,6 +15328,7 @@ html[data-theme="dark"] .history-view-slider .range-control input[type="range"]:
    circle mode on a 1080p screen at 125 %): it scrolls inside, and its buttons stay in view. */
 .edge-modifier-panel {
   max-height: calc(100dvh - var(--editor-toolbar-height) - 28px);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -16046,6 +15559,78 @@ html[data-theme="dark"] .top-action-body .icon-tag-ok {
   letter-spacing: 0.08em;
 }
 
+/* The QR code window and card (#553): the text, the notes under it, the quiet zone switch. The
+   preview stays black on white in every theme - it shows the code as a scanner sees it. */
+.qr-code-text {
+  display: grid;
+  gap: 4px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.qr-code-text textarea {
+  min-height: 64px;
+  padding: 6px 10px;
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 600;
+  resize: vertical;
+  background: var(--tile-hover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.qr-code-text textarea[aria-invalid="true"] {
+  border-color: #c4361d;
+}
+
+.qr-code-text small,
+.qr-code-note {
+  color: var(--muted-strong);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.qr-code-text small.qr-code-warning,
+.qr-code-panel small.qr-code-warning {
+  color: #b02f17;
+}
+
+/* The window is taller than a small screen: its body scrolls, so OK stays within reach. */
+.qr-code-panel .top-action-body {
+  max-height: calc(100vh - var(--editor-toolbar-height) - var(--editor-footer-height) - 96px);
+  overflow-y: auto;
+}
+
+.qr-code-panel .qr-code-preview {
+  height: 172px;
+  background: #fff;
+}
+
+.qr-code-panel .qr-code-preview img {
+  max-height: 150px;
+  image-rendering: pixelated;
+}
+
+.qr-code-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.qr-code-check input {
+  accent-color: var(--primary);
+}
+
+html[data-theme="dark"] .qr-code-text small.qr-code-warning,
+html[data-theme="dark"] .qr-code-panel small.qr-code-warning {
+  color: #ff8a70;
+}
+
 /* An update arrived while this page was open: offer to reload (lib/newVersionWatch.ts). */
 .new-version-notice {
   position: fixed;
@@ -16105,4 +15690,111 @@ html[data-theme="dark"] .top-action-body .icon-tag-ok {
   color: white;
   background: #cf6a12;
   border-color: #b45a0c;
+}
+
+/* Interactive Help (#424): while it is on the pointer is a question mark and whatever has a name
+   under it is outlined; a click asks the guide about it. The window is a tool panel of its own,
+   at the left edge so it stands beside the tool panels at the right, and above every dialog. */
+body.help-mode,
+body.help-mode * {
+  cursor: help !important;
+}
+
+/* Over a place the help has nothing about, the pointer says so before a click is wasted. */
+body.help-mode.help-void,
+body.help-mode.help-void * {
+  cursor: not-allowed !important;
+}
+
+body.help-mode [data-help-window],
+body.help-mode [data-help-window] *,
+body.help-mode [data-help-exempt],
+body.help-mode [data-help-exempt] * {
+  cursor: auto !important;
+}
+
+body.help-mode [data-help-window] a,
+body.help-mode [data-help-window] button,
+body.help-mode [data-help-exempt],
+body.help-mode [data-help-exempt] * {
+  cursor: pointer !important;
+}
+
+/* A control that is switched off with the disabled attribute gets no mouse event at all in the browser,
+   not even to the page: a click on it was lost and the help stayed silent (#424, "Center view on
+   selection"). Letting the pointer pass through puts the click on what lies behind, and the help finds
+   the control by its position (disabledControlAt in InteractiveHelp.tsx). */
+body.help-mode :is(button, input, select, textarea):disabled {
+  pointer-events: none;
+}
+
+[data-help-hover] {
+  outline: 2px solid #1a73c9 !important;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+html[data-theme="dark"] [data-help-hover] {
+  outline-color: #6db3ff !important;
+}
+
+.action-buttons .action-icon-button.active {
+  background: rgba(204, 112, 17, 0.16);
+  box-shadow: inset 0 0 0 1px #cc7011;
+}
+
+.interactive-help-window {
+  top: calc(var(--editor-toolbar-height) + 14px);
+  right: auto;
+  left: 84px;
+  z-index: 260;
+  width: min(360px, calc(100vw - 28px));
+}
+
+.interactive-help-note,
+.interactive-help-answer p {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.interactive-help-answer,
+.interactive-help-more {
+  margin-top: 10px;
+}
+
+.interactive-help-answer small,
+.interactive-help-more small {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  opacity: 0.72;
+}
+
+.interactive-help-more ul {
+  margin: 4px 0 0;
+  padding-left: 17px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.interactive-help-window a:not(.primary):not(.secondary):not(.guide-help-link) {
+  color: #8a4b0a;
+}
+
+html[data-theme="dark"] .interactive-help-window a:not(.primary):not(.secondary):not(.guide-help-link) {
+  color: #f0b565;
+}
+
+.edge-modifier-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid #d8c8b7;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
 }

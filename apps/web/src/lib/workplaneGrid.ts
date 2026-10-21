@@ -66,15 +66,14 @@ export function workplaneLabelLayout(width: number, depth: number): WorkplaneLab
   const labelWidth = Math.min(clampedHeight * WORKPLANE_LABEL_ASPECT, maxLabelWidth);
   const labelHeight = labelWidth / WORKPLANE_LABEL_ASPECT;
   const inset = labelHeight * WORKPLANE_LABEL_INSET_RATIO;
-  // The axis arrows share the front left corner (#182): the name starts after the X arrow and its
-  // letter, as far as the left half of the plate allows.
-  const arrows = axisArrowLayout(safeWidth, safeDepth);
-  const arrowClearance = arrows.length + Math.max(4, arrows.length * 0.3) * 1.3;
+  // The axis arrows share the front left corner, and the name does not make room for them: it starts at
+  // the corner as if they were not there (Stefan, 14.10.2026), so it takes the same small gap from both
+  // edges and leaves as much of the plate free as it can.
   return {
     width: labelWidth,
     height: labelHeight,
     depthOffset: Math.max(0, safeDepth / 2 - inset - labelHeight / 2),
-    lateralOffset: Math.min(0, -labelWidth / 2, -safeWidth / 2 + inset + labelWidth / 2 + arrowClearance),
+    lateralOffset: Math.min(0, -labelWidth / 2, -safeWidth / 2 + inset + labelWidth / 2),
   };
 }
 

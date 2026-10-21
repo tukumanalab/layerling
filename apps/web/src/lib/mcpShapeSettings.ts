@@ -28,13 +28,17 @@ export const MCP_SHAPE_SETTING_KEYS = [
   "extrudeTwist", "extrudeTopOffsetX", "extrudeTopOffsetZ",
   "teeth", "toothSize", "toothWidth", "centerHoleSize", "gearType", "helixAngle", "helixQuality", "gearProfile", "gearPressureAngle", "gearBacklash", "gearRim",
   "threadRole", "threadHead", "threadHand", "threadProfile", "threadDiameter", "threadPitch",
-  "threadClearance", "threadBoltClearance", "threadAxialClearance", "threadQuality", "threadHeadHeight", "threadChamfer", "threadChamferBottom",
+  "threadClearance", "threadBoltClearance", "threadAxialClearance", "threadDepth", "threadFlankAngle", "threadQuality", "threadHeadHeight", "threadChamfer", "threadChamferBottom",
   "threadHeadChamfer",
   "springTurns", "springWire", "springQuality", "springHand",
   "starPoints", "starInnerSize", "starOuterFillet", "starInnerFillet", "starQuality",
   "heartTipFillet", "heartQuality",
   "crescentThickness", "crescentTipFillet", "crescentQuality",
-  "hingeKnuckles", "hingePinDiameter", "hingeLeafThickness", "hingeClearance",
+  "hingeKnuckles", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingePinless",
+  "gridfinityType", "gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid",
+  "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCorner", "gridfinityLabelCornerSize",
+  "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityScoopRadius", "gridfinityFloorHeight",
+  "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness", "gridfinityDividerPositionsX", "gridfinityDividerPositionsZ", "gridfinityCompartmentLabels",
   "knurlPattern", "knurlCount", "knurlDepth", "knurlAngle", "knurlChamfer",
   "dovetailNeckWidth", "dovetailClearance",
   "loftBottomOutline", "loftTopOutline", "loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftBottomSides", "loftTopSides", "loftOffsetX", "loftOffsetZ", "loftWall", "loftTwist", "loftTiltX", "loftTiltZ", "loftSmooth", "slotEndRatio",
@@ -84,4 +88,30 @@ export function mcpThreadSizeName(shape: Pick<WorkplaneShape, "kind" | "threadDi
   if (shape.kind !== "thread") return undefined;
   const settings = threadSettings(shape);
   return threadSizeFor(settings.diameter, settings.pitch)?.id;
+}
+
+export const MCP_GRIDFINITY_LIST_KEYS = ["gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerPositionsX", "gridfinityDividerPositionsZ", "gridfinityCompartmentLabels"] as const;
+
+/**
+ * A Gridfinity bin's lists as lists, also when they come as the text layerling_read_scene gives them, read as
+ * mcpBentTubeSegments in LayerlingEditor reads a bent tube's segments; text that is no list is unset, and the counts
+ * are numbers and stay as they are.
+ */
+export function mcpGridfinityListParams(params: Record<string, unknown>) {
+  const list = (value: unknown) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value !== "string") return undefined;
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : undefined;
+    } catch {
+      // Text that is no list is a value of the wrong kind, which leaves the setting as it was.
+      return undefined;
+    }
+  };
+  const lists = { ...params };
+  for (const key of MCP_GRIDFINITY_LIST_KEYS) {
+    if (key in params && typeof params[key] !== "number") lists[key] = list(params[key]);
+  }
+  return lists;
 }

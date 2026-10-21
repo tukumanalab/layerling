@@ -1,4 +1,4 @@
-import type { MeshPoint } from "@/lib/meshCoordinates";
+import { layerlingToZUp, type MeshPoint } from "@/lib/meshCoordinates";
 
 export type ObjExportMesh = {
   name: string;
@@ -22,9 +22,8 @@ export function weldMeshVertices(mesh: ObjExportMesh) {
   const remappedIndices: number[] = [];
 
   mesh.vertices.forEach((sourceVertex) => {
-    // OBJ tools conventionally treat Y as up. Keep Layerling's Y-up
-    // coordinates here so slicers do not apply their OBJ axis conversion a
-    // second time. STL is exported separately using explicit Z-up coordinates.
+    // The points are welded in layerling's own coordinates; exportMeshesToObj turns them to Z up
+    // when it writes them.
     const vertex: [number, number, number] = [...sourceVertex];
     const bucketX = Math.floor(vertex[0] / OBJ_WELD_TOLERANCE);
     const bucketY = Math.floor(vertex[1] / OBJ_WELD_TOLERANCE);
@@ -87,7 +86,9 @@ function objVertexColor(color: string | undefined) {
 }
 
 export function exportMeshesToObj(meshes: readonly ObjExportMesh[]) {
-  const lines = ["# Layerling OBJ export", "# Y-up, millimetres"];
+  // Z up, like STL and 3MF: slicers (Cura, Creality Print) read an OBJ as it is and stand a Y-up file
+  // on its side (#541). layerling's own import knows the "Z-up" line and turns such a file back.
+  const lines = ["# Layerling OBJ export", "# Z-up, millimetres"];
   let offset = 1;
 
   meshes.forEach((mesh) => {
@@ -103,7 +104,10 @@ export function exportMeshesToObj(meshes: readonly ObjExportMesh[]) {
       });
     }
     lines.push(`o ${mesh.name}`);
-    welded.vertices.forEach(([x, y, z], index) => lines.push(`v ${objNumber(x)} ${objNumber(y)} ${objNumber(z)}${pointColors[index] ?? color}`));
+    welded.vertices.forEach((vertex, index) => {
+      const [x, y, z] = layerlingToZUp(vertex);
+      lines.push(`v ${objNumber(x)} ${objNumber(y)} ${objNumber(z)}${pointColors[index] ?? color}`);
+    });
     welded.faces.forEach(([a, b, c]) => lines.push(`f ${a + offset} ${b + offset} ${c + offset}`));
     offset += welded.vertices.length;
   });

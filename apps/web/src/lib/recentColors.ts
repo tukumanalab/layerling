@@ -64,3 +64,58 @@ export function useRecentColors(palette: readonly string[]) {
   }, [palette]);
   return { colors, remember };
 }
+
+/*
+ * The colours someone wants to keep (#507): they stand in a row of their own, are never pushed out
+ * by newer ones, and go only when the same button lets go of them. Like the recent ones they belong
+ * to this browser.
+ */
+const KEPT_STORAGE_KEY = "layerling.keptColors";
+const KEPT_CHANGE_EVENT = "layerling-kept-colors";
+export const KEPT_COLOR_LIMIT = 21;
+
+/** The list after the pin was pressed for `color`: it is kept, or let go when it was kept already. A full list takes no new one. */
+export function toggledKeptColors(current: readonly string[], color: string) {
+  const normalized = normalizeColor(color);
+  if (!normalized) return [...current];
+  if (current.includes(normalized)) return current.filter((entry) => entry !== normalized);
+  if (current.length >= KEPT_COLOR_LIMIT) return [...current];
+  return [...current, normalized];
+}
+
+export function readKeptColors(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(KEPT_STORAGE_KEY) ?? "[]");
+    if (!Array.isArray(parsed)) return [];
+    const colors = parsed.map(normalizeColor).filter((color): color is string => Boolean(color));
+    return colors.filter((color, index) => colors.indexOf(color) === index).slice(0, KEPT_COLOR_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+export function useKeptColors() {
+  const [colors, setColors] = useState<string[]>([]);
+  useEffect(() => {
+    const refresh = () => setColors(readKeptColors());
+    refresh();
+    const onStorage = (event: StorageEvent) => { if (event.key === KEPT_STORAGE_KEY) refresh(); };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(KEPT_CHANGE_EVENT, refresh);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(KEPT_CHANGE_EVENT, refresh);
+    };
+  }, []);
+  const toggle = useCallback((color: string) => {
+    const next = toggledKeptColors(readKeptColors(), color);
+    setColors(next);
+    try {
+      window.localStorage.setItem(KEPT_STORAGE_KEY, JSON.stringify(next));
+      window.dispatchEvent(new Event(KEPT_CHANGE_EVENT));
+    } catch {
+      // Without storage the colours last as long as the page.
+    }
+  }, []);
+  return { colors, toggle };
+}

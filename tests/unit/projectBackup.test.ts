@@ -1,6 +1,6 @@
 import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { backupEntryNames, backupFileName, packBackup, unpackBackup } from "@/lib/projectBackup";
+import { backupDesignAlreadyThere, backupEntryNames, backupFileName, backupThumbnailPath, packBackup, unpackBackup } from "@/lib/projectBackup";
 
 describe("backing up all designs", () => {
   it("names the backup after the day", () => {
@@ -32,5 +32,40 @@ describe("backing up all designs", () => {
   it("reads designs from folders and ignores other files", () => {
     const zip = zipSync({ "Ordner/Alt.skf": new Uint8Array([9]), "liesmich.txt": strToU8("hallo") });
     expect(unpackBackup(zip).map((entry) => entry.name)).toEqual(["Alt.skf"]);
+  });
+});
+
+describe("restoring a backup twice (#407)", () => {
+  const here = [{ name: "Halter", createdAt: 1000 }, { name: "Dose", createdAt: 2000 }];
+
+  it("knows a design that is already there by name and creation time", () => {
+    expect(backupDesignAlreadyThere(here, { name: "Halter", createdAt: 1000 })).toBe(true);
+  });
+
+  it("adds a design that has another creation time or another name", () => {
+    expect(backupDesignAlreadyThere(here, { name: "Halter", createdAt: 1001 })).toBe(false);
+    expect(backupDesignAlreadyThere(here, { name: "Halter 2", createdAt: 1000 })).toBe(false);
+    expect(backupDesignAlreadyThere([], { name: "Halter", createdAt: 1000 })).toBe(false);
+  });
+});
+
+describe("the card pictures in a backup", () => {
+  it("lie next to their design under the same name", () => {
+    expect(backupThumbnailPath("Halter.lyl")).toBe("Halter.png");
+    expect(backupThumbnailPath("Folders/Werkstatt/Halter (2).lyl")).toBe("Folders/Werkstatt/Halter (2).png");
+    expect(backupThumbnailPath("Alt.SKF")).toBe("Alt.png");
+  });
+
+  it("come back with their design, and a design without one comes back without", () => {
+    const picture = new Uint8Array([137, 80, 78, 71]);
+    const restored = unpackBackup(packBackup([
+      { name: "Folders/Werkstatt/Halter.lyl", bytes: strToU8("a") },
+      { name: "Folders/Werkstatt/Halter.png", bytes: picture },
+      { name: "Ohne.lyl", bytes: strToU8("b") },
+    ]));
+    expect(restored.map((entry) => entry.name)).toEqual(["Halter.lyl", "Ohne.lyl"]);
+    expect(restored[0].thumbnail).toEqual(picture);
+    expect(restored[0].folder).toEqual(["Werkstatt"]);
+    expect("thumbnail" in restored[1]).toBe(false);
   });
 });

@@ -1,7 +1,8 @@
 import { NAME_TAG_GAP, NAME_TAG_LAYERS } from "@/lib/nameTag";
 import { sketchBodyStretch, stretchedSketchProfile } from "@/lib/sketchResize";
 import { normalizeSketchStroke } from "@/lib/sketchStroke";
-import { DEFAULT_TEXT_LAYERS, MAX_TEXT_LAYERS, normalizeTextLayer, type TextLayer } from "@/lib/textLayers";
+import { iconKeyringFor } from "@/lib/sketchKeyring";
+import { DEFAULT_TEXT_LAYERS, MAX_TEXT_LAYERS, normalizeTextLayer, type NameTagKeyring, type TextLayer } from "@/lib/textLayers";
 import type { SketchProfile, WorkplaneShape } from "@/types/layerling";
 
 /**
@@ -37,11 +38,14 @@ export type IconLayerStack = {
   ids: string[];
   place: IconTagPlace;
   name: string;
+  /** The key ring hole the layers carry (#391), or null: its side and size; its middle follows from the icon and the layers. */
+  keyring: NameTagKeyring | null;
 };
 
 /** A body the icon layers can be built from or read back from: an extruded sketch, not a group. */
 export function isIconLayerBody(shape: WorkplaneShape | null | undefined): shape is WorkplaneShape & { sketchProfile: SketchProfile } {
-  return Boolean(shape?.sketchProfile && shape.sketchOperation !== "revolve" && !shape.groupedShapes?.length && shape.kind !== "text");
+  // A face tool body is built set in from its sketch, which the layers would leave out.
+  return Boolean(shape?.sketchProfile && shape.sketchOperation !== "revolve" && shape.sketchOperation !== "sweep" && !shape.groupedShapes?.length && shape.kind !== "text" && !shape.sketchProfile.inset);
 }
 
 /**
@@ -58,14 +62,31 @@ export function iconSourceProfile(profile: SketchProfile): SketchProfile {
   };
 }
 
-/** A layer's sketch: the icon's area, with a "Wider" line round it and without its holes as the row says. */
-export function iconLayerProfile(area: SketchProfile, layer: TextLayer): SketchProfile {
+/**
+ * A layer's sketch: the icon's area, with a "Wider" line round it and without its holes as the row says.
+ * With a key ring hole (#391) every layer has the hole; the bottom one, `ear`, has the tab round it too.
+ */
+export function iconLayerProfile(area: SketchProfile, layer: TextLayer, keyring?: NonNullable<SketchProfile["keyring"]>): SketchProfile {
   return {
     points: area.points.map((point) => ({ ...point })),
     segments: area.segments.map((segment) => ({ ...segment })),
     ...(layer.grow > 0 ? { stroke: { width: layer.grow, align: "grow" as const, join: layer.join ?? "round", cap: "flat" as const } } : {}),
     ...(layer.silhouette ? { silhouette: true } : {}),
+    ...(keyring ? { keyring: { ...keyring } } : {}),
   };
+}
+
+/**
+ * The key ring hole of each layer, top to bottom: the same middle for all, which lies beyond the widest
+ * layer's reach, and the ear on the bottom one only. Undefined for every layer without a hole.
+ */
+export function iconLayerKeyrings(area: SketchProfile, layers: readonly TextLayer[], keyring: NameTagKeyring | null | undefined): (NonNullable<SketchProfile["keyring"]> | undefined)[] {
+  if (!keyring || !layers.length) return layers.map(() => undefined);
+  const reach = Math.max(0, ...layers.map((layer) => layer.grow));
+  const bottom = iconKeyringFor(area, reach, keyring.side, keyring.diameter, true, keyring.along, layers[layers.length - 1].grow);
+  if (!bottom) return layers.map(() => undefined);
+  const { ear: _ear, ...hole } = bottom;
+  return layers.map((_, index) => (index === layers.length - 1 ? bottom : { ...hole }));
 }
 
 /** The icon's outline at `factor` times its size, about the middle of its points; 1 leaves it as it is. */
@@ -105,10 +126,14 @@ export function iconLayersOf(shapes: WorkplaneShape[]): IconLayerStack | null {
   const stretch = sketchBodyStretch(top);
   const outline = iconSourceProfile(top.sketchProfile);
   const source = stretch ? (({ images: _images, ...profile }) => profile)(stretchedSketchProfile(outline, stretch.x, stretch.z)) : outline;
+  const holed = bodies.find((shape) => shape.sketchProfile.keyring);
   return {
     source,
     width: top.width,
     layers,
+    keyring: holed?.sketchProfile.keyring
+      ? { side: holed.sketchProfile.keyring.side, diameter: holed.sketchProfile.keyring.diameter, ...(holed.sketchProfile.keyring.along ? { along: holed.sketchProfile.keyring.along } : {}) }
+      : null,
     ids: topDown.map((shape) => shape.id),
     place: {
       x: top.x,

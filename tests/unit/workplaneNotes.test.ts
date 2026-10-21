@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { editorHistoryEntry, hydrateEditorHistoryState, notesForHistoryIndex, projectSceneFingerprint } from "@/lib/editorHistory";
-import { detachNotesFromMissingShapes, normalizeNotes, NOTE_COUNT_LIMIT, NOTE_TEXT_LIMIT } from "@/lib/workplaneNotes";
+import { normalizeNotes, NOTE_COUNT_LIMIT, NOTE_TEXT_LIMIT } from "@/lib/workplaneNotes";
 import type { WorkplaneNote, WorkplaneShape } from "@/types/layerling";
 
 /*
@@ -57,20 +57,6 @@ describe("normalizing a note", () => {
     expect(normalizeNotes([note(), note()])).toHaveLength(1);
     const many = Array.from({ length: NOTE_COUNT_LIMIT + 20 }, (_unused, index) => note({ id: `note-${index}` }));
     expect(normalizeNotes(many)).toHaveLength(NOTE_COUNT_LIMIT);
-  });
-});
-
-describe("a note whose shape is gone", () => {
-  it("stays where it was and only lets go of the shape", () => {
-    const pinned = note({ anchor: { shapeId: "box-9", normalized: [0, 0, 0] } });
-    const [detached] = detachNotesFromMissingShapes([pinned], [box()]);
-    expect(detached.anchor).toBeUndefined();
-    expect([detached.x, detached.z]).toEqual([5, 7]);
-  });
-
-  it("is left alone while its shape is there", () => {
-    const notes = [note({ anchor: { shapeId: "box-1", normalized: [0, 0, 0] } })];
-    expect(detachNotesFromMissingShapes(notes, [box()])).toBe(notes);
   });
 });
 

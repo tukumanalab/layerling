@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { dirname, resolve as resolvePath } from "node:path";
 import { tools } from "./layerling-mcp-tools.mjs";
 import { isLocalBridgeUrl, openEditorAndWait } from "./layerling-mcp-open.mjs";
 
@@ -112,6 +114,10 @@ async function callTool(name, args) {
       return bridgeCommand("place_on_face", args, 30000);
     case "layerling_perforate_face":
       return bridgeCommand("perforate_face", args, 60000);
+    case "layerling_sweep_sketch":
+      return bridgeCommand("sweep_sketch", args, 60000);
+    case "layerling_push_face":
+      return bridgeCommand("push_face", args, 60000);
     case "layerling_mate_faces":
       return bridgeCommand("mate_faces", args, 30000);
     case "layerling_open_group":
@@ -144,6 +150,10 @@ async function callTool(name, args) {
       return bridgeCommand("delete_custom_shape", args);
     case "layerling_list_edges":
       return bridgeCommand("list_edges", args, 30000);
+    case "layerling_list_faces":
+      return bridgeCommand("list_faces", args, 30000);
+    case "layerling_delete_faces":
+      return bridgeCommand("delete_faces", args, 90000);
     case "layerling_hollow_object":
       return bridgeCommand("hollow_object", args, 90000);
     case "layerling_array_objects":
@@ -160,6 +170,8 @@ async function callTool(name, args) {
       return bridgeCommand("clear_history", args);
     case "layerling_layer_icon":
       return bridgeCommand("layer_icon", args, 60000);
+    case "layerling_create_qr_code":
+      return bridgeCommand("create_qr_code", args, 60000);
     case "layerling_measure_section":
       return bridgeCommand("measure_section", args, 30000);
     case "layerling_show_overhangs":
@@ -176,10 +188,48 @@ async function callTool(name, args) {
       return bridgeCommand("set_section_view", args);
     case "layerling_set_history_view":
       return bridgeCommand("set_history_view", args);
+    case "layerling_restore_from_history":
+      return bridgeCommand("restore_from_history", args);
     case "layerling_show_workplane":
       return bridgeCommand("show_workplane", args);
+    case "layerling_saved_view":
+      return bridgeCommand("saved_view", args);
     case "layerling_export_section_svg":
       return bridgeCommand("export_section_svg", args);
+    case "layerling_export_drawing":
+      return bridgeCommand("export_drawing", args);
+    case "layerling_export_mesh": {
+      // With a path the file is written here, by this server, and the answer carries no file content.
+      const { path: outputPath, ...rest } = args || {};
+      const data = await bridgeCommand("export_mesh", rest, 180000);
+      if (typeof outputPath !== "string" || !outputPath.trim()) return data;
+      const { base64, ...summary } = data;
+      const target = resolvePath(outputPath.trim());
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, Buffer.from(base64, "base64"));
+      return { ...summary, path: target };
+    }
+    case "layerling_save_project": {
+      // The editor packs the project; this server writes it, so the path is one on this computer (#494).
+      const { path: outputPath, overwrite, ...rest } = args || {};
+      if (typeof outputPath !== "string" || !outputPath.trim()) throw new Error("path is required");
+      let target = resolvePath(outputPath.trim());
+      if (!/\.lyl$/i.test(target)) target += ".lyl";
+      const exists = await stat(target).then((info) => info.isFile(), () => false);
+      if (exists && overwrite !== true) throw new Error(`${target} already exists; pass overwrite: true to replace it`);
+      const data = await bridgeCommand("save_project", rest, 180000);
+      const { base64, ...summary } = data;
+      await mkdir(dirname(target), { recursive: true });
+      const temporary = `${target}.${process.pid}.tmp`;
+      try {
+        await writeFile(temporary, Buffer.from(base64, "base64"));
+        await rename(temporary, target);
+      } catch (error) {
+        await rm(temporary, { force: true }).catch(() => undefined);
+        throw new Error(`Could not write ${target}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      return { ...summary, path: target, overwritten: exists };
+    }
     case "layerling_import_file":
       return bridgeCommand("import_file", args);
     case "layerling_add_font":

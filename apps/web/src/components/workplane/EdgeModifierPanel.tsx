@@ -11,9 +11,14 @@ import { t } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
 import type { WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { selectWholeValue } from "@/lib/numberField";
+import { useWheelField } from "@/lib/useWheelField";
+import { wheelBaseStep, wheelNextValue } from "@/lib/wheelValueStep";
 
 const MIN_EDGE_MODIFIER_AMOUNT = 0.001;
 const EDGE_MODIFIER_AMOUNT_STEP = 0.001;
+/** The slider of the distance or radius moves in tenths of a millimetre and goes to 10 mm; larger values are typed. */
+const EDGE_MODIFIER_SLIDER_STEP = 0.1;
+const EDGE_MODIFIER_SLIDER_MAX = 10;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -30,6 +35,8 @@ export type EdgeHistoryOption = {
   kind: CadModifierKind;
   amount: number;
   edgeCount: number;
+  /** Only for a deletion of faces. */
+  faceCount?: number;
   targetName: string;
   removesNewerCount: number;
   /** Opens the tool again with the value and edges it had. */
@@ -40,17 +47,26 @@ export type EdgeHistoryOption = {
 function edgeHistoryLabel(option: EdgeHistoryOption) {
   const size = String(Number(option.amount.toFixed(2)));
   if (option.kind === "shell") return t("edge.revertShell", { size });
-  if (option.edgeCount === 1) {
-    return t(option.kind === "fillet" ? "edge.revertFilletOne" : "edge.revertChamferOne", { size });
+  if (option.kind === "deleteFace") {
+    return option.faceCount === 1 ? t("edge.revertDeleteFaceOne") : t("edge.revertDeleteFaceMany", { count: option.faceCount ?? 0 });
   }
-  return t(option.kind === "fillet" ? "edge.revertFilletMany" : "edge.revertChamferMany", { size, count: option.edgeCount });
+  if (option.edgeCount === 1) {
+    return t(option.kind === "fillet" ? "edge.revertFilletOne" : option.kind === "chamfillet" ? "edge.revertChamfilletOne" : "edge.revertChamferOne", { size });
+  }
+  return t(option.kind === "fillet" ? "edge.revertFilletMany" : option.kind === "chamfillet" ? "edge.revertChamfilletMany" : "edge.revertChamferMany", { size, count: option.edgeCount });
 }
 
 /**
- * The treatments a body already has - fillets, chamfers, hollowing - with "Revert" for each and
+ * The treatments a body already has - fillets, chamfers, hollowing, deleted faces - with "Revert" for each and
  * "Edit" where the tool can be opened again with the same values (#227). The fillet and chamfer
- * tool and the hollow tool show the same list (#237).
+ * tool, the hollow tool and Delete face show the same list (#237).
  */
+/**
+ * Whether the list was open when it was last left. Taking a feature back opens the tool again on the restored body, which
+ * builds the panel anew, and a list that shut itself after every click made taking back several in a row a chore (#517).
+ */
+let historyListWasOpen = false;
+
 export function EdgeFeatureHistory({
   appliedFeatureCount,
   reversibleFeatureCount,
@@ -64,7 +80,14 @@ export function EdgeFeatureHistory({
   onRemoveFeature: (id: string) => void;
   onEditFeature?: (id: string) => void;
 }) {
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyOpen, setHistoryOpenState] = useState(historyListWasOpen);
+  const setHistoryOpen = (update: (open: boolean) => boolean) => {
+    setHistoryOpenState((open) => {
+      const next = update(open);
+      historyListWasOpen = next;
+      return next;
+    });
+  };
   if (appliedFeatureCount === 0) return null;
   return (
     <div className="edge-modifier-history-actions">
@@ -118,6 +141,7 @@ export function EdgeModifierSlider({
   workspace,
   length = false,
   disabled = false,
+  coarse,
   onChange,
 }: {
   label: string;
@@ -129,6 +153,11 @@ export function EdgeModifierSlider({
   workspace: WorkplaneWorkspaceSettings;
   length?: boolean;
   disabled?: boolean;
+  /**
+   * The slider moves in these larger steps and goes only as far as `max`, in millimetres for a length, while the field
+   * still takes the exact value and anything up to the full range: a slider of 3,000 steps gives crooked values (forum, DrJones).
+   */
+  coarse?: { step: number; max: number };
   onChange: (value: number) => void;
 }) {
   const safeMin = Number.isFinite(min) ? min : 0;
@@ -138,8 +167,12 @@ export function EdgeModifierSlider({
   const controlMin = length ? millimetersToDisplay(safeMin, workspace) : safeMin;
   const controlMax = length ? millimetersToDisplay(safeMax, workspace) : safeMax;
   const controlStep = length ? displayStepFromMillimeters(step, workspace) : step;
-  const sliderValue = clamp(controlValue, controlMin, controlMax);
-  const position = ((sliderValue - controlMin) / Math.max(Number.EPSILON, controlMax - controlMin)) * 100;
+  // The slider's own range: counted from 0 in coarse steps, so its values are whole steps (0.1, 0.2 ...), not 0.001 + n * 0.1.
+  const rangeMin = coarse ? 0 : controlMin;
+  const rangeMax = coarse ? Math.max(controlMin, Math.min(controlMax, length ? millimetersToDisplay(coarse.max, workspace) : coarse.max)) : controlMax;
+  const rangeStep = coarse ? (length ? displayStepFromMillimeters(coarse.step, workspace) : coarse.step) : controlStep;
+  const sliderValue = clamp(controlValue, rangeMin, rangeMax);
+  const position = ((sliderValue - rangeMin) / Math.max(Number.EPSILON, rangeMax - rangeMin)) * 100;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(formatSliderValue(controlValue, workspace.accuracy, controlStep));
   const unitLabel = length ? lengthDisplayUnit(workspace).label : unit;
@@ -152,7 +185,27 @@ export function EdgeModifierSlider({
 
   const toModelValue = (nextValue: number) => length ? displayToMillimeters(nextValue, workspace) : nextValue;
 
+  // The mouse wheel in the clicked field (#536). What the wheel wrote stays as it is when the field is left, so
+  // the rounded reading does not replace the exact value.
+  const numberInputRef = useRef<HTMLInputElement>(null);
+  const wheelShownRef = useRef<string | null>(null);
+  useWheelField(numberInputRef, editing && !disabled, ({ direction, keys }) => {
+    const parsed = parseMeasurementInput(draft);
+    const current = Number.isFinite(parsed) ? parsed : controlValue;
+    const next = clamp(wheelNextValue(current, direction, wheelBaseStep(controlMin, controlMax, controlStep, length && unitLabel === "in"), keys), controlMin, controlMax);
+    const shown = formatSliderValue(next, workspace.accuracy, controlStep);
+    wheelShownRef.current = shown;
+    setDraft(shown);
+    onChange(clamp(toModelValue(next), safeMin, safeMax));
+  });
+
   const commitDraft = () => {
+    if (wheelShownRef.current !== null && draft === wheelShownRef.current) {
+      wheelShownRef.current = null;
+      setEditing(false);
+      return;
+    }
+    wheelShownRef.current = null;
     const next = parseMeasurementInput(draft);
     const finiteNext = Number.isFinite(next) ? next : controlValue;
     const committed = clamp(toModelValue(finiteNext), safeMin, safeMax);
@@ -174,16 +227,21 @@ export function EdgeModifierSlider({
         <span className="range-property-name">{label}</span>
         <span className="range-value-control">
           <input
+            ref={numberInputRef}
             type="text"
             value={editing ? draft : formatSliderValue(controlValue, workspace.accuracy, controlStep)}
             inputMode="decimal"
             disabled={disabled}
             onFocus={(event) => {
+              wheelShownRef.current = null;
               setDraft(formatSliderValue(controlValue, workspace.accuracy, controlStep));
               setEditing(true);
               selectWholeValue(event.currentTarget);
             }}
-            onChange={(event) => setDraft(event.currentTarget.value)}
+            onChange={(event) => {
+              wheelShownRef.current = null;
+              setDraft(event.currentTarget.value);
+            }}
             onBlur={commitDraft}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
@@ -204,9 +262,9 @@ export function EdgeModifierSlider({
       <div className="range-control">
         <input
           type="range"
-          min={controlMin}
-          max={controlMax}
-          step={controlStep}
+          min={rangeMin}
+          max={rangeMax}
+          step={rangeStep}
           value={sliderValue}
           disabled={disabled}
           onChange={(event) => handleSliderChange(Number(event.currentTarget.value))}
@@ -240,6 +298,7 @@ export function EdgeModifierPanel({
   error,
   onAmountChange,
   onChamferAngleChange,
+  onKindChange,
   onQualityChange,
   onSharpAngleChange,
   onTangentChainChange,
@@ -247,6 +306,10 @@ export function EdgeModifierPanel({
   onPreserveEdgeSizeChange,
   onSelectAll,
   onSelectTop,
+  onSelectBottom,
+  onSelectVertical,
+  onSelectHorizontal,
+  activeQuickSelection = [],
   onClear,
   onRemoveFeature,
   onEditFeature,
@@ -278,6 +341,7 @@ export function EdgeModifierPanel({
   error: string | null;
   onAmountChange: (value: number) => void;
   onChamferAngleChange: (value: number) => void;
+  onKindChange?: (kind: "chamfer" | "chamfillet") => void;
   onQualityChange: (value: CadModifierQuality) => void;
   onSharpAngleChange: (value: number) => void;
   onTangentChainChange: (value: boolean) => void;
@@ -285,7 +349,13 @@ export function EdgeModifierPanel({
   onPreserveEdgeSizeChange: (value: boolean) => void;
   onSelectAll: () => void;
   /** Picks only the edges along the very top, e.g. the rim of a cookie cutter (#154). */
-  onSelectTop?: () => void;
+  /** The quick buttons: a click picks their edges, Shift, Ctrl or Cmd with the click adds them to the ones picked (#538). */
+  onSelectTop?: (add: boolean) => void;
+  onSelectBottom?: (add: boolean) => void;
+  onSelectVertical?: (add: boolean) => void;
+  onSelectHorizontal?: (add: boolean) => void;
+  /** Which of the quick buttons made the edges picked now, to light it up (#517). */
+  activeQuickSelection?: ReadonlyArray<"all" | "top" | "bottom" | "vertical" | "horizontal">;
   onClear: () => void;
   onRemoveFeature: (id: string) => void;
   /** Takes a treatment back and opens the tool again with its value and edges (#227). */
@@ -294,7 +364,7 @@ export function EdgeModifierPanel({
   onCancel: () => void;
 }) {
   useLanguage();
-  const title = kind === "fillet" ? t("edge.filletTitle") : t("edge.chamferTitle");
+  const title = kind === "fillet" ? t("edge.filletTitle") : kind === "chamfillet" ? t("edge.chamfilletTitle") : t("edge.chamferTitle");
   const amountMin = Math.min(MIN_EDGE_MODIFIER_AMOUNT, Math.max(Number.EPSILON, maxAmount));
   const amountMax = Math.max(amountMin, maxAmount);
   // On a short screen the panel scrolls, and the error sits at its foot under
@@ -334,9 +404,12 @@ export function EdgeModifierPanel({
         {!prepared ? t("edge.loading") : busy ? t("edge.previewBusy") : t("edge.selectionHelp")}
       </div>
 
-      <div className="edge-modifier-quick-actions">
-        <button type="button" disabled={!prepared} onClick={onSelectAll}>{t("edge.allSharpEdges")}</button>
-        {onSelectTop ? <button type="button" disabled={!prepared} title={t("edge.topEdgesHint")} onClick={onSelectTop}>{t("edge.topEdges")}</button> : null}
+      <div className="edge-modifier-quick-actions" title={t("edge.quickAddHint")}>
+        <button type="button" className={activeQuickSelection.includes("all") ? "active" : ""} aria-pressed={activeQuickSelection.includes("all")} disabled={!prepared} onClick={onSelectAll}>{t("edge.allSharpEdges")}</button>
+        {onSelectTop ? <button type="button" className={activeQuickSelection.includes("top") ? "active" : ""} aria-pressed={activeQuickSelection.includes("top")} disabled={!prepared} title={t("edge.topEdgesHint")} onClick={(event) => onSelectTop(event.shiftKey || event.ctrlKey || event.metaKey)}>{t("edge.topEdges")}</button> : null}
+        {onSelectBottom ? <button type="button" className={activeQuickSelection.includes("bottom") ? "active" : ""} aria-pressed={activeQuickSelection.includes("bottom")} disabled={!prepared} title={t("edge.bottomEdgesHint")} onClick={(event) => onSelectBottom(event.shiftKey || event.ctrlKey || event.metaKey)}>{t("edge.bottomEdges")}</button> : null}
+        {onSelectVertical ? <button type="button" className={activeQuickSelection.includes("vertical") ? "active" : ""} aria-pressed={activeQuickSelection.includes("vertical")} disabled={!prepared} title={t("edge.verticalEdgesHint")} onClick={(event) => onSelectVertical(event.shiftKey || event.ctrlKey || event.metaKey)}>{t("edge.verticalEdges")}</button> : null}
+        {onSelectHorizontal ? <button type="button" className={activeQuickSelection.includes("horizontal") ? "active" : ""} aria-pressed={activeQuickSelection.includes("horizontal")} disabled={!prepared} title={t("edge.horizontalEdgesHint")} onClick={(event) => onSelectHorizontal(event.shiftKey || event.ctrlKey || event.metaKey)}>{t("edge.horizontalEdges")}</button> : null}
         <button type="button" disabled={!prepared} onClick={onClear}>{t("edge.clear")}</button>
       </div>
 
@@ -348,19 +421,49 @@ export function EdgeModifierPanel({
         onEditFeature={onEditFeature}
       />
 
+      {(kind === "chamfer" || kind === "chamfillet") && onKindChange ? (
+        <div className="edge-modifier-field shell-openings" role="radiogroup" aria-label={t("edge.chamferTitle")}>
+          <div className="shell-opening-options">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={kind === "chamfer"}
+              className={kind === "chamfer" ? "active" : ""}
+              disabled={!prepared}
+              onClick={() => onKindChange("chamfer")}
+            >
+              {t("editor.tool.chamfer")}
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={kind === "chamfillet"}
+              className={kind === "chamfillet" ? "active" : ""}
+              disabled={!prepared}
+              title={t("edge.chamfilletHint")}
+              onClick={() => onKindChange("chamfillet")}
+            >
+              {t("edge.chamfillet")}
+            </button>
+          </div>
+          {kind === "chamfillet" ? <span className="shell-openings-summary">{t("edge.chamfilletHint")}</span> : null}
+        </div>
+      ) : null}
+
       <EdgeModifierSlider
         label={kind === "fillet" ? t("edge.radius") : t("edge.distance")}
         value={amount}
         min={amountMin}
         max={amountMax}
         step={EDGE_MODIFIER_AMOUNT_STEP}
+        coarse={{ step: lengthDisplayUnit(workspace).label === "in" ? 25.4 / 64 : EDGE_MODIFIER_SLIDER_STEP, max: EDGE_MODIFIER_SLIDER_MAX }}
         workspace={workspace}
         length
         disabled={!prepared}
         onChange={onAmountChange}
       />
 
-      {kind === "chamfer" ? <EdgeModifierSlider label={t("edge.angle")} value={chamferAngle} min={5} max={85} step={1} unit="°" workspace={workspace} disabled={!prepared} onChange={onChamferAngleChange} /> : null}
+      {kind === "chamfer" || kind === "chamfillet" ? <EdgeModifierSlider label={t("edge.angle")} value={chamferAngle} min={kind === "chamfillet" ? 15 : 5} max={kind === "chamfillet" ? 75 : 85} step={1} unit="°" workspace={workspace} disabled={!prepared} onChange={onChamferAngleChange} /> : null}
 
       <EdgeModifierSlider label={t("edge.sharpThreshold")} value={sharpAngle} min={1} max={CAD_MODIFIER_MAX_SHARP_ANGLE} step={1} unit="°" workspace={workspace} disabled={!prepared} onChange={onSharpAngleChange} />
 
@@ -397,7 +500,7 @@ export function EdgeModifierPanel({
 
       {error ? <div ref={errorRef} className="edge-modifier-error" role="alert">{cadModifierUserErrorMessage(error)}</div> : null}
       <div className="edge-modifier-footer">
-        <button type="button" className="secondary" onClick={onCancel}>{t("common.cancel")}</button>
+        <button type="button" className="secondary" onClick={onCancel}>{t(selectedCount === 0 && !busy ? "edge.done" : "common.cancel")}</button>
         <button type="button" className="primary" disabled={!prepared || busy || selectedCount === 0 || Boolean(error)} onClick={onApply}>
           {busy ? <LoaderCircle className="edge-modifier-spinner" size={17} /> : <Check size={17} />}
           {t("edge.apply")}

@@ -26,10 +26,12 @@ export type ShapeKind =
   | "dovetail"
   | "counterbore"
   | "countersink"
+  | "doubleCountersink"
   | "teardrop"
   | "loft"
   | "thread"
   | "spring"
+  | "gridfinity"
   | "ring"
   | "wedge"
   | "polygon"
@@ -80,7 +82,8 @@ export type ProjectAsset = {
  * one key takes up on a keyboard. The snap menu offers it whole, halved and
  * quartered.
  */
-export type CustomSnapGrid = { name: string; size: number };
+/** `wholeOnly` offers just the measure itself in the snap menu, not its half and quarter as well. */
+export type CustomSnapGrid = { name: string; size: number; wholeOnly?: boolean };
 /** "custom:<size in mm>:<divisor>" - the step is the size divided by the divisor, so it needs no lookup. */
 export type CustomSnapGridSize = `custom:${number}:${number}`;
 export type GridSize = "Off" | "0.1 mm" | "0.25 mm" | "0.5 mm" | "1.0 mm" | "2.0 mm" | "5.0 mm" | "1/64 in" | "1/32 in" | "1/16 in" | "1/8 in" | "1/4 in" | "1/2 in" | "1 in" | "Brick" | CustomSnapGridSize;
@@ -88,6 +91,8 @@ export type MeasurementAccuracy = 1 | 2 | 3;
 export type HistoryRetentionLimit = "unlimited" | number;
 
 export type ShapeCustomization = {
+  /** The colour a new shape of this kind starts with ("#rrggbb"); the app's own colour of the kind when absent. */
+  color?: string;
   width?: number;
   depth?: number;
   height?: number;
@@ -128,6 +133,9 @@ export type ShapeCustomization = {
   /** Rod and screw: how much thinner (in diameter) the bolt comes out, for a metal nut. */
   threadBoltClearance?: number;
   threadAxialClearance?: number;
+  /** Own profile: the thread depth in mm (outer minus core radius) and the included flank angle in degrees. */
+  threadDepth?: number;
+  threadFlankAngle?: number;
   threadQuality?: number;
   threadHeadHeight?: number;
   threadChamfer?: number;
@@ -159,6 +167,70 @@ export type ShapeCustomization = {
   hingeLeafThickness?: number;
   /** Hinge: gap in mm between the moving parts - around the pin, between knuckles and before the leaves. */
   hingeClearance?: number;
+  /** Hinge: no printed pin; the bore runs through every knuckle for a pin of one's own (filament, wire). */
+  hingePinless?: boolean;
+  /** Gridfinity: a bin or the baseplate it stands in; the size counts grid units of 42 mm (height units of 7 mm). */
+  gridfinityType?: GridfinityType;
+  /** Gridfinity bin: the stacking lip on top of the wall; missing means on. */
+  gridfinityLip?: boolean;
+  /** Gridfinity bin: holes for 6 x 2 mm magnets under each foot. */
+  gridfinityMagnets?: boolean;
+  /** Gridfinity bin: the size counts cells of 21 mm, each with a foot, four to a baseplate's socket; missing means the 42 mm grid. */
+  gridfinityHalfGrid?: boolean;
+  /** Gridfinity bin: a label shelf along the back wall. */
+  gridfinityLabelBack?: boolean;
+  /** Gridfinity bin: a label shelf along the front wall. */
+  gridfinityLabelFront?: boolean;
+  /** Gridfinity bin: a label shelf along the left wall. */
+  gridfinityLabelLeft?: boolean;
+  /** Gridfinity bin: a label shelf along the right wall. */
+  gridfinityLabelRight?: boolean;
+  /** Gridfinity bin: how far the back wall's label shelf reaches out from it, in mm. */
+  gridfinityLabelBackWidth?: number;
+  /** Gridfinity bin: the back wall's label shelf length in mm; missing or 0 runs it from wall to wall. */
+  gridfinityLabelBackLength?: number;
+  /** Gridfinity bin: the back wall's label shelf of a set length moved along the wall from the middle, in mm, towards +x. */
+  gridfinityLabelBackOffset?: number;
+  /** Gridfinity bin: how far the front wall's label shelf reaches out from it, in mm. */
+  gridfinityLabelFrontWidth?: number;
+  /** Gridfinity bin: the front wall's label shelf length in mm; missing or 0 runs it from wall to wall. */
+  gridfinityLabelFrontLength?: number;
+  /** Gridfinity bin: the front wall's label shelf of a set length moved along the wall from the middle, in mm, towards +x. */
+  gridfinityLabelFrontOffset?: number;
+  /** Gridfinity bin: how far the left wall's label shelf reaches out from it, in mm. */
+  gridfinityLabelLeftWidth?: number;
+  /** Gridfinity bin: the left wall's label shelf length in mm; missing or 0 runs it from wall to wall. */
+  gridfinityLabelLeftLength?: number;
+  /** Gridfinity bin: the left wall's label shelf of a set length moved along the wall from the middle, in mm, towards +z (the front). */
+  gridfinityLabelLeftOffset?: number;
+  /** Gridfinity bin: how far the right wall's label shelf reaches out from it, in mm. */
+  gridfinityLabelRightWidth?: number;
+  /** Gridfinity bin: the right wall's label shelf length in mm; missing or 0 runs it from wall to wall. */
+  gridfinityLabelRightLength?: number;
+  /** Gridfinity bin: the right wall's label shelf of a set length moved along the wall from the middle, in mm, towards +z (the front). */
+  gridfinityLabelRightOffset?: number;
+  /** Gridfinity bin: where a label shelf meets a wall or another shelf, the corner rounded or chamfered. */
+  gridfinityLabelCorner?: GridfinityLabelCorner;
+  /** Gridfinity bin: the size of that rounding or chamfer in mm; 0 leaves the corner sharp. */
+  gridfinityLabelCornerSize?: number;
+  /** Gridfinity bin: a finger scoop along the back wall, the floor rising along a quarter circle into it. */
+  gridfinityScoopBack?: boolean;
+  /** Gridfinity bin: a finger scoop along the front wall. */
+  gridfinityScoopFront?: boolean;
+  /** Gridfinity bin: a finger scoop along the left wall. */
+  gridfinityScoopLeft?: boolean;
+  /** Gridfinity bin: a finger scoop along the right wall. */
+  gridfinityScoopRight?: boolean;
+  /** Gridfinity bin: the finger scoops' radius in mm; missing is half the height from the floor up to the lip's support, or to the top without the lip. */
+  gridfinityScoopRadius?: number;
+  /** Gridfinity bin: the floor's height inside in mm, measured from the underside; missing is 5.95, and at the highest the bin is solid up to the lip's support, or to the top without the lip. */
+  gridfinityFloorHeight?: number;
+  /** Gridfinity bin: compartments across, a whole number; missing is 1, a bin without dividers (#554). */
+  gridfinityCompartmentsX?: number;
+  /** Gridfinity bin: compartments deep, a whole number; missing is 1. */
+  gridfinityCompartmentsZ?: number;
+  /** Gridfinity bin: the dividers' thickness in mm, 0.8 to 3; missing is 1.2. */
+  gridfinityDividerThickness?: number;
   /** Knurling: grooves straight along the axis, or crossed into diamonds. */
   knurlPattern?: "straight" | "diamond" | "round";
   /** Knurling: number of grooves around the grip. */
@@ -201,11 +273,11 @@ export type ShapeCustomization = {
   /** Transition: degrees the top end tilts about the x axis and about the z axis (#205). */
   loftTiltX?: number;
   loftTiltZ?: number;
-  /** Counterbore/countersink: diameter of the shaft below the head in mm. */
+  /** Counterbore/countersink: diameter of the shaft below the head in mm (double countersink: the shaft between the two cones). */
   screwHoleShaft?: number;
   /** Counterbore: depth of the head pocket in mm. */
   screwHoleHeadDepth?: number;
-  /** Countersink: opening angle of the cone in degrees. */
+  /** Countersink and double countersink: opening angle of the cone in degrees. */
   screwHoleAngle?: number;
   bentTubeProfile?: BentTubeProfile;
   bentTubeInnerProfile?: BentTubeInnerProfile;
@@ -236,6 +308,8 @@ export type WorkplaneWorkspaceSettings = {
   printer: string;
   gridBlockSize: number;
   gridBlockPreset: string;
+  /** The grid preset of the unit system left by the last switch between mm and in, so switching back finds it again (#442). */
+  gridBlockOtherUnits?: string;
   gridColor: string;
   /** Every how many grid steps a darker line is drawn on a millimetre grid: 5 or 10 (#143). */
   gridMajorInterval: number;
@@ -255,6 +329,8 @@ export type WorkplaneWorkspaceSettings = {
   edgeLines: boolean;
   /** Colour of those edge lines. */
   edgeColor: string;
+  /** Holes drawn darker and denser, with a line round them, so they stand out among see-through bodies (#662). */
+  strongHoles: boolean;
   showShadows: boolean;
   /** The camera keeps turning for a moment after you let go, and slows down. */
   cameraInertia: boolean;
@@ -284,6 +360,8 @@ export type WorkplaneWorkspaceSettings = {
   showGrid: boolean;
   clickToPlaceShapes: boolean;
   selectBeforeMove: boolean;
+  /** The selection frame takes only what it encloses when dragged to the right, what it touches when dragged to the left (#430). */
+  frameByDirection: boolean;
   /** A double click on a sketch body opens its sketch; on a group or bundle, opens it for editing (#150). */
   doubleClickOpensSketch: boolean;
   doubleClickOpensGroup: boolean;
@@ -325,6 +403,8 @@ export type SketchPoint = {
   handleIn?: { x: number; z: number };
   handleOut?: { x: number; z: number };
   mode?: "corner" | "smooth" | "split";
+  /** Part of a locked outline (#653): the point keeps its place, and the sides between locked points stay as they are. */
+  locked?: boolean;
 };
 
 export type SketchSegment = {
@@ -356,8 +436,8 @@ export type SketchImage = {
   crop?: { left: number; top: number; right: number; bottom: number };
 };
 
-/** Where the wall of a stroked closed outline lies against the drawn line; "grow" keeps the area and widens it by the width (#215). */
-export type SketchStrokeAlign = "center" | "inside" | "outside" | "grow";
+/** Where the wall of a stroked closed outline lies against the drawn line; "grow" keeps the area and widens it by the width (#215), "shrink" keeps it and moves its edge in by the width (#558). */
+export type SketchStrokeAlign = "center" | "inside" | "outside" | "grow" | "shrink";
 export type SketchStrokeJoin = "miter" | "round" | "bevel";
 export type SketchStrokeCap = "flat" | "square" | "round";
 /** A sketch drawn as a line of this width instead of a filled area (#154). */
@@ -366,11 +446,24 @@ export type SketchStroke = { width: number; align: SketchStrokeAlign; join: Sket
 export type TextKeyringSide = "left" | "right" | "top";
 /**
  * A key ring hole on a text (#215): a round hole `offset` mm beyond the letters' box on `side`,
- * centred on that side. With `ear` the text also grows a round ear round the hole that joins
+ * centred on that side, or `along` mm off its middle (#671: up on the left and right, to the
+ * right on top). With `ear` the text also grows a round ear round the hole that joins
  * its outline - the bottom layer of a name tag; the layers above only get the hole where it
  * reaches them. The box grows by the ear on that side; the letters keep their size.
  */
-export type TextKeyring = { side: TextKeyringSide; diameter: number; offset: number; ear?: boolean };
+export type TextKeyring = { side: TextKeyringSide; diameter: number; offset: number; along?: number; ear?: boolean };
+
+/**
+ * A key ring hole in an extruded sketch (#391): its middle in the sketch's own mm, its size, the side it is on and whether the layer has the ear.
+ * `along` is how far the card moved it off the middle of its side (#671), kept so the card reads it back.
+ */
+export type SketchKeyring = { side: TextKeyringSide; diameter: number; x: number; z: number; along?: number; ear?: boolean };
+/**
+ * A sketch built set in from its outlines: every edge `distance` mm inward, every corner rounded to
+ * `radius` mm. The face tool keeps the outline of the face it pushes out or in here and builds the
+ * inset from it, as a stroked sketch keeps its line.
+ */
+export type SketchInset = { distance: number; radius: number };
 
 export type SketchProfile = {
   points: SketchPoint[];
@@ -379,13 +472,37 @@ export type SketchProfile = {
   stroke?: SketchStroke;
   /** Built without its holes: only the outermost outlines count, as the usual Silhouette (#197). */
   silhouette?: boolean;
+  /** A key ring hole cut through the body, with its ear on the bottom layer of an icon tag (#391). */
+  keyring?: SketchKeyring;
+  /** Built set in from its outlines by the face tool: the body keeps the face's outline and builds the inset from it. */
+  inset?: SketchInset;
 };
 
-export type SketchOperation = "extrude" | "revolve";
+export type SketchOperation = "extrude" | "revolve" | "sweep";
 
 /** Spur, helical, herringbone and bevel gears; a ring gear with its teeth pointing in and a rack (#201, #265). */
 export type GearType = "spur" | "helical" | "herringbone" | "bevel" | "internal" | "rack";
 export type GearProfile = "involute" | "round" | "simple";
+
+/** A Gridfinity bin, or the baseplate bins stand in. */
+export type GridfinityType = "bin" | "baseplate";
+/** How a label shelf's corners are finished where it meets a wall or another shelf. */
+export type GridfinityLabelCorner = "round" | "chamfer";
+/**
+ * A label in one compartment of a Gridfinity bin with dividers (#554): column 0 is the left, row 0 the back. It stands
+ * against one side of the compartment, the bin's wall or a divider; `length` is a share of that side in per cent (10 to
+ * 100, missing the full length), `align` where a shorter one sits along it (start towards -x on a back or front side and
+ * towards -z on a left or right one; missing the middle), `width` how far it reaches out in mm (missing 14, within what
+ * the compartment takes).
+ */
+export type GridfinityCompartmentLabel = {
+  column: number;
+  row: number;
+  side: "back" | "front" | "left" | "right";
+  length?: number;
+  align?: "start" | "middle" | "end";
+  width?: number;
+};
 
 /** Was aus dem Gewinde wird: Stange, Schraube, Mutter oder das Loch dafuer. */
 export type ThreadRole = "rod" | "screw" | "nut" | "bore";
@@ -395,13 +512,19 @@ export type ThreadHand = "right" | "left";
  * Die Zahnform: scharfe ISO-Spitze, flache Trapezflanke, rundes Profil oder
  * das Whitworth-Profil der G-Rohrgewinde (55 Grad, Kuppe und Grund gerundet).
  */
-export type ThreadProfile = "v" | "trapezoidal" | "round" | "whitworth";
+export type ThreadProfile = "v" | "trapezoidal" | "round" | "whitworth" | "custom";
 
 export type SketchRevolveSettings = {
   startAngle: number;
   sweepAngle: number;
   sides: number;
   quality: number;
+  /**
+   * How far the profile climbs per full turn, in mm. Left out or 0 the profile turns into rings; above
+   * 0 it winds up as one continuous strand (a coil, a filament spool) and the sweep may run past a
+   * turn. A positive sweep winds right-handed, a negative one left-handed.
+   */
+  pitch?: number;
 };
 
 /** A side of a body as seen from the workplane: up/down and the four sides of the plate. */
@@ -422,8 +545,8 @@ export type ShellOpenings = "none" | "top" | "bottom" | "top-bottom" | ShellSide
 export type ShellEdges = "round" | "sharp";
 
 export type EdgeTreatmentFeature = {
-  /** "shell" hollows the body: `amount` is then the wall thickness. */
-  kind: "fillet" | "chamfer" | "shell";
+  /** "shell" hollows the body: `amount` is then the wall thickness. "deleteFace" deletes faces and closes the gap (#451). */
+  kind: "fillet" | "chamfer" | "chamfillet" | "shell" | "deleteFace";
   amount: number;
   edgeCount: number;
   /** The edges picked, as the tool numbered them on the body before this treatment: "Edit" picks them again (#227). */
@@ -432,6 +555,9 @@ export type EdgeTreatmentFeature = {
   openings?: ShellOpenings;
   /** Only for "shell"; missing means "round". */
   shellEdges?: ShellEdges;
+  /** Only for "deleteFace": the faces deleted, as the tool numbered them on the body before. */
+  faceIds?: number[];
+  faceCount?: number;
 };
 
 export type EdgeTreatmentHistoryEntry = {
@@ -580,6 +706,9 @@ export type WorkplaneShape = {
   /** Rod and screw: how much thinner (in diameter) the bolt comes out, for a metal nut. */
   threadBoltClearance?: number;
   threadAxialClearance?: number;
+  /** Own profile: the thread depth in mm (outer minus core radius) and the included flank angle in degrees. */
+  threadDepth?: number;
+  threadFlankAngle?: number;
   threadQuality?: number;
   threadHeadHeight?: number;
   threadChamfer?: number;
@@ -611,6 +740,76 @@ export type WorkplaneShape = {
   hingeLeafThickness?: number;
   /** Hinge: gap in mm between the moving parts - around the pin, between knuckles and before the leaves. */
   hingeClearance?: number;
+  /** Hinge: no printed pin; the bore runs through every knuckle for a pin of one's own (filament, wire). */
+  hingePinless?: boolean;
+  /** Gridfinity: a bin or the baseplate it stands in; the size counts grid units of 42 mm (height units of 7 mm). */
+  gridfinityType?: GridfinityType;
+  /** Gridfinity bin: the stacking lip on top of the wall; missing means on. */
+  gridfinityLip?: boolean;
+  /** Gridfinity bin: holes for 6 x 2 mm magnets under each foot. */
+  gridfinityMagnets?: boolean;
+  /** Gridfinity bin: the size counts cells of 21 mm, each with a foot, four to a baseplate's socket; missing means the 42 mm grid. */
+  gridfinityHalfGrid?: boolean;
+  /** Gridfinity bin: a label shelf along the back wall. */
+  gridfinityLabelBack?: boolean;
+  /** Gridfinity bin: a label shelf along the front wall. */
+  gridfinityLabelFront?: boolean;
+  /** Gridfinity bin: a label shelf along the left wall. */
+  gridfinityLabelLeft?: boolean;
+  /** Gridfinity bin: a label shelf along the right wall. */
+  gridfinityLabelRight?: boolean;
+  /** Gridfinity bin: how far the back wall's label shelf reaches out from it, in mm. */
+  gridfinityLabelBackWidth?: number;
+  /** Gridfinity bin: the back wall's label shelf length in mm; missing or 0 runs it from wall to wall. */
+  gridfinityLabelBackLength?: number;
+  /** Gridfinity bin: the back wall's label shelf of a set length moved along the wall from the middle, in mm, towards +x. */
+  gridfinityLabelBackOffset?: number;
+  /** Gridfinity bin: how far the front wall's label shelf reaches out from it, in mm. */
+  gridfinityLabelFrontWidth?: number;
+  /** Gridfinity bin: the front wall's label shelf length in mm; missing or 0 runs it from wall to wall. */
+  gridfinityLabelFrontLength?: number;
+  /** Gridfinity bin: the front wall's label shelf of a set length moved along the wall from the middle, in mm, towards +x. */
+  gridfinityLabelFrontOffset?: number;
+  /** Gridfinity bin: how far the left wall's label shelf reaches out from it, in mm. */
+  gridfinityLabelLeftWidth?: number;
+  /** Gridfinity bin: the left wall's label shelf length in mm; missing or 0 runs it from wall to wall. */
+  gridfinityLabelLeftLength?: number;
+  /** Gridfinity bin: the left wall's label shelf of a set length moved along the wall from the middle, in mm, towards +z (the front). */
+  gridfinityLabelLeftOffset?: number;
+  /** Gridfinity bin: how far the right wall's label shelf reaches out from it, in mm. */
+  gridfinityLabelRightWidth?: number;
+  /** Gridfinity bin: the right wall's label shelf length in mm; missing or 0 runs it from wall to wall. */
+  gridfinityLabelRightLength?: number;
+  /** Gridfinity bin: the right wall's label shelf of a set length moved along the wall from the middle, in mm, towards +z (the front). */
+  gridfinityLabelRightOffset?: number;
+  /** Gridfinity bin: where a label shelf meets a wall or another shelf, the corner rounded or chamfered. */
+  gridfinityLabelCorner?: GridfinityLabelCorner;
+  /** Gridfinity bin: the size of that rounding or chamfer in mm; 0 leaves the corner sharp. */
+  gridfinityLabelCornerSize?: number;
+  /** Gridfinity bin: a finger scoop along the back wall, the floor rising along a quarter circle into it. */
+  gridfinityScoopBack?: boolean;
+  /** Gridfinity bin: a finger scoop along the front wall. */
+  gridfinityScoopFront?: boolean;
+  /** Gridfinity bin: a finger scoop along the left wall. */
+  gridfinityScoopLeft?: boolean;
+  /** Gridfinity bin: a finger scoop along the right wall. */
+  gridfinityScoopRight?: boolean;
+  /** Gridfinity bin: the finger scoops' radius in mm; missing is half the height from the floor up to the lip's support, or to the top without the lip. */
+  gridfinityScoopRadius?: number;
+  /** Gridfinity bin: the floor's height inside in mm, measured from the underside; missing is 5.95, and at the highest the bin is solid up to the lip's support, or to the top without the lip. */
+  gridfinityFloorHeight?: number;
+  /** Gridfinity bin: compartments across, a whole number; missing is 1, a bin without dividers (#554). */
+  gridfinityCompartmentsX?: number;
+  /** Gridfinity bin: compartments deep, a whole number; missing is 1. */
+  gridfinityCompartmentsZ?: number;
+  /** Gridfinity bin: the dividers' thickness in mm, 0.8 to 3; missing is 1.2. */
+  gridfinityDividerThickness?: number;
+  /** Gridfinity bin: each divider across, in mm from the inside of the left wall to its middle, left to right; missing spaces them evenly. */
+  gridfinityDividerPositionsX?: number[];
+  /** Gridfinity bin: each divider deep, in mm from the inside of the back wall to its middle, back to front; missing spaces them evenly. */
+  gridfinityDividerPositionsZ?: number[];
+  /** Gridfinity bin with dividers: the compartments' labels, one for each compartment that has one. */
+  gridfinityCompartmentLabels?: GridfinityCompartmentLabel[];
   /** Knurling: grooves straight along the axis, or crossed into diamonds. */
   knurlPattern?: "straight" | "diamond" | "round";
   /** Knurling: number of grooves around the grip. */
@@ -653,11 +852,11 @@ export type WorkplaneShape = {
   /** Transition: degrees the top end tilts about the x axis and about the z axis (#205). */
   loftTiltX?: number;
   loftTiltZ?: number;
-  /** Counterbore/countersink: diameter of the shaft below the head in mm. */
+  /** Counterbore/countersink: diameter of the shaft below the head in mm (double countersink: the shaft between the two cones). */
   screwHoleShaft?: number;
   /** Counterbore: depth of the head pocket in mm. */
   screwHoleHeadDepth?: number;
-  /** Countersink: opening angle of the cone in degrees. */
+  /** Countersink and double countersink: opening angle of the cone in degrees. */
   screwHoleAngle?: number;
   cornerFillet?: number;
   topBottomFillet?: number;
@@ -689,6 +888,17 @@ export type WorkplaneShape = {
   /** Text only (#215): the letters without their counters (the holes in O, A, e), as the usual Silhouette. */
   textSilhouette?: boolean;
   /**
+   * Straight text only (#382): the letters are stretched to fill the box in both directions, so a
+   * capital can be made lower or narrower as in Tinkercad. Without it the letters keep their
+   * proportions and are fitted into the box, centred.
+   */
+  textStretch?: boolean;
+  /**
+   * Text only (#594): the space between the letters, in per cent of the letter size on top of the typeface's own
+   * advance - 0 or left out as the font has it, above it wider, below it (down to -50) tighter. Straight and curved text.
+   */
+  textSpacing?: number;
+  /**
    * Text only (#225): the top edge of the letters rounded or chamfered by `size` mm, as a name
    * tag's letters on top are finished. Built from the outline stepped inwards, so it works for
    * every font and word; the edge tool takes such a text as a mesh.
@@ -708,6 +918,11 @@ export type WorkplaneShape = {
    * edits the icon's width and the layers together and builds the stack again.
    */
   layeredIcon?: boolean;
+  /**
+   * A QR code (#553): the text and the choices it was made with, so the properties panel can make
+   * it again. On the code body itself, or on the plate group or bundle that holds it.
+   */
+  qrCode?: QrCodeSettings;
   /**
    * Set on a body made by wrapping around a cylinder (#106): its box is
    * centred on the cylinder's axis, and aligning, snapping and centring use
@@ -733,6 +948,8 @@ export type WorkplaneShape = {
     // re-emit the original analytic geometry instead of the tessellation.
     brepStep?: string;
   };
+  /** A shape that only shows what a preview would make (the common part of an intersection, #372): not picked, not saved. */
+  previewOnly?: boolean;
   imagePlate?: {
     dataUrl: string;
     mimeType: string;
@@ -822,4 +1039,20 @@ export type WorkplaneNote = {
    * a note, and travels with the design exactly like one (history, file, server).
    */
   kind?: "point";
+};
+
+export type QrErrorCorrection = "L" | "M" | "Q" | "H";
+/** What is built: the code alone, a plate with the code raised on it, or a plate with the code engraved. */
+export type QrStyle = "code" | "raised" | "engraved";
+/** What a QR body keeps so it can be made again from the inspector (#553). */
+export type QrCodeSettings = {
+  text: string;
+  errorCorrection: QrErrorCorrection;
+  /** Four modules of empty margin round the code - on a plate, the plate's rim. */
+  quietZone: boolean;
+  style: QrStyle;
+  /** The code's height (raised, or alone) or the engraving's depth, in mm. */
+  codeHeight: number;
+  /** The plate's thickness, in mm, for a plate. */
+  plateThickness: number;
 };

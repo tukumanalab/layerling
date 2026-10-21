@@ -105,3 +105,15 @@ export function bedOverhangs(shapes: readonly WorkplaneShape[], width: number, d
   }
   return overhangs;
 }
+
+/**
+ * The warning clicked away body by body (#640): the ids still dismissed are only those that
+ * are still outside, so a body that fits again and is moved out later warns again. Returns
+ * `dismissed` itself when nothing changed, so a React state keeps its identity.
+ */
+export function keepDismissedOverhangs(dismissed: ReadonlySet<string>, overhangs: readonly BedOverhang[]): ReadonlySet<string> {
+  if (dismissed.size === 0) return dismissed;
+  const outside = new Set(overhangs.map((overhang) => overhang.shape.id));
+  const kept = [...dismissed].filter((id) => outside.has(id));
+  return kept.length === dismissed.size ? dismissed : new Set(kept);
+}

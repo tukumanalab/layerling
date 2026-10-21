@@ -8,6 +8,9 @@ describe("offline copy of layerling", () => {
       "_next/static/chunks/app/page-abc.js",
       "_next/static/media/occt-wasm.6db3513f.wasm",
       "occt/5.3.5-layerling.1/occt-wasm.wasm",
+      "fonts/japanese/0123456789ab/base.typeface.json",
+      "fonts/japanese/0123456789ab/level2.typeface.json",
+      "fonts/japanese/version.txt",
       "manifold.wasm",
       "store.php",
       "kontakt.php",
@@ -30,6 +33,7 @@ describe("offline copy of layerling", () => {
   it("writes a service worker that is valid JavaScript and carries its version", () => {
     const source = serviceWorkerSource("abc123", ["/", "/manifold.wasm"]);
     expect(() => new Function(source)).not.toThrow();
+    expect(source).toContain("layerling-fonts");
     expect(source).toContain('"abc123"');
     expect(source).toContain('["/","/manifold.wasm"]');
   });
@@ -43,6 +47,8 @@ describe("offline copy of layerling", () => {
       "guide/img/editor-overview.webp",
     ]);
     expect(paths).toEqual(["/anleitung/formen.html", "/anleitung/index.html", "/guide/shapes.html"]);
+    // The page for printing the whole guide is big and opened by few.
+    expect(precachePaths(["anleitung/print-all.html", "guide/print-all.html", "handleiding/print-all.html", "guide/shapes.html"])).toEqual(["/guide/shapes.html"]);
   });
 
   /*
@@ -70,6 +76,12 @@ describe("offline copy of layerling", () => {
           },
           async put(path: string, response: Response) {
             store.set(path, await response.text());
+          },
+          async keys() {
+            return [...store.keys()].map((path) => ({ url: ORIGIN + path }));
+          },
+          async delete(request: { url: string }) {
+            return store.delete(request.url.slice(ORIGIN.length));
           },
         };
       };
@@ -147,6 +159,23 @@ describe("offline copy of layerling", () => {
       expect(old.body).toBe("layerling-v1:/_next/static/chunks/233.old.js");
       const fresh = await client.request("/_next/static/chunks/233.new.js");
       expect(fresh.body).toBe("layerling-v2:/_next/static/chunks/233.new.js");
+    });
+
+    it("stores the Japanese typeface on first use, keeps it across versions and drops other cuts", async () => {
+      const server = new Set(["/", "/fonts/japanese/aaa/base.typeface.json", "/fonts/japanese/bbb/base.typeface.json"]);
+      const client = browser(server);
+      await client.install("v1", ["/"]);
+      expect(client.stores.get("layerling-fonts")).toBeUndefined();
+      expect((await client.request("/fonts/japanese/aaa/base.typeface.json")).body).toBe("server:/fonts/japanese/aaa/base.typeface.json");
+      // The second request comes from the computer, also after the server has lost the file and a new version took over.
+      server.delete("/fonts/japanese/aaa/base.typeface.json");
+      await client.install("v2", ["/"]);
+      client.network.length = 0;
+      expect((await client.request("/fonts/japanese/aaa/base.typeface.json")).body).toBe("server:/fonts/japanese/aaa/base.typeface.json");
+      expect(client.network).toEqual([]);
+      // A new cut replaces the old one.
+      await client.request("/fonts/japanese/bbb/base.typeface.json");
+      expect([...client.stores.get("layerling-fonts")!.keys()]).toEqual(["/fonts/japanese/bbb/base.typeface.json"]);
     });
 
     it("keeps the copy an older service worker left without a list", async () => {

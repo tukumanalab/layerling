@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sectionMeasurement, sectionPointToWorld, snapSectionPoint } from "@/lib/sectionMeasure";
+import { circleMeasureKind, circleOfLoop, sectionMeasurement, sectionPointToWorld, snapSectionPoint } from "@/lib/sectionMeasure";
 import { projectSectionPoint, sliceMeshContours, type SectionLoop } from "@/lib/sectionSvg";
 
 type V = [number, number, number];
@@ -98,5 +98,87 @@ describe("sectionMeasurement", () => {
     expect(measured.deltaX).toBeCloseTo(3, 9);
     expect(measured.deltaHeight).toBeCloseTo(4, 9);
     expect(measured.deltaDepth).toBe(0);
+  });
+});
+
+describe("round outlines (#375)", () => {
+  /** A ring of 48 corners round (cu, cv), like the cut through a cylinder. */
+  const ring = (cu: number, cv: number, radius: number, count = 48): SectionLoop => ({
+    closed: true,
+    points: Array.from({ length: count }, (_, index) => {
+      const angle = (index / count) * Math.PI * 2 + 0.1;
+      return { u: cu + radius * Math.cos(angle), v: cv + radius * Math.sin(angle) };
+    }),
+  });
+  const circle = ring(30, -12, 12.5);
+
+  it("finds the centre and the radius of a ring of corners", () => {
+    const found = circleOfLoop(circle);
+    expect(found?.center.u).toBeCloseTo(30, 6);
+    expect(found?.center.v).toBeCloseTo(-12, 6);
+    expect(found?.radius).toBeCloseTo(12.5, 6);
+  });
+
+  it("takes a square, a hexagon and a long D-shape for no circle", () => {
+    expect(circleOfLoop(ring(0, 0, 10, 4))).toBeNull();
+    expect(circleOfLoop(ring(0, 0, 10, 6))).toBeNull();
+    const dShape: SectionLoop = { closed: true, points: [...circle.points.slice(0, 30), circle.points[30]] };
+    expect(circleOfLoop(dShape)).toBeNull();
+  });
+
+  it("takes a rounded rectangle for no circle", () => {
+    const points = [];
+    for (let i = 0; i < 40; i += 1) points.push({ u: i < 20 ? i : 40 - i, v: i < 20 ? 0 : 6 });
+    expect(circleOfLoop({ closed: true, points })).toBeNull();
+  });
+
+  it("snaps to the centre of a larger circle", () => {
+    const snap = snapSectionPoint({ u: 30.3, v: -11.8 }, [circle], 1);
+    expect(snap.kind).toBe("center");
+    expect(snap.point.u).toBeCloseTo(30, 6);
+    expect(snap.point.v).toBeCloseTo(-12, 6);
+  });
+
+  it("does not snap to the centre of a circle smaller than the reach", () => {
+    const small = ring(0, 0, 0.8);
+    expect(snapSectionPoint({ u: 0.1, v: 0.1 }, [small], 1).kind).not.toBe("center");
+  });
+
+  it("lands the second point exactly across the centre, so two clicks give the diameter", () => {
+    const first = snapSectionPoint({ u: 42.4, v: -12.3 }, [circle], 1);
+    const second = snapSectionPoint({ u: 17.9, v: -10.8 }, [circle], 1, first.point);
+    expect(second.kind).toBe("opposite");
+    const result = sectionMeasurement(first.point, second.point, "z", 0, [circle]);
+    expect(result.distance).toBeCloseTo(25, 6);
+    expect(result.circle).toBe("diameter");
+  });
+
+  it("puts a click between two corners onto the true circle, so a coarse polygon still gives the diameter", () => {
+    const coarse = ring(0, 0, 15, 24);
+    const first = snapSectionPoint({ u: 14.6 * Math.cos(0.1 + Math.PI / 24), v: 14.6 * Math.sin(0.1 + Math.PI / 24) }, [coarse], 1);
+    expect(first.kind).toBe("outline");
+    expect(Math.hypot(first.point.u, first.point.v)).toBeCloseTo(15, 9);
+    const second = snapSectionPoint({ u: -first.point.u + 0.3, v: -first.point.v - 0.2 }, [coarse], 1, first.point);
+    expect(second.kind).toBe("opposite");
+    expect(sectionMeasurement(first.point, second.point, "z", 0, [coarse]).distance).toBeCloseTo(30, 9);
+  });
+
+  it("gives the radius from the centre to the circle", () => {
+    const centre = snapSectionPoint({ u: 30.2, v: -12.1 }, [circle], 1);
+    const edge = snapSectionPoint({ u: 41.9, v: -13.2 }, [circle], 1, centre.point);
+    expect(edge.kind).toBe("outline");
+    const result = sectionMeasurement(centre.point, edge.point, "z", 0, [circle]);
+    expect(result.distance).toBeCloseTo(12.5, 6);
+    expect(result.circle).toBe("radius");
+  });
+
+  it("says nothing special about a measurement that is not across a circle", () => {
+    expect(circleMeasureKind({ u: 42.5, v: -12 }, { u: 30, v: 0.5 }, [circle])).toBeNull();
+    expect(sectionMeasurement({ u: 0, v: 0 }, { u: 3, v: 4 }, "z", 0).circle).toBeNull();
+  });
+
+  it("keeps the corner snap away from a first point that is not on the circle", () => {
+    const outside = { u: 60, v: 0 };
+    expect(snapSectionPoint({ u: 18, v: -12 }, [circle], 1, outside).kind).not.toBe("opposite");
   });
 });

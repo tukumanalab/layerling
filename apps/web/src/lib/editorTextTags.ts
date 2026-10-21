@@ -1,8 +1,11 @@
 
+import * as THREE from "three";
 import { t } from "@/lib/i18n";
+import { quaternionForShape } from "@/lib/geometryRotation";
+import { iconEarOffset } from "@/lib/sketchKeyring";
 import { nameTagOffsets, textLayerShapes, textLayersOf, type NameTagKeyring, type TextLayer, type TextLayerStack } from "@/lib/textLayers";
 import { textLetterSize, textLetterSizePatch } from "@/lib/nameTag";
-import { ICON_TAG_LAYERS, iconLayerElevations, iconLayerProfile, iconLayersOf, iconSourceProfile, iconTagGrid, isIconLayerBody, MAX_ICON_TAG_WIDTH, MIN_ICON_TAG_WIDTH, normalizeIconTagCount, scaledIconProfile, type IconLayerStack, type IconTagPlace } from "@/lib/iconTag";
+import { ICON_TAG_LAYERS, iconLayerElevations, iconLayerKeyrings, iconLayerProfile, iconLayersOf, iconSourceProfile, iconTagGrid, isIconLayerBody, MAX_ICON_TAG_WIDTH, MIN_ICON_TAG_WIDTH, normalizeIconTagCount, scaledIconProfile, type IconLayerStack, type IconTagPlace } from "@/lib/iconTag";
 import { shapeBedFootprint } from "@/lib/printBed";
 import { canonicalizeShape, cloneWorkplaneShapeTreeWithFreshIds, shapeDepth, shapeWidth } from "@/lib/workplaneShapes";
 import { createLocalId } from "@/lib/localIds";
@@ -13,6 +16,7 @@ import type { SketchProfile, WorkplaneShape } from "@/types/layerling";
 import { getManifoldRuntime } from "@/lib/editorMeshCore";
 import { groupedShape, restoreGroupedChildren } from "@/lib/editorBooleans";
 import { cadShapeFromSketchProfile } from "@/lib/editorSketchCad";
+import { iconFileName } from "@/lib/pictureIcon";
 
 /**
  * The settings panel offers wrapping only where it is what people want: an
@@ -124,20 +128,25 @@ export async function iconTagArea(source: SketchProfile, currentWidth: number, w
  * kernel, centred on the icon's middle, the bottom one on the place's elevation and each next
  * on the one below; a bundle flagged as an icon tag, or with one layer only, that body itself.
  */
-export async function layeredIconShape(area: SketchProfile, layers: readonly TextLayer[], place: IconTagPlace, ids: (string | undefined)[], keepId: string, keep: Pick<WorkplaneShape, "locked" | "hidden" | "name">): Promise<WorkplaneShape> {
+export async function layeredIconShape(area: SketchProfile, layers: readonly TextLayer[], place: IconTagPlace, ids: (string | undefined)[], keepId: string, keep: Pick<WorkplaneShape, "locked" | "hidden" | "name">, keyring: NameTagKeyring | null = null): Promise<WorkplaneShape> {
   const name = keep.name || "Icon tag";
   const elevations = iconLayerElevations(layers, place.elevation);
+  const holes = iconLayerKeyrings(area, layers, keyring);
   const parts = await Promise.all(layers.map(async (layer, index) => {
-    const built = await cadShapeFromSketchProfile(iconLayerProfile(area, layer), layer.height);
+    const built = await cadShapeFromSketchProfile(iconLayerProfile(area, layer, holes[index]), layer.height);
+    // A body stands by the middle of its extent: the layer with the ear is moved back so that the icon stays where it was.
+    const hole = holes[index];
+    const earOffset = hole?.ear ? iconEarOffset(area, layer.grow, hole) : { x: 0, z: 0 };
+    const shift = new THREE.Vector3(earOffset.x, 0, earOffset.z).applyQuaternion(quaternionForShape(place));
     return canonicalizeShape({
       ...built,
       id: ids[index] ?? createLocalId("icon-layer"),
       name: layers.length > 1 ? `${name} ${index + 1}` : name,
       color: layer.color,
       hole: false,
-      x: place.x,
-      z: place.z,
-      elevation: elevations[index],
+      x: place.x + shift.x,
+      z: place.z + shift.z,
+      elevation: elevations[index] + shift.y,
       rotation: place.rotation,
       rotationX: place.rotationX,
       rotationZ: place.rotationZ,
@@ -176,7 +185,7 @@ export async function svgIconArea(fileName: string, text: string, width: number)
   const probe = await cadShapeFromSketchProfile(profile, 1).catch(() => null);
   if (!probe || !svgSketchMatchesMesh(probe, { ...importedShapeFromSvg(fileName, text), mirrorZ: true })) throw new Error(t("iconTag.unreadable"));
   const area = await iconTagArea(iconSourceProfile(profile), probe.width, width);
-  return { area, name: fileName.replace(/\.svg$/i, "").trim() || "Icon tag" };
+  return { area, name: iconFileName(fileName) || "Icon tag" };
 }
 
 /** An SVG file's text as a new icon tag in the start layers, `width` mm wide, standing on the plate's middle. */

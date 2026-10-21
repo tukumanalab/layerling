@@ -6,8 +6,8 @@ import { normalizeTextEdge, textEdgeLevels, textHasEdge } from "@/lib/textEdge";
 import { loftedTextEdge } from "@/lib/textEdgeLoft";
 import { loadedManifoldRuntime, requestManifoldRuntime } from "@/lib/manifoldHandle";
 import { normalizeSketchStroke, strokeRegion, type Keep } from "@/lib/sketchStroke";
-import { createTextGeometry, keyringEarRadius, textGlyphShapes, textKeyringCenter, textKeyringOf, textLetterOffset } from "@/lib/textGeometry";
-import type { TextEdge, TextKeyringSide, WorkplaneShape } from "@/types/layerling";
+import { createTextGeometry, keyringBandCenter, keyringEarRadius, textGlyphShapes, textKeyringCenter, textKeyringOf, textLetterOffset } from "@/lib/textGeometry";
+import type { TextKeyringSide, WorkplaneShape } from "@/types/layerling";
 
 /**
  * Fill modes for the Text shape (#215, as similar tools's): instead of the filled letters, a line
@@ -92,23 +92,23 @@ function textRegion(runtime: ManifoldToplevel, keep: Keep, shape: WorkplaneShape
   }).filter((letter): letter is CrossSection => Boolean(letter));
   if (!letters.length) return null;
   const region = keep(runtime.CrossSection.union(letters));
-  return stroke ? strokeRegion(runtime, keep, region, stroke) : region;
+  return stroke ? strokeRegion(keep, region, stroke) : region;
 }
 
 /**
  * How far the text's outline - the letters with the fill's line or widening, no key ring -
  * reaches towards a side, from the middle of the letters, within `halfBand` either side of the
- * line through that middle (#215): where a key ring tab's flat end meets the plate. Null when
- * none of the outline is in the band.
+ * line through that middle (#215), or `shift` mm along the side off it (#671): where a key ring
+ * tab's flat end meets the plate. Null when none of the outline is in the band.
  */
-export function textOutlineReach(runtime: ManifoldToplevel, shape: WorkplaneShape, side: TextKeyringSide, halfBand: number): number | null {
+export function textOutlineReach(runtime: ManifoldToplevel, shape: WorkplaneShape, side: TextKeyringSide, halfBand: number, shift = 0): number | null {
   const made: CrossSection[] = [];
   const keep: Keep = (section) => {
     made.push(section);
     return section;
   };
   try {
-    const near = outlineInBand(runtime, keep, shape, side, halfBand);
+    const near = outlineInBand(runtime, keep, shape, side, halfBand, shift);
     if (!near) return null;
     const middle = textLetterOffset(shape);
     const reach = near.bounds();
@@ -119,12 +119,12 @@ export function textOutlineReach(runtime: ManifoldToplevel, shape: WorkplaneShap
   }
 }
 
-/** The text's outline, no key ring, within `halfBand` either side of the line through the letters' middle towards a side; null when empty. */
-function outlineInBand(runtime: ManifoldToplevel, keep: Keep, shape: WorkplaneShape, side: TextKeyringSide, halfBand: number): CrossSection | null {
+/** The text's outline, no key ring, within `halfBand` either side of the line through the letters' middle (moved `shift` along the side) towards a side; null when empty. */
+function outlineInBand(runtime: ManifoldToplevel, keep: Keep, shape: WorkplaneShape, side: TextKeyringSide, halfBand: number, shift: number): CrossSection | null {
   const region = textRegion(runtime, keep, shape);
   if (!region || region.isEmpty()) return null;
   const { min, max } = region.bounds();
-  const middle = textLetterOffset(shape);
+  const middle = keyringBandCenter(textLetterOffset(shape), side, shift);
   const [x0, z0, x1, z1] = side === "top" ? [middle.x - halfBand, min[1], middle.x + halfBand, max[1]] : [min[0], middle.z - halfBand, max[0], middle.z + halfBand];
   const band = keep(new runtime.CrossSection([[[x0, z0], [x1, z0], [x1, z1], [x0, z1]]], "Positive"));
   const near = keep(region.intersect(band));
@@ -135,23 +135,25 @@ function outlineInBand(runtime: ManifoldToplevel, keep: Keep, shape: WorkplaneSh
  * Where a key ring hole's middle (#215) stands `clearance` clear of the text's outline - the
  * letters with the fill's line or widening, no key ring - on the line through the letters'
  * middle towards a side: its distance from that middle. Only the outline within `halfBand`
- * either side of that line counts, the band the tab runs in. Null when none of it is there.
+ * either side of that line counts, the band the tab runs in. The line can be moved `shift` mm
+ * along the side (#671). Null when none of it is there.
  */
-export function textOutlineClearance(runtime: ManifoldToplevel, shape: WorkplaneShape, side: TextKeyringSide, halfBand: number, clearance: number): number | null {
+export function textOutlineClearance(runtime: ManifoldToplevel, shape: WorkplaneShape, side: TextKeyringSide, halfBand: number, clearance: number, shift = 0): number | null {
   const made: CrossSection[] = [];
   const keep: Keep = (section) => {
     made.push(section);
     return section;
   };
   try {
-    const near = outlineInBand(runtime, keep, shape, side, halfBand);
+    const near = outlineInBand(runtime, keep, shape, side, halfBand, shift);
     if (!near) return null;
     const middle = textLetterOffset(shape);
+    const line = keyringBandCenter(middle, side, shift);
     const top = side === "top";
     // Along the side (s, outwards) and across it (v), from the letters' middle; seen from above
     // the letters read along +x with their tops towards -z.
     const along = ([x, z]: readonly number[]) => (side === "right" ? x - middle.x : side === "left" ? middle.x - x : middle.z - z);
-    const across = ([x, z]: readonly number[]) => (top ? x - middle.x : z - middle.z);
+    const across = ([x, z]: readonly number[]) => (top ? x - line.x : z - line.z);
     // A point of the outline at (s, v) keeps the middle clear from s + sqrt(c² - v²) on; the
     // furthest such place over the outline's edges is where the middle goes. Along an edge that
     // is a concave function, so a ternary search finds its top.
@@ -214,7 +216,7 @@ function withKeyringHole(runtime: ManifoldToplevel, keep: Keep, shape: Workplane
 
 /**
  * The ear of a key ring hole (#215), on the bottom layer: a straight-sided tab sticking straight
- * out from the middle of its side, as wide as the hole and a 1.75 mm wall either side, its far
+ * out from the middle of its side (or where `along` moved it, #671), as wide as the hole and a 1.75 mm wall either side, its far
  * end a half circle round the hole. Inwards the tab runs on until it overlaps the outline by half its width, wherever the
  * letters end on that side, so the two are one piece; outside the plate it stays a clean tab.
  */
@@ -254,6 +256,49 @@ export function textFillPieceGeometry(component: TextFillComponent, height: numb
 }
 
 /**
+ * The text's fill as one closed body, extruded by the 2D kernel: the region of the letters with the fill's
+ * line or widening and the key ring, from the floor to the text's height, standing the way the text does.
+ * Null when the kernel makes nothing of it, so the pieces built by hand take over.
+ */
+export function textFillClosedGeometry(runtime: ManifoldToplevel, shape: WorkplaneShape): THREE.BufferGeometry | null {
+  if (!textHasFill(shape)) return null;
+  const made: { delete: () => void }[] = [];
+  const keep = <T extends { delete: () => void }>(item: T): T => {
+    made.push(item);
+    return item;
+  };
+  try {
+    const region = textBodyRegion(runtime, keep as Keep, shape);
+    if (!region) return null;
+    const solid = keep(region.extrude(Math.max(1e-3, shape.height)));
+    if (solid.status() !== "NoError" || solid.numTri() < 1) return null;
+    const mesh = solid.getMesh();
+    const stride = mesh.numProp;
+    const positions: number[] = [];
+    // Manifold's x/y plane is the text's x/z plane and its z the height: x, y and z are swapped, which turns
+    // the faces over, so the triangles are written the other way round.
+    for (let index = 0; index < mesh.vertProperties.length; index += stride) {
+      positions.push(mesh.vertProperties[index], mesh.vertProperties[index + 2], mesh.vertProperties[index + 1]);
+    }
+    const indices: number[] = [];
+    for (let index = 0; index + 2 < mesh.triVerts.length; index += 3) {
+      indices.push(mesh.triVerts[index], mesh.triVerts[index + 2], mesh.triVerts[index + 1]);
+    }
+    const indexed = new THREE.BufferGeometry();
+    indexed.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    indexed.setIndex(indices);
+    const geometry = toCreasedNormals(indexed, THREE.MathUtils.degToRad(12));
+    indexed.dispose();
+    geometry.computeBoundingBox();
+    return geometry;
+  } catch {
+    return null;
+  } finally {
+    new Set(made).forEach((item) => item.delete());
+  }
+}
+
+/**
  * The text's display geometry: the fill path when the text has a fill mode and the 2D kernel is
  * there, else the filled letters. Before the kernel has loaded the text draws plain and asks for
  * it; the viewport draws the text again once it is there (manifoldRevision in its cache key).
@@ -266,6 +311,10 @@ export function textDisplayGeometry(shape: WorkplaneShape): THREE.BufferGeometry
     return createTextGeometry(shape);
   }
   if (textHasEdge(shape)) return textEdgeGeometry(runtime, shape) ?? new THREE.BoxGeometry(0.001, shape.height, 0.001);
+  // The 2D kernel extrudes the region itself: its mesh is closed whatever the outline looks like, where the
+  // pieces built by hand could leave gaps along letters that touch (a line round a block font, #352).
+  const closed = textFillClosedGeometry(runtime, shape);
+  if (closed) return closed;
   const components = textFillComponents(runtime, shape);
   if (!components) return new THREE.BoxGeometry(0.001, shape.height, 0.001);
   const pieces = components.map((component) => textFillPieceGeometry(component, shape.height));

@@ -47,6 +47,7 @@ export function MovableToolPanel({
       style={movable.style}
       tabIndex={focusOnOpen ? -1 : undefined}
       aria-label={ariaLabel}
+      data-help-panel={ariaLabel}
     >
       {children(movable.handleProps)}
     </aside>

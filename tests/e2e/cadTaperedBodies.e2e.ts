@@ -18,9 +18,10 @@ import { createCrescentGeometry } from "@/lib/crescentGeometry";
 import { createHoneycombGeometry } from "@/lib/honeycombGeometry";
 import { createDovetailGeometry } from "@/lib/dovetailGeometry";
 import { createRoundedBoxGeometry } from "@/lib/roundedBoxGeometry";
+import { createKnurlGeometry } from "@/lib/knurlGeometry";
 import { meshForTwist } from "@/lib/heightSlices";
 import { shellSolid } from "@/lib/cadShell";
-import { meshYawDegrees, mirrorSign, shapeExtrudeDeformAt, shapeHasExtrudeDeform, shapeHasTaper, shapeTaperDimensions, shapeTaperScaleAt } from "@/lib/workplaneShapes";
+import { deformsAboutOrigin, meshYawDegrees, mirrorSign, shapeExtrudeDeformAt, shapeHasExtrudeDeform, shapeHasTaper, shapeTaperDimensions, shapeTaperScaleAt } from "@/lib/workplaneShapes";
 
 /*
  * Tapered and leaning shapes as ruled lofts between their bottom and top
@@ -51,6 +52,7 @@ function localGeometry(source: WorkplaneShape) {
     case "honeycomb": return createHoneycombGeometry({ width, depth, height });
     case "dovetail": return createDovetailGeometry({ width, depth, height });
     case "roundedBox": return createRoundedBoxGeometry({ width, depth, height, topBottomFillet: source.topBottomFillet });
+    case "knurl": return createKnurlGeometry({ width, height, knurlPattern: source.knurlPattern, knurlCount: source.knurlCount, knurlDepth: source.knurlDepth, knurlChamfer: source.knurlChamfer });
     default: throw new Error(`no mesh for ${source.kind}`);
   }
 }
@@ -79,8 +81,9 @@ function worldMesh(source: WorkplaneShape) {
   const maxY = Math.max(...raw.map((v) => v[1]));
   const span = Math.max(1e-6, maxY - minY);
   // Taper and twist work towards the middle of the mesh's extent (a star is not centred on its origin).
-  const cx = (Math.min(...raw.map((v) => v[0])) + Math.max(...raw.map((v) => v[0]))) / 2;
-  const cz = (Math.min(...raw.map((v) => v[2])) + Math.max(...raw.map((v) => v[2]))) / 2;
+  // A star turns about its own middle instead (#476).
+  const cx = deformsAboutOrigin(source.kind) ? 0 : (Math.min(...raw.map((v) => v[0])) + Math.max(...raw.map((v) => v[0]))) / 2;
+  const cz = deformsAboutOrigin(source.kind) ? 0 : (Math.min(...raw.map((v) => v[2])) + Math.max(...raw.map((v) => v[2]))) / 2;
   const centerY = source.height / 2;
   const matrix = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(
     THREE.MathUtils.degToRad(source.rotationX ?? 0), THREE.MathUtils.degToRad(meshYawDegrees(source)), THREE.MathUtils.degToRad(source.rotationZ ?? 0), "XYZ"));
@@ -170,6 +173,12 @@ describe("tapered and leaning shapes: exact lofts", () => {
     ["a tapered honeycomb plate", shape("honeycomb", { width: 50, depth: 40, height: 6, taperTopWidth: 44, taperTopDepth: 34 })],
     ["a tapered dovetail", shape("dovetail", { width: 30, depth: 20, height: 10, taperTopWidth: 24, taperTopDepth: 18 })],
     ["a rounded box with round corners only, tapered", shape("roundedBox", { width: 40, depth: 30, height: 20, topBottomFillet: 0, taperTopWidth: 28, taperTopDepth: 20 })],
+    // #630: a knurl takes taper, lean and twist; its 45 degree ends narrow with it.
+    ["a tapered knurl without chamfer", shape("knurl", { width: 30, depth: 30, height: 20, knurlCount: 24, knurlDepth: 1, knurlChamfer: 0, taperTopWidth: 18, taperTopDepth: 18 })],
+    ["a tapered knurl with chamfered ends", shape("knurl", { width: 30, depth: 30, height: 20, knurlCount: 24, knurlDepth: 1, knurlChamfer: 1.5, taperTopWidth: 18, taperTopDepth: 18 })],
+    ["a tapered, leaning round knurl with chamfered ends", shape("knurl", { width: 30, depth: 30, height: 20, knurlPattern: "round", knurlCount: 20, knurlDepth: 1, knurlChamfer: 1, taperBottomWidth: 24, taperBottomDepth: 24, taperTopWidth: 36, taperTopDepth: 36, extrudeTopOffsetX: 4, extrudeTopOffsetZ: -3 })],
+    ["a twisted knurl with chamfered ends", shape("knurl", { width: 30, depth: 30, height: 20, knurlCount: 16, knurlDepth: 1, knurlChamfer: 1, extrudeTwist: 45 })],
+    ["a twisted knurl without chamfer", shape("knurl", { width: 30, depth: 30, height: 20, knurlCount: 16, knurlDepth: 1, knurlChamfer: 0, extrudeTwist: 45 })],
   ];
 
   it.each(outlineCases)("builds %s where the display mesh stands, turned and mirrored too", (_name, source) => {
@@ -194,6 +203,12 @@ describe("tapered and leaning shapes: exact lofts", () => {
       // A polygon is drawn exactly: the display mesh's own volume.
       expect(cad.getVolume(solid) / expected.volume).toBeCloseTo(1, 6);
     }
+  });
+
+  // Fine grooves twisted: the smooth loft must not swing out between its sections.
+  it.each([[16, 45, 1], [30, 180, 1], [60, 90, 0.6]] as const)("keeps a twisted knurl of %i grooves within its own radius (twist %i)", (count, twist, depth) => {
+    const { solid } = body(shape("knurl", { width: 30, depth: 30, height: 20, knurlCount: count, knurlDepth: depth, knurlChamfer: 0, extrudeTwist: twist }));
+    trueBounds(solid).forEach((value, index) => expect(Math.abs(value - [-15, 0, -15, 15, 20, 15][index])).toBeLessThan(0.05));
   });
 
   it("keeps the flat sides of a tapered or leaning box flat: six plane faces", () => {
@@ -274,6 +289,20 @@ describe("tapered and leaning shapes: exact lofts", () => {
     const shelled = shellSolid(cad, solid, 1.5, "top");
     expect(cad.isValid(shelled)).toBe(true);
     expect(cad.getVolume(shelled)).toBeLessThan(cad.getVolume(solid) * 0.6);
+  });
+
+  it("builds a tapered rounded box with plane sides, so a chamfer along them stays flat (#612)", () => {
+    const { solid, expected } = body(shape("roundedBox", { width: 100, depth: 100, height: 20, topBottomFillet: 0, cornerFillet: 5, taperTopWidth: 80, taperTopDepth: 80 }));
+    expect(cadProfileSolidMismatch(cad, solid, expected)).toBeNull();
+    const faces = cad.getSubShapes(solid, "face");
+    expect(faces.filter((face) => cad.surfaceType(face) === "plane")).toHaveLength(2 + 4); // two caps and four sides
+    const low = Math.min(...cad.getSubShapes(solid, "vertex").map((vertex) => cad.vertexPosition(vertex).y));
+    const bottom = cad.getSubShapes(solid, "edge").filter((edge) => cad.getSubShapes(edge, "vertex").every((vertex) => Math.abs(cad.vertexPosition(vertex).y - low) < 1e-3));
+    expect(bottom).toHaveLength(8);
+    const chamfered = cad.chamfer(solid, bottom, 2.1);
+    expect(cad.isValid(chamfered)).toBe(true);
+    // The chamfer along a straight side is one flat strip: the planes the sides stand in give planes again.
+    expect(cad.getSubShapes(chamfered, "face").filter((face) => cad.surfaceType(face) === "plane").length).toBeGreaterThanOrEqual(2 + 4 + 4);
   });
 
   it("leaves a tapered sphere on the display mesh", () => {

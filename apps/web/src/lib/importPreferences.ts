@@ -23,3 +23,26 @@ export function storeKeepSvgPage(keep: boolean) {
     // The choice still holds for this visit.
   }
 }
+
+/*
+ * The width an SVG or a picture is to come in at (#448), typed in the import window. It is for the
+ * next import only and is kept in memory, not in storage: a size from last week must not surprise
+ * anyone. Null means the drawing's own size.
+ */
+let pendingSvgWidth: number | null = null;
+
+export function setImportSvgWidth(width: number | null) {
+  pendingSvgWidth = width !== null && Number.isFinite(width) && width > 0 ? width : null;
+}
+
+export function readImportSvgWidth(): number | null {
+  return pendingSvgWidth;
+}
+
+/** The pending width, and gone: the import that takes it is the one it was typed for. */
+export function takeImportSvgWidth(): number | null {
+  const width = pendingSvgWidth;
+  pendingSvgWidth = null;
+  return width;
+}
+

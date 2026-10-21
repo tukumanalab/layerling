@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { loadTextFonts } from "@/lib/textFonts";
-import { createTextGeometry, curvedTextFootprint, curvedTextPatch } from "@/lib/textGeometry";
+import { createTextGeometry, curvedTextFootprint, curvedTextPatch, textGlyphShapes } from "@/lib/textGeometry";
+import { textLetterSize, textLetterSizePatch } from "@/lib/nameTag";
 import type { WorkplaneShape } from "@/types/layerling";
 
 function mockShape(overrides: Partial<WorkplaneShape> = {}): WorkplaneShape {
@@ -171,5 +172,54 @@ describe("textGeometry", () => {
   it("shrinks letters that would not fit on the circle", () => {
     const footprint = curvedTextFootprint(mockShape({ text: "THIS IS A VERY LONG CURVED TEXT STRING", textCurved: true, textRadius: 30, textSize: 10 }));
     expect(footprint.width).toBeLessThanOrEqual(2 * (30 + 10));
+  });
+});
+
+describe("stretched text (#382)", () => {
+  beforeAll(async () => {
+    await loadTextFonts();
+  });
+
+  const footprint = (shape: WorkplaneShape) => {
+    const geometry = createTextGeometry(shape);
+    geometry.computeBoundingBox();
+    const box = geometry.boundingBox!;
+    return { width: box.max.x - box.min.x, depth: box.max.z - box.min.z };
+  };
+
+  it("keeps the proportions of the letters in a box that is wider than they need", () => {
+    const letters = footprint(mockShape({ text: "T", width: 40, depth: 20, size: 40 }));
+    expect(letters.depth).toBeCloseTo(20, 1);
+    expect(letters.width).toBeLessThan(39);
+    const narrow = footprint(mockShape({ text: "T", width: 40, depth: 10, size: 40 }));
+    expect(narrow.width / narrow.depth).toBeCloseTo(letters.width / letters.depth, 2);
+  });
+
+  it("fills the whole box in both directions when the letters are stretched", () => {
+    const stretched = footprint(mockShape({ text: "T", width: 40, depth: 10, size: 40, textStretch: true }));
+    expect(stretched.width).toBeCloseTo(40, 1);
+    expect(stretched.depth).toBeCloseTo(10, 1);
+  });
+
+  it("draws the exact outlines at the same stretch", () => {
+    const shape = mockShape({ text: "T", width: 40, depth: 10, size: 40, textStretch: true });
+    const outlines = textGlyphShapes(shape)!;
+    const xs: number[] = [];
+    const zs: number[] = [];
+    outlines.glyphs.forEach(({ glyph, map }) => glyph.extractPoints(8).shape.forEach((point) => {
+      const placed = map(point);
+      xs.push(placed.x);
+      zs.push(placed.z);
+    }));
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(40, 1);
+    expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(10, 1);
+  });
+
+  it("measures the letter size by the height of a stretched box and keeps its width when it is set", () => {
+    const shape = mockShape({ text: "T", width: 40, depth: 10, size: 40, textStretch: true });
+    const size = textLetterSize(shape);
+    const patch = textLetterSizePatch(shape, size * 2);
+    expect(patch.width).toBeCloseTo(40, 3);
+    expect(patch.depth).toBeCloseTo(20, 1);
   });
 });

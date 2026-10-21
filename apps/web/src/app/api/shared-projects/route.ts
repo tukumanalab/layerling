@@ -3,6 +3,7 @@ import { constants as fsConstants, promises as fs } from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
 import { inspectLylProjectPackage, LYL_LIMITS, LYL_MEDIA_TYPE } from "@/lib/lylProject";
+import { originMatchesRequest } from "@/lib/sameOrigin";
 import { storeFolderNameProblem } from "@/lib/storeFolderName";
 
 export const runtime = "nodejs";
@@ -181,18 +182,7 @@ function unquoteEtag(value: string | null) {
 }
 
 function sameOriginRequest(request: Request) {
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
-  try {
-    const requestUrl = new URL(request.url);
-    const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-    const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
-    const host = forwardedHost || request.headers.get("host") || requestUrl.host;
-    const protocol = forwardedProtocol || requestUrl.protocol.replace(/:$/, "");
-    return new URL(origin).origin === `${protocol}://${host}`;
-  } catch {
-    return false;
-  }
+  return originMatchesRequest(request);
 }
 
 async function regularFileStat(filePath: string) {

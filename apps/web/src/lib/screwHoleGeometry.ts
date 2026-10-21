@@ -14,14 +14,20 @@ import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.j
  *   countersink: a cone for a countersunk screw (DIN 7991). The cone opens with
  *                `angle` (90 degrees is standard) from the shaft up to the
  *                head diameter, the shaft runs on below it.
+ *   doubleCountersink: a hole that is chamfered on both faces (#392): a cone at each end
+ *                opening to the head diameter, the shaft between them. Where the two
+ *                cones would not fit into the length they meet in the middle at the
+ *                angle, so the shaft is then wider than set.
  */
 
-export type ScrewHoleKind = "counterbore" | "countersink";
+export type ScrewHoleKind = "counterbore" | "countersink" | "doubleCountersink";
 
 export const DEFAULT_COUNTERBORE_WIDTH = 6.4;
 export const DEFAULT_COUNTERBORE_HEIGHT = 12;
 export const DEFAULT_COUNTERSINK_WIDTH = 6.6;
 export const DEFAULT_COUNTERSINK_HEIGHT = 8;
+export const DEFAULT_DOUBLE_COUNTERSINK_WIDTH = 6.6;
+export const DEFAULT_DOUBLE_COUNTERSINK_HEIGHT = 6;
 export const DEFAULT_SCREW_HOLE_SHAFT = 3.4;
 export const DEFAULT_SCREW_HOLE_HEAD_DEPTH = 3.2;
 export const DEFAULT_SCREW_HOLE_ANGLE = 90;
@@ -82,6 +88,25 @@ export function screwHoleProfile({ kind, width, height, screwHoleShaft, screwHol
       { r: shaftRadius, y: 0 },
       { r: shaftRadius, y: stepY },
       { r: headRadius, y: stepY },
+      { r: headRadius, y: safeHeight },
+    ];
+  }
+  if (kind === "doubleCountersink") {
+    const angle = screwHoleAngle ?? DEFAULT_SCREW_HOLE_ANGLE;
+    const coneDepth = countersinkDepth(width, shaftRadius * 2, angle);
+    if (coneDepth * 2 > safeHeight - MIN_SHAFT_LENGTH) {
+      // Too short for two full cones: they meet in the middle at the set angle (#392).
+      const middleRadius = Math.max(shaftRadius, headRadius - (safeHeight / 2) * Math.tan(THREE.MathUtils.degToRad(normalizeScrewHoleAngle(angle)) / 2));
+      return [
+        { r: headRadius, y: 0 },
+        { r: middleRadius, y: safeHeight / 2 },
+        { r: headRadius, y: safeHeight },
+      ];
+    }
+    return [
+      { r: headRadius, y: 0 },
+      { r: shaftRadius, y: coneDepth },
+      { r: shaftRadius, y: safeHeight - coneDepth },
       { r: headRadius, y: safeHeight },
     ];
   }

@@ -126,7 +126,7 @@ export function cadSketchRegions(profile: SketchProfile): CadSketchRegion[] {
   const regions: CadSketchRegion[] = nestOutlines(records);
 
   if (regions.length === 0 && openCount > 0 && allPaths.length > 0) {
-    throw new Error("All profile paths are open. Close at least one loop before finishing the sketch.");
+    throw new Error("All profile paths are open. Close at least one loop before finishing the sketch. Or switch on \"Build as a stroke\" to build the open line itself with a width.");
   }
   return regions;
 }

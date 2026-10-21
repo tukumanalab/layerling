@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ShapeAsset } from "@/types/layerling";
-import { makeShapeFromAsset, parseDroppedShapeAsset, sceneShape, toolbarShapeAssets } from "@/lib/shapeCatalog";
+import { clipboardShape, makeShapeFromAsset, parseDroppedShapeAsset, sceneShape, toolbarShapeAssets } from "@/lib/shapeCatalog";
 
 describe("shape catalog", () => {
   it("exposes roundedBox directly after box in the toolbar catalog", () => {
@@ -56,8 +56,14 @@ describe("shape catalog", () => {
     const kinds = toolbarShapeAssets.map((asset) => asset.kind);
     expect(kinds.indexOf("counterbore")).toBe(kinds.indexOf("bentTube") + 1);
     expect(kinds.indexOf("countersink")).toBe(kinds.indexOf("counterbore") + 1);
-    expect(kinds.indexOf("teardrop")).toBe(kinds.indexOf("countersink") + 1);
+    expect(kinds.indexOf("doubleCountersink")).toBe(kinds.indexOf("countersink") + 1);
+    expect(kinds.indexOf("teardrop")).toBe(kinds.indexOf("doubleCountersink") + 1);
     expect(kinds.indexOf("text")).toBe(kinds.indexOf("teardrop") + 1);
+  });
+
+  it("puts Gridfinity right after the spring", () => {
+    const kinds = toolbarShapeAssets.map((asset) => asset.kind);
+    expect(kinds.indexOf("gridfinity")).toBe(kinds.indexOf("spring") + 1);
   });
 
   it("exposes knurl, hinge and dovetail between gear and the decorative shapes in the toolbar catalog", () => {
@@ -294,5 +300,33 @@ describe("dragging from the shape library", () => {
     expect(parseDroppedShapeAsset("not json")).toBeNull();
     expect(parseDroppedShapeAsset(JSON.stringify({ ...toolbarShapeAssets[0], kind: "nonsense" }))).toBeNull();
     expect(parseDroppedShapeAsset(JSON.stringify({ ...toolbarShapeAssets[0], hole: "yes" }))).toBeNull();
+  });
+});
+
+describe("clipboardShape (#642)", () => {
+  it("keeps what sceneShape does not name: see-through, mirroring, edges, twist", () => {
+    const copied = sceneShape({ id: "a", name: "Box", kind: "box", color: "#d41721", width: 20, depth: 20, height: 10 });
+    const withExtras = {
+      ...copied,
+      transparent: true,
+      mirrorX: true,
+      extrudeTwist: 15,
+      edgeTreatments: [{ id: "e1", kind: "fillet", amount: 2, edges: ["top"] }],
+    };
+    // Through the text the other design reads from local storage.
+    const pasted = clipboardShape(JSON.parse(JSON.stringify(withExtras)));
+    expect(pasted?.transparent).toBe(true);
+    expect(pasted?.mirrorX).toBe(true);
+    expect(pasted?.extrudeTwist).toBe(15);
+    expect(pasted?.edgeTreatments).toEqual(withExtras.edgeTreatments);
+    expect(pasted?.width).toBe(20);
+  });
+
+  it("fills the defaults of a sparse copy and refuses what is no shape", () => {
+    const pasted = clipboardShape({ name: "Box", kind: "box", color: "#fff" });
+    expect(pasted?.height).toBe(20);
+    expect(pasted?.elevation).toBe(0);
+    expect(clipboardShape({ name: "Box", kind: "box" })).toBeNull();
+    expect(clipboardShape("box")).toBeNull();
   });
 });

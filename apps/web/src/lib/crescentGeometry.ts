@@ -257,13 +257,22 @@ export function createCrescentGeometry({
   const isClockwise = THREE.ShapeUtils.isClockWise(triPoints);
   const faces2D = THREE.ShapeUtils.triangulateShape(triPoints, []);
 
+  // The lids are turned by where each triangle really lies, not by the turn of the contour: the
+  // triangulation hands its triangles out in a fixed sense, so turning them by the contour's sense
+  // left both lids inside out against the walls - the mesh then had edges that did not meet, a
+  // boolean union with it failed and a slicer showed the overlap as hollow (#493).
+  // In the x-z plane a triangle with a positive 2D cross faces down: the base takes it as it is.
   faces2D.forEach(([a, b, c]) => {
-    if (isClockwise) {
-      indices.push(M + a, M + b, M + c);
-      indices.push(a, c, b);
-    } else {
-      indices.push(M + a, M + c, M + b);
+    const pa = contour2D[a];
+    const pb = contour2D[b];
+    const pc = contour2D[c];
+    const cross = (pb.x - pa.x) * (pc.y - pa.y) - (pb.y - pa.y) * (pc.x - pa.x);
+    if (cross > 0) {
       indices.push(a, b, c);
+      indices.push(M + a, M + c, M + b);
+    } else {
+      indices.push(a, c, b);
+      indices.push(M + a, M + b, M + c);
     }
   });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { placementWorkplaneFromSurface } from "@/lib/placementWorkplane";
-import { placeSketchExtrusion } from "@/lib/sketchPlacement";
+import { movedWithEditedOutline, placeSketchExtrusion, sketchBodyAnchor } from "@/lib/sketchPlacement";
 import type { WorkplaneShape } from "@/types/layerling";
 
 function extrusion(overrides: Partial<WorkplaneShape> = {}): WorkplaneShape {
@@ -74,5 +74,47 @@ describe("sketch extrusion placement", () => {
       rotationZ: 339,
       width: 20,
     }));
+  });
+  const square = (points: Array<[number, number]>) => ({
+    points: points.map(([x, z], index) => ({ id: `p${index}`, x, z, mode: "corner" as const })),
+    segments: [],
+  });
+
+  it("anchors a sketch body on the middle its exact body was built with, curves included (#291)", () => {
+    const profile = square([[-65, 40], [-65, 25], [-20, 25], [-20, 75], [-70, 100]]);
+    const plain = extrusion({ sketchProfile: profile });
+    // Without an exact body: the middle of the points.
+    expect(sketchBodyAnchor(plain)).toEqual({ x: -45, z: 62.5 });
+    // With one, its frame - the curve bulged out to -99.4.
+    const exact = extrusion({
+      sketchProfile: profile,
+      cadBrep: "brep",
+      width: 79.401,
+      depth: 75,
+      height: 10,
+      cadBrepFrame: { x: -59.7, z: 62.5, elevation: 0, width: 79.401, depth: 75, height: 10 },
+    });
+    expect(sketchBodyAnchor(exact)).toEqual({ x: -59.7, z: 62.5 });
+  });
+
+  it("keeps what an edit left alone where it was: the body moves by as much as its outline's middle", () => {
+    const existing = extrusion({ x: 10, z: -10 });
+    const placed = placeSketchExtrusion(extrusion({ x: 6, z: 0, width: 32 }), placementWorkplaneFromSurface({ x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 1, y: 0, z: 0 }), existing);
+    const axes = { x: [1, 0, 0] as const, z: [0, 0, 1] as const };
+    // A corner pulled out by 12: the outline's middle went from 0 to 6, so the body goes 6 along.
+    const moved = movedWithEditedOutline(placed, existing, { x: 0, z: 0 }, { x: 6, z: 0 }, axes);
+    expect(moved.x).toBeCloseTo(16);
+    expect(moved.z).toBeCloseTo(-10);
+    // Nothing moved in the sketch: nothing moves.
+    expect(movedWithEditedOutline(placed, existing, { x: 0, z: 0 }, { x: 0, z: 0 }, axes)).toBe(placed);
+  });
+
+  it("turns the move into the body's own directions when it stands turned", () => {
+    const existing = extrusion({ x: 10, z: 0, elevation: 4, rotation: 90 });
+    // Turned a quarter about the vertical, the sketch's x points along the world's -z.
+    const moved = movedWithEditedOutline(existing, existing, { x: 0, z: 0 }, { x: 5, z: 2 }, { x: [0, 0, -1], z: [1, 0, 0] });
+    expect(moved.x).toBeCloseTo(12);
+    expect(moved.z).toBeCloseTo(-5);
+    expect(moved.elevation).toBeCloseTo(4);
   });
 });

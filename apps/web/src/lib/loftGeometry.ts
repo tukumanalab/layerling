@@ -18,7 +18,6 @@ import type { WorkplaneShape } from "@/types/layerling";
  */
 
 export type LoftOutline = "round" | "rectangle" | "polygon";
-export const LOFT_OUTLINES: readonly LoftOutline[] = ["round", "rectangle", "polygon"];
 
 export const DEFAULT_LOFT = {
   bottomOutline: "rectangle" as LoftOutline,

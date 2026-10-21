@@ -116,6 +116,11 @@ describe("stepSourceForShape", () => {
     expect(stepSourceForShape(shape({ kind: "spring", width: 20, depth: 12, height: 30, springTurns: 3, springWire: 1 }))).toBe("spring");
   });
 
+  it("exports a Gridfinity bin and baseplate as their exact bodies", () => {
+    expect(stepSourceForShape(shape({ kind: "gridfinity", width: 83.5, depth: 41.5, height: 25.4, gridfinityType: "bin" }))).toBe("gridfinity");
+    expect(stepSourceForShape(shape({ kind: "gridfinity", width: 84, depth: 42, height: 5, gridfinityType: "baseplate" }))).toBe("gridfinity");
+  });
+
   it("baut Schraeg- und Kegelraeder als exakte Koerper", () => {
     expect(stepSourceForShape(shape({ kind: "gear", width: 30, depth: 30, height: 6, gearType: "helical" }))).toBe("helicalGear");
     expect(stepSourceForShape(shape({ kind: "gear", width: 30, depth: 30, height: 6, gearType: "bevel" }))).toBe("profile");

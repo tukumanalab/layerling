@@ -17,6 +17,7 @@ const STEPS = [
  */
 const MORE = [
   ["welcome.moreHollowTitle", "welcome.moreHollowBody"],
+  ["welcome.moreDeleteFaceTitle", "welcome.moreDeleteFaceBody"],
   ["welcome.moreSplitTitle", "welcome.moreSplitBody"],
   ["welcome.moreSketchTitle", "welcome.moreSketchBody"],
   ["welcome.moreLibraryTitle", "welcome.moreLibraryBody"],
@@ -41,6 +42,7 @@ const MORE = [
   ["welcome.moreSearchTitle", "welcome.moreSearchBody"],
   ["welcome.moreSimplifyTitle", "welcome.moreSimplifyBody"],
   ["welcome.moreHistoryTitle", "welcome.moreHistoryBody"],
+  ["welcome.moreDrawingTitle", "welcome.moreDrawingBody"],
   ["welcome.moreLookTitle", "welcome.moreLookBody"],
 ] as const satisfies ReadonlyArray<readonly [MessageKey, MessageKey]>;
 
@@ -57,7 +59,9 @@ const GAPS = [
 ] as const satisfies ReadonlyArray<MessageKey>;
 
 /** The body of the welcome panel on the start page. */
-export function WelcomeGuideBody({ tr }: { tr: Translate }) {
+export function WelcomeGuideBody({ tr, offline = true }: { tr: Translate; offline?: boolean }) {
+  // Where no service worker can run (the Docker image, a plain-http address) the page must not promise "works offline" (#571).
+  const more = MORE.filter(([title]) => offline || title !== "welcome.moreOfflineTitle");
   return (
     <>
       <p>{tr("welcome.lead")}</p>
@@ -83,7 +87,7 @@ export function WelcomeGuideBody({ tr }: { tr: Translate }) {
       <div className="dashboard-welcome-more">
         <h3>{tr("welcome.moreTitle")}</h3>
         <ul>
-          {MORE.map(([title, body]) => (
+          {more.map(([title, body]) => (
             <li key={title}>
               <strong>{tr(title)}:</strong> {tr(body)}
             </li>

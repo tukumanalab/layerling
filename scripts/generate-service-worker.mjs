@@ -17,6 +17,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 //   there is a connection - "reload the page to get the new version" keeps
 //   working. Only offline, or after NAVIGATION_TIMEOUT_MS without an answer,
 //   the stored page is used; it belongs to the stored program files.
+// - The Japanese typeface (/fonts/japanese/<hash>/) is not stored on install:
+//   most visitors never write Japanese. The first fetch of a file puts it in a
+//   cache of its own, layerling-fonts, which lives across versions; only the
+//   folders of other cuts are removed from it.
 // - PHP (server storage, contact form) and the dev API never touch the cache.
 // - The copies of the last KEEP_VERSIONS versions stay. A page that is still
 //   open when a new version arrives keeps running on its own files: it loads
@@ -47,9 +51,13 @@ export function precachePaths(relativeFiles, base = BASE) {
     if (path === "/sw.js" || path === "/version.json" || path === "/index.txt" || path === "/robots.txt" || path === "/sitemap.xml") continue;
     if (path === "/404.html" || path.startsWith("/404/")) continue;
     if (path.startsWith("/_next/static/media/") && path.endsWith(".wasm")) continue;
+    // Fetched when a text needs Japanese; the service worker stores it then (FONT_CACHE).
+    if (path.startsWith("/fonts/japanese/")) continue;
     // The guide's pages are small text and worth having offline; its pictures
     // are not, and would triple the download for a page few people open.
-    if (/^\/(anleitung|guide)\/img\//.test(path)) continue;
+    if (/^\/(anleitung|guide|handleiding)\/img\//.test(path)) continue;
+    // The page with every chapter in a row is for printing: a quarter of a megabyte per language, opened by few.
+    if (/^\/(anleitung|guide|handleiding)\/print-all\.html$/.test(path)) continue;
     paths.push(base + (path === "/index.html" ? "/" : path));
   }
   return paths.sort();
@@ -76,6 +84,7 @@ const PRECACHED = new Set(PRECACHE);
 const NAVIGATION_TIMEOUT_MS = 4000;
 const KEEP_VERSIONS = 3;
 const META_CACHE = "layerling-meta";
+const FONT_CACHE = "layerling-fonts";
 const VERSIONS_KEY = "/__layerling-versions";
 
 self.addEventListener("install", (event) => {
@@ -103,11 +112,11 @@ self.addEventListener("activate", (event) => {
     // No list yet: the copies already here belong to the version before this
     // one, written by a service worker that did not keep a list.
     if (!Array.isArray(versions)) {
-      versions = (await caches.keys()).filter((name) => name.startsWith("layerling-") && name !== META_CACHE && name !== CACHE);
+      versions = (await caches.keys()).filter((name) => name.startsWith("layerling-") && name !== META_CACHE && name !== FONT_CACHE && name !== CACHE);
     }
     versions = [...versions.filter((name) => name !== CACHE), CACHE].slice(-KEEP_VERSIONS);
     await meta.put(VERSIONS_KEY, new Response(JSON.stringify(versions), { headers: { "content-type": "application/json" } }));
-    const keep = new Set([...versions, META_CACHE]);
+    const keep = new Set([...versions, META_CACHE, FONT_CACHE]);
     const names = await caches.keys();
     await Promise.all(names.filter((name) => name.startsWith("layerling-") && !keep.has(name)).map((name) => caches.delete(name)));
     await self.clients.claim();
@@ -159,6 +168,28 @@ async function networkFirst(request, path) {
   return stored || fetch(request);
 }
 
+// The Japanese typeface: stored by the first fetch, and from then on served from here. The files
+// of an older cut (another <hash> folder) are removed once a new one is stored.
+function isJapaneseFont(path) {
+  return path.startsWith(BASE + "/fonts/japanese/") && /^\\/fonts\\/japanese\\/[^/]+\\/[^/]+$/.test(path.slice(BASE.length));
+}
+
+async function fontFirst(request, path) {
+  const cache = await caches.open(FONT_CACHE);
+  const stored = await cache.match(path);
+  if (stored) return stored;
+  const response = await fetch(request);
+  if (response.ok) {
+    const folder = path.slice(0, path.lastIndexOf("/") + 1);
+    for (const key of await cache.keys()) {
+      const other = new URL(key.url).pathname;
+      if (!other.startsWith(folder)) await cache.delete(key);
+    }
+    await cache.put(path, response.clone());
+  }
+  return response;
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
@@ -170,7 +201,9 @@ self.addEventListener("fetch", (event) => {
   }
   // Stored files are looked up without their query: the Graphite stylesheet
   // carries ?v=<version> only to get past the browser's normal cache.
-  if (isImmutable(url.pathname)) {
+  if (isJapaneseFont(url.pathname)) {
+    event.respondWith(fontFirst(request, url.pathname));
+  } else if (isImmutable(url.pathname)) {
     event.respondWith(storedFirst(request, url.pathname));
   } else if (PRECACHED.has(url.pathname)) {
     event.respondWith(networkFirst(request, url.pathname));

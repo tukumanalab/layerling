@@ -91,6 +91,35 @@ function cavityFromOffset(cad: OcctKernel, offset: ShapeHandle) {
   }
 }
 
+/**
+ * Hollows a body whose open face the kernel's thick solid cannot take: a face with a pocket in it, such
+ * as the top of a block with a blind pocket, or a ring (forum, #302). The body is grown by a slab on
+ * each open face, the inward offset of that closed body is its cavity - the way a body closed on every
+ * side is hollowed, which the kernel does well - and the cavity is cut from the body as it was. The
+ * slab is taller than the wall, so the cavity reaches right up to the open face and through it.
+ */
+function shellByExtension(cad: OcctKernel, solid: ShapeHandle, open: ShapeHandle[], wall: number, tolerance: number, joinType: JoinType.Arc | JoinType.Intersection) {
+  const handles: ShapeHandle[] = [];
+  try {
+    let grown = cad.copy(solid);
+    handles.push(grown);
+    for (const face of open) {
+      const normal = orientedFaceNormal(cad, face, cad.getSurfaceCenterOfMass(face));
+      const reach = wall * 2 + 1e-3;
+      const slab = cad.extrude(face, normal.x * reach, normal.y * reach, normal.z * reach);
+      handles.push(slab);
+      const fused = cad.unifySameDomain(cad.fuse(grown, slab));
+      handles.push(fused);
+      grown = fused;
+    }
+    const cavity = cavityFromOffset(cad, cad.offset(grown, -wall, tolerance, joinType));
+    handles.push(cavity);
+    return cad.cut(solid, cavity);
+  } finally {
+    releaseAll(cad, handles);
+  }
+}
+
 /** The raw messages of a hollowing that failed; the editor words them for the person (cadModifierRuntime). */
 export const TOO_THICK_MESSAGE = "The walls cannot be this thick for this body. Choose a thinner wall.";
 export const CANNOT_HOLLOW_MESSAGE = "This body cannot be hollowed with any wall thickness.";
@@ -128,21 +157,30 @@ function shellBody(cad: OcctKernel, solid: ShapeHandle, thickness: number, openi
     const attempt = (wall: number): ShapeHandle | null => {
       for (const joinType of joinTypes) {
         for (const tolerance of [1e-6, 1e-3]) {
-          let cavity: ShapeHandle | null = null;
-          try {
-            const result = open.length > 0
-              ? cad.shell(solid, open, wall, tolerance, joinType)
-              : cad.cut(solid, (cavity = cavityFromOffset(cad, cad.offset(solid, -wall, tolerance, joinType))));
-            const volume = shapeIsValid(cad, result) ? cad.getVolume(result) : 0;
-            if (volume > 0 && volume < solidVolume * (1 - 1e-6)) return result;
-            cad.release(result);
-            lastError = new Error("invalid shell");
-          } catch (error) {
-            // A missing kernel function is not a verdict on the wall thickness.
-            if (error instanceof Error && /is not a function/.test(error.message)) throw error;
-            lastError = error;
-          } finally {
-            if (cavity !== null) cad.release(cavity);
+          // With faces to open, the thick solid first; where it fails (a face with a pocket in it), the
+          // body grown over the open faces. A closed body is hollowed with the offset of itself.
+          const builds: Array<() => ShapeHandle> = open.length > 0
+            ? [() => cad.shell(solid, open, wall, tolerance, joinType), () => shellByExtension(cad, solid, open, wall, tolerance, joinType)]
+            : [() => {
+              const cavity = cavityFromOffset(cad, cad.offset(solid, -wall, tolerance, joinType));
+              try {
+                return cad.cut(solid, cavity);
+              } finally {
+                cad.release(cavity);
+              }
+            }];
+          for (const build of builds) {
+            try {
+              const result = build();
+              const volume = shapeIsValid(cad, result) ? cad.getVolume(result) : 0;
+              if (volume > 0 && volume < solidVolume * (1 - 1e-6)) return result;
+              cad.release(result);
+              lastError = new Error("invalid shell");
+            } catch (error) {
+              // A missing kernel function is not a verdict on the wall thickness.
+              if (error instanceof Error && /is not a function/.test(error.message)) throw error;
+              lastError = error;
+            }
           }
         }
       }

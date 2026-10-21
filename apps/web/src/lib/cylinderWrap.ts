@@ -25,7 +25,7 @@ export type CylinderWrapOptions = {
 export type CylinderWrapResult = {
   /** Triangles as a flat list, with the cylinder axis at x = z = 0 and the bottom at y = 0. */
   positions: number[];
-  /** Radius of the outermost point the result can reach; width and depth of its box are twice this. */
+  /** Radius the result is given for, width and depth of its box are twice this; an engraving reaches a little beyond it, see the overshoot. */
   outerRadius: number;
   /** Height on the wall: the depth the body had on the plate. */
   height: number;
@@ -43,6 +43,12 @@ export type CylinderWrapError = "empty" | "invalidDiameter" | "tooWide" | "tooTh
 /** Angle between two cuts across the arc. Two degrees keep the chord within 0.02 mm up to 70 mm radius. */
 export const CYLINDER_WRAP_STEP_DEGREES = 2;
 const ON_PLANE_EPSILON = 1e-9;
+/**
+ * An engraving's outer skin reaches this far beyond the given diameter (#578). A cylinder is made of flat facets, 96 of them for
+ * the kernel's, so its wall lies up to 0.03 mm inside the true circle between the corners, and the wrapped body's own facets are
+ * cut differently. A hole that ended exactly on the wall left a hair-thin skin standing over parts of the letters.
+ */
+export const CYLINDER_WRAP_INWARD_OVERSHOOT_MM = 0.05;
 
 export function wrapMeshAroundCylinder(mesh: CylinderWrapInput, options: CylinderWrapOptions): CylinderWrapResult | { error: CylinderWrapError } {
   if (!mesh.faces.length || !mesh.vertices.length) return { error: "empty" };
@@ -76,10 +82,12 @@ export function wrapMeshAroundCylinder(mesh: CylinderWrapInput, options: Cylinde
   }
 
   const innerRadius = options.inward ? radius - thickness : radius;
+  // The inside of an engraving stays where it was; only its outside is pushed out by the overshoot.
+  const stretch = options.inward && thickness > 0 ? (thickness + CYLINDER_WRAP_INWARD_OVERSHOOT_MM) / thickness : 1;
   const positions: number[] = [];
   const bent = vertices.map(([x, y, z]): CylinderWrapVec3 => {
     const angle = x / radius;
-    const r = innerRadius + y;
+    const r = innerRadius + y * stretch;
     // The back edge on the plate (smallest z) becomes the top of the wall.
     return [r * Math.sin(angle), depth / 2 - z, r * Math.cos(angle)];
   });

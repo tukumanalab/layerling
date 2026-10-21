@@ -2,16 +2,16 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  GRAPHITE_SOURCE,
   GRAPHITE_TARGET,
   graphiteColors,
   graphiteGrey,
   graphiteSelector,
   graphiteThemeCss,
+  readGraphiteSources,
 } from "../../scripts/generate-graphite-theme.mjs";
 
 const root = path.resolve(__dirname, "../..");
-const source = readFileSync(path.join(root, GRAPHITE_SOURCE), "utf8");
+const source = readGraphiteSources(root);
 
 function warmNeutralsIn(css: string) {
   const found = new Set<string>();

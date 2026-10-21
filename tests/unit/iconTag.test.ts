@@ -84,6 +84,8 @@ describe("icon tag", () => {
     expect(iconLayersOf([body({ sketchProfile: square }), other])).toBeNull();
     expect(iconLayersOf([body({ sketchProfile: square, sketchOperation: "revolve" })])).toBeNull();
     expect(isIconLayerBody(body({ sketchProfile: square, kind: "text" }))).toBe(false);
+    // A face tool body is built set in from its sketch, which layers would leave out.
+    expect(isIconLayerBody(body({ sketchProfile: { ...square, inset: { distance: 2, radius: 0 } } }))).toBe(false);
     expect(iconLayersOf([])).toBeNull();
   });
 

@@ -21,7 +21,7 @@
     <a href="#layerling-mcp-skill"><img alt="Von einer KI steuerbar" src="https://img.shields.io/badge/KI--steuerbar-MCP--Server-16c0d4"></a>
   </p>
 
-  <p><a href="README.md">English</a> · <strong>Deutsch</strong></p>
+  <p><a href="README.md">English</a> · <strong>Deutsch</strong> · <a href="README.nl.md">Nederlands</a></p>
 </div>
 
 <p align="center">
@@ -71,13 +71,14 @@ Ein vollständiges CAD-Paket ist es nicht: Es gibt keine parametrische Zeitleist
 - **Flächen aneinanderlegen und Winkel sehen** – das Werkzeug legt eine Fläche eines Teils an eine Fläche eines anderen, berührend oder bündig, auf Wunsch mit Abstand; ein gedrehter Körper zeigt seine Winkel um X, Y und Z unter der Auswahl, und die Karte „Drehung“ in seinen Einstellungen nimmt sie als Zahlen.
 - **Fangen an anderen Formen** – beim Verschieben rastet eine Form mit Kante oder Mitte an Kanten und Mitten der Formen ringsum ein, eine Hilfslinie zeigt woran. So sitzen Teile bündig, ohne Zahlen zu tippen. Alt während des Ziehens hält das kurz an; Umschalt hält die Bewegung auf einer Achse, und mit Alt zu Beginn ziehst du wie in Tinkercad eine Kopie.
 - **Auf Flächen absetzen** – wie Cruise in Tinkercad: Eine neue Form legt sich auf die Fläche unter dem Zeiger, auch auf eine schräge, und C nimmt die Auswahl auf und setzt sie so auf eine andere Fläche.
-- **Bezugspunkte** – Körper mit der rechten Maustaste anklicken und Mitte, Ecken oder Kantenmitten mit Punkten markieren, die nichts druckt und an denen gezogene Formen einrasten; Punkte lassen sich ziehen oder per Koordinate eintippen und werden mit dem Entwurf gespeichert.
+- **Bezugspunkte** – Körper mit der rechten Maustaste anklicken und Mitte, Ecken oder Kantenmitten mit Punkten markieren, die nichts druckt und an denen gezogene Formen einrasten; Punkte lassen sich ziehen oder per Koordinate eintippen und werden mit dem Entwurf gespeichert. Das Maßband kann die Mitte einer Messung markieren, etwa den Mittelpunkt einer runden Bohrung.
+- **Interaktive Hilfe** – mit Umschalt+F1 oder dem Fragezeichen im Bereich Hilfe einschalten und dann einen Knopf, ein Feld oder ein Fenster anklicken: Ein kleines Fenster zeigt das passende Stück der Anleitung und öffnet sie auf Wunsch.
 - **Befehlssuche** – mit Strg+K ein Werkzeug, eine Form oder einen Befehl eintippen („Verrunden“, „Spiegeln“, „Zylinder“) und direkt dorthin springen; sie versteht deutsche und englische Wörter und zeigt die Tastenkürzel dazu.
 - **Verlaufsansicht** – mit einem Schieber auf jeden früheren Stand des Projekts zurückschauen, ohne etwas zu ändern; diesen Stand exportieren oder als neues Projekt anlegen. Von @rmpel.
 - **Millimeter oder Zoll** – mit Imperial erscheinen alle Maße in Zoll, als Bruch wie in Tinkercad (1 5/8) oder als Dezimalzahl, das Raster rastet von 1/64 bis 1 Zoll, und das Gitter der Platte ist in Zoll gezeichnet.
-- **Die Platte deines Druckers** – wähl einen von 190 gängigen Druckern, dann bekommt die Platte seine Größe. Name und Bauraum stehen in der Ecke der Arbeitsfläche (ein Schalter in den Einstellungen blendet das und den Namen des Entwurfs aus), und eine Warnung erscheint, wenn ein Körper über den Rand ragt.
+- **Die Platte deines Druckers** – wähl einen von über 220 gängigen Druckern, dann bekommt die Platte seine Größe. Name und Bauraum stehen in der Ecke der Arbeitsfläche (ein Schalter in den Einstellungen blendet das und den Namen des Entwurfs aus), und eine Warnung erscheint, wenn ein Körper über den Rand ragt.
 - **Überhänge und Filament** – „Überhänge zeigen“ schraffiert jede Fläche, die steiler als 45° (oder der Winkel deines Druckers) überhängt und Stützen bräuchte, und das Exportfenster nennt Volumen, Gewicht und Meter Filament, bevor du slicst.
-- **Formen-Bibliothek** – Quader, Zylinder, Kapseln (auf Wunsch mit einem kleineren Ende, etwa für eine Riemenabdeckung), Kugeln, Kegel, Pyramiden, Keile, Text, Dächer, Halbkugeln, Tori, Rohre, Übergänge (Loft) von einem Umriss zum anderen, etwa eckig auf rund, auch verdreht oder mit geneigtem oberen Ende, mit oder ohne Wand, Mehrkante von drei bis vierundzwanzig Seiten, Federn, ein druckbares Scharnier, Rändelungen für Griffe (gerade, gekreuzt oder rund) und mehr.
+- **Formen-Bibliothek** – Quader, Zylinder, Kapseln (auf Wunsch mit einem kleineren Ende, etwa für eine Riemenabdeckung), Kugeln, Kegel, Pyramiden, Keile, Text, Dächer, Halbkugeln, Tori, Rohre, Übergänge (Loft) von einem Umriss zum anderen, etwa eckig auf rund, auch verdreht oder mit geneigtem oberen Ende, mit oder ohne Wand, Mehrkante von drei bis vierundzwanzig Seiten, Federn, ein druckbares Scharnier, Gridfinity-Behälter und -Bodenplatten, Rändelungen für Griffe (gerade, gekreuzt oder rund) und mehr.
 - **Gewinde, die passen** – Gewindestangen, Schrauben mit Zylinder-, Senk- oder Sechskantkopf, Sechskantmuttern und Gewindelöcher. M2 bis M12 liegen bereit, dazu UNC und UNF von #4 bis ein Zoll und die Whitworth-Rohrgewinde G1/16 bis G4 (ISO 228-1); Durchmesser und Steigung lassen sich auch frei wählen, Linksgewinde ebenso. Bei einer Zoll- oder G-Größe fragt das Feld nach Gängen je Zoll statt nach Millimetern. Die Enden bekommen auf Wunsch eine Fase, und das Gewindeloch ist eine Aussparung: in ein Teil ziehen, gruppieren, fertig.
 - **Zahnräder, die ineinandergreifen** – Stirn-, Schräg- und Kegelräder, Hohlräder und Zahnstangen mit Evolventenzähnen, eingestellt über Modul und Zähnezahl wie in einem Zahnradgenerator, mit Eingriffswinkel und Spiel für den Druck - oder mit runden Zähnen, gutmütig bei kleinen gedruckten Rädern und als Griff an Drehknöpfen. Zwei Räder auswählen, und das Eigenschaftenfeld nennt den Achsabstand, bei dem sie ineinandergreifen.
 - **Körper und Aussparungen** – Formen zu Schneidwerkzeugen erklären und zur fertigen Geometrie gruppieren. „Gruppe bearbeiten“ (**E**) legt die Teile einer Gruppe einzeln hin und rechnet sie mit „Fertig“ neu – auch eine Gruppe in einer Gruppe, so tief der Entwurf geht.
@@ -89,10 +90,12 @@ Ein vollständiges CAD-Paket ist es nicht: Es gibt keine parametrische Zeitleist
 ### Bearbeiten
 
 - **Kanten fasen und verrunden** – jede Kante eines Körpers brechen oder abrunden und später wieder zurücknehmen oder ändern.
-- **Skizzen** – Umrisse aus Linien, Kurven und fertigen Formen zeichnen, Linien schon beim Zeichnen nach Länge und Winkel setzen („50<30“, Umschalt rastet in 15°-Schritten ein), Längen, Winkel und Größen eintippen (Rechnungen wie „60+12,5“ gehen in jedem Zahlenfeld), Ecken runden oder fasen, an den Umrissen anderer Körper einrasten, Hilfslinien zum Einrasten ziehen und daraus exakte Körper ziehen oder drehen. Eine Skizze lässt sich auch als Kontur bauen: Ein geschlossener Umriss wird ein Rahmen, innen, außen oder mittig auf der Linie, eine offene Linie ein Streifen mit flachen, eckigen oder runden Enden.
+- **Skizzen** – Umrisse aus Linien, Kurven und fertigen Formen zeichnen, Linien schon beim Zeichnen nach Länge und Winkel setzen („50<30“, Umschalt rastet in 15°-Schritten ein), Längen, Winkel und Größen eintippen (Rechnungen wie „60+12,5“ gehen in jedem Zahlenfeld), Ecken runden oder fasen, an den Umrissen anderer Körper einrasten, Hilfslinien zum Einrasten ziehen und daraus exakte Körper ziehen oder drehen. Eine Drehung mit Steigung windet den Umriss als einen durchgehenden Strang zur Schraubenlinie statt zu Ringen, wie Filament auf einer Spule. Eine Skizze lässt sich auch als Kontur bauen: Ein geschlossener Umriss wird ein Rahmen, innen, außen oder mittig auf der Linie, eine offene Linie ein Streifen mit flachen, eckigen oder runden Enden.
 - **Aushöhlen** – aus einem Körper Wände gleicher Stärke machen, auf jeder gewünschten Seite offen (oben, unten, vorne, hinten, links, rechts, beliebig kombiniert) oder ganz geschlossen – für Dosen, Becher und Gehäuse.
+- **Fläche löschen** – die Flächen einer Verrundung, eines Lochs oder eines Zapfens anklicken und löschen: Die Flächen ringsum wachsen und schließen die Lücke, und der Körper bleibt exakt für weitere Verrundungen und den STEP-Export.
 - **Eigene Formen** – Körper, die du immer wieder brauchst, oben in der Formenliste ablegen und per Klick oder Ziehen in jeden Entwurf setzen; im Browser oder, mit dem Serverspeicher, auf dem Server für jedes Gerät. „Alle sichern“ nimmt sie mit.
 - **Lochmuster** – eine ebene Fläche eines Körpers perforieren: Fläche anklicken, runde, quadratische, rechteckige, sechseckige oder Langlöcher wählen, Größe, Abstand, Raster oder versetzt, Rand zur Kante und Tiefe (durch das ganze Teil oder ein Maß) einstellen und die Löcher vor dem Erzeugen als Vorschau sehen. Sie bleiben normale Aussparungen, mit dem Körper gruppiert, und lassen sich durch Auflösen der Gruppe wieder freigeben.
+- **Fläche** – eine ebene Fläche eines Körpers herausziehen oder eine Tasche hineinschneiden: Fläche anklicken, Heraus oder Hinein wählen, Rand zur Kante, Eckenradius und Tiefe einstellen und das Ergebnis als Vorschau sehen. Das geht auch bei importierten STL-Dateien, und was das Werkzeug anlegt, bleibt ein normaler Skizzenkörper, mit dem Körper gruppiert.
 - **Um einen Zylinder wickeln** – ein SVG-Muster, ein Logo oder einen Schriftzug auf die Wand eines Bechers oder Rohrs legen, erhaben oder als Gravur, und mittig am Zylinder ausrichten.
 
 ### Dateien
@@ -100,7 +103,9 @@ Ein vollständiges CAD-Paket ist es nicht: Es gibt keine parametrische Zeitleist
 - **Eigene Schriften** – jede TrueType-, OpenType- oder WOFF-Schrift für Text, in Chrome und Edge auch eine auf dem Computer installierte. Ein Entwurf behält nur die Umrisse der benutzten Buchstaben und öffnet sich deshalb überall. Arabisch und Hebräisch laufen von rechts nach links, arabische Buchstaben verbinden sich.
 - **Eigene Modelle mitbringen** – STL, OBJ, 3MF, STEP oder SVG importieren und darum herum konstruieren. Ein SVG kommt als Skizzenkörper: als Fläche, als Kontur außen oder innen an seinen Linien, als Silhouette ohne Löcher oder rundum verbreitert - zusammen ein Ausstecher aus einer Datei oder die Schichten eines mehrfarbigen Logos. Die Textform hat dieselben Füllmodi, und die Formen-Bibliothek hat ein Namensschild: ein Text in farbigen Schichten für den Mehrfarbdruck, auf Wunsch mit Schlüsselringloch und gerundeter oder abgeschrägter Kante an den Buchstaben, und ein Symbolschild: ein SVG-Symbol in denselben farbigen Schichten, mit Anzahl und „so viele wie passen“, um eine Platte zu füllen. Eine farbige OBJ – aus layerling oder aus Tinkercad als ZIP mit ihrer `.mtl` – oder eine farbige 3MF, auch ein Slicer-Projekt, kommt als ein Körper je Farbe, eine 3MF mit mehreren Objekten als ein Körper je Objekt.
 - **Exportieren, was dein Slicer will** – STL, 3MF mit Namen und Farben oder OBJ mit Farben, für die Auswahl oder die ganze Szene (Ausgeblendetes bleibt draußen), dazu STEP, wenn der Entwurf in ein vollwertiges CAD weiterreisen soll. PNG speichert ein sauberes Bild der Ansicht, in doppelter Auflösung und auf Wunsch mit durchsichtigem Hintergrund.
+- **Zeichnung exportieren** – ein Teil auswählen oder die Auswahl für den ganzen sichtbaren Entwurf aufheben, dann **Exportieren → Zeichnung → PDF oder SVG** wählen. Erstellt Vorder-, Drauf- und rechte Seitenansicht in Erstwinkelprojektion auf einem gerahmten Zeichnungsblatt mit Zonennummern und Schriftfeld unten rechts, mit Gesamtmaßen, verdeckten Kanten und Tabellen für Durchmesser und Positionen achsparalleler runder Bohrungen. Maßstab 1:1 in Millimetern; das Blatt wächst mit dem Entwurf. Bei **100 % / tatsächlicher Größe** drucken. Bohrungspositionen beziehen sich auf die linke untere Ecke der Gesamtmaße jeder Ansicht. Schräge oder unrunde Bohrungen, Gewinde, Tiefen und Toleranzen werden nicht automatisch bemaßt. Die Projektion basiert auf der Zeichnungsarbeit aus [Cadverix-3D](https://github.com/WC3D/Cadverix-3D).
 - **Hinweis auf Updates** – im veröffentlichten Programm bemerkt eine offene Seite eine neue Version selbst und bietet an, zu speichern und neu zu laden, samt Liste des Neuen.
+- **Ordner für Entwürfe** – die Entwürfe auf der Startseite in Ordner sortieren (auch Ordner in Ordnern), per Ziehen oder mit „Verschieben nach …“; die Suche schaut in alle, und „Alle sichern“ nimmt sie mit.
 - **Projekte als Datei** – ein ganzes Projekt samt Verlauf, Skizzen und Gruppen als `.lyl` sichern und anderswo weiterbauen. In Chrome und Edge wählst du den Ordner selbst, und Strg+S speichert wieder in genau diese Datei; andere Browser laden sie herunter. Ältere `.skf`-Dateien aus früheren Fassungen öffnen sich weiterhin; gespeichert wird dann als `.lyl` daneben.
 - **Fehlerbericht** – ein Link in der Fußzeile speichert ein ZIP mit dem Entwurf als `.lyl` und einem Text mit Version, Browser und den letzten Meldungen, fertig zum Anhängen im Forum oder bei GitHub, die eine bloße `.lyl` ablehnen.
 - **Entwürfe, die du wiedererkennst** – alles liegt in deinem eigenen Browser, jeder Entwurf mit Vorschaubild.
@@ -109,20 +114,30 @@ Ein vollständiges CAD-Paket ist es nicht: Es gibt keine parametrische Zeitleist
 
 - **Perspektivisch oder gerade von vorn** – zwischen normaler und orthografischer Ansicht wechseln, über den Würfelknopf neben den Zoomtasten oder mit **O**. Blickrichtung und Ausschnitt bleiben erhalten.
 - **Ansicht am Würfel drehen** – Ziehen am Ansichtswürfel dreht die Ansicht wie die rechte Maustaste, auf dem Tablet mit einem Finger; ein Klick springt weiter auf die gerade Seite, ein Klick auf eine Ecke oder Kante schaut von dort. Die Tasten **1**–**6** springen ebenfalls, **Umschalt+1**–**6** zoomen dabei auf die Auswahl.
+- **Vier gespeicherte Ansichten je Entwurf** – **Umschalt+7**, **8**, **9** oder **0** speichert die Ansicht genau so, wie sie ist (Blickwinkel, Ausschnitt, Zoom), und die Taste allein holt sie zurück. Jeder Entwurf hat seine eigenen, und eine gespeicherte `.lyl`-Datei nimmt sie mit.
+- **Der Ansichtswürfel in jeder Ecke** – Einstellungen > Darstellung > **Position des Ansichtswürfels** stellt den Würfel oben links, oben rechts, unten links oder unten rechts hin; in jeder Ecke außer oben links rückt die Kamerasteuerung an seinen Platz nach oben.
 - **Von unten schauen** – das Auge über dem Gitter in der Kameraleiste blendet die Platte aus, damit die Unterseite eines Entwurfs frei zu sehen ist.
 - **Fenster nach Wunsch** – Objektliste, Einstellungen, Schnittansicht, Maßband und die Werkzeugfenster für Kanten, Aushöhlen und Muster lassen sich an ihrer Titelleiste frei verschieben und öffnen sich dort wieder; ein Doppelklick dockt sie an.
 - **Rechtsklick-Menü** – ein kurzer Rechtsklick auf einen Körper bringt die häufigsten Befehle: duplizieren, Aussparung oder Körper, gruppieren, Fase, Rundung und Aushöhlen für einen Körper, spiegeln und um Prozent skalieren, ausblenden, sperren, auf die Arbeitsebene setzen, löschen. Ziehen mit der rechten Taste dreht weiter die Ansicht.
 - **Schnittansicht** – die Ansicht entlang einer Ebene quer zu X, Y oder Z aufschneiden, um Wände, Hohlräume und ineinandergreifende Teile zu sehen, mit grobem und feinem Regler. Geschnitten wird nur die Ansicht: Entwurf und jeder Export bleiben ganz. Den Schnitt selbst speichert „Schnitt als SVG“ im Maßstab 1:1, etwa für einen Laser oder eine Schablone, und „Messen“ liest Wandstärken und Spalte direkt auf dem Schnitt ab, im rechten Winkel zur Wand eingerastet.
 - **Arbeitsebene auf jeder Fläche** – W drücken und eine Fläche anklicken, um darauf zu bauen; ein Klick nahe einer Ecke setzt sie genau auf die Ecke, nahe einer Kante auf die Kante mit dem Raster an ihr entlang, und auf der freien Platte dorthin, wo du klickst. Ein Auge blendet die Ebene für freie Sicht aus, sie gilt trotzdem weiter. Auch eine KI kann sie auf eine Fläche legen.
-- **Auf einem Tablet** – ein Finger arbeitet am Entwurf, genau wie die linke Maustaste: Antippen wählt aus, Ziehen verschiebt, Ziehen auf leerer Fläche spannt den Auswahlrahmen. **Zwei Finger gehören der Ansicht**: Spreizen und Zusammenziehen zoomt, gemeinsames Schieben verschiebt die Arbeitsfläche. Setzt der zweite Finger auf, wird zurückgenommen, was der erste angefangen hatte; ein Zoom verschiebt also nie versehentlich ein Teil. Fürs Drehen gibt es keine eigene Geste, dafür einen Umschalter in der Kameraleiste, der nur auf einem Berührungsbildschirm erscheint: Solange er an ist, dreht ein Finger die Ansicht, statt auszuwählen. Zahlenfelder geben beim Antippen ihren ganzen Wert zum Überschreiben frei – eine Dezimaltastatur hat keine Pfeiltasten, mit denen sich der Schreibzeiger setzen ließe.
+- **Auf einem Tablet** – ein Finger arbeitet am Entwurf, genau wie die linke Maustaste: Antippen wählt aus, Ziehen verschiebt, Ziehen auf leerer Fläche spannt den Auswahlrahmen. **Zwei Finger gehören der Ansicht**: Spreizen und Zusammenziehen zoomt, gemeinsames Schieben verschiebt die Arbeitsfläche. Setzt der zweite Finger auf, wird zurückgenommen, was der erste angefangen hatte; ein Zoom verschiebt also nie versehentlich ein Teil. Fürs Drehen gibt es keine eigene Geste, dafür einen Umschalter in der Kameraleiste, der nur auf einem Berührungsbildschirm erscheint: Solange er an ist, dreht ein Finger die Ansicht, statt auszuwählen. Zahlenfelder geben beim Antippen ihren ganzen Wert zum Überschreiben frei – eine Dezimaltastatur hat keine Pfeiltasten, mit denen sich der Schreibzeiger setzen ließe. Ein Finger greift zu Skizzenpunkten, Linien, Griffen, Messpunkten und Kanten etwas weiter als eine Maus, aber **auf einem Tablet ist ein Stift das bessere Werkzeug**: feiner, und er verdeckt nicht, was du treffen willst.
 
 ### Videos
 
 Von anderen gemacht, nicht von diesem Projekt:
 
-- [Layerling – Playlist](https://www.youtube.com/playlist?list=PLCsBmX2kOGWs) – Making Layers (Englisch). Eine Reihe zu layerling: eine Einführung für Tinkercad-Umsteiger und die Skizzenwerkzeuge.
-- [Meet Layerling Free Browser Based CAD that EXTENDS Tinkercad!](https://youtu.be/979_Ohy9ESM) – HL ModTech (Englisch). Ein Blick auf layerling von einem Tinkercad-Nutzer.
-- [Tinkercad Too Basic? Fusion 360 Too Much? Meet Layerling for 3D Printing](https://youtu.be/kzV7fQ3rXhw) – 3D Jesus | 3D Printing & Design (Englisch). Ein erster Test von layerling ganz ohne Anleitung.
+<!-- videos:start -->
+- [I'm 100% In on Layerling - The Next Big Free CAD](https://youtu.be/IO7S-7bxS5o) – Printology (Englisch). Ein erster Test von einem Tinkercad-Nutzer: was layerling besser kann als Tinkercad, was noch fehlt und ob sich der Wechsel jetzt lohnt.
+- [10 Things Layerling Can Do That Tinkercad Can't!](https://youtu.be/cx0OVHgUsJM) – Print N Repeat (Englisch). Ein zweites Video dieses Kanals: zehn Dinge, die layerling kann und Tinkercad nicht.
+- [Layerling la nueva herramienta gratuita de modelado 3D, más completo que Tinkercad](https://youtu.be/-EEt0RSINoY) – Fulcro 1900 (Spanisch). Ein Video über layerling als neues, kostenloses 3D-Modellierwerkzeug, das vollständiger ist als Tinkercad.
+- [Layerling - Tussen Tinkercad en Fusion 360 in, en Helemaal Gratis!](https://youtu.be/X-UuvsfDI-s) – Werkplaats Marc (Niederländisch). Ein erster Blick auf layerling für Tinkercad-Umsteiger: Aushöhlen, Verrundungen, Lochmuster, Gewinde mit Spiel, eigene Schriften und Druckerprofile, dazu eine Schraube mit und ohne Spiel gedruckt, um den Unterschied zu zeigen.
+- [Layerling](https://www.youtube.com/playlist?list=PLYqVFeqYBrPE) – TECHNOBENTO (Englisch). Eine Playlist über layerling, bisher mit „A new way to sketch in Layerling“.
+- [The PERFECT FREE CAD Program Between Tinkercad and Fusion 360!](https://youtu.be/GIoG-IHPXyg) – Print N Repeat (Englisch). Ein Video über layerling als kostenloses CAD-Programm zwischen Tinkercad und Fusion 360.
+- [Layerling Tutorials](https://www.youtube.com/playlist?list=PLZ-ZWS0D1JIk) – HL ModTech (Englisch). Eine Playlist von einem Tinkercad-Nutzer, bisher mit einem Blick auf layerling von etwa 23 Minuten (kostenloses CAD im Browser, das Tinkercad erweitert), einem tieferen Einstieg in die Funktionen und einem kurzen Update zu gedruckten Gewinden.
+- [Layerling – Playlist](https://www.youtube.com/playlist?list=PLCsBmX2kOGWs) – Making Layers (Englisch). Eine Reihe zu layerling, bisher mit „Tinkercad alternative / upgrade? Introducing Layerling!“, einem Überblick für Tinkercad-Umsteiger, und „Layerling Sketch Tools!“ zu den Skizzenwerkzeugen.
+- [Tinkercad Too Basic? Fusion 360 Too Much? Meet Layerling for 3D Printing](https://youtu.be/kzV7fQ3rXhw) – 3D Jesus | 3D Printing & Design (Englisch). Ein erster Test von layerling ganz ohne Anleitung: Verrunden und Fasen, Aushöhlen, Gewinde, Skizzen, Drehkörper, Muster, Import und Druckerprofile.
+<!-- videos:end -->
 
 ## Loslegen
 
@@ -178,15 +193,15 @@ Dann selbst `http://127.0.0.1:3000/` öffnen. `Strg+C` in diesem Fenster beendet
 
 ### Docker
 
-Um layerling auf einem Rechner, NAS (Synology, Unraid usw.) oder Heimserver ohne Node.js zu betreiben, nimmst du das fertige Image **`ghcr.io/henmedia/layerling`**. Jedes Release veröffentlicht es für amd64 und arm64 (Raspberry Pi, ARM-NAS), unter seiner Versionsnummer und als `latest`. Die App lauscht auf Port **3000**.
+Um layerling auf einem Rechner, NAS (Synology, Unraid usw.) oder Heimserver ohne Node.js zu betreiben, nimmst du das fertige Image **`henmedia/layerling`** auf Docker Hub (auch unter **`ghcr.io/henmedia/layerling`**, dasselbe Image). Jedes Release veröffentlicht es für amd64 und arm64 (Raspberry Pi, ARM-NAS), unter seiner Versionsnummer und als `latest`. Die App lauscht auf Port **3000**.
 
 Am schnellsten geht es mit einem einzigen Befehl:
 
 ```bash
-docker run -d --name layerling -p 3000:3000 --restart unless-stopped ghcr.io/henmedia/layerling:latest
+docker run -d --name layerling -p 3000:3000 -v layerling-thumbnails:/app/.codex/project-thumbnails --restart unless-stopped ghcr.io/henmedia/layerling:latest
 ```
 
-Auf einem NAS mit Container-Verwaltung (Synology Container Manager, Unraid, Portainer) trägst du das Image `ghcr.io/henmedia/layerling:latest` ein und gibst Port 3000 frei. Zum Aktualisieren das Image neu holen und den Container neu anlegen (oder Watchtower das erledigen lassen).
+Die Option `-v` legt die Vorschaubilder der Startseite in ein Docker-Volume namens `layerling-thumbnails`, damit sie ein Update überstehen; ohne sie liegen sie im Container und sind bei jedem Neuanlegen weg (die Entwürfe selbst liegen im Browser und sind nicht betroffen). Auf einem NAS mit Container-Verwaltung (Synology Container Manager, Unraid, Portainer) suchst du in der Registrierung (Docker Hub) nach `henmedia/layerling` oder trägst `henmedia/layerling:latest` ein, gibst Port 3000 frei und legst ein Volume für `/app/.codex/project-thumbnails` an. Zum Aktualisieren das Image neu holen und den Container neu anlegen (oder Watchtower das erledigen lassen).
 
 Die Image-Tags sind reine Versionsnummern **ohne „v“**: `ghcr.io/henmedia/layerling:1.42.0`, das GitHub-Release heißt dagegen `v1.42.0`. Ein Pull holt nur das neue Image; ein vorhandener Container läuft mit dem alten weiter, bis er entfernt und neu angelegt wird:
 
@@ -194,7 +209,7 @@ Die Image-Tags sind reine Versionsnummern **ohne „v“**: `ghcr.io/henmedia/la
 docker pull ghcr.io/henmedia/layerling:latest
 docker stop layerling
 docker rm layerling
-docker run -d --name layerling -p 3000:3000 --restart unless-stopped ghcr.io/henmedia/layerling:latest
+docker run -d --name layerling -p 3000:3000 -v layerling-thumbnails:/app/.codex/project-thumbnails --restart unless-stopped ghcr.io/henmedia/layerling:latest
 ```
 
 Mit `docker inspect layerling | grep image.version` siehst du, welche Version der Container wirklich ausführt. Hast du für den Serverspeicher einen Ordner eingebunden, gib dieselbe `-v`-Option wieder mit an.
@@ -224,10 +239,14 @@ Das Image führt `next start` im Produktionsmodus aus, die MCP-Brücke ist dort 
 gemeinsamen Projektordner ein beschreibbares Verzeichnis einbinden und in `compose.yml` `LAYERLING_SHARED_PROJECTS_DIR`
 auf den Pfad im Container setzen, an dem es eingebunden ist, etwa `./shared-projects:/shared-projects` mit
 `LAYERLING_SHARED_PROJECTS_DIR: "/shared-projects"` (siehe [Gemeinsame Entwürfe im Netz](#gemeinsame-entwürfe-im-netz)).
-Nach einer Änderung `docker compose up -d` ausführen: `docker compose restart` behält die alte Einstellung.
+Der Container läuft als der Benutzer mit der Nummer 999, und dieser muss in den Ordner schreiben dürfen: `sudo chown 999:999 ./shared-projects`, oder dem Dienst `user: "1000:1000"` hinzufügen (deine eigenen Benutzer- und Gruppennummern, `id -u` und `id -g` zeigen sie), dann läuft der Container als du. Ohne das erscheint der Ordner auf der Startseite, aber es lässt sich nichts darin speichern. Nach einer Änderung `docker compose up -d` ausführen: `docker compose restart` behält die alte Einstellung.
 `docker exec <Container> printenv LAYERLING_SHARED_PROJECTS_DIR` zeigt die tatsächlich verwendete.
 
 Das Farbschema, das Leute beim ersten Besuch bekommen, legst du mit `LAYERLING_DEFAULT_THEME` fest: `system`, `light`, `dark` oder `graphite` (auf demselben Weg, in `compose.yml` oder in der Umgebung von `npm run start`). Wer layerling schon geöffnet hat, behält das Schema, das sein Browser bereits hat, und jeder kann es weiter mit dem Umschalter ändern. Ohne die Einstellung folgt das Schema dem System. Eine Kopie, die als reine Dateien ausgeliefert wird, hat keinen Server, der sie lesen könnte, dort gilt sie nicht.
+
+Ist der gemeinsame Ordner eingerichtet, lässt `LAYERLING_NEW_DESIGNS_ON_SERVER` neue Entwürfe auf dem Server beginnen: `true` ist der Anfangswert für alle, die noch nicht gewählt haben (sie können **Neue Entwürfe auf dem Server** auf der Startseite abwählen), `always` gilt für alle und sperrt den Haken. Es wird auf demselben Weg gesetzt, und eine als reine Dateien ausgelieferte Kopie hat keinen Server, der es lesen könnte.
+
+Hinter einem Reverse-Proxy mit Domain muss der Proxy den ursprünglichen `Host` und `X-Forwarded-Proto` weitergeben (nginx: `proxy_set_header Host $host;` und `proxy_set_header X-Forwarded-Proto $scheme;`), sonst lehnt der Server das Speichern mit "Der Serverspeicher nimmt nur Anfragen von dieser Seite an." ab. Schreibt der Proxy den Host um und lässt sich das nicht ändern, trägst du die Adresse, unter der die Leute layerling öffnen, in `LAYERLING_ALLOWED_ORIGINS` ein (kommagetrennt, zum Beispiel `https://layerling.example.com`).
 
 ### Statisches Hosting: reine Dateien auf einem Webserver
 
@@ -248,9 +267,12 @@ Drei Dinge zu wissen:
 
 ### Gemeinsame Entwürfe im Netz
 
+layerling selbst besteht nur aus Dateien, der gemeinsame Ordner braucht also etwas auf dem Server, das schreiben kann. Es gibt zwei Wege, und du brauchst nur einen: **Node oder Docker** (dieser Abschnitt, mit `LAYERLING_SHARED_PROJECTS_DIR`) oder **ein gewöhnlicher Webserver mit PHP** (der Ordner `store`, weiter unten). Ein Webserver, der die Dateien nur ausliefert – `npx serve`, nginx oder Apache ohne PHP –, zeigt layerling ganz normal, hat aber keinen Serverordner.
+
 Betreibst du layerling mit `npm run dev` oder `npm run start` auf einem Rechner, den andere im Browser öffnen, kann es
-einen gemeinsamen Ordner für `.lyl`-Projekte anbieten. Setze dazu vor dem Start `LAYERLING_SHARED_PROJECTS_DIR` auf ein
-Verzeichnis:
+einen gemeinsamen Ordner für `.lyl`-Projekte anbieten. `npm run start` liefert aus, was `npm run build` gebaut hat, führe das also
+einmal vorher aus. Setze vor dem Start `LAYERLING_SHARED_PROJECTS_DIR` auf ein Verzeichnis, in das der Benutzer schreiben darf, der
+layerling startet (ein Ordner unter `/srv` gehört oft root, lege einen eigenen an oder ändere den Besitzer):
 
 ```bash
 LAYERLING_SHARED_PROJECTS_DIR=/srv/layerling-projekte npm run start
@@ -258,9 +280,11 @@ LAYERLING_SHARED_PROJECTS_DIR=/srv/layerling-projekte npm run start
 
 Auf der Startseite steht dann neben deinen Browser-Entwürfen der Ordner **Auf dem Server**. Öffnest du ihn, bist du in
 diesem Ordner: **Neuer Entwurf** legt einen darin an, **Neuer Ordner** einen Unterordner, und die Pfadzeile unter der
-Überschrift sagt, wo du bist. Eine `..`-Kachel führt wieder hinaus. Entwürfe wandern per Ziehen auf einen Ordner, auf
+Überschrift sagt, wo du bist. Eine `..`-Kachel führt wieder hinaus, und **Zurück zu den Entwürfen in diesem Browser** links neben den Knöpfen bringt dich zu den Entwürfen dieses Browsers zurück. Entwürfe wandern per Ziehen auf einen Ordner, auf
 diese Kachel oder auf einen Schritt der Pfadzeile – oder über **Verschieben nach …** in ihrem Menü. Ein Entwurf aus dem
 Browser kommt genauso auf den Server: seine Kachel auf den Serverordner ziehen.
+
+Zwei Schaltflächen auf der Startseite ersparen das Verschieben von Hand: **Alle auf den Server legen** legt alle Entwürfe dieses Browsers auf einmal in den Serverordner, und der Haken **Neue Entwürfe auf dem Server** lässt jeden neuen Entwurf gleich im Serverordner beginnen, sodass er sich dort ab der ersten Änderung sichert. Ein Entwurf, dessen Name auf dem Server schon vergeben ist, bleibt im Browser.
 
 Das Suchfeld oben durchsucht den **ganzen** Serverordner, nicht nur den, in dem du gerade stehst. Jeder Treffer sagt,
 in welchem Ordner er liegt, und dieser Ordner ist ein Knopf: ein Klick, und du bist dort, die Suche ist beendet.
@@ -305,7 +329,7 @@ Diesen Weg nimmst du, wenn du den Quelltext ändern willst.
 
 ### Was du brauchst
 
-- Node.js 20 oder neuer
+- Node.js 22.18 oder neuer (die Skripte für Anleitung und Schriften laden TypeScript-Dateien direkt, das können ältere Versionen nicht); 24 geht auch, das Docker-Image nutzt es
 - npm, in Node.js enthalten
 
 Die Versionen prüfst du mit `node -v` und `npm -v`. Funktionieren die Befehle nicht, installiere Node.js von der

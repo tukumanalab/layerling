@@ -60,6 +60,8 @@ describe("text fill modes as exact bodies (#215, real OCCT kernel)", () => {
     ["a centred stroke", { textStroke: stroke("center", 1.2) }],
     ["the silhouette", { textSilhouette: true }],
     ["widened silhouette, letters run together", { textStroke: stroke("grow", 4), textSilhouette: true }],
+    ["an outside stroke on stretched letters (#382)", { textStretch: true, textStroke: stroke("outside", 1) }],
+    ["widened stretched letters (#382)", { textStretch: true, textStroke: stroke("grow", 1.5) }],
   ] as const)("%s: every piece is a valid solid with its outline's volume", (_label, extra) => {
     const shape = text(extra);
     const pieces = textGlyphProfiles(shape);

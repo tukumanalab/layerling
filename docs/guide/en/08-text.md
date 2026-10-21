@@ -7,11 +7,14 @@ summary: Raised or engraved lettering in eight typefaces or one of your own, and
 
 Choose {{ui:shape.text}} in the shape library and place it. In the {{ui:prop.text}} field on the right, type what it should say. The settings below:
 
-- **{{ui:prop.font}}:** Eight typefaces are available: Multilanguage, Sans, Serif, Script, Monospace, Rounded, Stencil (letters made of straight lines) and Japanese (M PLUS Rounded 1c). New text starts in Sans. Accented letters such as ä, ö, ü, é and the € sign are in every typeface, and so are kana and the common kanji: a Japanese name works in every typeface and on a name tag. The Japanese letters are fetched the first time a text needs them, so such a text shows question marks for a moment. Fonts of your own come on top, see [Your own fonts](#your-own-fonts) below.
+- **{{ui:prop.font}}:** Eight typefaces are available: Multilanguage, Sans, Serif, Script, Monospace, Rounded, Stencil (letters made of straight lines) and Japanese (Zen Maru Gothic). New text starts in Sans. Accented letters such as ä, ö, ü, é and the € sign are in every typeface, and so are kana, the common kanji and many of the rare ones in names such as 澤, 槇 and 檜: a Japanese name works in every typeface and on a name tag. The Japanese letters are fetched the first time a text needs them (the rare kanji in a second file, only when a text has one), so such a text shows question marks for a moment. They are kept on the computer afterwards, so Japanese also works offline from then on. Fonts of your own come on top, see [Your own fonts](#your-own-fonts) below.
 - **{{ui:nameTag.letterSize}}:** How big the letters are, seen from above; {{ui:prop.height}} sets how thick they are.
 - **{{ui:prop.height}}:** How far the lettering stands out from the surface.
 - **{{ui:prop.bevel}}:** Rounds the letter edges so they look softer. With {{ui:prop.segments}} you decide in how many steps.
+- **{{ui:nameTag.letterEdge}}:** rounds or chamfers the top edge of the letters, as on a name tag: {{ui:nameTag.edge.none}}, {{ui:nameTag.edge.round}} or {{ui:nameTag.edge.chamfer}}, with the {{ui:nameTag.letterEdgeSize}} (0.4 mm to start with, at most as high as the text). It goes further than the {{ui:prop.bevel}}, but only as far as the strokes are wide: where a stroke is thinner than twice the size, the edge ends in a narrower top. The underside stays flat, so single letters can be glued on afterwards. While an edge is chosen it takes the place of {{ui:prop.bevel}}.
 - **Size:** You set the length and width of the line as with any shape. Drag the handles or type the dimensions.
+- **{{ui:prop.textSpacing}}:** The space between the letters on top of the one the font has, in per cent of the letter size: 0 leaves it as the font made it, above it the letters stand further apart, below it (down to -50) tighter, which a font of your own often needs. The letters keep their size and the box follows the line, on straight and on curved text. The spacing is not applied to Arabic and Hebrew, whose letters join up.
+- **{{ui:prop.textStretch}}:** Off at first: the letters keep their proportions and sit in the middle of the frame, so a frame pulled wider or deeper than the word needs stays larger than the letters. Switch it on and the letters are stretched to fill the whole frame in both directions: a capital can be made lower or narrower, as in Tinkercad. It is for straight text; curved text has its own letter size.
 
 Text is at first a single body. If you want to treat the letters individually, click {{ui:inspector.separateParts}}. Then every letter is a shape of its own.
 
@@ -95,7 +98,7 @@ All settings of the tag are in the card {{ui:nameTag.title}}, at the top of the 
 - **{{ui:prop.text}}** and **{{ui:prop.font}}**, fonts of your own too. The tag grows with the words.
 - **{{ui:nameTag.letterSize}}:** how tall the capital letters are, in mm. All layers follow and stay lined up.
 - **{{ui:nameTag.layers}}:** one row per layer, from the top down. Each row has the colour (click the coloured square), how much wider the layer is than the letters, its height and {{ui:nameTag.noHoles}}, which fills the holes in letters such as O and A. {{ui:nameTag.corners}} sets how a wider layer goes round the corners of the letters: {{ui:nameTag.corner.round}}, {{ui:nameTag.corner.bevel}} or {{ui:nameTag.corner.miter}}. The top row is the letters themselves. **+** adds a layer at the bottom, **–** takes the bottom layer away. A tag has two to six layers.
-- **{{ui:nameTag.keyring}}:** gives the bottom layer a straight tab with a round end and a hole for a key ring; the tab grows with the hole. A 3 mm hole, the default, makes a tab 6.5 mm wide that sticks out 6.75 mm, the hole's edge 2 mm from the edge of the bottom layer. Choose the {{ui:nameTag.keyringDiameter}} and the {{ui:nameTag.keyringSide}}: {{ui:nameTag.side.left}}, {{ui:nameTag.side.right}} or {{ui:nameTag.side.top}}. The hole goes through every layer it touches, and the tab moves along when you change the words, the letter size or the font.
+- **{{ui:nameTag.keyring}}:** gives the bottom layer a straight tab with a round end and a hole for a key ring; the tab grows with the hole. A 3 mm hole, the default, makes a tab 6.5 mm wide that sticks out 6.75 mm, the hole's edge 2 mm from the edge of the bottom layer. Choose the {{ui:nameTag.keyringDiameter}} and the {{ui:nameTag.keyringSide}}: {{ui:nameTag.side.left}}, {{ui:nameTag.side.right}} or {{ui:nameTag.side.top}}. The hole goes through every layer it touches, and the tab moves along when you change the words, the letter size or the font. {{ui:nameTag.keyringAlong}} moves the tab up or down along its side (along the top: left or right), up to where it would leave the side; 0 is the middle. Use it when the middle of the side meets a gap, as beside a J, and move the tab to the part of the letter that reaches out.
 - **{{ui:nameTag.letterEdge}}:** rounds or chamfers the top edge of the letters on the top layer, the way a printed tag is finished: {{ui:nameTag.edge.none}}, {{ui:nameTag.edge.round}} or {{ui:nameTag.edge.chamfer}}, with the {{ui:nameTag.letterEdgeSize}} (0.4 mm to start with, at most as high as the layer). It works for every font and word. The edge is part of the letters' mesh, so the edge tool takes such a text as a mesh, which for a text this fine is heavy; pick the edge here instead.
 
 Every change shows at once. The tag is a bundle: it moves as one, and each layer stays a body of its own in its own colour, the way a slicer needs them for a multicolour print. To round or bevel the edges of one layer, click {{ui:group.editBundle}} and pick the layer, see [Breaking edges and hollowing bodies](chapter:edges-and-hollowing).
@@ -108,17 +111,41 @@ Type the names into {{ui:textLayers.names}}, one per line, up to a hundred. The 
 
 An icon tag is the same tag with an SVG icon instead of letters: a heart, a cloud, a club's logo. The icon on top, under it the same outline a little wider in a second colour, at the bottom a plate without holes.
 
-- **A new icon tag:** choose {{ui:shape.iconTag}} in the shape library. A small window opens: click {{ui:iconTag.browse}}, pick an SVG file, check the picture, type the {{ui:iconTag.width}} of the icon and click {{ui:iconTag.ok}}. The tag stands in the middle of the plate, in the same layers as a new name tag.
+- **A new icon tag:** choose {{ui:shape.iconTag}} in the shape library. A small window opens: click {{ui:iconTag.browse}}, pick an SVG, PNG or JPG file, check the picture, type the {{ui:iconTag.width}} of the icon and click {{ui:iconTag.ok}}. The tag stands in the middle of the plate, in the same layers as a new name tag.
 - **From a sketch body:** an imported SVG, or a sketch you drew, has {{ui:nameTag.makeLayers}} at the top of its settings.
 
 The card {{ui:iconTag.title}} at the top of the settings holds:
 
-- **{{ui:iconTag.replace}}:** puts another SVG's icon on the tag; the layers and the width stay as they are.
+- **{{ui:iconTag.replace}}:** puts the icon of another file (SVG, PNG or JPG) on the tag; the layers and the width stay as they are.
 - **{{ui:iconTag.iconWidth}}:** how wide the icon on top is, in mm. All layers follow and stay lined up.
 - **{{ui:nameTag.layers}}:** the rows as on a name tag - colour, how much wider, {{ui:nameTag.corners}}, height and {{ui:nameTag.noHoles}}, **+** and **–**, two to six layers. The top row is the icon itself.
+- **{{ui:nameTag.keyring}}:** as on a name tag: a hole for a key ring through every layer, with a tab with a round end on the bottom layer, beyond the icon. {{ui:nameTag.keyringDiameter}} and {{ui:nameTag.keyringSide}} choose its size and where it sits. The tab is made for the outline of the icon, so on a very ragged icon check where it meets the plate. {{ui:nameTag.keyringAlong}} moves the tab along its side, as on the name tag.
 - **{{ui:iconTag.count}}:** how many tags you want, 1 to 100. {{ui:iconTag.fill}} works it out from the plate of the printer chosen in the settings, for small logos a full plate. The button below makes them, 5 mm apart, laid out on the middle of the plate; the first is the tag itself.
 
 The SVG needs closed outlines; a drawing of open lines only cannot become a tag. A sketch body whose fill is a line keeps it: the area of that line is the icon.
+
+**A picture (PNG or JPG)** is traced into an outline, and the preview shows the outline. Under {{ui:iconTag.part}} you choose whether the {{ui:iconTag.part.dark}} or the {{ui:iconTag.part.light}} becomes the icon; at first it is the part that is not the background. Transparent pixels never belong to the icon. An SVG that holds nothing but one picture, as Inkscape saves an imported bitmap, is traced the same way. The outline follows the pixels, so a small picture gives a rough edge: pictures of a few hundred pixels or more work best. {{ui:iconTag.replace}} takes the part of a picture that is not its background.
+
+## QR codes
+
+A QR code turns a text or a web address into a pattern a phone camera reads: a link to your shop on a sign, the Wi-Fi name on a coaster, a phone number on a key tag.
+
+Choose {{ui:shape.qrCode}} in the shape library. A window opens; the cursor is already in the text field:
+
+- **{{ui:qrCode.text}}:** what the code says. Enter makes the code, Shift+Enter starts a new line. Below the field you see how much of the room is used; umlauts and other special letters take two bytes. When the text is too long, the field says so.
+- **{{ui:qrCode.errorCorrection}}:** L, M, Q or H. A higher level can still be read when part of the code is dirty or scratched (L about 7 %, M 15 %, Q 25 %, H 30 %), but needs more modules for the same text, so each module gets smaller. M is chosen at first.
+- **{{ui:qrCode.style}}:** {{ui:qrCode.style.code}} makes the code alone, 4 mm high. {{ui:qrCode.style.raised}} puts it 1 mm high on a white plate 3 mm thick, as a bundle of two colours, so a multicolour print prints the code dark and the plate light. {{ui:qrCode.style.engraved}} cuts the code 1 mm deep into the plate.
+- **{{ui:qrCode.sizeBy}}:** type the {{ui:qrCode.sizeBy.width}} of the whole code (40 mm at first) or the size of one module; the other number is shown below. Modules under 0.8 mm get a warning. That is a rule of thumb for a 0.4 mm nozzle, not a guarantee: printer, material, colours and the phone all play a part.
+- **{{ui:qrCode.quietZone}}:** scanners need an empty rim four modules wide round the code. On a plate the rim is part of the plate; switch it off only if the plate sits on a larger light surface. The code alone has no rim of its own: leave the room free round it.
+- **Heights:** the height of the code, or on a plate the code height or engraving depth, and the plate thickness.
+
+The preview shows the code as it will be built. {{ui:qrCode.ok}} puts it in the middle of the plate.
+
+The code is a body like any other: move it, turn it, scale it (keep width and depth the same, or the code is stretched), group it, or make it a hole and group it into a part of your own to engrave it there. Scaling it scales the whole code; each module stays square.
+
+The card {{ui:qrCode.title}} at the top of its settings holds the text. Change it and click {{ui:qrCode.regenerate}}: the code is built again where it stands and as wide as it is now. Error correction, quiet zone and build stay as they were chosen; for other choices make a new code from the library.
+
+Scan the code with your phone before you print it, and once more after printing. Dark on light reads best; a light code on a dark plate is not read by every phone.
 
 ## Text on a circular arc
 

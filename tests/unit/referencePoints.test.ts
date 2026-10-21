@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanReferencePosition, newReferencePositions, referencePointsForBox, unionReferenceBoxes } from "@/lib/referencePoints";
+import { cleanReferencePosition, measurementMiddle, nearestReferenceOnScreen, newReferencePositions, referencePointsForBox, unionReferenceBoxes } from "@/lib/referencePoints";
 import { normalizeNotes, notesSignature, referencePoints } from "@/lib/workplaneNotes";
 
 const box = { minX: -20, maxX: 40, minY: 0, maxY: 8, minZ: 10, maxZ: 30 };
@@ -39,5 +39,50 @@ describe("reference points", () => {
     expect(referencePoints(notes).map((note) => note.id)).toEqual(["b"]);
     const asNote = normalizeNotes([{ id: "b", text: "", x: 4, y: 5, z: 6, collapsed: true }]);
     expect(notesSignature(notes)).not.toBe(notesSignature([notes[0], asNote[0]]));
+  });
+});
+
+describe("the middle of a measurement", () => {
+  it("is halfway between the two points of a straight measurement", () => {
+    expect(measurementMiddle([{ x: 0, y: 5, z: 0 }, { x: 6, y: 5, z: 2 }])).toEqual({ x: 3, y: 5, z: 1 });
+  });
+
+  it("is the centre of a closed edge, however the edge is cut into points", () => {
+    const ring = (count: number, radius: number, centre: { x: number; y: number; z: number }) =>
+      Array.from({ length: count + 1 }, (_, index) => {
+        const angle = (index % count) / count * Math.PI * 2;
+        return { x: centre.x + Math.cos(angle) * radius, y: centre.y, z: centre.z + Math.sin(angle) * radius };
+      });
+    for (const count of [8, 24, 64]) {
+      const middle = cleanReferencePosition(measurementMiddle(ring(count, 3, { x: 12, y: 7, z: -4 }))!);
+      expect(middle).toEqual({ x: 12, y: 7, z: -4 });
+    }
+    // Unevenly spaced points: the centre of the area, not the average of the points.
+    const uneven = [0, 0.1, 0.2, 0.3, 1, 2, 3, 4, 5, 6.28318530718, 0].map((angle) => ({ x: 20 + Math.cos(angle) * 2.5, y: 1, z: 5 + Math.sin(angle) * 2.5 }));
+    uneven[uneven.length - 1] = { ...uneven[0] };
+    const middle = measurementMiddle(uneven)!;
+    expect(middle.x).toBeCloseTo(20, 0);
+    expect(middle.z).toBeCloseTo(5, 0);
+  });
+
+  it("is halfway along an open edge, and nothing for a single point", () => {
+    expect(measurementMiddle([{ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { x: 10, y: 0, z: 10 }])).toEqual({ x: 10, y: 0, z: 0 });
+    expect(measurementMiddle([{ x: 1, y: 2, z: 3 }])).toBeNull();
+  });
+});
+
+describe("the reference point under the tape measure's pointer (#334)", () => {
+  const points = [{ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }];
+  // The screen shows x as pixels, 5 to the unit.
+  const project = (point: { x: number; z: number }) => ({ x: point.x * 5, y: point.z * 5 });
+
+  it("takes the nearest point within reach", () => {
+    expect(nearestReferenceOnScreen(points, project, { x: 48, y: 3 }, 14)).toBe(points[1]);
+    expect(nearestReferenceOnScreen(points, project, { x: 4, y: 0 }, 14)).toBe(points[0]);
+  });
+
+  it("takes none when the pointer is too far away, and none for no points", () => {
+    expect(nearestReferenceOnScreen(points, project, { x: 25, y: 40 }, 14)).toBeNull();
+    expect(nearestReferenceOnScreen([], project, { x: 0, y: 0 }, 14)).toBeNull();
   });
 });

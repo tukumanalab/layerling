@@ -417,12 +417,32 @@ export function boundedEditorHistoryState(
   return { entries: bounded, index: index - start };
 }
 
+/** How long a pause between two arrow-key presses may be and still count as one run (#370). */
+export const KEY_RUN_GAP_MS = 1500;
+
+/**
+ * The last step an arrow key made: what it moved, when, and the history entry it left (#370).
+ * A press that comes soon after, on the same thing, and while that entry is still the newest,
+ * replaces the entry instead of adding one, so a run of presses is one step of the history.
+ */
+export type KeyRun = { key: string; at: number; entry: unknown };
+
+export function continuesKeyRun(run: KeyRun | null, key: string, now: number, currentEntry: unknown, currentIsNewest: boolean) {
+  return run !== null && run.key === key && currentIsNewest && currentEntry !== undefined && run.entry === currentEntry && now - run.at <= KEY_RUN_GAP_MS;
+}
+
+/**
+ * Puts a new state into the history after the current one. With `replaceCurrent` the newest entry
+ * is replaced instead, for a run of arrow-key presses (#370); a run that ends where it started
+ * leaves no entry at all.
+ */
 export function appendEditorHistorySnapshot(
   entries: EditorHistoryEntry[],
   requestedIndex: number,
   entry: EditorHistoryEntry,
   limit: EditorHistoryExportLimit = "unlimited",
   now: number = Date.now(),
+  replaceCurrent = false,
 ) {
   const index = Math.min(Math.max(0, requestedIndex), Math.max(0, entries.length - 1));
   const current = entries[index];
@@ -438,6 +458,13 @@ export function appendEditorHistorySnapshot(
   // Ein neuer Stand bekommt seine Zeit hier, wo er in den Verlauf kommt - und
   // nur hier, damit ein Eintrag, der bloss verglichen wird, keine traegt.
   const stamped: EditorHistoryEntry = typeof entry.at === "number" && Number.isFinite(entry.at) ? entry : { ...entry, at: now };
+  if (replaceCurrent && index > 0 && index === entries.length - 1) {
+    const before = entries[index - 1];
+    const nextEntries = before.fingerprint === entry.fingerprint
+      ? entries.slice(0, index)
+      : [...entries.slice(0, index), stamped];
+    return { entries: nextEntries, index: nextEntries.length - 1, changed: true };
+  }
   const nextEntries = boundedEditorHistory([...entries.slice(0, index + 1), stamped], limit);
   return { entries: nextEntries, index: nextEntries.length - 1, changed: true };
 }
@@ -514,7 +541,14 @@ export function hydrateEditorHistoryState(
     const index = Number.isInteger(requestedIndex)
       ? Math.min(Math.max(0, requestedIndex as number), normalized.length - 1)
       : normalized.length - 1;
-    if (normalized[index]?.fingerprint !== fallback.fingerprint) {
+    // A caller that knows no workplane (the start page building its cache from a loaded design) takes the one
+    // the entry itself was recorded on; comparing it to the base plate threw away the whole history of any
+    // design whose last step was made on a face workplane (#390).
+    const stored = normalized[index];
+    const expected = currentWorkplane === undefined && stored?.placementWorkplane
+      ? editorHistoryEntry(currentShapes, [], currentNotes, stored.placementWorkplane)
+      : fallback;
+    if (stored?.fingerprint !== expected.fingerprint) {
       return { entries: [fallback], index: 0 };
     }
 

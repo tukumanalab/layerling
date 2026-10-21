@@ -1,8 +1,10 @@
 import { createLocalId } from "@/lib/localIds";
 import { fieldFormulasEqual } from "@/lib/fieldFormulas";
 import { threadFootprintPatch } from "@/lib/threadGeometry";
+import { gridfinityCompartmentLabelsEqual, gridfinityDividerPositionsEqual, gridfinityFootprintPatch } from "@/lib/gridfinityGeometry";
 import { MCP_SHAPE_SETTING_KEYS } from "@/lib/mcpShapeSettings";
 import { bentTubeSegmentsEqual } from "@/lib/bentTubeGeometry";
+import { qrSettingsEqual } from "@/lib/qrCode";
 import type { SketchStroke, WorkplaneShape } from "@/types/layerling";
 
 /** Bauwerte der Wabengitter, die es nur noch in alten Entwuerfen gibt: Die Form wird nicht mehr angeboten (#223), bleibt aber bearbeitbar. */
@@ -25,13 +27,13 @@ export function normalizeDegrees(value: number) {
   return ((value % 360) + 360) % 360;
 }
 
-export function cleanRotationDegrees(value: number, precision = 1) {
+export function cleanRotationDegrees(value: number, precision = 2) {
   if (!Number.isFinite(value)) {
     return 0;
   }
   const normalized = normalizeDegrees(value);
   const rounded = Number(normalized.toFixed(precision));
-  const zeroThreshold = precision <= 1 ? 0.5 : 0.05;
+  const zeroThreshold = precision <= 2 ? 0.5 : 0.05;
   if (rounded < zeroThreshold || rounded >= 360 - zeroThreshold || Object.is(rounded, -0)) {
     return 0;
   }
@@ -117,8 +119,8 @@ export function shapeTaperDimensions(shape: WorkplaneShape) {
 }
 
 /**
- * Arten, die eine Verjuengung ueberhaupt annehmen. Zahnrad, Gewinde, Feder und
- * Raendel kennen sie gar nicht, die Pyramide hat mit Laenge und Breite oben ihre
+ * Arten, die eine Verjuengung ueberhaupt annehmen. Zahnrad, Gewinde und Feder
+ * kennen sie gar nicht (das Raendel seit #630 doch), die Pyramide hat mit Laenge und Breite oben ihre
  * eigene, die wirklich greift, und Scharnier, Senkungen, gebogenes Rohr und
  * Lineal haben feste Masse, die eine Verjuengung nur verdurbe. Der Tropfen ist
  * der Querschnitt eines waagerechten Lochs; oben und unten gibt es fuer ihn
@@ -126,7 +128,7 @@ export function shapeTaperDimensions(shape: WorkplaneShape) {
  * Wabe und Schwalbenschwanz sie an. Die Liste steht hier, damit das Merkmalsfeld, die
  * Vorschau und die MCP-Bruecke nicht je ihre eigene fuehren.
  */
-const SHAPES_WITHOUT_TAPER = new Set<WorkplaneShape["kind"]>(["gear", "thread", "spring", "pyramid", "ruler", "hinge", "knurl", "counterbore", "countersink", "teardrop", "bentTube", "loft"]);
+const SHAPES_WITHOUT_TAPER = new Set<WorkplaneShape["kind"]>(["gear", "thread", "spring", "pyramid", "ruler", "hinge", "counterbore", "countersink", "doubleCountersink", "teardrop", "bentTube", "loft", "gridfinity"]);
 
 export function shapeSupportsTaper(kind: WorkplaneShape["kind"]) {
   return !SHAPES_WITHOUT_TAPER.has(kind);
@@ -210,6 +212,16 @@ export function shapeSupportsExtrudeDeform(kind: WorkplaneShape["kind"]) {
   return shapeSupportsTaper(kind);
 }
 
+/**
+ * Shapes drawn around their own middle without filling their box: a star's tips lie on a circle round the origin,
+ * and a five-pointed one reaches further up than down. Their taper and twist work about that middle, not about the
+ * middle of their box - a twist about the box would let the star's middle circle round the axis (#476). A polygon
+ * is stretched to fill its box, so its box middle is its origin already.
+ */
+export function deformsAboutOrigin(kind: WorkplaneShape["kind"]) {
+  return kind === "star";
+}
+
 export function shapeHasExtrudeDeform(shape: WorkplaneShape) {
   if (!shapeSupportsExtrudeDeform(shape.kind)) return false;
   return Math.abs(shape.extrudeTwist ?? 0) > 1e-6 || Math.abs(shape.extrudeTopOffsetX ?? 0) > 1e-6 || Math.abs(shape.extrudeTopOffsetZ ?? 0) > 1e-6;
@@ -268,6 +280,10 @@ export function meshYawDegrees(shape: WorkplaneShape) {
   // the yaw decides where it points (forum 617836: pins laid round a ring all faced one way once
   // grouped).
   if (Math.abs(shape.rotationZ ?? 0) > 1e-9) return shape.rotation;
+  // A taper or a lean follows the body's own X and Z axes, so such a round body is no longer the same turned
+  // by a side step: dropping its yaw laid a tapered cylinder turned by 90 degrees back as it was before once
+  // it was grouped or exported (#504).
+  if (shapeHasShapeDeform(shape)) return shape.rotation;
 
   // A tessellated circular primitive is only invariant by one whole side step.
   // Preserve the remaining yaw so low-sided cylinders are baked and used in
@@ -434,6 +450,12 @@ export function canonicalizeShape(shape: WorkplaneShape): WorkplaneShape {
     Object.assign(next, footprint);
     next.size = resizedShapeSize(footprint.width, footprint.depth);
   }
+  // A Gridfinity bin or baseplate is whole grid units, whatever set its box.
+  if (shape.kind === "gridfinity") {
+    const footprint = gridfinityFootprintPatch(next);
+    Object.assign(next, footprint);
+    next.size = resizedShapeSize(footprint.width, footprint.depth);
+  }
   // A cylinder's cross-section must always stay circular - width is
   // authoritative, depth follows. This is the single enforcement point: every
   // creation, edit and project load runs through canonicalizeShape.
@@ -453,6 +475,7 @@ export function canonicalizeShape(shape: WorkplaneShape): WorkplaneShape {
       sweepAngle: shape.sketchRevolve.sweepAngle,
       sides: shape.sketchRevolve.sides,
       quality: shape.sketchRevolve.quality,
+      ...(shape.sketchRevolve.pitch ? { pitch: shape.sketchRevolve.pitch } : {}),
     };
   }
   if (shape.edgeTreatmentHistory) {
@@ -529,6 +552,8 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.threadClearance === b.threadClearance &&
     a.threadBoltClearance === b.threadBoltClearance &&
     a.threadAxialClearance === b.threadAxialClearance &&
+    a.threadDepth === b.threadDepth &&
+    a.threadFlankAngle === b.threadFlankAngle &&
     a.threadQuality === b.threadQuality &&
     a.threadHeadHeight === b.threadHeadHeight &&
     a.threadChamfer === b.threadChamfer &&
@@ -561,6 +586,41 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.hingePinDiameter === b.hingePinDiameter &&
     a.hingeLeafThickness === b.hingeLeafThickness &&
     a.hingeClearance === b.hingeClearance &&
+    a.hingePinless === b.hingePinless &&
+    a.gridfinityType === b.gridfinityType &&
+    a.gridfinityLip === b.gridfinityLip &&
+    a.gridfinityMagnets === b.gridfinityMagnets &&
+    a.gridfinityHalfGrid === b.gridfinityHalfGrid &&
+    a.gridfinityLabelBack === b.gridfinityLabelBack &&
+    a.gridfinityLabelFront === b.gridfinityLabelFront &&
+    a.gridfinityLabelLeft === b.gridfinityLabelLeft &&
+    a.gridfinityLabelRight === b.gridfinityLabelRight &&
+    a.gridfinityLabelBackWidth === b.gridfinityLabelBackWidth &&
+    a.gridfinityLabelBackLength === b.gridfinityLabelBackLength &&
+    a.gridfinityLabelBackOffset === b.gridfinityLabelBackOffset &&
+    a.gridfinityLabelFrontWidth === b.gridfinityLabelFrontWidth &&
+    a.gridfinityLabelFrontLength === b.gridfinityLabelFrontLength &&
+    a.gridfinityLabelFrontOffset === b.gridfinityLabelFrontOffset &&
+    a.gridfinityLabelLeftWidth === b.gridfinityLabelLeftWidth &&
+    a.gridfinityLabelLeftLength === b.gridfinityLabelLeftLength &&
+    a.gridfinityLabelLeftOffset === b.gridfinityLabelLeftOffset &&
+    a.gridfinityLabelRightWidth === b.gridfinityLabelRightWidth &&
+    a.gridfinityLabelRightLength === b.gridfinityLabelRightLength &&
+    a.gridfinityLabelRightOffset === b.gridfinityLabelRightOffset &&
+    a.gridfinityLabelCorner === b.gridfinityLabelCorner &&
+    a.gridfinityLabelCornerSize === b.gridfinityLabelCornerSize &&
+    a.gridfinityScoopBack === b.gridfinityScoopBack &&
+    a.gridfinityScoopFront === b.gridfinityScoopFront &&
+    a.gridfinityScoopLeft === b.gridfinityScoopLeft &&
+    a.gridfinityScoopRight === b.gridfinityScoopRight &&
+    a.gridfinityScoopRadius === b.gridfinityScoopRadius &&
+    a.gridfinityFloorHeight === b.gridfinityFloorHeight &&
+    a.gridfinityCompartmentsX === b.gridfinityCompartmentsX &&
+    a.gridfinityCompartmentsZ === b.gridfinityCompartmentsZ &&
+    a.gridfinityDividerThickness === b.gridfinityDividerThickness &&
+    gridfinityDividerPositionsEqual(a.gridfinityDividerPositionsX, b.gridfinityDividerPositionsX) &&
+    gridfinityDividerPositionsEqual(a.gridfinityDividerPositionsZ, b.gridfinityDividerPositionsZ) &&
+    gridfinityCompartmentLabelsEqual(a.gridfinityCompartmentLabels, b.gridfinityCompartmentLabels) &&
     a.dovetailNeckWidth === b.dovetailNeckWidth &&
     a.dovetailClearance === b.dovetailClearance &&
     a.loftBottomOutline === b.loftBottomOutline &&
@@ -609,8 +669,11 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.textFlipped === b.textFlipped &&
     sketchStrokesEqual(a.textStroke, b.textStroke) &&
     Boolean(a.textSilhouette) === Boolean(b.textSilhouette) &&
+    Boolean(a.textStretch) === Boolean(b.textStretch) &&
+    (a.textSpacing ?? 0) === (b.textSpacing ?? 0) &&
     JSON.stringify(a.textKeyring ?? null) === JSON.stringify(b.textKeyring ?? null) &&
     JSON.stringify(a.textEdge ?? null) === JSON.stringify(b.textEdge ?? null) &&
+    qrSettingsEqual(a.qrCode, b.qrCode) &&
     a.importedMesh === b.importedMesh &&
     a.imagePlate === b.imagePlate &&
     a.sketchProfile === b.sketchProfile &&

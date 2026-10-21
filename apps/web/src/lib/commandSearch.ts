@@ -41,6 +41,7 @@ function foldAccents(text: string) {
   return text
     .toLowerCase()
     .replace(/ß/g, "ss")
+    .replace(/ł/g, "l")
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "");
 }

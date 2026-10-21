@@ -1,5 +1,5 @@
 
-import { Crosshair, Plus, Rows3, X } from "lucide-react";
+import { Crosshair, Eye, EyeOff, Plus, Rows3, X } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type Dispatch, type MutableRefObject, type PointerEvent as ReactPointerEvent, type SetStateAction } from "react";
 import * as THREE from "three";
 import { disposeBoundsTree } from "three-mesh-bvh";
@@ -10,7 +10,7 @@ import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeome
 import { type AppThemePalette, type ResolvedAppTheme } from "@/lib/appTheme";
 import { t } from "@/lib/i18n";
 import { displayToMillimeters, formatLengthMm, formatMeasurementNumber, lengthDisplayUnit, millimetersToDisplay, parseMeasurementInput } from "@/lib/measurementUnits";
-import { computeCornerRulerRelativeCoordinates, cornerRulerDimensionMatchesFromCorner, cornerRulerFlatRotation, cornerRulerTicks, pointAlongRuler, rulerDimensionMatch, type CornerRulerFrame, type CornerRulerMode, type RulerDimensionField, type RulerDimensionMatch } from "@/lib/rulerDimensions";
+import { computeCornerRulerRelativeCoordinates, cornerRulerAxisModes, cornerRulerDimensionMatchesFromCorner, cornerRulerFlatRotation, cornerRulerTicks, pointAlongRuler, rulerDimensionMatch, worldAxisNameOfDirection, type CornerRulerAxis, type CornerRulerAxisModes, type CornerRulerFrame, type CornerRulerMode, type RulerDimensionField, type RulerDimensionMatch } from "@/lib/rulerDimensions";
 import { type PlacementPoint, type PlacementWorkplane } from "@/lib/placementWorkplane";
 import { capturePointer } from "@/lib/pointerCapture";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
@@ -28,6 +28,7 @@ const ORIGIN_DIMENSION_LINE_COLOR = { light: "#6ec4e8", dark: "#8fd4f0" } as con
 const CORNER_RULER_ARM_WIDTH = 12;
 
 export const RENDER_LAYER_HELPERS = 2;
+const RENDER_LAYER_SHAPES = 1;
 
 const MAX_SHARED_SHAPE_GEOMETRIES = 192;
 
@@ -51,6 +52,10 @@ export type ShapeRenderRecord = {
 };
 
 export type ThreeState = {
+  /** How far the orbit pivot may travel (the plate), as the camera clamp last saw it; the wheel zoom stays within it. */
+  pivotLimits?: { halfWidth: number; halfDepth: number; minY: number; maxY: number };
+  /** Where "Center view" last went: a part beyond the plate edge may be centred, so the pivot may reach as far as that part. */
+  focusReach?: THREE.Box3 | null;
   /** Colour set on top of light/dark; only the canvas reads it. */
   palette?: AppThemePalette;
   renderer: THREE.WebGLRenderer;
@@ -63,12 +68,18 @@ export type ThreeState = {
   layFlatHoverLayer?: THREE.Group;
   /** The bent-tube segment the settings are about, drawn over the tube. */
   bentTubeSegmentLayer?: THREE.Group;
+  /** Delete face: the faces picked and the one under the pointer. */
+  cadFaceLayer?: THREE.Group;
+  /** Delete face: the prepared body's tessellation it picks on, kept out of the scene. */
+  cadFacePickMesh?: THREE.Mesh;
   shapeLayer: THREE.Group;
   helperLayer: THREE.Group;
   splitLayer: THREE.Group;
   transformGuideLayer: THREE.Group;
   moveDimensionLayer: THREE.Group;
   originDimensionLayer: THREE.Group;
+  /** The arms, ticks and arrows of the corner ruler as lines in the room, so a body can hide them (forum). */
+  cornerRulerLayer: THREE.Group;
   modifierLayer: THREE.Group;
   shapeRecords: Map<string, ShapeRenderRecord>;
   /** The pivot the user set for rotating; the rotation wheels sit on its axes. */
@@ -91,6 +102,8 @@ export type ThreeState = {
   rotationHandleSides: RotationHandleSides | null;
   sectionPlane: THREE.Plane | null;
   sectionPlaneHelper: THREE.Group | null;
+  /** The filled cut face of the section view (#516). */
+  sectionCapGroup: THREE.Group | null;
   /** The scene's lights, so the settings can change how punchy the shading is. */
   lights: { ambient: THREE.HemisphereLight; key: THREE.DirectionalLight; fill: THREE.DirectionalLight };
   disposeInteractionListeners: () => void;
@@ -168,6 +181,10 @@ export type TapeModel = {
   points: TapePoint[];
   segments: TapeSegment[];
   startPointId: string | null;
+  /** The edge the first point lies on, while a measurement is under way: the diameter of a circle snaps from it (#308). */
+  startEdge?: TapeEdgeAttachment | null;
+  /** Unit normal of the surface the first point was placed on, while a measurement is under way (#589). */
+  startNormal?: [number, number, number] | null;
   hover: TapeCandidate | null;
 };
 
@@ -183,7 +200,12 @@ export type TapeCandidate = {
   z: number;
   pointId?: string;
   attachment?: TapeAttachment;
+  /** Set when a click would measure this whole edge. */
   edge?: TapeEdgeAttachment;
+  /** The edge the point lies on, whether or not a click measures all of it. */
+  circleEdge?: TapeEdgeAttachment;
+  /** Unit normal of the surface face under the point, so the second point can snap perpendicular to it (#589). */
+  surfaceNormal?: [number, number, number];
 };
 
 export type RotationHandleSide = "near" | "right" | "far" | "left";
@@ -226,6 +248,33 @@ export function projectToScreen(point: THREE.Vector3, state: ThreeState) {
   };
 }
 
+/** How far in front of a perspective camera a point is (negative: behind it); an orthographic camera has no behind. */
+function depthInFrontOfCamera(point: THREE.Vector3, state: ThreeState) {
+  if (!(state.camera instanceof THREE.PerspectiveCamera)) return Number.POSITIVE_INFINITY;
+  state.camera.updateMatrixWorld();
+  return -point.clone().applyMatrix4(state.camera.matrixWorldInverse).z;
+}
+
+/**
+ * The screen line of the world segment a-b, cut off where it passes behind a perspective camera, or
+ * null when all of it is behind. A point behind the camera projects to a mirrored place on the screen,
+ * so drawing it as it is makes a fan of lines (a ruler arm that reaches past a camera hovering above it).
+ * The cut is made 1 mm in front of the camera, so what is drawn stays within a few ten thousand pixels.
+ */
+export function projectSegmentToScreen(a: THREE.Vector3, b: THREE.Vector3, state: ThreeState) {
+  const near = state.camera instanceof THREE.PerspectiveCamera ? Math.max(state.camera.near, 1) : 0;
+  const depthA = depthInFrontOfCamera(a, state);
+  const depthB = depthInFrontOfCamera(b, state);
+  if (depthA < near && depthB < near) return null;
+  let from = a;
+  let to = b;
+  if (depthA < near) from = a.clone().lerp(b, (near - depthA) / (depthB - depthA));
+  else if (depthB < near) to = b.clone().lerp(a, (near - depthB) / (depthA - depthB));
+  const start = projectToScreen(from, state);
+  const end = projectToScreen(to, state);
+  return { x1: start.x, y1: start.y, x2: end.x, y2: end.y };
+}
+
 export function syncMoveDimensionWorldLines(
   state: ThreeState,
   session: MoveDimensionSession | null,
@@ -264,19 +313,7 @@ export function syncMoveDimensionWorldLines(
     }
     const geometry = new LineSegmentsGeometry();
     geometry.setPositions(points);
-    const material = new LineMaterial({
-      color,
-      linewidth,
-      worldUnits: false,
-      transparent: true,
-      opacity,
-      depthTest: false,
-      depthWrite: false,
-      alphaToCoverage: false,
-    });
-    material.toneMapped = false;
-    const rect = state.renderer.domElement.getBoundingClientRect();
-    material.resolution.set(Math.max(1, rect.width), Math.max(1, rect.height));
+    const material = sharedOverlayLineMaterial(state, { color, linewidth, opacity, depthTest: false });
     const lines = new LineSegments2(geometry, material);
     lines.renderOrder = renderOrder;
     lines.frustumCulled = false;
@@ -298,16 +335,7 @@ export function syncMoveDimensionWorldLines(
         base.x - perpendicular.x, base.y, base.z - perpendicular.z,
       ], 3),
     );
-    const arrowMaterial = new THREE.MeshBasicMaterial({
-      color: solidColor,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 1,
-      depthTest: false,
-      depthWrite: false,
-    });
-    arrowMaterial.toneMapped = false;
-    const arrow = new THREE.Mesh(geometry, arrowMaterial);
+    const arrow = new THREE.Mesh(geometry, sharedOverlayArrowMaterial(solidColor));
     arrow.renderOrder = 1002;
     arrow.frustumCulled = false;
     setObjectRenderLayer(arrow, RENDER_LAYER_HELPERS);
@@ -332,6 +360,59 @@ export function syncMoveDimensionWorldLines(
   addWideSegments(solidPoints, solidColor, 1.45, 1, 1001);
   addWideSegments(guidePoints, guideColor, 1.05, 0.72, 1000);
   state.needsRender = true;
+}
+
+/**
+ * Materials of the overlay lines and arrows, shared by everything drawn with the same look (marked
+ * cached, so clearing a layer leaves them). The guides and the measures are drawn anew at every
+ * step of a drag and at every change of the selection; a new material each time made three.js
+ * throw away the compiled shaders with the old one and compile them again for the new one.
+ */
+const sharedOverlayMaterials = new Map<string, THREE.Material>();
+
+type OverlayLineLook = { color: string; linewidth: number; opacity: number; depthTest: boolean; dashSize?: number };
+
+export function sharedOverlayLineMaterial(state: ThreeState, look: OverlayLineLook) {
+  const key = `line:${look.color}:${look.linewidth}:${look.opacity}:${look.depthTest}:${look.dashSize ?? ""}`;
+  let material = sharedOverlayMaterials.get(key) as LineMaterial | undefined;
+  if (!material) {
+    material = new LineMaterial({
+      color: look.color,
+      linewidth: look.linewidth,
+      worldUnits: false,
+      ...(look.dashSize ? { dashed: true, dashSize: look.dashSize, gapSize: look.dashSize } : {}),
+      transparent: true,
+      opacity: look.opacity,
+      depthTest: look.depthTest,
+      depthWrite: false,
+      alphaToCoverage: false,
+    });
+    material.toneMapped = false;
+    material.userData.cached = true;
+    sharedOverlayMaterials.set(key, material);
+  }
+  const rect = state.renderer.domElement.getBoundingClientRect();
+  material.resolution.set(Math.max(1, rect.width), Math.max(1, rect.height));
+  return material;
+}
+
+function sharedOverlayArrowMaterial(color: string) {
+  const key = `arrow:${color}`;
+  let material = sharedOverlayMaterials.get(key) as THREE.MeshBasicMaterial | undefined;
+  if (!material) {
+    material = new THREE.MeshBasicMaterial({
+      color,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 1,
+      depthTest: false,
+      depthWrite: false,
+    });
+    material.toneMapped = false;
+    material.userData.cached = true;
+    sharedOverlayMaterials.set(key, material);
+  }
+  return material;
 }
 
 export function syncTransformGuideWorldLines(
@@ -360,24 +441,15 @@ export function syncTransformGuideWorldLines(
   const positions = segments.flatMap(([start, end]) => [start.x, start.y, start.z, end.x, end.y, end.z]);
   const geometry = new LineSegmentsGeometry();
   geometry.setPositions(positions);
-  const material = new LineMaterial({
+  const material = sharedOverlayLineMaterial(state, {
     color: theme === "dark" ? "#cfe1ea" : "#1f272e",
     linewidth: 1.15,
-    worldUnits: false,
-    dashed: true,
     dashSize: 0.625,
-    gapSize: 0.625,
-    transparent: true,
     opacity: theme === "dark" ? 0.86 : 0.72,
     // Bodies hide the guides: the footprint lies under the selected body and must not shine
     // through it or through its neighbours (#219).
     depthTest: true,
-    depthWrite: false,
-    alphaToCoverage: false,
   });
-  material.toneMapped = false;
-  const rect = state.renderer.domElement.getBoundingClientRect();
-  material.resolution.set(Math.max(1, rect.width), Math.max(1, rect.height));
   const lines = new LineSegments2(geometry, material);
   lines.computeLineDistances();
   lines.renderOrder = 999;
@@ -413,6 +485,17 @@ export function tapeEdgeWorldPoints(state: ThreeState, edge: TapeEdgeAttachment)
     const world = tapeAttachmentWorld(state, { shapeId: edge.shapeId, normalized });
     return world ? [world] : [];
   });
+}
+
+/** The points a measurement runs along: its whole edge, or the straight line between its two points. */
+export function tapeSegmentWorldPoints(state: ThreeState, model: TapeModel, segmentId: string) {
+  const segment = model.segments.find((candidate) => candidate.id === segmentId);
+  if (!segment) return [];
+  const edgePoints = segment.edge ? tapeEdgeWorldPoints(state, segment.edge) : [];
+  if (edgePoints.length >= 2) return edgePoints;
+  const start = model.points.find((point) => point.id === segment.startId);
+  const end = model.points.find((point) => point.id === segment.endId);
+  return start && end ? [tapePointWorld(state, start), tapePointWorld(state, end)] : [];
 }
 
 function tapePolylineLength(points: THREE.Vector3[]) {
@@ -759,11 +842,17 @@ export function NoteOverlay({
   workspace,
   onPointChange,
   pointCardOffset,
+  pointCardOffsets,
   onPointCardOffsetChange,
+  onRemoveAllPoints,
 }: {
   overlay: NoteOverlayState;
+  /** Where a card stands that was not moved on its own yet. */
   pointCardOffset: PointCardOffset;
-  onPointCardOffsetChange: (offset: PointCardOffset, final: boolean) => void;
+  /** The cards that were moved, by point. */
+  pointCardOffsets: Record<string, PointCardOffset>;
+  onPointCardOffsetChange: (noteId: string, offset: PointCardOffset, final: boolean) => void;
+  onRemoveAllPoints?: () => void;
   workspace: WorkplaneWorkspaceSettings;
   onPointChange: (noteId: string, patch: { x?: number; y?: number; z?: number }) => void;
   editingId: string | null;
@@ -778,6 +867,9 @@ export function NoteOverlay({
   onEditingIdChange: (noteId: string | null) => void;
 }) {
   const pointCardDrag = useRef<{ pointerId: number; startX: number; startY: number; origin: PointCardOffset } | null>(null);
+  // The card or pin touched last stands in front of the others, whatever its place in the list (#329).
+  const [frontId, setFrontId] = useState<string | null>(null);
+  const pointCount = overlay.notes.filter((note) => note.point).length;
   return (
     <div className="note-overlay" aria-label={t("editor.tool.note")}>
       {overlay.notes.map((note) => {
@@ -787,7 +879,8 @@ export function NoteOverlay({
           <div
             key={note.id}
             className={`note-pin-anchor ${open ? "open" : ""} ${note.flipped ? "flipped" : ""}`}
-            style={{ left: note.screenX, top: note.screenY }}
+            style={{ left: note.screenX, top: note.screenY, ...(frontId === note.id ? { zIndex: 6 } : {}) }}
+            onPointerDownCapture={() => setFrontId(note.id)}
           >
             <button
               type="button"
@@ -801,10 +894,12 @@ export function NoteOverlay({
             >
               {note.point ? <Crosshair size={15} strokeWidth={2.6} aria-hidden="true" /> : note.index}
             </button>
-            {open && note.point ? (
+            {open && note.point ? (() => {
+              const offset = pointCardOffsets[note.id] ?? pointCardOffset;
+              return (
               <div
                 className="note-card point-card"
-                style={{ transform: `translate(${pointCardOffset.x}px, ${pointCardOffset.y}px)` }}
+                style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
                 onPointerDown={(event) => event.stopPropagation()}
               >
                 <strong
@@ -812,21 +907,21 @@ export function NoteOverlay({
                   title={t("panel.moveHint")}
                   onPointerDown={(event) => {
                     capturePointer(event.currentTarget, event.pointerId);
-                    pointCardDrag.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: pointCardOffset };
+                    pointCardDrag.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: offset };
                   }}
                   onPointerMove={(event) => {
                     const drag = pointCardDrag.current;
                     if (!drag || drag.pointerId !== event.pointerId) return;
-                    onPointCardOffsetChange({ x: drag.origin.x + event.clientX - drag.startX, y: drag.origin.y + event.clientY - drag.startY }, false);
+                    onPointCardOffsetChange(note.id, { x: drag.origin.x + event.clientX - drag.startX, y: drag.origin.y + event.clientY - drag.startY }, false);
                   }}
                   onPointerUp={(event) => {
                     const drag = pointCardDrag.current;
                     if (!drag || drag.pointerId !== event.pointerId) return;
                     pointCardDrag.current = null;
                     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-                    onPointCardOffsetChange({ x: drag.origin.x + event.clientX - drag.startX, y: drag.origin.y + event.clientY - drag.startY }, true);
+                    onPointCardOffsetChange(note.id, { x: drag.origin.x + event.clientX - drag.startX, y: drag.origin.y + event.clientY - drag.startY }, true);
                   }}
-                  onDoubleClick={() => onPointCardOffsetChange({ x: 0, y: 0 }, true)}
+                  onDoubleClick={() => onPointCardOffsetChange(note.id, { x: 0, y: 0 }, true)}
                 >
                   {t("point.title")}
                 </strong>
@@ -840,8 +935,12 @@ export function NoteOverlay({
                     <button type="button" className="note-action danger" onClick={() => onRemove(note.id)}>{t("common.delete")}</button>
                   </span>
                 </div>
+                {pointCount > 1 && onRemoveAllPoints ? (
+                  <button type="button" className="note-action danger point-delete-all" onClick={onRemoveAllPoints}>{t("point.deleteAll", { count: pointCount })}</button>
+                ) : null}
               </div>
-            ) : open ? (
+              );
+            })() : open ? (
               <div className="note-card" onPointerDown={(event) => event.stopPropagation()}>
                 <NoteText
                   value={note.text}
@@ -876,24 +975,29 @@ export function TapeOverlay({
   startPointId,
   active,
   deleteMode,
+  quickDelete = false,
   moveMode,
   onPointPointerDown,
   onPointPointerMove,
   onPointPointerUp,
   onSegmentPointerDown,
+  onMarkMiddle,
 }: {
   overlay: TapeOverlayState;
   startPointId: string | null;
   active: boolean;
   deleteMode: boolean;
+  quickDelete?: boolean;
   moveMode: boolean;
   onPointPointerDown: (event: ReactPointerEvent<SVGCircleElement>, pointId: string) => void;
   onPointPointerMove: (event: ReactPointerEvent<SVGCircleElement>, pointId: string) => void;
   onPointPointerUp: (event: ReactPointerEvent<SVGCircleElement>, pointId: string) => void;
   onSegmentPointerDown: (event: ReactPointerEvent<SVGElement>, segmentId: string) => void;
+  /** Puts a reference point in the middle of a measurement (#323). */
+  onMarkMiddle?: (segmentId: string) => void;
 }) {
   return (
-    <div className={`tape-overlay ${active ? "active" : ""} ${deleteMode ? "delete-mode" : ""} ${moveMode ? "move-mode" : ""}`} aria-label={t("aria.tapeMeasurements")}>
+    <div className={`tape-overlay ${active ? "active" : ""} ${deleteMode ? "delete-mode" : ""} ${quickDelete ? "quick-delete" : ""} ${moveMode ? "move-mode" : ""}`} aria-label={t("aria.tapeMeasurements")}>
       <svg className="tape-guides" width="100%" height="100%" aria-hidden="true">
         {overlay.segments.map((segment) => (
           <g key={segment.id} className="tape-segment-group">
@@ -938,6 +1042,20 @@ export function TapeOverlay({
           {segment.label}
         </span>
       ))}
+      {onMarkMiddle && !deleteMode ? overlay.segments.map((segment) => (
+        <button
+          key={`${segment.id}-mark`}
+          type="button"
+          className="tape-mark"
+          style={{ left: segment.labelX, top: segment.labelY + 24 }}
+          title={t("camera.tapeMarkMiddle")}
+          aria-label={t("camera.tapeMarkMiddle")}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => onMarkMiddle(segment.id)}
+        >
+          <Crosshair size={13} aria-hidden="true" />
+        </button>
+      )) : null}
     </div>
   );
 }
@@ -1090,22 +1208,27 @@ export type CornerRulerInstance = {
   armLengthX: number;
   armLengthZ: number;
   mode?: CornerRulerMode;
+  /** Single numbers that count differently from `mode`, for instance a standing body: the middle in x and z, the bottom in height. */
+  axisModes?: CornerRulerAxisModes;
+  /** Whether a body in front of the ruler hides its lines (true when left out); false keeps them always in view. */
+  occlude?: boolean;
 };
 
-type CornerRulerTickScreen = { x1: number; y1: number; x2: number; y2: number };
+/** A tick number or a neighbour's measure on the screen; `hidden` when a body stands in front of the place it belongs to. */
+type CornerRulerLabelScreen = { x: number; y: number; text: string; hidden?: boolean };
 
-type CornerRulerLabelScreen = { x: number; y: number; text: string };
-
-export type CornerRulerNeighborLabel = { key: string; x: number; y: number; text: string };
+export type CornerRulerNeighborLabel = { key: string; x: number; y: number; text: string; hidden?: boolean };
 
 type CornerRulerOverlayItem = {
   id: string;
   mode: CornerRulerMode;
+  modes: Record<CornerRulerAxis, CornerRulerMode>;
   handleX: number;
   handleY: number;
-  armXLine: { x1: number; y1: number; x2: number; y2: number };
-  armZLine: { x1: number; y1: number; x2: number; y2: number };
-  ticks: CornerRulerTickScreen[];
+  /** The axis of the position fields (X, Y, Z) that each green number counts along: by where its arm points (#597). */
+  axisNames: Record<CornerRulerAxis, "X" | "Y" | "Z">;
+  /** True when a body in front hides the ruler's lines; false when they stay in view. */
+  occlude: boolean;
   labels: CornerRulerLabelScreen[];
   neighborLabels: CornerRulerNeighborLabel[];
   selectedCoordinate?: {
@@ -1116,11 +1239,6 @@ type CornerRulerOverlayItem = {
     xLabel: { x: number; y: number; text: string };
     zLabel: { x: number; y: number; text: string };
     elevationLabel: { x: number; y: number; text: string };
-    xArrowLine: { x1: number; y1: number; x2: number; y2: number };
-    zArrowLine: { x1: number; y1: number; x2: number; y2: number };
-    elevationArrowLine: { x1: number; y1: number; x2: number; y2: number };
-    xGuideLine: { x1: number; y1: number; x2: number; y2: number };
-    zGuideLine: { x1: number; y1: number; x2: number; y2: number };
   } | null;
 };
 
@@ -1137,13 +1255,14 @@ function cornerRulerNeighborLabel(
   topY: number,
   state: ThreeState,
   accuracy: MeasurementAccuracy,
+  occlude: boolean,
 ): CornerRulerNeighborLabel {
   const acrossSign = match.acrossOffset >= 0 ? 1 : -1;
   const labelAcross = acrossSign * (CORNER_RULER_ARM_WIDTH / 2 + 16);
   const labelAlong = pointAlongRuler(armPose, match.alongOffset);
   const labelWorld = new THREE.Vector3(labelAlong.x + acrossAxis.x * labelAcross, topY + 6, labelAlong.z + acrossAxis.z * labelAcross);
   const labelScreen = projectToScreen(labelWorld, state);
-  return { key, x: labelScreen.x, y: labelScreen.y, text: formatMeasure(match.extentAlong, accuracy) };
+  return { key, x: labelScreen.x, y: labelScreen.y, text: formatMeasure(match.extentAlong, accuracy), hidden: occlude && worldPointHidden(labelWorld, state) };
 }
 
 /**
@@ -1151,7 +1270,8 @@ function cornerRulerNeighborLabel(
  * Ecke, die beiden Arm-Endpunkte, jeden Teilstrich (`cornerRulerTicks`),
  * die relative Bemaßung des ausgewählten Körpers (wie in similar tools) sowie
  * die automatische Bemaßung weiterer Formen am Lineal.
- * Reine Bildschirm-Darstellung wie beim Massband - kein Three.js-Objekt.
+ * Die Zahlen, der Griff und die Schalter sind Bildschirm-Darstellung; Arme, Teilstriche, Pfeile und Hilfslinien
+ * sind Linien im Raum (`syncCornerRulerWorldLines`), damit ein Koerper davor sie verdecken kann (Forum).
  */
 export function syncCornerRulerToolOverlay(
   state: ThreeState | null,
@@ -1163,6 +1283,7 @@ export function syncCornerRulerToolOverlay(
   accuracy: MeasurementAccuracy,
 ) {
   const items: CornerRulerOverlayItem[] = [];
+  const worldRulers: CornerRulerWorldLines[] = [];
   if (state) {
     const topY = shapes.reduce((max, shape) => Math.max(max, (shape.elevation ?? 0) + shape.height), 0);
     // Mehrere markierte Koerper zaehlen zusammen wie einer: gemessen wird
@@ -1172,28 +1293,36 @@ export function syncCornerRulerToolOverlay(
 
     rulers.forEach((ruler) => {
       const armWidth = CORNER_RULER_ARM_WIDTH;
-      const mode: CornerRulerMode = ruler.mode ?? "endpoint";
+      const modes = cornerRulerAxisModes(ruler.mode, ruler.axisModes);
+      // The one button shows the middle only when all three numbers count to it.
+      const mode: CornerRulerMode = modes.x === "midpoint" && modes.z === "midpoint" && modes.elevation === "midpoint" ? "midpoint" : "endpoint";
       const xAxis = new THREE.Vector3(ruler.frame.xAxis.x, ruler.frame.xAxis.y, ruler.frame.xAxis.z).normalize();
       const zAxis = new THREE.Vector3(ruler.frame.zAxis.x, ruler.frame.zAxis.y, ruler.frame.zAxis.z).normalize();
       const yAxis = new THREE.Vector3(ruler.frame.normal.x, ruler.frame.normal.y, ruler.frame.normal.z).normalize();
       const corner = new THREE.Vector3(ruler.corner.x, ruler.corner.y, ruler.corner.z);
 
       const handleScreen = projectToScreen(corner, state);
-      const armXEndScreen = projectToScreen(corner.clone().addScaledVector(xAxis, ruler.armLengthX), state);
-      const armZEndScreen = projectToScreen(corner.clone().addScaledVector(zAxis, ruler.armLengthZ), state);
+      // A body in front of the ruler hides its lines, unless the ruler was told to stay in view.
+      const occlude = ruler.occlude !== false;
+      const lines: CornerRulerWorldLines = { id: ruler.id, occlude, lift: yAxis.toArray() as [number, number, number], arms: [], ticks: [], arrows: [], guides: [] };
+      const pushSegment = (target: number[], a: THREE.Vector3, b: THREE.Vector3) => {
+        target.push(a.x, a.y, a.z, b.x, b.y, b.z);
+      };
+      pushSegment(lines.arms, corner, corner.clone().addScaledVector(xAxis, ruler.armLengthX));
+      pushSegment(lines.arms, corner, corner.clone().addScaledVector(zAxis, ruler.armLengthZ));
 
-      const ticks: CornerRulerTickScreen[] = [];
       const labels: CornerRulerLabelScreen[] = [];
       const buildTicks = (axisDir: THREE.Vector3, acrossDir: THREE.Vector3, length: number) => {
         cornerRulerTicks(length).forEach((tick) => {
           const base = corner.clone().addScaledVector(axisDir, tick.offset);
           const tickHeight = armWidth * (tick.isTen ? 0.62 : tick.isFive ? 0.42 : 0.26);
-          const baseScreen = projectToScreen(base, state);
-          const tipScreen = projectToScreen(base.clone().addScaledVector(acrossDir, tickHeight), state);
-          ticks.push({ x1: baseScreen.x, y1: baseScreen.y, x2: tipScreen.x, y2: tipScreen.y });
+          pushSegment(lines.ticks, base, base.clone().addScaledVector(acrossDir, tickHeight));
           if (tick.isTen && tick.offset > 0) {
-            const labelScreen = projectToScreen(base.clone().addScaledVector(acrossDir, armWidth * 0.95), state);
-            labels.push({ x: labelScreen.x, y: labelScreen.y, text: String(tick.offset) });
+            const labelWorld = base.clone().addScaledVector(acrossDir, armWidth * 0.95);
+            if (depthInFrontOfCamera(labelWorld, state) > 0) {
+              const labelScreen = projectToScreen(labelWorld, state);
+              labels.push({ x: labelScreen.x, y: labelScreen.y, text: String(tick.offset), hidden: occlude && worldPointHidden(labelWorld, state) });
+            }
           }
         });
       };
@@ -1210,16 +1339,20 @@ export function syncCornerRulerToolOverlay(
           rulerCorner: ruler.corner,
           rulerRotation: 0,
           frame: ruler.frame,
-          mode,
+          mode: ruler.mode,
+          axisModes: ruler.axisModes,
           bounds,
         });
 
-        const xEndScreen = projectToScreen(new THREE.Vector3(coords.xEndpointOnAxis.x, coords.xEndpointOnAxis.y, coords.xEndpointOnAxis.z), state);
-        const zEndScreen = projectToScreen(new THREE.Vector3(coords.zEndpointOnAxis.x, coords.zEndpointOnAxis.y, coords.zEndpointOnAxis.z), state);
-        const xTargetScreen = projectToScreen(new THREE.Vector3(coords.xTargetPoint.x, coords.xTargetPoint.y, coords.xTargetPoint.z), state);
-        const zTargetScreen = projectToScreen(new THREE.Vector3(coords.zTargetPoint.x, coords.zTargetPoint.y, coords.zTargetPoint.z), state);
-        const elevBaseScreen = projectToScreen(new THREE.Vector3(coords.elevationBasePoint.x, coords.elevationBasePoint.y, coords.elevationBasePoint.z), state);
-        const elevTargetScreen = projectToScreen(new THREE.Vector3(coords.elevationTargetPoint.x, coords.elevationTargetPoint.y, coords.elevationTargetPoint.z), state);
+        const world = (point: { x: number; y: number; z: number }) => new THREE.Vector3(point.x, point.y, point.z);
+        const xEndWorld = world(coords.xEndpointOnAxis);
+        const zEndWorld = world(coords.zEndpointOnAxis);
+        const xEndScreen = projectToScreen(xEndWorld, state);
+        const zEndScreen = projectToScreen(zEndWorld, state);
+        const elevBaseWorld = world(coords.elevationBasePoint);
+        const elevTargetWorld = world(coords.elevationTargetPoint);
+        const elevBaseScreen = projectToScreen(elevBaseWorld, state);
+        const elevTargetScreen = projectToScreen(elevTargetWorld, state);
 
         const dxX = xEndScreen.x - handleScreen.x;
         const dyX = xEndScreen.y - handleScreen.y;
@@ -1254,12 +1387,13 @@ export function syncCornerRulerToolOverlay(
           xLabel: { x: xLabelPos.x, y: xLabelPos.y, text: formatMeasure(coords.x, accuracy) },
           zLabel: { x: zLabelPos.x, y: zLabelPos.y, text: formatMeasure(coords.z, accuracy) },
           elevationLabel: { x: elevationLabelPos.x, y: elevationLabelPos.y, text: formatMeasure(coords.elevation, accuracy) },
-          xArrowLine: { x1: handleScreen.x, y1: handleScreen.y, x2: xEndScreen.x, y2: xEndScreen.y },
-          zArrowLine: { x1: handleScreen.x, y1: handleScreen.y, x2: zEndScreen.x, y2: zEndScreen.y },
-          elevationArrowLine: { x1: elevBaseScreen.x, y1: elevBaseScreen.y, x2: elevTargetScreen.x, y2: elevTargetScreen.y },
-          xGuideLine: { x1: xEndScreen.x, y1: xEndScreen.y, x2: xTargetScreen.x, y2: xTargetScreen.y },
-          zGuideLine: { x1: zEndScreen.x, y1: zEndScreen.y, x2: zTargetScreen.x, y2: zTargetScreen.y },
         };
+        // The numbers' arrows, and the guide lines along the floor to the body (not up in the air at its middle).
+        pushSegment(lines.arrows, corner, xEndWorld);
+        pushSegment(lines.arrows, corner, zEndWorld);
+        pushSegment(lines.arrows, elevBaseWorld, elevTargetWorld);
+        pushSegment(lines.guides, xEndWorld, world(coords.xTargetPoint));
+        pushSegment(lines.guides, zEndWorld, world(coords.zTargetPoint));
       }
 
       const neighborLabels: CornerRulerNeighborLabel[] = [];
@@ -1291,14 +1425,14 @@ export function syncCornerRulerToolOverlay(
           neighborLabels.push(cornerRulerNeighborLabel(
             `${ruler.id}:${candidate.id}:x`,
             { x: ruler.corner.x, z: ruler.corner.z, rotation: flatRotation, length: ruler.armLengthX, crossWidth: armWidth },
-            zAxis, armX, topY, state, accuracy,
+            zAxis, armX, topY, state, accuracy, occlude,
           ));
         }
         if (armZ) {
           neighborLabels.push(cornerRulerNeighborLabel(
             `${ruler.id}:${candidate.id}:z`,
             { x: ruler.corner.x, z: ruler.corner.z, rotation: flatRotation + 90, length: ruler.armLengthZ, crossWidth: armWidth },
-            xAxis, armZ, topY, state, accuracy,
+            xAxis, armZ, topY, state, accuracy, occlude,
           ));
         }
       });
@@ -1306,16 +1440,18 @@ export function syncCornerRulerToolOverlay(
       items.push({
         id: ruler.id,
         mode,
+        modes,
         handleX: handleScreen.x,
         handleY: handleScreen.y,
-        armXLine: { x1: handleScreen.x, y1: handleScreen.y, x2: armXEndScreen.x, y2: armXEndScreen.y },
-        armZLine: { x1: handleScreen.x, y1: handleScreen.y, x2: armZEndScreen.x, y2: armZEndScreen.y },
-        ticks,
+        axisNames: { x: worldAxisNameOfDirection(xAxis), z: worldAxisNameOfDirection(zAxis), elevation: worldAxisNameOfDirection(yAxis) },
+        occlude,
         labels,
         neighborLabels,
         selectedCoordinate,
       });
+      worldRulers.push(lines);
     });
+    syncCornerRulerWorldLines(state, worldRulers);
   }
   const previous = overlayRef.current;
   if (previous && previous.items.length === 0 && items.length === 0) {
@@ -1326,6 +1462,100 @@ export function syncCornerRulerToolOverlay(
   setOverlay(next);
 }
 
+/** The lines of one ruler in the room: every list holds segments as x1 y1 z1 x2 y2 z2. `lift` is the ruler plane's normal. */
+type CornerRulerWorldLines = {
+  id: string;
+  occlude: boolean;
+  lift: [number, number, number];
+  arms: number[];
+  ticks: number[];
+  arrows: number[];
+  guides: number[];
+};
+
+/** How far the lines stand off the ruler's plane, so they do not flicker against a plate or a body lying on it. */
+const CORNER_RULER_LINE_LIFT = 0.05;
+
+/**
+ * Whether a body stands between the camera and a point of the room: a ray through the point's place on the
+ * screen, against the bodies, stopping a little short of the point itself.
+ */
+function worldPointHidden(point: THREE.Vector3, state: ThreeState) {
+  state.camera.updateMatrixWorld();
+  const ndc = point.clone().project(state.camera);
+  if (!Number.isFinite(ndc.x) || !Number.isFinite(ndc.y) || Math.abs(ndc.x) > 1.2 || Math.abs(ndc.y) > 1.2) return false;
+  const raycaster = state.raycaster;
+  const previousLayers = raycaster.layers.mask;
+  raycaster.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), state.camera);
+  raycaster.layers.set(RENDER_LAYER_SHAPES);
+  const along = point.clone().sub(raycaster.ray.origin).dot(raycaster.ray.direction);
+  const savedFar = raycaster.far;
+  raycaster.far = Math.max(0, along - 0.5);
+  const hit = raycaster.intersectObjects(state.shapeLayer.children, true).some((entry) => entry.object instanceof THREE.Mesh && entry.object.visible);
+  raycaster.far = savedFar;
+  raycaster.layers.mask = previousLayers;
+  return hit;
+}
+
+/**
+ * The arms, ticks, arrows and guide lines of the corner rulers as wide lines in the room. A ruler that
+ * hides behind bodies tests depth; one that stays in view draws over everything. The lines only depend
+ * on the rulers and the selection, not on the camera, so they are rebuilt only when those change.
+ */
+export function syncCornerRulerWorldLines(state: ThreeState, rulers: CornerRulerWorldLines[]) {
+  const layer = state.cornerRulerLayer;
+  const signature = JSON.stringify(rulers);
+  if (layer.userData.cornerRulerSignature === signature) return;
+  layer.userData.cornerRulerSignature = signature;
+  disposeChildren(layer);
+  const rect = state.renderer.domElement.getBoundingClientRect();
+  const addLines = (ruler: CornerRulerWorldLines, points: number[], style: { color: string; width: number; opacity: number; dashed?: boolean; order: number }) => {
+    if (!points.length) return;
+    const lifted = points.slice();
+    for (let index = 0; index < lifted.length; index += 3) {
+      lifted[index] += ruler.lift[0] * CORNER_RULER_LINE_LIFT;
+      lifted[index + 1] += ruler.lift[1] * CORNER_RULER_LINE_LIFT;
+      lifted[index + 2] += ruler.lift[2] * CORNER_RULER_LINE_LIFT;
+    }
+    const geometry = new LineSegmentsGeometry();
+    geometry.setPositions(lifted);
+    const material = new LineMaterial({
+      color: style.color,
+      linewidth: style.width,
+      worldUnits: false,
+      transparent: true,
+      opacity: style.opacity,
+      depthTest: ruler.occlude,
+      depthWrite: false,
+      alphaToCoverage: false,
+    });
+    if (style.dashed) {
+      material.dashed = true;
+      material.dashSize = 2.5;
+      material.gapSize = 2;
+    }
+    // Lines on a plane that a plate or a body also lies in: the lines win the tie.
+    material.polygonOffset = true;
+    material.polygonOffsetFactor = -2;
+    material.polygonOffsetUnits = -2;
+    material.toneMapped = false;
+    material.resolution.set(Math.max(1, rect.width), Math.max(1, rect.height));
+    const object = new LineSegments2(geometry, material);
+    if (style.dashed) object.computeLineDistances();
+    object.renderOrder = style.order;
+    object.frustumCulled = false;
+    setObjectRenderLayer(object, RENDER_LAYER_HELPERS);
+    layer.add(object);
+  };
+  rulers.forEach((ruler) => {
+    addLines(ruler, ruler.arrows, { color: "#4caf50", width: 6, opacity: 0.35, order: 1000 });
+    addLines(ruler, ruler.guides, { color: "#81c784", width: 1.2, opacity: 0.85, dashed: true, order: 1001 });
+    addLines(ruler, ruler.ticks, { color: "#8a6a45", width: 1.2, opacity: 1, order: 1002 });
+    addLines(ruler, ruler.arms, { color: "#5a3917", width: 2.2, opacity: 1, order: 1003 });
+  });
+  state.needsRender = true;
+}
+
 export function CornerRulerToolOverlay({
   overlay,
   onHandlePointerDown,
@@ -1333,6 +1563,8 @@ export function CornerRulerToolOverlay({
   onHandlePointerUp,
   onDelete,
   onToggleMode,
+  onToggleAxisMode,
+  onToggleOcclude,
   onCoordinateClick,
 }: {
   overlay: CornerRulerOverlayState;
@@ -1341,6 +1573,9 @@ export function CornerRulerToolOverlay({
   onHandlePointerUp: (event: ReactPointerEvent<SVGCircleElement>, id: string) => void;
   onDelete: (id: string) => void;
   onToggleMode: (id: string) => void;
+  onToggleAxisMode: (id: string, axis: CornerRulerAxis) => void;
+  /** Switches whether a body in front hides the ruler's lines. */
+  onToggleOcclude: (id: string) => void;
   onCoordinateClick: (rulerId: string, shapeIds: string[], axis: "x" | "z" | "elevation", value: number, x: number, y: number) => void;
 }) {
   if (overlay.items.length === 0) {
@@ -1351,20 +1586,6 @@ export function CornerRulerToolOverlay({
       <svg className="corner-ruler-guides" width="100%" height="100%" aria-hidden="true">
         {overlay.items.map((item) => (
           <g key={item.id} className="corner-ruler-group">
-            <line className="corner-ruler-arm" x1={item.armXLine.x1} y1={item.armXLine.y1} x2={item.armXLine.x2} y2={item.armXLine.y2} />
-            <line className="corner-ruler-arm" x1={item.armZLine.x1} y1={item.armZLine.y1} x2={item.armZLine.x2} y2={item.armZLine.y2} />
-            {item.ticks.map((tick, index) => (
-              <line key={index} className="corner-ruler-tick" x1={tick.x1} y1={tick.y1} x2={tick.x2} y2={tick.y2} />
-            ))}
-            {item.selectedCoordinate ? (
-              <g className="ruler-coordinate-visuals">
-                <line className="ruler-coordinate-arrow" x1={item.selectedCoordinate.xArrowLine.x1} y1={item.selectedCoordinate.xArrowLine.y1} x2={item.selectedCoordinate.xArrowLine.x2} y2={item.selectedCoordinate.xArrowLine.y2} />
-                <line className="ruler-coordinate-arrow" x1={item.selectedCoordinate.zArrowLine.x1} y1={item.selectedCoordinate.zArrowLine.y1} x2={item.selectedCoordinate.zArrowLine.x2} y2={item.selectedCoordinate.zArrowLine.y2} />
-                <line className="ruler-coordinate-arrow" x1={item.selectedCoordinate.elevationArrowLine.x1} y1={item.selectedCoordinate.elevationArrowLine.y1} x2={item.selectedCoordinate.elevationArrowLine.x2} y2={item.selectedCoordinate.elevationArrowLine.y2} />
-                <line className="ruler-coordinate-guide" x1={item.selectedCoordinate.xGuideLine.x1} y1={item.selectedCoordinate.xGuideLine.y1} x2={item.selectedCoordinate.xGuideLine.x2} y2={item.selectedCoordinate.xGuideLine.y2} />
-                <line className="ruler-coordinate-guide" x1={item.selectedCoordinate.zGuideLine.x1} y1={item.selectedCoordinate.zGuideLine.y1} x2={item.selectedCoordinate.zGuideLine.x2} y2={item.selectedCoordinate.zGuideLine.y2} />
-              </g>
-            ) : null}
             <circle
               className="corner-ruler-handle"
               cx={item.handleX}
@@ -1381,50 +1602,49 @@ export function CornerRulerToolOverlay({
       {overlay.items.map((item) => (
         <span key={`${item.id}-labels`}>
           {item.labels.map((label, index) => (
-            <span key={index} className="corner-ruler-tick-label" style={{ left: label.x, top: label.y }}>
+            <span key={index} className={`corner-ruler-tick-label${label.hidden ? " hidden" : ""}`} style={{ left: label.x, top: label.y }}>
               {label.text}
             </span>
           ))}
           {item.neighborLabels.map((label) => (
-            <span key={label.key} className="ruler-dimension-label" style={{ left: label.x, top: label.y }}>
+            <span key={label.key} className={`ruler-dimension-label${label.hidden ? " hidden" : ""}`} style={{ left: label.x, top: label.y }}>
               {label.text}
             </span>
           ))}
           {item.selectedCoordinate ? (
             <>
-              <button
-                type="button"
-                className="ruler-coordinate-badge"
-                style={{ left: item.selectedCoordinate.xLabel.x, top: item.selectedCoordinate.xLabel.y }}
-                aria-label={t("aria.rulerCoordinateX")}
-                title={t("ruler.coordinate.x")}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={() => onCoordinateClick(item.id, item.selectedCoordinate!.shapeIds, "x", item.selectedCoordinate!.xValue, item.selectedCoordinate!.xLabel.x, item.selectedCoordinate!.xLabel.y)}
-              >
-                {item.selectedCoordinate.xLabel.text}
-              </button>
-              <button
-                type="button"
-                className="ruler-coordinate-badge"
-                style={{ left: item.selectedCoordinate.zLabel.x, top: item.selectedCoordinate.zLabel.y }}
-                aria-label={t("aria.rulerCoordinateZ")}
-                title={t("ruler.coordinate.z")}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={() => onCoordinateClick(item.id, item.selectedCoordinate!.shapeIds, "z", item.selectedCoordinate!.zValue, item.selectedCoordinate!.zLabel.x, item.selectedCoordinate!.zLabel.y)}
-              >
-                {item.selectedCoordinate.zLabel.text}
-              </button>
-              <button
-                type="button"
-                className="ruler-coordinate-badge"
-                style={{ left: item.selectedCoordinate.elevationLabel.x, top: item.selectedCoordinate.elevationLabel.y }}
-                aria-label={t("aria.rulerCoordinateElevation")}
-                title={t("ruler.coordinate.elevation")}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={() => onCoordinateClick(item.id, item.selectedCoordinate!.shapeIds, "elevation", item.selectedCoordinate!.elevationValue, item.selectedCoordinate!.elevationLabel.x, item.selectedCoordinate!.elevationLabel.y)}
-              >
-                {item.selectedCoordinate.elevationLabel.text}
-              </button>
+              {/* Each green number with the switch that makes it count to the edge or the middle, in one frame (forum). */}
+              {(["x", "z", "elevation"] as const).map((axis) => {
+                const selected = item.selectedCoordinate!;
+                const label = axis === "x" ? selected.xLabel : axis === "z" ? selected.zLabel : selected.elevationLabel;
+                const value = axis === "x" ? selected.xValue : axis === "z" ? selected.zValue : selected.elevationValue;
+                const middle = item.modes[axis] === "midpoint";
+                const axisName = item.axisNames[axis];
+                return (
+                  <span key={axis} className="ruler-coordinate-field" style={{ left: label.x, top: label.y }}>
+                    <button
+                      type="button"
+                      className="corner-ruler-mode-toggle ruler-axis-mode-toggle"
+                      aria-label={`${t("aria.toggleCornerRulerMode")} (${axisName})`}
+                      title={middle ? t("ruler.mode.midpoint") : t("ruler.mode.endpoint")}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={() => onToggleAxisMode(item.id, axis)}
+                    >
+                      {middle ? <Crosshair size={10} strokeWidth={2.5} aria-hidden="true" /> : <Rows3 size={10} strokeWidth={2.5} aria-hidden="true" />}
+                    </button>
+                    <button
+                      type="button"
+                      className="ruler-coordinate-badge"
+                      aria-label={t(axisName === "X" ? "aria.rulerCoordinateX" : axisName === "Y" ? "aria.rulerCoordinateZ" : "aria.rulerCoordinateElevation")}
+                      title={t(axisName === "X" ? "ruler.coordinate.x" : axisName === "Y" ? "ruler.coordinate.z" : "ruler.coordinate.elevation")}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={() => onCoordinateClick(item.id, selected.shapeIds, axis, value, label.x, label.y)}
+                    >
+                      {label.text}
+                    </button>
+                  </span>
+                );
+              })}
             </>
           ) : null}
           <button
@@ -1441,6 +1661,18 @@ export function CornerRulerToolOverlay({
             ) : (
               <Rows3 size={11} strokeWidth={2.5} aria-hidden="true" />
             )}
+          </button>
+          <button
+            type="button"
+            className={`corner-ruler-mode-toggle corner-ruler-occlude-toggle${item.occlude ? " active" : ""}`}
+            style={{ left: item.handleX, top: item.handleY + 18 }}
+            aria-label={t("aria.toggleCornerRulerOcclude")}
+            aria-pressed={item.occlude}
+            title={item.occlude ? t("ruler.occlude.on") : t("ruler.occlude.off")}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => onToggleOcclude(item.id)}
+          >
+            {item.occlude ? <EyeOff size={11} strokeWidth={2.5} aria-hidden="true" /> : <Eye size={11} strokeWidth={2.5} aria-hidden="true" />}
           </button>
           <button
             type="button"
@@ -1487,19 +1719,7 @@ export function syncOriginDimensionWorldLines(state: ThreeState, frame: OriginDi
     }
     const geometry = new LineSegmentsGeometry();
     geometry.setPositions(points);
-    const material = new LineMaterial({
-      color,
-      linewidth,
-      worldUnits: false,
-      transparent: true,
-      opacity,
-      depthTest: false,
-      depthWrite: false,
-      alphaToCoverage: false,
-    });
-    material.toneMapped = false;
-    const rect = state.renderer.domElement.getBoundingClientRect();
-    material.resolution.set(Math.max(1, rect.width), Math.max(1, rect.height));
+    const material = sharedOverlayLineMaterial(state, { color, linewidth, opacity, depthTest: false });
     const lines = new LineSegments2(geometry, material);
     lines.renderOrder = renderOrder;
     lines.frustumCulled = false;
@@ -1520,16 +1740,7 @@ export function syncOriginDimensionWorldLines(state: ThreeState, frame: OriginDi
         base.x - perpendicular.x, base.y, base.z - perpendicular.z,
       ], 3),
     );
-    const arrowMaterial = new THREE.MeshBasicMaterial({
-      color: solidColor,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 1,
-      depthTest: false,
-      depthWrite: false,
-    });
-    arrowMaterial.toneMapped = false;
-    const arrow = new THREE.Mesh(geometry, arrowMaterial);
+    const arrow = new THREE.Mesh(geometry, sharedOverlayArrowMaterial(solidColor));
     arrow.renderOrder = 1002;
     arrow.frustumCulled = false;
     setObjectRenderLayer(arrow, RENDER_LAYER_HELPERS);

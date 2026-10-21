@@ -5,7 +5,7 @@ summary: Start layerling like a normal program, even without a network, and how 
 
 ## Installing as an app
 
-layerling can be installed like a normal program. It then gets an icon and a window of its own, without an address bar. After the first visit it starts even **without internet**. Your designs stay on your computer.
+layerling can be installed like a normal program. It then gets an icon and a window of its own, without an address bar. After the first visit it starts even **without internet**. Your designs stay on your computer. Installing is worth it: the app starts faster, because it does not have to be loaded again each time, it works without internet and it spares the server. You lose nothing, as layerling still tells you when a new version is out.
 
 On the start page a hint with {{ui:installHint.install}} appears if your browser can do it. Otherwise:
 
@@ -15,6 +15,8 @@ On the start page a hint with {{ui:installHint.install}} appears if your browser
 - **Firefox:** cannot install apps. layerling still starts offline in a tab there.
 
 You can close the hint on the start page with {{ui:installHint.dismiss}}. Starting the installed app a second time in Chrome or Edge brings the open window to the front instead of opening another one.
+
+On a computer, an installed layerling in Chrome or Edge also registers as a program for `.lyl` files: a double click on a design in the file manager opens it in layerling, and [[Ctrl]]+[[S]] saves back into that file. On Android this does not work, there the browser offers no file association for installed web apps; open a design with {{ui:dashboard.importGeometry}} on the start page.
 
 ## Updates
 
@@ -26,14 +28,14 @@ When layerling is open in several tabs, they look out for each other: if another
 
 ## Language and appearance
 
-You set the language at the top right, German or English. The colour scheme beside it offers {{ui:theme.short.system}} (follows the operating system), {{ui:theme.short.light}}, {{ui:theme.short.dark}} and {{ui:theme.short.graphite}}, a neutral dark grey.
+You choose the language at the top right, from the language list. The colour scheme beside it offers {{ui:theme.short.system}} (follows the operating system), {{ui:theme.short.light}}, {{ui:theme.short.dark}} and {{ui:theme.short.graphite}}, a neutral dark grey.
 
 ## Running it yourself
 
 layerling is free software (AGPL-3.0) and can be run on your own computer or server, for example in a workshop, a club or a school. There are several ways, described in the [README on GitHub](https://github.com/henmedia/layerling/blob/main/README.md#getting-started):
 
 - **The quick start on Windows:** A single line in PowerShell installs everything and puts a shortcut on the desktop. When layerling is already running, another double-click starts no second server and only opens the page.
-- **Docker:** For NAS devices and home servers, without Node.js needing to be installed. Every release comes as a ready-made image `ghcr.io/henmedia/layerling` for amd64 and arm64; `docker run -d -p 3000:3000 ghcr.io/henmedia/layerling:latest` starts it, and on a NAS you add the image in its container manager.
+- **Docker:** For NAS devices and home servers, without Node.js needing to be installed. Every release comes as a ready-made image `henmedia/layerling` on Docker Hub (also `ghcr.io/henmedia/layerling`) for amd64 and arm64; `docker run -d -p 3000:3000 -v layerling-thumbnails:/app/.codex/project-thumbnails henmedia/layerling:latest` starts it, and on a NAS you search for it in the container manager's registry. The volume `layerling-thumbnails` keeps the preview pictures of the start page through an update; without it they are missing each time the container is created again, until you open the design.
 - **Static export:** The result is plain files that any web server can serve. They belong at the root of an address (`https://layerling.example.com/` or `http://192.168.0.5:8080/`), not in a subfolder and not opened from disk; the README has the steps. With a writable folder `store` next to `index.html` and PHP on the server it also becomes the shared storage for designs.
 
 The MCP bridge for AI assistants exists only in the development server, see [Building with an AI](chapter:ai-with-mcp).

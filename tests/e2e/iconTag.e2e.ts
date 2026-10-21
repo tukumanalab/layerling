@@ -10,6 +10,7 @@ import { cadSketchRegions, silhouetteSketchProfile } from "@/lib/sketchCadProfil
 import { pathWire } from "@/lib/sketchCadWire";
 import { filledGrowPockets, strokedSketchProfile } from "@/lib/sketchStroke";
 import { sketchProfileFromSvg } from "@/lib/svgSketch";
+import { DEFAULT_RASTER_TRACE_SEGMENTS, traceRaster } from "@/lib/rasterTrace";
 import type { TextLayer } from "@/lib/textLayers";
 import type { SketchProfile } from "@/types/layerling";
 
@@ -98,5 +99,32 @@ describe("icon tag layers with the real OCCT kernel", () => {
     const plate = build(iconLayerProfile(source, layer(1.5, true)));
     // The pocket is the square inside the bars, 1.5 mm smaller all round: 11 x 11 mm.
     near(cad.getVolume(plate) - cad.getVolume(rim), 11 * 11 * HEIGHT);
+  });
+
+  it("builds the layers of a traced picture of some 900 pieces in time (#359)", () => {
+    // A cog of 60 teeth with 8 round holes, 600 px across: its trace has about 900 pieces.
+    const side = 600;
+    const data = new Uint8ClampedArray(side * side * 4).fill(255);
+    for (let y = 0; y < side; y += 1) {
+      for (let x = 0; x < side; x += 1) {
+        const dx = x - 300;
+        const dy = y - 300;
+        const radius = Math.hypot(dx, dy);
+        const tooth = 260 + 18 * Math.sign(Math.sin(Math.atan2(dy, dx) * 60));
+        const hole = Array.from({ length: 8 }, (_, index) => (index / 8) * Math.PI * 2)
+          .some((angle) => Math.hypot(dx - 160 * Math.cos(angle), dy - 160 * Math.sin(angle)) < 40);
+        if (radius <= tooth && radius > 50 && !hole) data.fill(0, (y * side + x) * 4, (y * side + x) * 4 + 3);
+      }
+    }
+    const trace = traceRaster({ width: side, height: side, data });
+    expect(trace.rings).toBe(10);
+    expect(trace.segments).toBeGreaterThan(800);
+    expect(trace.segments).toBeLessThanOrEqual(DEFAULT_RASTER_TRACE_SEGMENTS);
+    const source = scaledIconProfile(iconSourceProfile(sketchProfileFromSvg(trace.svg)!), 30 / side);
+    const started = performance.now();
+    const [icon, , plate] = ICON_TAG_LAYERS.map((entry) => build(iconLayerProfile(source, entry)));
+    expect(performance.now() - started).toBeLessThan(30000);
+    expect(size(icon)[0]).toBeCloseTo(30 * (2 * 278 + 1) / side, 0);
+    expect(size(plate)[0]).toBeGreaterThan(size(icon)[0] + 5.9);
   });
 });

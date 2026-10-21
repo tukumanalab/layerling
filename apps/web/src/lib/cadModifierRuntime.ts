@@ -356,6 +356,27 @@ export function cadModifierUserErrorMessage(rawError: string | null | undefined)
   ) {
     return t("shell.errorFailed");
   }
+  if (rawError.includes("These faces cannot be deleted")) {
+    return t("deleteFace.errorUnchanged");
+  }
+  if (rawError.includes("has no exact faces to delete")) {
+    return t("deleteFace.errorMesh");
+  }
+  if (rawError.includes("has no exact faces at this size")) {
+    return t("deleteFace.errorResized");
+  }
+  if (rawError.includes("changed while the faces were being deleted")) {
+    return t("deleteFace.errorProjectChanged");
+  }
+  if (rawError.includes("Deleting these faces took too long")) {
+    return t("deleteFace.errorTooSlow");
+  }
+  if (rawError.includes("The faces of this body could not be read")) {
+    return t("deleteFace.errorNoFaces");
+  }
+  if (rawError.includes("The CAD worker did not return a body without the faces") || rawError.includes("Select at least one face")) {
+    return t("deleteFace.errorFailed");
+  }
   if (rawError.includes("cannot be filleted together")) {
     return t("edge.errorFilletTogether");
   }

@@ -303,7 +303,25 @@ function same_origin(): bool
     } else {
         $scheme = 'http';
     }
-    return strcasecmp($origin, $scheme . '://' . $host) === 0;
+    if (strcasecmp($origin, $scheme . '://' . $host) === 0) {
+        return true;
+    }
+    // A proxy that closes HTTPS but does not say so: an https Origin on the very same host is this site.
+    if ($forwardedProto === '' && strcasecmp($origin, 'https://' . $host) === 0) {
+        return true;
+    }
+    // LAYERLING_ALLOWED_ORIGINS: full origins or bare hosts, for a proxy that rewrites the host.
+    $listed = getenv('LAYERLING_ALLOWED_ORIGINS');
+    if (is_string($listed) && $listed !== '') {
+        $bare = preg_replace('#^https?://#i', '', $origin);
+        foreach (explode(',', $listed) as $entry) {
+            $entry = rtrim(trim($entry), '/');
+            if ($entry !== '' && (strcasecmp($entry, $origin) === 0 || strcasecmp($entry, $bare) === 0)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 /** A .lyl is a ZIP. Anything else never reaches the disk. */

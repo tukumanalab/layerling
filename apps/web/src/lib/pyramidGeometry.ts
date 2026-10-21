@@ -13,6 +13,9 @@ function angleOffsetFor(sides: number) {
   return sides === 4 ? Math.PI / 4 : 0;
 }
 
+/** The turn of the base polygon, for whoever needs the middle of the base (alignCenter.ts). */
+export const pyramidAngleOffset = angleOffsetFor;
+
 export function normalizePyramidTop(value: number | undefined, base: number) {
   if (!Number.isFinite(value)) return 0;
   const clamped = Math.min(Math.max(0, value as number), Math.max(0, base * 4));

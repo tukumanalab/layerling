@@ -84,6 +84,8 @@ export type HingeShapeFields = Pick<WorkplaneShape, "width" | "height"> & {
   hingePinDiameter?: number;
   hingeLeafThickness?: number;
   hingeClearance?: number;
+  /** No printed pin: the bore runs through every knuckle, for a pin of one's own. */
+  hingePinless?: boolean;
   sides?: number;
 };
 
@@ -112,7 +114,8 @@ export function hingePlan(shape: HingeShapeFields) {
   });
   // A multiple of four puts a corner exactly at the bottom of every circle.
   const sides = Math.max(16, Math.ceil(roundSideCount(shape.sides, height, height) / 4) * 4);
-  return { width, depth, height, radius, clearance, pinRadius, boreRadius, leaf, knuckles, knuckleLength, chord, leafStart, segments, sides };
+  const pinless = shape.hingePinless === true;
+  return { width, depth, height, radius, clearance, pinless, pinRadius, boreRadius, leaf, knuckles, knuckleLength, chord, leafStart, segments, sides };
 }
 
 export type HingePlan = ReturnType<typeof hingePlan>;
@@ -197,17 +200,20 @@ export function hingeTriangles(shape: HingeShapeFields) {
   const rightEnd = plan.width / 2;
 
   // Part A: knuckles with the pin, joined by the pin and the leaf in between.
+  // Without the pin (a pin of one's own goes in) A's knuckles carry the same bore as B's, end to end.
   const a = plan.segments.filter((segment) => segment.owner === "a");
   a.forEach((segment, index) => {
     walls(s.aFull, segment.x0, segment.x1);
-    if (index === 0) cap(s.aFull, [], left, -1);
-    else cap(s.aCap, [s.pin], segment.x0, -1);
-    if (index === a.length - 1) cap(s.aFull, [], rightEnd, 1);
+    if (plan.pinless) walls(s.bore, segment.x0, segment.x1, true);
+    const hole = plan.pinless ? s.bore : s.pin;
+    if (index === 0) cap(s.aFull, plan.pinless ? [s.bore] : [], left, -1);
+    else cap(s.aCap, [hole], segment.x0, -1);
+    if (index === a.length - 1) cap(s.aFull, plan.pinless ? [s.bore] : [], rightEnd, 1);
     else {
-      cap(s.aCap, [s.pin], segment.x1, 1);
+      cap(s.aCap, [hole], segment.x1, 1);
       const next = a[index + 1];
       walls(s.aLeaf, segment.x1, next.x0);
-      walls(s.pin, segment.x1, next.x0);
+      if (!plan.pinless) walls(s.pin, segment.x1, next.x0);
     }
   });
 
@@ -255,12 +261,14 @@ export function hingeLocalParts(shape: HingeShapeFields): Array<Pick<WorkplaneSh
   const parts: Array<Pick<WorkplaneShape, "kind" | "x" | "z" | "elevation" | "width" | "depth" | "height" | "rotationZ" | "bevel">> = [
     { kind: "box", x: 0, z: -(depth / 2 + e) / 2, elevation: 0, width, depth: leafDepth, height: leaf },
     { kind: "box", x: 0, z: (depth / 2 + e) / 2, elevation: 0, width, depth: leafDepth, height: leaf },
-    { kind: "cylinder", ...lying(0, pinRadius * 2, width) },
   ];
+  if (!plan.pinless) parts.push({ kind: "cylinder", ...lying(0, pinRadius * 2, width) });
   plan.segments.forEach((segment) => {
     const center = (segment.x0 + segment.x1) / 2;
     if (segment.owner === "a") {
-      parts.push({ kind: "cylinder", ...lying(center, radius * 2, knuckleLength) });
+      // A pinless hinge has the same bore through A's knuckles as through B's.
+      if (plan.pinless) parts.push({ kind: "tube", ...lying(center, radius * 2, knuckleLength), bevel: radius - boreRadius });
+      else parts.push({ kind: "cylinder", ...lying(center, radius * 2, knuckleLength) });
       parts.push({ kind: "box", x: center, z: -e / 2, elevation: 0, width: knuckleLength, depth: e, height: leaf });
     } else {
       parts.push({ kind: "tube", ...lying(center, radius * 2, knuckleLength), bevel: radius - boreRadius });

@@ -42,7 +42,7 @@ function guideSections(sharedStore: boolean): GuideSection[] {
     {
       title: "guide.group.select",
       chapter: "select",
-      lines: ["guide.select.click", "guide.select.position", "guide.select.group", "guide.select.align", "guide.select.pivot", "guide.select.layFlat", "guide.select.carry", "guide.select.mateFaces", "guide.select.holePattern", "guide.select.overhangs", "guide.select.pattern", "guide.select.notes", "guide.select.history"],
+      lines: ["guide.select.click", "guide.select.position", "guide.select.group", "guide.select.align", "guide.select.pivot", "guide.select.layFlat", "guide.select.carry", "guide.select.mateFaces", "guide.select.holePattern", "guide.select.faceTool", "guide.select.overhangs", "guide.select.pattern", "guide.select.notes", "guide.select.history"],
     },
     {
       title: "guide.group.measure",
@@ -57,7 +57,7 @@ function guideSections(sharedStore: boolean): GuideSection[] {
     {
       title: "guide.group.edges",
       chapter: "edges",
-      lines: ["guide.edges.pick", "guide.edges.apply", "guide.edges.undo", "guide.edges.hollow"],
+      lines: ["guide.edges.pick", "guide.edges.apply", "guide.edges.undo", "guide.edges.hollow", "guide.edges.deleteFace"],
     },
     {
       title: "guide.group.sketch",

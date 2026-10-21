@@ -47,6 +47,22 @@ export const MAX_THREAD_BOLT_CLEARANCE = 1;
 export const DEFAULT_THREAD_AXIAL_CLEARANCE = 0;
 export const MAX_THREAD_AXIAL_CLEARANCE = 1;
 const MAX_AXIAL_CLEARANCE_PER_PITCH = 0.2;
+
+/**
+ * Das eigene Profil: ein symmetrisches Trapez mit ebener Kuppe und ebenem Grund gleicher Breite,
+ * bestimmt durch die Gewindetiefe (Aussen- minus Kernradius, in mm) und den Flankenwinkel, den
+ * Oeffnungswinkel der beiden Flanken (60 Grad beim Spitzgewinde, 30 beim Trapezgewinde). Wer
+ * ohne Stuetzen drucken will, geht auf 90 Grad oder weniger: dann ist keine Flanke flacher als
+ * 45 Grad zur Waagerechten. Vorgabe ist die Tiefe des Spitzgewindes bei 60 Grad.
+ */
+export const DEFAULT_THREAD_FLANK_ANGLE = 60;
+export const MIN_THREAD_FLANK_ANGLE = 10;
+export const MAX_THREAD_FLANK_ANGLE = 90;
+const V_DEPTH_PER_PITCH = (5 / 8) * (Math.sqrt(3) / 2);
+/** Both flanks together may take at most this much of a pitch; the rest is crest and root. */
+const MAX_FLANK_SHARE_PER_PITCH = 0.9;
+const MIN_DEPTH_PER_PITCH = 0.1;
+const MAX_DEPTH_PER_DIAMETER = 0.4;
 export const MIN_THREAD_QUALITY = 12;
 export const MAX_THREAD_QUALITY = 96;
 
@@ -108,6 +124,13 @@ const METRIC_SIZES: readonly ThreadSizeSpec[] = ([
   { id: "M8", system: "metric", diameter: 8, pitch: 1.25, socket: 6, headDiameter: 13, headHeight: 8, acrossFlats: 13, nutHeight: 6.5, countersunkDiameter: 16 },
   { id: "M10", system: "metric", diameter: 10, pitch: 1.5, socket: 8, headDiameter: 16, headHeight: 10, acrossFlats: 16, nutHeight: 8, countersunkDiameter: 20 },
   { id: "M12", system: "metric", diameter: 12, pitch: 1.75, socket: 10, headDiameter: 18, headHeight: 12, acrossFlats: 18, nutHeight: 10, countersunkDiameter: 24 },
+  // Up to M24, about as far as the inch sizes reach (#659). Heads ISO 4762, nuts ISO 4032.
+  { id: "M14", system: "metric", diameter: 14, pitch: 2, socket: 12, headDiameter: 21, headHeight: 14, acrossFlats: 21, nutHeight: 12.8, countersunkDiameter: 28 },
+  { id: "M16", system: "metric", diameter: 16, pitch: 2, socket: 14, headDiameter: 24, headHeight: 16, acrossFlats: 24, nutHeight: 14.8, countersunkDiameter: 32 },
+  { id: "M18", system: "metric", diameter: 18, pitch: 2.5, socket: 14, headDiameter: 27, headHeight: 18, acrossFlats: 27, nutHeight: 15.8, countersunkDiameter: 36 },
+  { id: "M20", system: "metric", diameter: 20, pitch: 2.5, socket: 17, headDiameter: 30, headHeight: 20, acrossFlats: 30, nutHeight: 18, countersunkDiameter: 40 },
+  { id: "M22", system: "metric", diameter: 22, pitch: 2.5, socket: 17, headDiameter: 33, headHeight: 22, acrossFlats: 34, nutHeight: 19.4, countersunkDiameter: 44 },
+  { id: "M24", system: "metric", diameter: 24, pitch: 3, socket: 19, headDiameter: 36, headHeight: 24, acrossFlats: 36, nutHeight: 21.5, countersunkDiameter: 48 },
 ] satisfies Omit<ThreadSizeSpec, "profile">[]).map((size) => ({ ...size, profile: "v" as const }));
 
 const MILLIMETRES_PER_INCH = 25.4;
@@ -395,6 +418,53 @@ export function normalizeThreadAxialClearance(value: number | undefined, pitch: 
   return clamp(finite(value, DEFAULT_THREAD_AXIAL_CLEARANCE), 0, threadAxialClearanceLimit(pitch));
 }
 
+export function normalizeThreadFlankAngle(value?: number) {
+  return clamp(finite(value, DEFAULT_THREAD_FLANK_ANGLE), MIN_THREAD_FLANK_ANGLE, MAX_THREAD_FLANK_ANGLE);
+}
+
+/** The depth of the V thread at this pitch: where an own profile starts out. */
+export function defaultThreadDepth(pitch: number) {
+  return pitch * V_DEPTH_PER_PITCH;
+}
+
+/**
+ * How deep an own profile may be: not shallower than a tenth of the pitch, not so deep that the core
+ * gets thin (at most 40 % of the diameter), and not so deep that the two flanks take more of the pitch
+ * than they should at this angle.
+ */
+export function threadDepthLimits(pitch: number, diameter: number, flankAngle: number) {
+  const run = Math.tan((normalizeThreadFlankAngle(flankAngle) * Math.PI) / 360);
+  const byFlank = (pitch * MAX_FLANK_SHARE_PER_PITCH) / (2 * run);
+  const min = pitch * MIN_DEPTH_PER_PITCH;
+  const max = Math.max(min, Math.min(byFlank, diameter * MAX_DEPTH_PER_DIAMETER));
+  return { min, max };
+}
+
+export function normalizeThreadDepth(value: number | undefined, pitch: number, diameter: number, flankAngle: number) {
+  const limits = threadDepthLimits(pitch, diameter, flankAngle);
+  return clamp(finite(value, defaultThreadDepth(pitch)), limits.min, limits.max);
+}
+
+/**
+ * The own profile as the points of one pitch (see `ThreadProfilePoint`): crest, flank down, root,
+ * flank up. The flank runs `depth * tan(angle / 2)` along the axis; what is left of the pitch is
+ * shared equally by crest and root.
+ */
+export function customThreadProfile(pitch: number, depth: number, flankAngle: number): ThreadProfileSpecification {
+  const run = Math.tan((normalizeThreadFlankAngle(flankAngle) * Math.PI) / 360);
+  const flank = clamp((depth * run) / pitch, 0.001, MAX_FLANK_SHARE_PER_PITCH / 2);
+  const flat = (1 - 2 * flank) / 2;
+  return {
+    depthPerPitch: depth / pitch,
+    points: [
+      { u: 0, level: 1 },
+      { u: flat, level: 1 },
+      { u: flat + flank, level: 0 },
+      { u: 2 * flat + flank, level: 0 },
+    ],
+  };
+}
+
 export function normalizeThreadBoltClearance(value?: number) {
   return clamp(finite(value, DEFAULT_THREAD_BOLT_CLEARANCE), MIN_THREAD_BOLT_CLEARANCE, MAX_THREAD_BOLT_CLEARANCE);
 }
@@ -449,6 +519,8 @@ export type ThreadShapeFields = {
   threadClearance?: number;
   threadBoltClearance?: number;
   threadAxialClearance?: number;
+  threadDepth?: number;
+  threadFlankAngle?: number;
   threadQuality?: number;
   threadHeadHeight?: number;
   threadChamfer?: number;
@@ -467,6 +539,9 @@ export type ThreadSettings = {
   boltClearance: number;
   /** Play along the axis for a nut or tapped hole, in mm (#256). */
   axialClearance: number;
+  /** Own profile only: the depth in mm and the included flank angle in degrees. */
+  depth: number;
+  flankAngle: number;
   quality: number;
   headHeight: number;
   chamfer: number;
@@ -496,6 +571,8 @@ export function threadSettings(shape: ThreadShapeFields): ThreadSettings {
     clearance: normalizeThreadClearance(shape.threadClearance),
     boltClearance: normalizeThreadBoltClearance(shape.threadBoltClearance),
     axialClearance: normalizeThreadAxialClearance(shape.threadAxialClearance, head.pitch),
+    depth: normalizeThreadDepth(shape.threadDepth, head.pitch, head.diameter, shape.threadFlankAngle ?? DEFAULT_THREAD_FLANK_ANGLE),
+    flankAngle: normalizeThreadFlankAngle(shape.threadFlankAngle),
     quality: normalizeThreadQuality(shape.threadQuality),
     headHeight,
     chamfer,
@@ -1048,6 +1125,7 @@ export function threadFootprintPatch(shape: ThreadShapeFields & { width?: number
       diameter,
       pitch,
       axialClearance: normalizeThreadAxialClearance(settings.axialClearance, pitch),
+      depth: normalizeThreadDepth(settings.depth * factor, pitch, diameter, settings.flankAngle),
       headHeight,
       chamfer,
       chamferLow,
@@ -1067,6 +1145,8 @@ export function threadFootprintPatch(shape: ThreadShapeFields & { width?: number
     threadClearance: scaled.clearance,
     threadBoltClearance: scaled.boltClearance,
     threadAxialClearance: scaled.axialClearance,
+    threadDepth: scaled.depth,
+    threadFlankAngle: scaled.flankAngle,
     threadQuality: scaled.quality,
     threadHeadHeight: scaled.headHeight,
     threadChamfer: scaled.chamfer,
@@ -1092,7 +1172,7 @@ export function threadBuildPlan(options: ThreadGeometryOptions) {
   const height = Math.max(0.05, options.height);
   const spec = threadSizeSpec(settings.diameter, settings.pitch);
   const allowance = radialAllowance(settings);
-  const baseProfile = threadProfileSpec(settings.profile);
+  const baseProfile = settings.profile === "custom" ? customThreadProfile(settings.pitch, settings.depth, settings.flankAngle) : threadProfileSpec(settings.profile);
   // A nut or tapped hole is cut with a body whose teeth are wider along the axis by the play (#256).
   const axialPlay = (settings.role === "bore" || settings.role === "nut") && settings.axialClearance > 1e-6;
   const profile = axialPlay
@@ -1165,8 +1245,9 @@ export function threadBuildPlan(options: ThreadGeometryOptions) {
 export function createThreadGeometry(options: ThreadGeometryOptions) {
   const plan = threadBuildPlan(options);
   const { settings, height, spec, profile, major, minor, handSign, headHeight, shaftBottom, chamfer, chamferLow, chamferBottom, inward } = plan;
-  const lowBroken = chamferBottom && chamferLow > 0.001;
-  const topBroken = chamfer > 0.001;
+  // Any chamfer above zero counts, however small: a zero-width cone leaves the mouth exactly as wide as the outer diameter (forum, 14.10.2026).
+  const lowBroken = chamferBottom && chamferLow > 0;
+  const topBroken = chamfer > 0;
   // A cone at a mouth of an inside thread goes on, at 45 degrees, down to the core: it ends where
   // it has cut the crests away, not on a ledge at the outer diameter (#269).
   const reach = major - minor;

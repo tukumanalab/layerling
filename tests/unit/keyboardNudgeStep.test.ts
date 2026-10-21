@@ -35,9 +35,11 @@ describe("keyboard nudge step", () => {
   });
 
   it("takes fine steps when the grid is off", () => {
-    expect(KEYBOARD_NUDGE_FALLBACK_STEP).toBe(0.1);
+    // 0.01 mm for an arrow (#370), and Shift five times that, or ten times with the darker line every 10.
+    expect(KEYBOARD_NUDGE_FALLBACK_STEP).toBe(0.01);
     expect(keyboardNudgeStep("Off", false)).toBe(KEYBOARD_NUDGE_FALLBACK_STEP);
-    expect(keyboardNudgeStep("Off", true)).toBe(KEYBOARD_NUDGE_FALLBACK_STEP * KEYBOARD_NUDGE_COARSE_FACTOR);
+    expect(keyboardNudgeStep("Off", true)).toBeCloseTo(0.05, 10);
+    expect(keyboardNudgeStep("Off", true, 10)).toBeCloseTo(0.1, 10);
   });
 
   it("matches the previous behaviour at the default grid", () => {

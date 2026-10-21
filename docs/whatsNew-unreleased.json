@@ -1,12 +1,1 @@
-[
-  {
-    "title": {
-      "de": "Gesperrte Objekte zeigen es und bleiben stehen",
-      "en": "Locked objects show it and hold still"
-    },
-    "body": {
-      "de": "Ein gesperrtes Objekt zeigt graue Griffe und ein Schloss neben dem Z-Pfeil; die Maße siehst du beim Überfahren der Griffe weiterhin. Werkzeuge und Tasten, die es ändern würden, sind ausgegraut oder melden „Objekt gesperrt“, und es lässt sich nicht mehr löschen. Ist ein gesperrtes Objekt in der Auswahl, ändert sich auch an den anderen nichts.",
-      "en": "A locked object shows grey handles and a padlock beside the Z arrow; hovering a handle still shows its sizes. Tools and keys that would change it are greyed out or say \"Object locked\", and it can no longer be deleted. With a locked object in the selection, the others stay unchanged too."
-    }
-  }
-]
+[]

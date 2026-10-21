@@ -5,7 +5,7 @@ summary: layerling wie ein normales Programm starten, auch ohne Netz – und wie
 
 ## Als App installieren
 
-layerling lässt sich wie ein normales Programm installieren. Es bekommt dann ein eigenes Symbol und ein eigenes Fenster ohne Adressleiste. Nach dem ersten Besuch startet es auch **ohne Internet**. Deine Entwürfe bleiben dabei auf deinem Rechner.
+layerling lässt sich wie ein normales Programm installieren. Es bekommt dann ein eigenes Symbol und ein eigenes Fenster ohne Adressleiste. Nach dem ersten Besuch startet es auch **ohne Internet**. Deine Entwürfe bleiben dabei auf deinem Rechner. Das Installieren lohnt sich: Die App startet schneller, weil sie nicht jedes Mal neu geladen werden muss, sie läuft ohne Internet und entlastet den Server. Du verlierst nichts, denn layerling zeigt dir weiter an, wenn es eine neue Version gibt.
 
 Auf der Startseite erscheint dafür ein Hinweis mit {{ui:installHint.install}}, wenn dein Browser es kann. Sonst:
 
@@ -15,6 +15,8 @@ Auf der Startseite erscheint dafür ein Hinweis mit {{ui:installHint.install}}, 
 - **Firefox:** kann keine Apps installieren. layerling startet dort aber trotzdem offline im Tab.
 
 Den Hinweis auf der Startseite kannst du mit {{ui:installHint.dismiss}} schließen. Startest du die installierte App in Chrome oder Edge ein zweites Mal, holt sie das offene Fenster nach vorn, statt ein weiteres zu öffnen.
+
+Auf einem Computer meldet sich eine installierte App in Chrome oder Edge außerdem als Programm für `.lyl`-Dateien an: Ein Doppelklick auf einen Entwurf im Dateimanager öffnet ihn in layerling, und [[Strg]]+[[S]] speichert wieder in diese Datei. Auf Android geht das nicht, dort bietet der Browser für installierte Web-Apps keine Dateizuordnung; öffne einen Entwurf dort auf der Startseite mit {{ui:dashboard.importGeometry}}.
 
 ## Aktualisierungen
 
@@ -26,14 +28,14 @@ Ist layerling in mehreren Tabs offen, achten die Tabs aufeinander: Läuft in ein
 
 ## Sprache und Aussehen
 
-Die Sprache stellst du oben rechts ein, Deutsch oder Englisch. Das Farbschema daneben bietet {{ui:theme.short.system}} (folgt dem Betriebssystem), {{ui:theme.short.light}}, {{ui:theme.short.dark}} und {{ui:theme.short.graphite}}, ein neutrales Dunkelgrau.
+Die Sprache wählst du oben rechts in der Sprachliste. Das Farbschema daneben bietet {{ui:theme.short.system}} (folgt dem Betriebssystem), {{ui:theme.short.light}}, {{ui:theme.short.dark}} und {{ui:theme.short.graphite}}, ein neutrales Dunkelgrau.
 
 ## Selbst betreiben
 
 layerling ist freie Software (AGPL-3.0) und lässt sich auf einem eigenen Rechner oder Server betreiben, etwa in der Werkstatt, im Verein oder in der Schule. Dafür gibt es mehrere Wege, die in der [README auf GitHub](https://github.com/henmedia/layerling/blob/main/README.de.md#loslegen) beschrieben sind:
 
 - **Der Schnellstart unter Windows:** Eine einzige Zeile in PowerShell installiert alles und legt eine Verknüpfung auf dem Desktop an. Läuft layerling schon, startet ein weiterer Doppelklick keinen zweiten Server, sondern öffnet nur die Seite.
-- **Docker:** Für NAS-Geräte und Heimserver, ohne dass Node.js installiert sein muss. Jedes Release gibt es als fertiges Image `ghcr.io/henmedia/layerling` für amd64 und arm64; `docker run -d -p 3000:3000 ghcr.io/henmedia/layerling:latest` startet es, auf einem NAS trägst du das Image in der Container-Verwaltung ein.
+- **Docker:** Für NAS-Geräte und Heimserver, ohne dass Node.js installiert sein muss. Jedes Release gibt es als fertiges Image `henmedia/layerling` auf Docker Hub (auch `ghcr.io/henmedia/layerling`) für amd64 und arm64; `docker run -d -p 3000:3000 -v layerling-thumbnails:/app/.codex/project-thumbnails henmedia/layerling:latest` startet es, auf einem NAS suchst du es in der Registrierung der Container-Verwaltung. Das Volume `layerling-thumbnails` hält die Vorschaubilder der Startseite über ein Update hinweg; ohne es fehlen sie nach jedem Neuanlegen des Containers, bis du den Entwurf wieder öffnest.
 - **Statischer Export:** Das Ergebnis besteht aus reinen Dateien, die jeder Webserver ausliefern kann. Sie gehören an die Wurzel einer Adresse (`https://layerling.example.com/` oder `http://192.168.0.5:8080/`), nicht in einen Unterordner und nicht von der Festplatte geöffnet; die Schritte stehen in der README. Mit einem beschreibbaren Ordner `store` neben der `index.html` und PHP auf dem Server wird daraus auch die gemeinsame Ablage für Entwürfe.
 
 Die MCP-Brücke für KI-Assistenten gibt es nur beim Entwicklungsserver, siehe [Mit einer KI bauen](chapter:ki-mit-mcp).

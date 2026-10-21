@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import { taperedSlotOutline } from "@/lib/slotGeometry";
 import type { WorkplaneShape } from "@/types/layerling";
-import type { CadModifierProfileLoop, CadModifierProfilePart, CadModifierProfileSegment, CadModifierHelicalGearPart, CadModifierSpringPart, CadModifierSweepPiece, CadModifierThreadPart } from "@/lib/cadModifierTypes";
-import { profileArcPoint, profileLoopBounds, validateCadProfile } from "@/lib/cadProfileSolid";
+import type { CadModifierProfileLoop, CadModifierProfilePart, CadModifierProfileSegment, CadModifierGridfinityPart, CadModifierHelicalGearPart, CadModifierSpringPart, CadModifierSweepPiece, CadModifierThreadPart } from "@/lib/cadModifierTypes";
+import { profileArcPoint, profileLoopBounds, TWIST_SECTION_STEP, validateCadProfile } from "@/lib/cadProfileSolid";
 import { cadTransformFromMatrix } from "@/lib/cadBakeMetadata";
 import { CAD_MODIFIER_EXACT_SEGMENT_LIMIT } from "@/lib/cadModifierRuntime";
-import { meshYawDegrees, mirrorSign, shapeDepth, shapeHasShapeDeform, shapeTaperDimensions, shapeWidth } from "@/lib/workplaneShapes";
+import { deformsAboutOrigin, meshYawDegrees, mirrorSign, shapeDepth, shapeHasShapeDeform, shapeTaperDimensions, shapeWidth } from "@/lib/workplaneShapes";
 import { regularPolygonFootprintScale } from "@/lib/regularPolygonFootprint";
 import { roundSideCount } from "@/lib/roundSideCount";
 import { drawnRound, ROUND_FROM_BENT_TUBE_QUALITY, ROUND_FROM_HALF_SPHERE_STEPS, ROUND_FROM_ROOF_SIDES, ROUND_FROM_SIDES, ROUND_FROM_SPHERE_STEPS } from "@/lib/roundness";
@@ -27,6 +27,7 @@ import { textFillComponents, textFillPieceGeometry, textHasFill } from "@/lib/te
 import { loadedManifoldRuntime } from "@/lib/manifoldHandle";
 import { threadBuildPlan, WHITWORTH_PROFILE_CONSTANTS } from "@/lib/threadGeometry";
 import { springBuildPlan, springRingSectionShare } from "@/lib/springGeometry";
+import { gridfinityHasPieces, gridfinityPlan } from "@/lib/gridfinityGeometry";
 import { knurlCorners, knurlSettings, roundKnurlWave } from "@/lib/knurlGeometry";
 import { BEVEL_GEAR_TOP_SCALE, gearHelixTwist, gearOutlineCorners, internalGearMeasures, internalGearOutline, involuteFlankPoint, involuteGearMeasures, involuteOutlineStretch, involuteToothCentre, normalizeGearCenterHoleSize, normalizeGearProfile, normalizeGearToothSize, normalizeGearType, rackMeasures, rackOutlinePoints, rackToothArcs, roundGearMeasures, roundInternalMeasures, roundToothArcs, type GearOutlineOptions, type InternalGearOptions, type InvoluteGearMeasures, type RackOptions, type RoundWave } from "@/lib/gearGeometry";
 
@@ -42,7 +43,7 @@ type Point = { x: number; z: number };
 type Arc = { cx: number; cz: number; rx: number; rz: number; start: number; end: number };
 type Corner = { start: Point; end: Point; arc?: Arc };
 
-export const CAD_PROFILE_SHAPE_KINDS = new Set<WorkplaneShape["kind"]>(["polygon", "star", "heart", "crescent", "slot", "honeycomb", "gear", "knurl", "dovetail", "teardrop", "counterbore", "countersink", "ellipse", "cylinder", "tube", "ring", "halfSphere", "sphere", "cone", "roundRoof", "roundedBox", "text", "bentTube", "loft"]);
+export const CAD_PROFILE_SHAPE_KINDS = new Set<WorkplaneShape["kind"]>(["polygon", "star", "heart", "crescent", "slot", "honeycomb", "gear", "knurl", "dovetail", "teardrop", "counterbore", "countersink", "doubleCountersink", "ellipse", "cylinder", "tube", "ring", "halfSphere", "sphere", "cone", "roundRoof", "roundedBox", "text", "bentTube", "loft"]);
 
 function shortestAngleDelta(from: number, to: number) {
   let delta = to - from;
@@ -1077,7 +1078,8 @@ export function cadProfileForShapeKind(shape: WorkplaneShape, designedRound = fa
       return { loops: [roundedRectLoop(width, depth, corner)], capFillet: ends > 1e-4 ? ends : undefined };
     }
     case "counterbore":
-    case "countersink": {
+    case "countersink":
+    case "doubleCountersink": {
       // Only a round hole is a body of revolution; stretched along z it stays a mesh.
       if (Math.abs(width - depth) > 1e-6) return null;
       const points = screwHoleProfile({ kind: shape.kind, width, height: shape.height, screwHoleShaft: shape.screwHoleShaft, screwHoleHeadDepth: shape.screwHoleHeadDepth, screwHoleAngle: shape.screwHoleAngle })
@@ -1169,7 +1171,7 @@ export function asDesignedRound(shape: WorkplaneShape): WorkplaneShape {
  * top point stays straight: the body is the ruled loft between the two ends,
  * exactly. Text is left out - it reaches the edge tool glyph by glyph.
  */
-const LOFTABLE_KINDS = new Set<WorkplaneShape["kind"]>(["box", "cylinder", "ellipse", "polygon", "tube", "ring", "slot", "star", "heart", "crescent", "honeycomb", "dovetail", "roundedBox"]);
+const LOFTABLE_KINDS = new Set<WorkplaneShape["kind"]>(["box", "cylinder", "ellipse", "polygon", "tube", "ring", "slot", "star", "heart", "crescent", "honeycomb", "dovetail", "roundedBox", "knurl"]);
 
 /**
  * The tapered, leaning or twisted shape as a loft between its bottom and top
@@ -1181,6 +1183,7 @@ const LOFTABLE_KINDS = new Set<WorkplaneShape["kind"]>(["box", "cylinder", "elli
 function deformedLoftProfile(shape: WorkplaneShape, width: number, depth: number): CadModifierProfilePart | null {
   if (!LOFTABLE_KINDS.has(shape.kind)) return null;
   let loops: CadModifierProfileLoop[];
+  let capChamfer: { radius: number; size: number } | undefined;
   if (shape.kind === "box") {
     // A box with a rounded radius (only older files carry one) is drawn round; its loft would not be.
     if ((shape.radius ?? 0) > 0) return null;
@@ -1189,8 +1192,9 @@ function deformedLoftProfile(shape: WorkplaneShape, width: number, depth: number
     // A round cylinder has no outline of its own (it is an analytic
     // primitive); as an ellipse it gets the same circle, or its drawn polygon.
     const base = cadProfileForShapeKind(shape.kind === "cylinder" ? { ...shape, kind: "ellipse" } : shape);
-    if (!base || base.frame || base.capFillet || base.capChamfer) return null;
+    if (!base || base.frame || base.capFillet) return null;
     loops = base.loops;
+    capChamfer = base.capChamfer;
   }
   const taper = shapeTaperDimensions(shape);
   const offsetX = shape.extrudeTopOffsetX ?? 0;
@@ -1198,8 +1202,9 @@ function deformedLoftProfile(shape: WorkplaneShape, width: number, depth: number
   // The display mesh narrows towards the middle of its outline's extent, not
   // towards the origin; a star or a heart is not centred on it.
   const bounds = loops.map(profileLoopBounds);
-  const centerX = (Math.min(...bounds.map((b) => b[0])) + Math.max(...bounds.map((b) => b[2]))) / 2;
-  const centerZ = (Math.min(...bounds.map((b) => b[1])) + Math.max(...bounds.map((b) => b[3]))) / 2;
+  const aboutOrigin = deformsAboutOrigin(shape.kind);
+  const centerX = aboutOrigin ? 0 : (Math.min(...bounds.map((b) => b[0])) + Math.max(...bounds.map((b) => b[2]))) / 2;
+  const centerZ = aboutOrigin ? 0 : (Math.min(...bounds.map((b) => b[1])) + Math.max(...bounds.map((b) => b[3]))) / 2;
   const section = (loop: CadModifierProfileLoop, sx: number, sz: number, shiftX: number, shiftZ: number) =>
     mapLoop(loop, sx, centerX * (1 - sx) + shiftX, sz, centerZ * (1 - sz) + shiftZ);
   const part: CadModifierProfilePart = {
@@ -1209,12 +1214,22 @@ function deformedLoftProfile(shape: WorkplaneShape, width: number, depth: number
     height: shape.height,
     transform: profileTransformForShape(shape),
   };
+  if (capChamfer) {
+    // The turned bound of the chamfer narrows evenly; one that narrows by
+    // different factors across and along stays on the display mesh.
+    const bottom = taper.bottomWidth / width;
+    const top = taper.topWidth / width;
+    if (Math.abs(bottom - taper.bottomDepth / depth) > 1e-6 || Math.abs(top - taper.topDepth / depth) > 1e-6) return null;
+    part.capChamfer = { ...capChamfer, bottomScale: bottom, topScale: top, lean: { x: offsetX, z: offsetZ } };
+  }
   // A twist turns each section around the middle of the outline as it rises, as the display does.
   const twist = shape.extrudeTwist ?? 0;
   if (Math.abs(twist) > 1e-6) {
     part.twist = twist;
     part.twistCenter = { x: centerX, z: centerZ };
     part.twistLean = { x: offsetX, z: offsetZ };
+    // Fine grooves need sections closer than the standard step, or the smooth loft swings out between them.
+    if (shape.kind === "knurl") part.twistStep = Math.min(TWIST_SECTION_STEP, 90 / Math.max(1, knurlSettings({ ...shape, width }).count));
   }
   validateCadProfile(part);
   return part;
@@ -1281,6 +1296,8 @@ export function cadModifierThreadForShape(shape: WorkplaneShape): CadModifierThr
     threadClearance: shape.threadClearance,
     threadBoltClearance: shape.threadBoltClearance,
     threadAxialClearance: shape.threadAxialClearance,
+    threadDepth: shape.threadDepth,
+    threadFlankAngle: shape.threadFlankAngle,
     threadQuality: shape.threadQuality,
     threadHeadHeight: shape.threadHeadHeight,
     threadChamfer: shape.threadChamfer,
@@ -1297,8 +1314,8 @@ export function cadModifierThreadForShape(shape: WorkplaneShape): CadModifierThr
     hand: plan.handSign === -1 ? -1 : 1,
     height: plan.height,
     shaftBottom: plan.shaftBottom,
-    chamfer: plan.chamfer > 0.001 ? plan.chamfer : 0,
-    chamferLow: plan.chamferLow > 0.001 ? plan.chamferLow : 0,
+    chamfer: plan.chamfer > 0 ? plan.chamfer : 0,
+    chamferLow: plan.chamferLow > 0 ? plan.chamferLow : 0,
     chamferBottom: plan.chamferBottom,
     // The mesh is drawn at its natural footprint and stretched to the shape's
     // width and depth; the body takes the same stretch.
@@ -1358,6 +1375,64 @@ export function cadModifierSpringForShape(shape: WorkplaneShape): CadModifierSpr
     // The mesh is drawn round at the larger of width and depth and stretched
     // to the shape's footprint; the body takes the same stretch.
     transform: profileTransformForShape(shape, new THREE.Matrix4().makeScale(plan.scaleX, 1, plan.scaleZ)),
+  };
+}
+
+/**
+ * A Gridfinity bin or baseplate as the exact body its display mesh draws, or
+ * null: the size and settings go to `gridfinitySolid.ts`, which builds the
+ * body from the same `gridfinityPlan` as the mesh.
+ */
+export function cadModifierGridfinityForShape(shape: WorkplaneShape): CadModifierGridfinityPart | null {
+  if (shape.kind !== "gridfinity") return null;
+  if (shape.importedMesh || shape.groupedShapes?.length || shape.cadBrep || shape.imagePlate || shapeHasShapeDeform(shape)) return null;
+  const width = shapeWidth(shape);
+  const depth = shapeDepth(shape);
+  if (![width, depth, shape.height].every((value) => Number.isFinite(value) && value > 0)) return null;
+  const plan = gridfinityPlan({ width, depth, height: shape.height, gridfinityType: shape.gridfinityType, gridfinityLip: shape.gridfinityLip, gridfinityMagnets: shape.gridfinityMagnets, gridfinityHalfGrid: shape.gridfinityHalfGrid });
+  // Label shelves, finger scoops and dividers are in the display mesh only once Manifold has loaded; until then the body would not match it (#455, #554).
+  if (!loadedManifoldRuntime() && gridfinityHasPieces({ ...shape, width, depth })) return null;
+  return {
+    width: plan.size.width,
+    depth: plan.size.depth,
+    height: plan.size.height,
+    gridfinityType: plan.type,
+    gridfinityLip: plan.lip,
+    gridfinityMagnets: plan.magnets,
+    gridfinityHalfGrid: plan.halfGrid,
+    gridfinityLabelBack: shape.gridfinityLabelBack,
+    gridfinityLabelFront: shape.gridfinityLabelFront,
+    gridfinityLabelLeft: shape.gridfinityLabelLeft,
+    gridfinityLabelRight: shape.gridfinityLabelRight,
+    gridfinityLabelBackWidth: shape.gridfinityLabelBackWidth,
+    gridfinityLabelBackLength: shape.gridfinityLabelBackLength,
+    gridfinityLabelBackOffset: shape.gridfinityLabelBackOffset,
+    gridfinityLabelFrontWidth: shape.gridfinityLabelFrontWidth,
+    gridfinityLabelFrontLength: shape.gridfinityLabelFrontLength,
+    gridfinityLabelFrontOffset: shape.gridfinityLabelFrontOffset,
+    gridfinityLabelLeftWidth: shape.gridfinityLabelLeftWidth,
+    gridfinityLabelLeftLength: shape.gridfinityLabelLeftLength,
+    gridfinityLabelLeftOffset: shape.gridfinityLabelLeftOffset,
+    gridfinityLabelRightWidth: shape.gridfinityLabelRightWidth,
+    gridfinityLabelRightLength: shape.gridfinityLabelRightLength,
+    gridfinityLabelRightOffset: shape.gridfinityLabelRightOffset,
+    gridfinityLabelCorner: shape.gridfinityLabelCorner,
+    gridfinityLabelCornerSize: shape.gridfinityLabelCornerSize,
+    gridfinityScoopBack: shape.gridfinityScoopBack,
+    gridfinityScoopFront: shape.gridfinityScoopFront,
+    gridfinityScoopLeft: shape.gridfinityScoopLeft,
+    gridfinityScoopRight: shape.gridfinityScoopRight,
+    gridfinityScoopRadius: shape.gridfinityScoopRadius,
+    gridfinityFloorHeight: shape.gridfinityFloorHeight,
+    gridfinityCompartmentsX: shape.gridfinityCompartmentsX,
+    gridfinityCompartmentsZ: shape.gridfinityCompartmentsZ,
+    gridfinityDividerThickness: shape.gridfinityDividerThickness,
+    gridfinityDividerPositionsX: shape.gridfinityDividerPositionsX,
+    gridfinityDividerPositionsZ: shape.gridfinityDividerPositionsZ,
+    gridfinityCompartmentLabels: shape.gridfinityCompartmentLabels,
+    // Mesh and body are built at the size of the grid units, which canonicalizeShape
+    // keeps the shape's box at; a box that differs anyway stretches the body to it.
+    transform: profileTransformForShape(shape, new THREE.Matrix4().makeScale(width / plan.size.width, shape.height / plan.size.height, depth / plan.size.depth)),
   };
 }
 

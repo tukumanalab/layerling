@@ -14,6 +14,13 @@ const SHELL_EDGES: readonly ShellEdges[] = ["round", "sharp"];
 const MIN_WALL = MIN_SHELL_WALL;
 const WALL_STEP = 0.1;
 
+/** The panel's error in words; a wall that is too thick on a box with rounded top and bottom edges says why (#401). */
+function shellErrorMessage(error: string, roundedEdgesHint?: boolean) {
+  const message = cadModifierUserErrorMessage(error);
+  if (roundedEdgesHint && message === t("shell.errorTooThick")) return `${message} ${t("shell.errorRoundedEdges")}`;
+  return message;
+}
+
 /**
  * Hollowing a body: one wall thickness and which side stays open. The walls
  * grow inward, so the outside of the body does not move.
@@ -27,6 +34,7 @@ export function ShellPanel({
   workspace,
   busy,
   error,
+  roundedEdgesHint,
   appliedFeatureCount,
   reversibleFeatureCount,
   historyOptions,
@@ -46,6 +54,8 @@ export function ShellPanel({
   workspace: WorkplaneWorkspaceSettings;
   busy: boolean;
   error: string | null;
+  /** A rounded box with rounded top and bottom edges: a wall that is too thick has that as its reason (#401). */
+  roundedEdgesHint?: boolean;
   /** The treatments the body already has, to revert or edit (#237). */
   appliedFeatureCount: number;
   reversibleFeatureCount: number;
@@ -143,7 +153,7 @@ export function ShellPanel({
         <span className="shell-openings-summary">{t("shell.edgesHint")}</span>
       </div>
 
-      {error ? <div className="edge-modifier-error" role="alert">{cadModifierUserErrorMessage(error)}</div> : null}
+      {error ? <div className="edge-modifier-error" role="alert">{shellErrorMessage(error, roundedEdgesHint)}</div> : null}
       <div className="edge-modifier-footer">
         <button type="button" className="secondary" onClick={onCancel}>{t("common.cancel")}</button>
         <button type="button" className="primary" disabled={busy} onClick={onApply}>

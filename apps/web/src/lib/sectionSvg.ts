@@ -23,7 +23,13 @@ export type SectionPoint = { u: number; v: number };
 
 export type SectionLoop = { points: SectionPoint[]; closed: boolean };
 
-export type SectionBody = { name: string; color: string; loops: SectionLoop[] };
+export type SectionBody = {
+  name: string;
+  color: string;
+  loops: SectionLoop[];
+  /** The body is see-through in the 3D view; its filled cut face is then see-through too (#575). */
+  seeThrough?: boolean;
+};
 
 const AXIS_INDEX: Record<SectionPlaneAxis, 0 | 1 | 2> = { x: 0, y: 1, z: 2 };
 

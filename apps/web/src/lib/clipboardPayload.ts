@@ -10,6 +10,17 @@
 /** Above this a copy stays out of local storage: it holds only about 5 MB, which the project list needs too. */
 export const LOCAL_CLIPBOARD_LIMIT = 1_000_000;
 
+/**
+ * Whether a copy is also put through a hidden text field and the browser's copy command. That is
+ * the way in for a page without the clipboard API, but selecting a huge text in a field takes
+ * seconds and grows faster than the text: a copy of a mesh of 125,000 triangles froze the page for
+ * nine seconds, one of 720,000 for minutes (#431). A copy above the limit is left to the clipboard
+ * API, which writes without holding the page up; where there is none it stays in the tab.
+ */
+export function copyViaSelectionField(length: number, hasClipboardApi: boolean) {
+  return !hasClipboardApi || length <= LOCAL_CLIPBOARD_LIMIT;
+}
+
 export type ClipboardPayload<T> = { copiedAt: number; shapes: T[] };
 
 /** The text for local storage and the system clipboard; `shapesJson` is the already serialised array. */

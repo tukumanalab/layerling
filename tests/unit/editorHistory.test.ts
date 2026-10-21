@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendEditorHistorySnapshot, boundedEditorHistory, editorHistoryBranch, editorHistoryEntry, editorHistoryForExport, historyStateAt, hydrateEditorHistoryState, immutableResourceFingerprint, projectShapesFingerprint } from "@/lib/editorHistory";
+import { appendEditorHistorySnapshot, boundedEditorHistory, continuesKeyRun, KEY_RUN_GAP_MS, editorHistoryBranch, editorHistoryEntry, editorHistoryForExport, historyStateAt, hydrateEditorHistoryState, immutableResourceFingerprint, projectShapesFingerprint } from "@/lib/editorHistory";
 import type { WorkplaneShape } from "@/types/layerling";
 
 function box(overrides: Partial<WorkplaneShape> = {}): WorkplaneShape {
@@ -198,6 +198,31 @@ describe("editor history snapshots", () => {
     expect(restored.entries[restored.index].shapes[0].x).toBe(60);
   });
 
+  it("keeps the history of a design whose last step was made on a face workplane when no workplane is given (#390)", () => {
+    const face = { origin: { x: 0, y: 20, z: 0 }, normal: { x: 0, y: 1, z: 0 }, xAxis: { x: 1, y: 0, z: 0 }, zAxis: { x: 0, y: 0, z: 1 } };
+    const entries = [
+      editorHistoryEntry([box({ x: 0 })], []),
+      editorHistoryEntry([box({ x: 5 })], [], [], face),
+    ];
+    // The start page builds its cache from a loaded design and knows no workplane.
+    const restored = hydrateEditorHistoryState([box({ x: 5 })], entries, 1);
+
+    expect(restored.entries).toHaveLength(2);
+    expect(restored.index).toBe(1);
+    expect(restored.entries[1].placementWorkplane?.origin.y).toBe(20);
+  });
+
+  it("still drops a history whose last entry belongs to another workplane than the one given", () => {
+    const face = { origin: { x: 0, y: 20, z: 0 }, normal: { x: 0, y: 1, z: 0 }, xAxis: { x: 1, y: 0, z: 0 }, zAxis: { x: 0, y: 0, z: 1 } };
+    const entries = [
+      editorHistoryEntry([box({ x: 0 })], []),
+      editorHistoryEntry([box({ x: 5 })], [], [], face),
+    ];
+    const restored = hydrateEditorHistoryState([box({ x: 5 })], entries, 1, "unlimited", [], { ...face, origin: { x: 0, y: 40, z: 0 } });
+
+    expect(restored.entries).toHaveLength(1);
+  });
+
   it("falls back to the loaded scene when persisted history is stale", () => {
     const stale = [editorHistoryEntry([box({ x: 1 })], [])];
     const restored = hydrateEditorHistoryState([box({ x: 9 })], stale, 0);
@@ -286,5 +311,52 @@ describe("history view", () => {
     expect(limited.index).toBe(1);
 
     expect(editorHistoryBranch([], 0)).toEqual({ entries: [], index: 0 });
+  });
+});
+
+describe("a run of arrow-key presses is one history step (#370)", () => {
+  const entryAt = (x: number) => editorHistoryEntry([box({ x })], ["box-1"]);
+
+  it("replaces the newest entry instead of adding one", () => {
+    let state = { entries: [entryAt(0)], index: 0 };
+    state = appendEditorHistorySnapshot(state.entries, state.index, entryAt(0.01));
+    expect(state.entries).toHaveLength(2);
+    for (const x of [0.02, 0.03, 0.04]) {
+      state = appendEditorHistorySnapshot(state.entries, state.index, entryAt(x), "unlimited", Date.now(), true);
+    }
+    expect(state.entries).toHaveLength(2);
+    expect(state.index).toBe(1);
+    expect(state.entries[1].shapes[0].x).toBe(0.04);
+    expect(state.entries[0].shapes[0].x).toBe(0);
+  });
+
+  it("leaves no step when the run ends where it started", () => {
+    let state = { entries: [entryAt(0)], index: 0 };
+    state = appendEditorHistorySnapshot(state.entries, state.index, entryAt(0.01));
+    state = appendEditorHistorySnapshot(state.entries, state.index, entryAt(0), "unlimited", Date.now(), true);
+    expect(state.entries).toHaveLength(1);
+    expect(state.index).toBe(0);
+    expect(state.entries[0].shapes[0].x).toBe(0);
+  });
+
+  it("never replaces the first entry or one that has redo behind it", () => {
+    const first = appendEditorHistorySnapshot([entryAt(0)], 0, entryAt(1), "unlimited", Date.now(), true);
+    expect(first.entries).toHaveLength(2);
+    const entries = [0, 1, 2].map(entryAt);
+    const middle = appendEditorHistorySnapshot(entries, 1, entryAt(9), "unlimited", Date.now(), true);
+    expect(middle.entries).toHaveLength(3);
+    expect(middle.entries.map((entry) => entry.shapes[0].x)).toEqual([0, 1, 9]);
+  });
+
+  it("continues a run only soon after, on the same thing, while its entry is the newest", () => {
+    const entry = entryAt(1);
+    const run = { key: "move:box-1", at: 10_000, entry };
+    expect(continuesKeyRun(run, "move:box-1", 10_000 + KEY_RUN_GAP_MS, entry, true)).toBe(true);
+    expect(continuesKeyRun(run, "move:box-1", 10_000 + KEY_RUN_GAP_MS + 1, entry, true)).toBe(false);
+    expect(continuesKeyRun(run, "move:box-2", 10_100, entry, true)).toBe(false);
+    expect(continuesKeyRun(run, "move:box-1", 10_100, entryAt(1), true)).toBe(false);
+    expect(continuesKeyRun(run, "move:box-1", 10_100, entry, false)).toBe(false);
+    expect(continuesKeyRun(null, "move:box-1", 10_100, entry, true)).toBe(false);
+    expect(continuesKeyRun(run, "move:box-1", 10_100, undefined, true)).toBe(false);
   });
 });

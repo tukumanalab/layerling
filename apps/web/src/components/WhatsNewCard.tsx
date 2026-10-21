@@ -3,10 +3,22 @@
 import { Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
+import { releaseNotesUrl } from "@/lib/appUpdate";
 import { localizedText, t } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
 import type { WhatsNewView } from "@/lib/useWhatsNew";
 import { whatsNewBefore, type WhatsNewEntry } from "@/lib/whatsNew";
+
+/** The cards are a selection: smaller changes and fixes are only in the release notes on GitHub. */
+export function WhatsNewNote() {
+  useLanguage();
+  return (
+    <p className="whats-new-note">
+      {t("whatsNew.excerpt")}{" "}
+      <a href={releaseNotesUrl()} target="_blank" rel="noreferrer">{t("whatsNew.releaseNotes")}</a>
+    </p>
+  );
+}
 
 /** The versions with their highlights, in the interface language. */
 export function WhatsNewList({ entries }: { entries: readonly WhatsNewEntry[] }) {
@@ -61,6 +73,7 @@ export function WhatsNewCard({ view, current, onClose }: { view: WhatsNewView; c
         </button>
       </header>
       <div className="whats-new-body">
+        <WhatsNewNote />
         <WhatsNewList entries={view.entries} />
         {showEarlier && earlier.length > 0 ? (
           <>

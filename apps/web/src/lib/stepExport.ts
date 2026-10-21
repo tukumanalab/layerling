@@ -3,10 +3,11 @@ import type { WorkplaneShape } from "@/types/layerling";
 import { shapeDepth, shapeHasShapeDeform, shapeWidth } from "@/lib/workplaneShapes";
 import { cadBrepTransformForShape } from "@/lib/cadBakeMetadata";
 import { loadBrepWithOcct, occtKernel, type Brep, type BrepSolid } from "@/lib/brepKernel";
-import { asDesignedRound, cadModifierHelicalGearForShape, cadModifierProfileForShape, cadModifierSpringForShape, cadModifierThreadForShape } from "@/lib/cadProfileExtrusion";
+import { asDesignedRound, cadModifierGridfinityForShape, cadModifierHelicalGearForShape, cadModifierProfileForShape, cadModifierSpringForShape, cadModifierThreadForShape } from "@/lib/cadProfileExtrusion";
 import { threadPartSolid } from "@/lib/threadSolid";
 import { springPartSolid } from "@/lib/springSolid";
 import { helicalGearPartSolid } from "@/lib/gearSolid";
+import { gridfinityPartSolid } from "@/lib/gridfinitySolid";
 import { profileExtrusionSolid } from "@/lib/cadProfileSolid";
 import { cadTransformRequiresGeneralTransform } from "@/lib/cadModifierRuntime";
 import { hingeWorldParts } from "@/lib/hingeParts";
@@ -72,7 +73,7 @@ function unsupportedReason(): string {
  *   ist danach kein Quader mehr, sondern ein Netz, und ein Netz kann STEP
  *   nicht tragen - obwohl die exakte Form die ganze Zeit danebenlag.
  */
-export type StepSource = "primitive" | "imported" | "baked" | "profile" | "thread" | "spring" | "helicalGear" | "unsupported";
+export type StepSource = "primitive" | "imported" | "baked" | "profile" | "thread" | "spring" | "helicalGear" | "gridfinity" | "unsupported";
 
 function hasExactProfile(shape: WorkplaneShape) {
   try {
@@ -106,6 +107,14 @@ function hasExactHelicalGear(shape: WorkplaneShape) {
   }
 }
 
+function hasExactGridfinity(shape: WorkplaneShape) {
+  try {
+    return cadModifierGridfinityForShape(shape) !== null;
+  } catch {
+    return false;
+  }
+}
+
 export function stepSourceForShape(shape: WorkplaneShape): StepSource {
   if (shape.kind === "mesh" && shape.importedMesh?.brepStep) return "imported";
   // A taper or lean is no part of the primitives: the box would go out as a
@@ -119,6 +128,7 @@ export function stepSourceForShape(shape: WorkplaneShape): StepSource {
   if (hasExactThread(shape)) return "thread";
   if (hasExactSpring(shape)) return "spring";
   if (hasExactHelicalGear(shape)) return "helicalGear";
+  if (hasExactGridfinity(shape)) return "gridfinity";
   // An oval cylinder or cone without a profile: the builder says why it is skipped.
   if (EXACT_KINDS.has(shape.kind)) return "primitive";
   return "unsupported";
@@ -134,7 +144,8 @@ export function shapeYawDegrees(shape: WorkplaneShape): number {
   const circular = Math.abs(shapeWidth(shape) - shapeDepth(shape)) < SIZE_EPS;
   // Tipped about Z first, the yaw decides where a round body points (meshYawDegrees).
   const tippedAboutZ = Math.abs(shape.rotationZ ?? 0) > 1e-9;
-  return round && circular && !tippedAboutZ ? 0 : shape.rotation;
+  // A taper or a lean follows the body's own axes, so the yaw stays (meshYawDegrees, #504).
+  return round && circular && !tippedAboutZ && !shapeHasShapeDeform(shape) ? 0 : shape.rotation;
 }
 
 type BuildOutcome = { solid: BrepSolid } | { skip: string };
@@ -361,6 +372,12 @@ function buildHelicalGearBody(brep: Brep, shape: WorkplaneShape): BuildOutcome {
   return buildPlacedBody(brep, part, (kernel) => helicalGearPartSolid(kernel, part!));
 }
 
+/** A Gridfinity bin or baseplate as its exact body, built and placed as the CAD worker does. */
+function buildGridfinityBody(brep: Brep, shape: WorkplaneShape): BuildOutcome {
+  const part = cadModifierGridfinityForShape(shape);
+  return buildPlacedBody(brep, part, (kernel) => gridfinityPartSolid(kernel, part!));
+}
+
 /** The hinge as the boxes, cylinders and tubes it is made of, fused: two bodies that turn against each other. */
 function buildHingeBody(brep: Brep, shape: WorkplaneShape): BuildOutcome {
   const solids: BrepSolid[] = [];
@@ -440,7 +457,7 @@ export async function exportShapesToStep(shapes: WorkplaneShape[]): Promise<Step
     }
     // Eine Aussparung wird hier nur aus dem gebaut, was ohne Warten geht; eine
     // eingelesene STEP-Quelle als Bohrer ist kein Fall, der vorkommt.
-    const built = source === "primitive" ? buildExactSolid(brep, shape) : source === "profile" ? buildProfileBody(brep, shape) : source === "thread" ? buildThreadBody(brep, shape) : source === "spring" ? buildSpringBody(brep, shape) : source === "helicalGear" ? buildHelicalGearBody(brep, shape) : buildBakedBody(brep, shape);
+    const built = source === "primitive" ? buildExactSolid(brep, shape) : source === "profile" ? buildProfileBody(brep, shape) : source === "thread" ? buildThreadBody(brep, shape) : source === "spring" ? buildSpringBody(brep, shape) : source === "helicalGear" ? buildHelicalGearBody(brep, shape) : source === "gridfinity" ? buildGridfinityBody(brep, shape) : buildBakedBody(brep, shape);
     if ("skip" in built) {
       skipped.push(describe(shape, `hole ${built.skip}; cut omitted`));
       continue;
@@ -468,6 +485,8 @@ export async function exportShapesToStep(shapes: WorkplaneShape[]): Promise<Step
       built = buildSpringBody(brep, shape);
     } else if (source === "helicalGear") {
       built = buildHelicalGearBody(brep, shape);
+    } else if (source === "gridfinity") {
+      built = buildGridfinityBody(brep, shape);
     } else {
       const reason = shape.kind === "mesh" ? "imported mesh has no B-Rep source; re-import as STEP to round-trip" : unsupportedReason();
       skipped.push(describe(shape, reason));

@@ -1,3 +1,5 @@
+import { orderedCadSketchPaths } from "@/lib/sketchCadProfile";
+import { sampledPath } from "@/lib/sketchStroke";
 import type { SketchProfile, WorkplaneShape } from "@/types/layerling";
 
 /*
@@ -10,18 +12,33 @@ import type { SketchProfile, WorkplaneShape } from "@/types/layerling";
  * sketch keeps the size the body has, for the next time it is edited.
  */
 
+/** How much wider and deeper the sketch's closed outlines reach than the body that was built from them. */
+function sketchMargin(profile: SketchProfile, frame: { width: number; depth: number }) {
+  const points = orderedCadSketchPaths(profile).filter((path) => path.closed).flatMap(sampledPath);
+  if (!points.length) return { x: 0, z: 0 };
+  const xs = points.map((point) => point.x);
+  const zs = points.map((point) => point.z);
+  return {
+    x: Math.max(0, Math.max(...xs) - Math.min(...xs) - frame.width),
+    z: Math.max(0, Math.max(...zs) - Math.min(...zs) - frame.depth),
+  };
+}
+
 /** How much the body was stretched since its exact body was built, or null when it was not. */
 export function sketchBodyStretch(shape: WorkplaneShape) {
-  if (!shape.sketchProfile || shape.sketchOperation === "revolve" || !shape.cadBrep || !shape.cadBrepFrame) return null;
+  if (!shape.sketchProfile || shape.sketchOperation === "revolve" || shape.sketchOperation === "sweep" || !shape.cadBrep || !shape.cadBrepFrame) return null;
   if (shape.groupedShapes?.length || shape.edgeTreatments?.length || shape.locked) return null;
   const frame = shape.cadBrepFrame;
   const width = shape.width;
   const depth = shape.depth;
   const changed = Math.abs(width - frame.width) > 0.005 || Math.abs(depth - frame.depth) > 0.005 || Math.abs(shape.height - frame.height) > 0.005;
   if (!changed) return null;
+  // A body set in from its sketch (the face tool) is narrower than the sketch by what the inset took off,
+  // which depends on its corners: the sketch stretches so that the body, set in again, takes the new size.
+  const margin = shape.sketchProfile.inset ? sketchMargin(shape.sketchProfile, frame) : { x: 0, z: 0 };
   return {
-    x: width / Math.max(0.001, frame.width),
-    z: depth / Math.max(0.001, frame.depth),
+    x: (width + margin.x) / Math.max(0.001, frame.width + margin.x),
+    z: (depth + margin.z) / Math.max(0.001, frame.depth + margin.z),
     height: shape.height,
   };
 }
@@ -45,5 +62,9 @@ export function stretchedSketchProfile(profile: SketchProfile, x: number, z: num
     // The stroke keeps its width: a stretched frame keeps its wall.
     ...(profile.stroke ? { stroke: { ...profile.stroke } } : {}),
     ...(profile.silhouette ? { silhouette: true } : {}),
+    // The hole keeps its size and moves with the outline it sits beside.
+    ...(profile.keyring ? { keyring: { ...profile.keyring, ...map(profile.keyring) } } : {}),
+    // The inset keeps its distance and radius.
+    ...(profile.inset ? { inset: { ...profile.inset } } : {}),
   };
 }

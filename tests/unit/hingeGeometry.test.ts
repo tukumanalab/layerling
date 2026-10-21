@@ -67,6 +67,21 @@ describe("hinge geometry", () => {
     }
   });
 
+  it("without the pin the bore runs through every knuckle: closed, two parts, less material, tubes instead of the pin", () => {
+    for (const fields of [{ width: 40, depth: 40, height: 8 }, { width: 80, depth: 60, height: 12, hingeKnuckles: 9, hingePinDiameter: 5, hingeLeafThickness: 3 }]) {
+      const pinless = hingeTriangles({ ...fields, hingePinless: true });
+      expect(edgeProblems(pinless)).toBe(0);
+      expect(signedVolume(pinless)).toBeGreaterThan(0);
+      expect(components(pinless)).toBe(2);
+      expect(signedVolume(pinless)).toBeLessThan(signedVolume(hingeTriangles(fields)));
+      const parts = hingeLocalParts({ ...fields, hingePinless: true });
+      const plan = hingePlan({ ...fields, hingePinless: true });
+      // no pin cylinder along the whole width, and A's knuckles are tubes like B's
+      expect(parts.filter((part) => part.kind === "cylinder")).toHaveLength(0);
+      expect(parts.filter((part) => part.kind === "tube")).toHaveLength(plan.knuckles);
+    }
+  });
+
   it("fills its frame: width along the axis, both leaves across, the knuckle as height", () => {
     const points = hingeTriangles(shape).flat();
     const range = (i: number) => [Math.min(...points.map((p) => p[i])), Math.max(...points.map((p) => p[i]))];

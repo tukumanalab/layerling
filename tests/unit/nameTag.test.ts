@@ -1,7 +1,7 @@
 import manifoldModule, { type CrossSection, type ManifoldToplevel } from "manifold-3d";
 import { beforeAll, describe, expect, it } from "vitest";
 import { guideChapterForShape, guideHref, guideSectionForShape } from "@/lib/guideLinks";
-import { addTextLayer, MIN_NAME_TAG_LAYERS, NAME_TAG_GAP, NAME_TAG_LAYERS, NAME_TAG_LETTER_SIZE, removeTextLayer, textLetterSize, textLetterSizePatch } from "@/lib/nameTag";
+import { addTextLayer, MIN_NAME_TAG_LAYERS, NAME_TAG_GAP, NAME_TAG_LAYERS, NAME_TAG_LETTER_SIZE, removeTextLayer, textLetterSize, textLetterSizePatch, textShrinkPatch } from "@/lib/nameTag";
 import { libraryShapeAssets, nameTagAsset, parseDroppedShapeAsset, toolbarShapeAssets } from "@/lib/shapeCatalog";
 import { textFillComponents, textHasFill } from "@/lib/textFill";
 import { TEXT_FILL_CHOICES, textFillChoice, textLineSettingsInView, textStrokeForChoice, textStrokeWider } from "@/lib/textFillChoice";
@@ -258,7 +258,8 @@ describe("finding the name tag (#215)", () => {
     const ids = libraryShapeAssets.map((asset) => asset.id);
     expect(ids.indexOf("nameTag")).toBe(ids.indexOf("text") + 1);
     expect(nameTagAsset.kind).toBe("text");
-    // The name tag and the icon tag are the library's two entries beyond the kinds.
+    // The name tag, the icon tag and the QR code (#553) are the library's three entries beyond the kinds.
+    // The double countersink is not listed on its own (#621): one entry less.
     expect(libraryShapeAssets).toHaveLength(toolbarShapeAssets.length + 2);
     // The catalogue of kinds keeps one tile per kind.
     expect(toolbarShapeAssets.some((asset) => asset.id === "nameTag")).toBe(false);
@@ -272,5 +273,34 @@ describe("finding the name tag (#215)", () => {
     expect(guideHref("de", guideChapterForShape(tag), guideSectionForShape(tag))).toBe("/anleitung/text.html#schichten-und-namensschilder");
     // A plain bundle still opens the bundle's section.
     expect(guideSectionForShape({ kind: "mesh", groupedShapes: [{}], groupOperation: "bundle" })).toBe("bundling");
+  });
+});
+
+describe("a text shrunk by its box takes the box with it (#432)", () => {
+  const plain = text({ text: "TEXT", width: 86, depth: 28, height: 10, font: "Sans" });
+
+  it("making the depth much lower makes the width follow, so the box hugs the letters", () => {
+    const patch = textShrinkPatch(plain, { depth: 4 });
+    expect(patch.depth).toBeCloseTo(4, 3);
+    // The letters at that size are about a seventh as wide as the box was: far under the old 86.
+    expect(patch.width!).toBeLessThan(25);
+    expect(patch.width!).toBeGreaterThan(8);
+  });
+
+  it("making the width lower makes the depth follow", () => {
+    const patch = textShrinkPatch(plain, { width: 20 });
+    expect(patch.width).toBeCloseTo(20, 3);
+    expect(patch.depth!).toBeLessThan(10);
+  });
+
+  it("leaves a box made larger alone: the letters do not change, so neither does the box", () => {
+    expect(textShrinkPatch(plain, { width: 200 })).toEqual({ width: 200 });
+    expect(textShrinkPatch(plain, { depth: 60 })).toEqual({ depth: 60 });
+  });
+
+  it("leaves a stretched text, a curved text and a patch without a size alone", () => {
+    const stretched = text({ text: "TEXT", width: 86, depth: 28, textStretch: true });
+    expect(textShrinkPatch(stretched, { depth: 4 })).toEqual({ depth: 4 });
+    expect(textShrinkPatch(plain, { color: "#112233" })).toEqual({ color: "#112233" });
   });
 });

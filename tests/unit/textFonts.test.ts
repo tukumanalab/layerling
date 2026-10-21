@@ -32,6 +32,14 @@ describe("textFonts", () => {
     }
   });
 
+  it("draws the Hungarian accented letters, ő and ű among them, in every face instead of a question mark", async () => {
+    await loadTextFonts();
+    for (const name of ["Multilanguage", "Stencil", "Sans", "Serif", "Script", "Monospace", "Rounded"]) {
+      const glyphs = textFont(name).data.glyphs as Record<string, unknown>;
+      for (const char of "áéíóöőúüűÁÉÍÓÖŐÚÜŰ") expect(glyphs[char], `${name}: ${char}`).toBeDefined();
+    }
+  });
+
   it("draws umlauts, ß, é and € in every face instead of a question mark", async () => {
     await loadTextFonts();
     for (const name of ["Multilanguage", "Stencil", "Sans", "Serif", "Script", "Monospace", "Rounded"]) {
@@ -40,6 +48,15 @@ describe("textFonts", () => {
     }
   });
 
+  it("draws Czech accented letters in every built-in face", async () => {
+    await loadTextFonts();
+    for (const name of ["Multilanguage", "Stencil", "Sans", "Serif", "Script", "Monospace", "Rounded"]) {
+      const font = textFont(name);
+      const glyphs = font.data.glyphs as Record<string, unknown>;
+      for (const char of "áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ") expect(glyphs[char], `${name}: ${char}`).toBeDefined();
+      expect(font.generateShapes("Žluťoučký kůň", 10).length).toBeGreaterThan(0);
+    }
+  });
   it("borrows only what is missing, scaled to the face's units", () => {
     const face = { resolution: 1000, glyphs: { a: { ha: 500, o: "m 0 0 l 10 0" } } } as never;
     const fallback = { resolution: 2000, glyphs: { a: { ha: 900, o: "m 1 1" }, ü: { x_min: 0, x_max: 400, ha: 800, o: "m 0 0 l 200 400 q 10 20 30 40" } } } as never;

@@ -26,6 +26,19 @@ function radiusBetween(position: Position, from: number, to: number) {
   return { smallest, largest };
 }
 
+describe("a chamfer of any width above zero counts", () => {
+  it("makes the mouth of a tapped hole exactly as wide as the outer diameter at 0.001 mm, and leaves it alone at 0", () => {
+    const major = 3 + 0.2;
+    const core = major - 0.5413;
+    const none = build("bore", 14, { threadClearance: 0.4, threadChamfer: 0, threadChamferBottom: 0 });
+    const tiny = build("bore", 14, { threadClearance: 0.4, threadChamfer: 0.001, threadChamferBottom: 0 });
+    // At 0 the thread runs to the face, so the teeth reach down to the core there. At 0.001 the cone
+    // opens the mouth to the outer diameter (a hair more), as at 0.002 before.
+    expect(radiusBetween(none.position, 14 - 0.0005, 14).smallest).toBeLessThan(core + 0.1);
+    expect(radiusBetween(tiny.position, 14 - 0.0005, 14).smallest).toBeGreaterThan(major - 0.01);
+  });
+});
+
 describe("the chamfer of an inside thread reaches the core (#269)", () => {
   // M6 x 1 with the default 0.4 mm clearance: major radius 3.2, the thread 0.5413 deep, core radius 2.6587.
   const major = 3 + 0.2;

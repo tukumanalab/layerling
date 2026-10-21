@@ -9,6 +9,11 @@ export const DEFAULT_SKETCH_REVOLVE_SETTINGS: SketchRevolveSettings = {
   quality: 6,
 };
 
+/** The most turns a helical revolve (one with a pitch) may wind. */
+export const MAX_SKETCH_REVOLVE_TURNS = 200;
+/** The highest pitch a helical revolve takes, in mm per turn. */
+export const MAX_SKETCH_REVOLVE_PITCH = 1000;
+
 type OrderedStep = { segment: SketchSegment; from: SketchPoint; to: SketchPoint };
 type OrderedPath = { steps: OrderedStep[]; closed: boolean };
 type Point2 = [number, number];
@@ -33,14 +38,24 @@ function finiteOr(value: number | undefined, fallback: number) {
 }
 
 export function normalizeSketchRevolveSettings(settings?: Partial<SketchRevolveSettings>): SketchRevolveSettings {
-  const rawSweep = clamp(finiteOr(settings?.sweepAngle, DEFAULT_SKETCH_REVOLVE_SETTINGS.sweepAngle), -360, 360);
+  const pitch = clamp(finiteOr(settings?.pitch, 0), 0, MAX_SKETCH_REVOLVE_PITCH);
+  // Rings close after one turn; a helix may wind on.
+  const maxSweep = pitch > 0 ? 360 * MAX_SKETCH_REVOLVE_TURNS : 360;
+  const rawSweep = clamp(finiteOr(settings?.sweepAngle, DEFAULT_SKETCH_REVOLVE_SETTINGS.sweepAngle), -maxSweep, maxSweep);
   const sweepAngle = Math.abs(rawSweep) < 1 ? (rawSweep < 0 ? -1 : 1) : rawSweep;
   return {
     startAngle: ((finiteOr(settings?.startAngle, DEFAULT_SKETCH_REVOLVE_SETTINGS.startAngle) % 360) + 360) % 360,
     sweepAngle,
     sides: Math.round(clamp(finiteOr(settings?.sides, DEFAULT_SKETCH_REVOLVE_SETTINGS.sides), 3, MAX_HIGH_RESOLUTION_SIDES)),
     quality: Math.round(clamp(finiteOr(settings?.quality, DEFAULT_SKETCH_REVOLVE_SETTINGS.quality), 1, 10)),
+    // Only a helix carries a pitch, so rings keep the settings they always had.
+    ...(pitch > 0 ? { pitch } : {}),
   };
+}
+
+/** Whether these settings wind the profile up as a helix rather than turning it into rings. */
+export function sketchRevolveIsHelical(settings?: Partial<SketchRevolveSettings>) {
+  return (normalizeSketchRevolveSettings(settings).pitch ?? 0) > 0;
 }
 
 function orderedPaths(profile: SketchProfile): OrderedPath[] {
@@ -195,6 +210,73 @@ function dispose(value: unknown) {
   (value as { delete?: () => void } | null)?.delete?.();
 }
 
+/**
+ * The section wound up along a helix about z, as `revolve` turns it about z: the section is
+ * extruded straight, one slice per side of each turn, and the slices are bent round the axis and
+ * lifted by the pitch as they go. The extrusion runs down from z = 0 for a positive sweep, up for
+ * a negative one, and the angle is minus z: that bend keeps the faces pointing out (a bend the
+ * other way would turn the body inside out).
+ *
+ * **Turns closer than the section is high** (a solid spool core with a 2 mm pitch) run into each
+ * other, and one bent extrusion would pass through itself: it looks right, but a boolean takes
+ * such a body for garbage and the next cut leaves open edges. So the overlap is taken out in the
+ * plane first. Seen at one angle round the axis, the body is the section stacked once per turn
+ * that passes there, a pitch apart, and that stack is the same at every angle; only where the
+ * winding starts and ends does one more copy pass. Those stacks are united as cross-sections,
+ * exactly, and wound no more than half a turn at a time - half a turn can never meet itself. The
+ * pieces only touch at their ends, so uniting them is cheap.
+ */
+function helicalRevolve(runtime: ManifoldToplevel, section: InstanceType<ManifoldToplevel["CrossSection"]>, settings: SketchRevolveSettings, disposable: unknown[]) {
+  const turn = 2 * Math.PI;
+  const total = (turn * Math.abs(settings.sweepAngle)) / 360;
+  const pitch = settings.pitch ?? 0;
+  const direction = settings.sweepAngle > 0 ? 1 : -1;
+  // Whole turns, and the part of a turn left: up to that angle one more copy passes.
+  const wholeTurns = Math.floor(total / turn + 1e-9);
+  const rest = Math.max(0, total - wholeTurns * turn);
+  const spans: Array<{ from: number; to: number; copies: number }> = [];
+  if (rest > 1e-9) spans.push({ from: 0, to: rest, copies: wholeTurns + 1 });
+  if (wholeTurns > 0) spans.push({ from: rest > 1e-9 ? rest : 0, to: turn, copies: wholeTurns });
+  const stacks = new Map<number, InstanceType<ManifoldToplevel["CrossSection"]>>();
+  const stack = (copies: number) => {
+    let stacked = stacks.get(copies);
+    if (!stacked) {
+      const layers = Array.from({ length: copies }, (_value, index) => section.translate([0, index * pitch]));
+      disposable.push(...layers);
+      stacked = layers.length === 1 ? layers[0] : runtime.CrossSection.union(layers);
+      disposable.push(stacked);
+      stacks.set(copies, stacked);
+    }
+    return stacked;
+  };
+  const pieces: Array<InstanceType<ManifoldToplevel["Manifold"]>> = [];
+  spans.forEach((span) => {
+    const count = Math.ceil((span.to - span.from) / Math.PI - 1e-9);
+    for (let index = 0; index < count; index += 1) {
+      const from = span.from + ((span.to - span.from) * index) / count;
+      const to = index === count - 1 ? span.to : span.from + ((span.to - span.from) * (index + 1)) / count;
+      const length = to - from;
+      const straight = stack(span.copies).extrude(length, Math.max(1, Math.ceil((settings.sides * length) / turn)));
+      disposable.push(straight);
+      const oriented = direction > 0 ? straight.mirror([0, 0, 1]) : straight;
+      if (oriented !== straight) disposable.push(oriented);
+      pieces.push(oriented.warp((vertex) => {
+        // The ends land exactly where the neighbouring piece starts, a whole turn on the axis.
+        const along = -vertex[2] * direction;
+        const angle = along >= length - 1e-12 ? to : from + along;
+        const [radius, height] = vertex;
+        const onAxis = Math.abs(angle - turn) < 1e-12 ? 0 : angle;
+        vertex[0] = radius * Math.cos(onAxis);
+        vertex[1] = direction * radius * Math.sin(onAxis);
+        vertex[2] = height + (pitch * angle) / turn;
+      }));
+    }
+  });
+  if (pieces.length === 1) return pieces[0];
+  disposable.push(...pieces);
+  return runtime.Manifold.union(pieces);
+}
+
 export function buildSketchRevolveMesh(runtime: ManifoldToplevel, profile: SketchProfile, requestedSettings?: Partial<SketchRevolveSettings>): SketchRevolveMesh {
   const settings = normalizeSketchRevolveSettings(requestedSettings);
   const polygons = sketchProfileToRevolvePolygons(profile, settings);
@@ -208,9 +290,11 @@ export function buildSketchRevolveMesh(runtime: ManifoldToplevel, profile: Sketc
     disposable.push(simplified);
     if (simplified.toPolygons().length === 0) throw new Error("The revolve profile has no filled area");
     const sweep = Math.abs(settings.sweepAngle);
-    const solid = simplified.revolve(settings.sides, sweep);
+    const solid = settings.pitch ? helicalRevolve(runtime, simplified, settings, disposable) : simplified.revolve(settings.sides, sweep);
     disposable.push(solid);
-    const rotation = settings.sweepAngle < 0 ? settings.startAngle + settings.sweepAngle : settings.startAngle;
+    // A helix starts at the start angle and winds either way from there; rings are turned to
+    // cover the same span.
+    const rotation = settings.sweepAngle < 0 && !settings.pitch ? settings.startAngle + settings.sweepAngle : settings.startAngle;
     const revolved = Math.abs(rotation) > 1e-8 ? solid.rotate([0, 0, rotation]) : solid;
     if (revolved !== solid) disposable.push(revolved);
     if (revolved.status() !== "NoError" || revolved.numTri() < 1) throw new Error("The profile could not be revolved into a valid solid");

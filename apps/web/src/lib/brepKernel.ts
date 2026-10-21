@@ -1,4 +1,5 @@
 import { CAD_MODIFIER_RUNTIME_BASE } from "@/lib/cadModifierRuntime";
+import { assertCadKernelRunnable } from "@/lib/wasmSupport";
 
 // Shared lazy loader for brepjs + the occt-wasm (OpenCascade) kernel. Both the
 // STEP exporter and importer call this so the 22 MB kernel loads at most once
@@ -25,6 +26,8 @@ export function occtKernel() {
 }
 
 export async function loadBrepWithOcct(): Promise<Brep> {
+  // An engine without WebAssembly SIMD cannot compile the kernel; say so up front (#350).
+  assertCadKernelRunnable();
   // Cache the in-flight/resolved load, but drop a rejected attempt so a transient
   // failure (e.g. a blip fetching the 22 MB wasm) can be retried on the next call
   // instead of poisoning STEP for the rest of the session.

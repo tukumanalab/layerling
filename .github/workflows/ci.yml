@@ -34,5 +34,8 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check generated files are committed
+        run: git diff --exit-code
+
       - name: Static export
         run: npm run export

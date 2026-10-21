@@ -15,6 +15,26 @@ describe("error messages for people", () => {
     expect(localizedError("OBJ contains a degenerate face")).toBe(MESSAGES_DE["error.objBroken"]);
   });
 
+  it("explains that the browser ran out of memory, in the person's language (#383)", () => {
+    for (const raw of ["Array buffer allocation failed", "RangeError: Invalid array length", "Out of memory"]) {
+      setLanguage("en");
+      expect(localizedError(raw)).toBe(MESSAGES_EN["error.outOfMemory"]);
+      setLanguage("de");
+      expect(localizedError(raw)).toBe(MESSAGES_DE["error.outOfMemory"]);
+    }
+  });
+
+  it("shows the refusals of the drawing export in German", () => {
+    setLanguage("de");
+    expect(localizedError("This drawing has more than 200 circular holes. Select a smaller part.")).toBe(MESSAGES_DE["error.drawingTooManyHoles"]);
+    expect(localizedError("The 1:1 drawing exceeds 5,080 mm. Select a smaller part.")).toBe(MESSAGES_DE["error.drawingTooLarge"]);
+    expect(localizedError("Drawing views support up to 400,000 triangles; these views have 523,411. Choose fewer or simpler objects.")).toBe(
+      MESSAGES_DE["error.drawingTooManyTriangles"].replace("{limit}", "400.000").replace("{count}", "523.411"),
+    );
+    expect(localizedError("This view has too many drawing edges. Choose fewer or simpler objects.")).toBe(MESSAGES_DE["error.drawingTooManyEdges"]);
+    expect(localizedError("This view has no solid geometry")).toBe(MESSAGES_DE["error.drawingNoGeometry"]);
+  });
+
   it("translates the texts of the server routes, with the folder and setting kept", () => {
     setLanguage("de");
     expect(localizedError("That folder name is not allowed")).toBe(MESSAGES_DE["error.folderNameNotAllowed"]);

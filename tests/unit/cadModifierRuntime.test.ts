@@ -231,6 +231,17 @@ describe("cadModifierUserErrorMessage", () => {
     expect(cadModifierUserErrorMessage(raw)).not.toContain("thinner wall");
   });
 
+  it("words the refusals of Delete face, from the worker and from the editor (#451)", () => {
+    setLanguage("de", false);
+    expect(cadModifierUserErrorMessage("These faces cannot be deleted: the faces around them do not close the gap.")).toContain("schließen die Lücke nicht");
+    expect(cadModifierUserErrorMessage("This body has no exact faces to delete: layerling keeps it as a mesh, as it does an imported STL, OBJ or 3MF, a split, wrapped or simplified body, or a very detailed shape such as a long text. A part imported as STEP has exact faces.")).toContain("als Netz");
+    expect(cadModifierUserErrorMessage("This body was resized with Keep edge size when resizing on and has no exact faces at this size; undo the resize, delete the faces, then resize it again")).toContain("Größenänderung rückgängig");
+    expect(cadModifierUserErrorMessage("The faces of this body could not be read")).toContain("nicht gelesen werden");
+    expect(cadModifierUserErrorMessage("Deleting these faces took too long and was stopped; the body is unchanged")).toContain("nach 45 Sekunden abgebrochen");
+    setLanguage("en", false);
+    expect(cadModifierUserErrorMessage("These faces cannot be deleted: the faces around them do not close the gap.")).toContain("Pick every face of what should go");
+  });
+
   it("translates hollowing (shell) error messages into German and English", () => {
     setLanguage("de", false);
     expect(cadModifierUserErrorMessage("The walls cannot be this thick for this body. Choose a thinner wall.")).toBe(

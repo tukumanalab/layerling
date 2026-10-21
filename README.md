@@ -21,7 +21,7 @@
     <a href="#layerling-mcp-skill"><img alt="Drivable by AI" src="https://img.shields.io/badge/AI--drivable-MCP%20server-16c0d4"></a>
   </p>
 
-  <p><strong>English</strong> · <a href="README.de.md">Deutsch</a></p>
+  <p><strong>English</strong> · <a href="README.de.md">Deutsch</a> · <a href="README.nl.md">Nederlands</a></p>
 </div>
 
 <p align="center">
@@ -52,7 +52,7 @@ layerling sits a step beyond Tinkercad towards Fusion 360: it is operated the sa
 
 It is not a full CAD package: there is no parametric timeline and no assemblies. And you can **run it yourself**: install it as an app (it then starts without internet), or host your own copy on Windows, a NAS or a home server – see [Getting Started](#getting-started).
 
-> **An AI can build along with you.** layerling ships an MCP server. An AI client such as Codex or Claude sees an open
+> **An AI can build along with you.** layerling ships an MCP server. An AI client such as Gemini, Claude or Codex sees an open
 > editor tab and works in it: add shapes, change measurements, group, cut, round edges, read the scene back, take pictures
 > of the viewport. You describe the part, the AI builds it, you watch it happen and step in whenever you want. This runs
 > locally, with nothing leaving the browser – see [layerling MCP Skill](#layerling-mcp-skill) for the setup.
@@ -70,13 +70,14 @@ It is not a full CAD package: there is no parametric timeline and no assemblies.
 - **Align faces and see the angles** – the Align faces tool brings a face of one part against a face of another, touching or flush, with an optional gap; a turned body shows its angles about X, Y and Z under the selection, and the Rotation card in its settings takes them as numbers.
 - **Snap to other shapes** – while moving, a shape locks its edges or centre onto the edges and centres of the shapes around it, with a guide line, so parts sit flush without typing numbers. Alt during the drag pauses it; Shift keeps the move on one axis, and Alt held from the start drags a copy, as in Tinkercad.
 - **Set down on faces** – like Cruise in Tinkercad: a new shape lies down on the face under the pointer, sloped ones too, and C picks the selection up and sets it down on another face the same way.
-- **Reference points** – right-click a body to mark its centre, corners or edge middles with points that nothing prints and that dragged shapes snap to; drag a point or type its coordinates, and the marks are saved with the design.
+- **Reference points** – right-click a body to mark its centre, corners or edge middles with points that nothing prints and that dragged shapes snap to; drag a point or type its coordinates, and the marks are saved with the design. The tape measure can mark the middle of a measurement - the centre of a round hole, for one.
+- **Interactive Help** – press Shift+F1 or the question mark in the Help group, then click any button, field or window: a small window shows the part of the user guide about it and opens it on request.
 - **Command search** – press Ctrl+K and type a tool, a shape or a command ("fillet", "mirror", "cylinder") to jump straight to it; it understands English and German words and shows the keyboard shortcuts beside each entry.
 - **History view** – look back at any earlier state of the project with a slider, without changing anything; export that state or start a new project from it. By @rmpel.
 - **Millimetres or inches** – with Imperial units every measure is shown in inches, as fractions like Tinkercad (1 5/8) or as decimals, the snap grid steps from 1/64 to 1 inch, and the plate's grid is drawn in inches.
-- **Your printer's plate** – pick one of 190 common printers and the plate takes its size. Its name and build volume show in the corner of the workplane (a switch in the settings hides this and the design's name), and a warning appears when a body reaches past the edge.
+- **Your printer's plate** – pick one of more than 220 common printers and the plate takes its size. Its name and build volume show in the corner of the workplane (a switch in the settings hides this and the design's name), and a warning appears when a body reaches past the edge.
 - **Overhangs and filament** – "Show overhangs" hatches every face steeper than 45° (or your printer's own angle) that would need supports, and the export window shows volume, weight and metres of filament before you slice.
-- **Shape library** – boxes, cylinders, capsules (one end smaller if needed, say for a belt guard), spheres, cones, pyramids, wedges, text, roofs, half spheres, torus shapes, tubes, lofts from one outline to another (say square to round, solid or with a wall, straight or flaring smoothly, twisted or with a tilted top), polygon prisms from three to twenty-four sides, coil springs, a print-in-place hinge, knurled grips (straight, crossed or round) and more.
+- **Shape library** – boxes, cylinders, capsules (one end smaller if needed, say for a belt guard), spheres, cones, pyramids, wedges, text, roofs, half spheres, torus shapes, tubes, lofts from one outline to another (say square to round, solid or with a wall, straight or flaring smoothly, twisted or with a tilted top), polygon prisms from three to twenty-four sides, coil springs, a print-in-place hinge, Gridfinity bins and baseplates, knurled grips (straight, crossed or round) and more.
 - **Threads that fit** – threaded rods, screws with a socket, countersunk or hex head, hex nuts and tapped holes. M2 to M12, UNC/UNF from #4 to one inch and the Whitworth pipe threads G1/16 to G4 (ISO 228-1) are one pick away, or set your own diameter and pitch, left-hand as well; an inch or G size asks for threads per inch instead of millimetres. The ends take a chamfer, and a tapped hole is a cutter: drop it into a part, group, and the hole comes out threaded.
 - **Gears that mesh** – spur, helical, herringbone and bevel gears, ring gears and racks with involute teeth, set by module and number of teeth like a gear generator, with pressure angle and backlash for printing - or with round teeth, forgiving on small printed gears and a smooth grip on knobs. Select two gears and the panel gives the centre distance they mesh at.
 - **Solids and holes** – turn shapes into cutters and group them into the final geometry. Edit group (**E**) lays a group's parts loose to change them and rebuilds it with Done – also a group inside a group, as deep as the design goes.
@@ -88,10 +89,12 @@ It is not a full CAD package: there is no parametric timeline and no assemblies.
 ### Refining
 
 - **Chamfer and fillet** – break or round any edge of a solid, and remove or change the treatment again later.
-- **Sketches** – draw outlines with lines, curves and ready-made shapes, set lines by length and angle as you draw ("50<30", Shift snaps in 15° steps), type lengths, angles and sizes (sums like "60+12.5" work in every number field), round or chamfer corners, snap to the outlines of other bodies, draw construction lines to snap to, and extrude or revolve them into exact bodies. A sketch can also be built as a stroke: a closed outline becomes a frame, inside, outside or centred on the line, and an open line a stripe with flat, square or round ends.
+- **Sketches** – draw outlines with lines, curves and ready-made shapes, set lines by length and angle as you draw ("50<30", Shift snaps in 15° steps), type lengths, angles and sizes (sums like "60+12.5" work in every number field), round or chamfer corners, snap to the outlines of other bodies, draw construction lines to snap to, and extrude or revolve them into exact bodies. A revolve with a pitch winds the outline up as one continuous helical strand instead of rings, like filament on a spool. A sketch can also be built as a stroke: a closed outline becomes a frame, inside, outside or centred on the line, and an open line a stripe with flat, square or round ends.
 - **Hollowing** – turn a body into walls of one thickness, open on any sides you choose (top, bottom, front, back, left, right, in any combination) or closed – for boxes, cups and cases.
+- **Delete face** – click the faces of a fillet, a hole or a boss and delete them: the faces around them grow to close the gap, and the body stays exact for more fillets and the STEP export.
 - **Custom shapes** – keep bodies you need again and again at the top of the shape library and insert them into any design with a click or by dragging; in the browser, or with the shared store on the server for every device. "Back up all" takes them along.
 - **Hole pattern** – perforate a flat face of a body: pick the face, choose round, square, rectangular, hexagonal or slot holes, set size, spacing, grid or staggered, the margin to the edge and the depth (through the whole part or a set depth), and see the holes as a preview before creating them. They stay ordinary holes grouped with the body, so ungrouping frees them again.
+- **Face** – push a flat face of a body out or cut a pocket into it: pick the face, choose Out or In, set an inset from the edge, a corner radius and the depth, and see the result as a preview. It works on imported STLs too, and what it adds stays an ordinary sketch body grouped with the body.
 - **Wrap around a cylinder** – lay an SVG pattern, a logo or lettering onto the wall of a cup or tube, raised or engraved, and centre it on the cylinder.
 
 ### Files
@@ -99,7 +102,9 @@ It is not a full CAD package: there is no parametric timeline and no assemblies.
 - **Fonts of your own** – use any TrueType, OpenType or WOFF font for text, or in Chrome and Edge a font installed on the computer. A design keeps only the outlines of the letters it uses, so it opens anywhere. Arabic and Hebrew run right to left, Arabic letters join up.
 - **Bring your own models** – import STL, OBJ, 3MF, STEP or SVG and build around it. An SVG comes in as a sketch body: an area, a stroke outside or inside its lines, a silhouette without its holes, or the drawing widened all round - together a cookie cutter from one file, or the layers of a multicolour logo. The Text shape has the same fill modes, and the shape library has a name tag: a text in coloured layers for a multicolour print, with an optional key ring hole and a rounded or chamfered edge on the letters, and an icon tag: an SVG icon in the same coloured layers, with a count and "as many as fit" to fill a plate. A coloured OBJ – from layerling, or from Tinkercad as a ZIP with its `.mtl` – or a coloured 3MF, slicer projects included, comes in as one body per colour, and a 3MF with several objects as one body per object.
 - **Export what your slicer wants** – STL, 3MF with names and colours, or OBJ with colours, for the selection or the whole scene (hidden parts stay out), plus STEP if the design should travel on into a full CAD program. PNG saves a clean picture of the view, at twice the resolution and with a transparent background if you like.
+- **Drawing export** – select a part, or clear the selection for the whole visible design, then choose **Export → Drawing → PDF or SVG**. Generates front, top and right-side views in first-angle layout on a bordered engineering sheet with zone numbers and a lower-right title block, with overall dimensions, hidden edges, and diameter/position tables for axis-aligned circular bores. Views are 1:1 in millimetres; the sheet uses the smallest fitting ISO landscape size (or a larger custom size). Print at **100% / actual size**. Positions are measured from each view's lower-left overall corner. Hole tables use nominal mesh geometry and do not automatically dimension angled/non-circular holes, threads, depths or tolerances. The projection engine is adapted from [Cadverix-3D](https://github.com/WC3D/Cadverix-3D)'s drawing work.
 - **Update notice** – on the published program an open page notices a new version by itself and offers to save and reload, listing what is new.
+- **Folders for your designs** – sort the designs on the start page into folders (and folders into folders) by dragging them or with "Move to …"; the search looks through all of them, and "Back up all" keeps them.
 - **Projects as files** – save a whole project, history, sketches and groups included, as a `.lyl` file and carry on elsewhere. In Chrome and Edge you choose the folder yourself and Ctrl+S saves into that same file again; other browsers download it. Older `.skf` files from earlier versions still open; saving then writes a `.lyl` beside them.
 - **Bug report** – one link in the footer saves a ZIP with the design as a `.lyl` and a text with the version, browser and last messages, ready to attach in the forum or on GitHub, which refuse a bare `.lyl`.
 - **Designs you recognise** – everything lives in your own browser, each design with a thumbnail.
@@ -108,20 +113,30 @@ It is not a full CAD package: there is no parametric timeline and no assemblies.
 
 - **Perspective or straight-on** – switch between the normal view and a flat, orthographic one with the cube button beside the zoom controls, or by pressing **O**. Your viewing direction and framing are kept.
 - **Turn the view at the cube** – dragging the view cube turns the view like the right mouse button, with one finger on a tablet; a click still jumps to that side, and a click on a corner or an edge looks from there. Keys **1**–**6** jump too, and **Shift+1**–**6** also zoom to the selection.
+- **Four saved views per design** – **Shift+7**, **8**, **9** or **0** saves the view exactly as it is (angle, pan, zoom), and the key alone brings it back. Each design keeps its own, and a saved `.lyl` file carries them along.
+- **The view cube in any corner** – Settings > Appearance > **View cube position** puts the cube in the top left, top right, bottom left or bottom right; in any corner but the top left, the camera controls move up into its place.
 - **Look from below** – the eye over a grid in the camera bar hides the plate, so the underside of a design can be seen without it in the way.
 - **Panels where you want them** – the object list, the settings, the section view, the tape measure and the tool panels for edges, hollowing and patterns move by their title bar and open there again; a double-click docks them.
 - **Right-click menu** – a short right click on a body brings up the most used commands: duplicate, hole or solid, group, chamfer, fillet and hollow for one body, mirror and scale by percent, hide, lock, drop to the workplane, delete. Dragging with the right button still turns the view.
 - **Section view** – cut the view open along a plane across X, Y or Z to look at walls, cavities and parts that fit into each other, with a coarse and a fine slider. Only the view is cut: the design and every export stay whole. "Section as SVG" saves the cut itself at 1:1, for a laser or a template, and "Measure" reads wall thickness and gaps right on the cut, snapping square to the wall.
 - **Workplane on any face** – press W and click a face to build on it; a click near a corner puts it exactly on the corner, near an edge on the edge with the grid running along it, and on the empty plate where you click. An eye hides the plane for a clear view while it keeps applying. An AI can set it on a face too.
-- **On a tablet** – one finger works the design, exactly as the left mouse button does: tap to select, drag to move, drag on empty space for a selection box. **Two fingers belong to the view**: spread or pinch them to zoom, move them together to shift the workplane. Putting a second finger down takes back whatever the first one had started, so a pinch never nudges a part. Turning the view has no gesture of its own; the camera rail carries a switch for it, shown only on a touch screen, and while it is on, one finger orbits instead of selecting. Number fields hand you their whole value when you tap them, ready to be overwritten – a decimal keypad has no arrow keys to move the caret with.
+- **On a tablet** – one finger works the design, exactly as the left mouse button does: tap to select, drag to move, drag on empty space for a selection box. **Two fingers belong to the view**: spread or pinch them to zoom, move them together to shift the workplane. Putting a second finger down takes back whatever the first one had started, so a pinch never nudges a part. Turning the view has no gesture of its own; the camera rail carries a switch for it, shown only on a touch screen, and while it is on, one finger orbits instead of selecting. Number fields hand you their whole value when you tap them, ready to be overwritten – a decimal keypad has no arrow keys to move the caret with. A finger reaches a little further to sketch points, lines, handles, measuring points and edges than a mouse does, but **a stylus is the better tool on a tablet**: finer, and it does not cover what you aim at.
 
 ### Videos
 
 Made by others, not by this project:
 
-- [Layerling – Playlist](https://www.youtube.com/playlist?list=PLCsBmX2kOGWs) – Making Layers (English). A series about layerling: an introduction for people coming from Tinkercad, and the sketch tools.
-- [Meet Layerling Free Browser Based CAD that EXTENDS Tinkercad!](https://youtu.be/979_Ohy9ESM) – HL ModTech (English). A look at layerling by a Tinkercad user.
-- [Tinkercad Too Basic? Fusion 360 Too Much? Meet Layerling for 3D Printing](https://youtu.be/kzV7fQ3rXhw) – 3D Jesus | 3D Printing & Design (English). A first-time test of layerling without any manual.
+<!-- videos:start -->
+- [I'm 100% In on Layerling - The Next Big Free CAD](https://youtu.be/IO7S-7bxS5o) – Printology (English). A first test by a Tinkercad user: what layerling does better than Tinkercad, what still needs work, and whether to switch now.
+- [10 Things Layerling Can Do That Tinkercad Can't!](https://youtu.be/cx0OVHgUsJM) – Print N Repeat (English). A second video by this channel: ten things layerling can do that Tinkercad cannot.
+- [Layerling la nueva herramienta gratuita de modelado 3D, más completo que Tinkercad](https://youtu.be/-EEt0RSINoY) – Fulcro 1900 (Spanish). A video about layerling as a new free 3D modelling tool that is more complete than Tinkercad.
+- [Layerling - Tussen Tinkercad en Fusion 360 in, en Helemaal Gratis!](https://youtu.be/X-UuvsfDI-s) – Werkplaats Marc (Dutch). A first look at layerling for Tinkercad users: hollowing, fillets, the hole pattern, threads with clearance, custom fonts and printer profiles, with a bolt printed with and without clearance to show the difference.
+- [Layerling](https://www.youtube.com/playlist?list=PLYqVFeqYBrPE) – TECHNOBENTO (English). A playlist about layerling, so far with “A new way to sketch in Layerling”.
+- [The PERFECT FREE CAD Program Between Tinkercad and Fusion 360!](https://youtu.be/GIoG-IHPXyg) – Print N Repeat (English). A video about layerling as a free CAD program between Tinkercad and Fusion 360.
+- [Layerling Tutorials](https://www.youtube.com/playlist?list=PLZ-ZWS0D1JIk) – HL ModTech (English). A playlist by a Tinkercad user, so far with a look at layerling of about 23 minutes (free, browser-based CAD that extends Tinkercad), a deeper dive into its features and a short update on printed threads.
+- [Layerling – Playlist](https://www.youtube.com/playlist?list=PLCsBmX2kOGWs) – Making Layers (English). A series about layerling, so far with "Tinkercad alternative / upgrade? Introducing Layerling!", an overview for people coming from Tinkercad, and "Layerling Sketch Tools!" on the sketch tools.
+- [Tinkercad Too Basic? Fusion 360 Too Much? Meet Layerling for 3D Printing](https://youtu.be/kzV7fQ3rXhw) – 3D Jesus | 3D Printing & Design (English). A first test of layerling without any manual: fillets and chamfers, hollowing, threads, sketches, revolved bodies, patterns, import and printer profiles.
+<!-- videos:end -->
 
 ## Getting Started
 
@@ -175,15 +190,15 @@ then open `http://127.0.0.1:3000/` yourself. `Ctrl+C` in that window stops it ei
 
 ### Docker
 
-To run layerling on a computer, NAS (Synology, Unraid, etc.) or home server without installing Node.js, use the ready-made image **`ghcr.io/henmedia/layerling`**. Every release publishes it for amd64 and arm64 (Raspberry Pi, ARM NAS) under its version number and as `latest`. The app listens on port **3000**.
+To run layerling on a computer, NAS (Synology, Unraid, etc.) or home server without installing Node.js, use the ready-made image **`henmedia/layerling`** on Docker Hub (also at **`ghcr.io/henmedia/layerling`**, the same image). Every release publishes it for amd64 and arm64 (Raspberry Pi, ARM NAS) under its version number and as `latest`. The app listens on port **3000**.
 
 The quickest way is a single command:
 
 ```bash
-docker run -d --name layerling -p 3000:3000 --restart unless-stopped ghcr.io/henmedia/layerling:latest
+docker run -d --name layerling -p 3000:3000 -v layerling-thumbnails:/app/.codex/project-thumbnails --restart unless-stopped ghcr.io/henmedia/layerling:latest
 ```
 
-On a NAS with a container manager (Synology Container Manager, Unraid, Portainer), add the image `ghcr.io/henmedia/layerling:latest` and map port 3000. To update, pull the image again and recreate the container (or let Watchtower do it).
+The `-v` option keeps the preview pictures of the start page in a Docker volume named `layerling-thumbnails`, so they survive an update; without it they are inside the container and gone each time it is created again (the designs themselves live in the browser and are not affected). On a NAS with a container manager (Synology Container Manager, Unraid, Portainer), search for `henmedia/layerling` in its registry (Docker Hub) or enter `henmedia/layerling:latest`, map port 3000, and add a volume for `/app/.codex/project-thumbnails`. To update, pull the image again and recreate the container (or let Watchtower do it).
 
 The image tags are plain version numbers **without a "v"**: `ghcr.io/henmedia/layerling:1.42.0`, while the GitHub release is called `v1.42.0`. A pull only fetches the new image; a container that already exists keeps running the old one until it is removed and created again:
 
@@ -191,7 +206,7 @@ The image tags are plain version numbers **without a "v"**: `ghcr.io/henmedia/la
 docker pull ghcr.io/henmedia/layerling:latest
 docker stop layerling
 docker rm layerling
-docker run -d --name layerling -p 3000:3000 --restart unless-stopped ghcr.io/henmedia/layerling:latest
+docker run -d --name layerling -p 3000:3000 -v layerling-thumbnails:/app/.codex/project-thumbnails --restart unless-stopped ghcr.io/henmedia/layerling:latest
 ```
 
 `docker inspect layerling | grep image.version` shows which version the container really runs. If you mounted a folder for the server storage, add the same `-v` option again.
@@ -217,9 +232,15 @@ Everyday commands:
 - **Restart:** `docker compose -f docker/compose.yml up -d`
 - **Update** (after pulling new code or extracting a new ZIP): `docker compose -f docker/compose.yml up -d --build`; with the ready-made image `docker compose -f docker/compose.yml pull` and then `up -d`
 
-The image runs `next start` in production mode, so the MCP bridge is off there unless you switch it on (see [Letting an AI client reach a copy on a NAS or server](#letting-an-ai-client-reach-a-copy-on-a-nas-or-server)). To offer a shared project folder, bind a writable directory and set `LAYERLING_SHARED_PROJECTS_DIR` in `compose.yml` to the path inside the container where it is mounted, for example `./shared-projects:/shared-projects` with `LAYERLING_SHARED_PROJECTS_DIR: "/shared-projects"` (see [Shared Designs on a Network](#shared-designs-on-a-network)). After changing it, run `docker compose up -d`: `docker compose restart` keeps the old setting. `docker exec <container> printenv LAYERLING_SHARED_PROJECTS_DIR` shows the one in use.
+**Installing as an app and offline use need https, and the static export.** A browser installs an app and keeps it for offline use only on `https://` or on `localhost`; on a plain `http://192.168.x.x:3000` address it offers neither (layerling hides its install hint there). Even with https, the offline files (`sw.js`) are written only into the static export (see [Static Hosting](#static-hosting-plain-files-on-a-web-server)), not into this image, which runs the server version. For installing and offline use on a network, serve the static export over https; for an https address in front of the container, use a reverse proxy such as Caddy or nginx with a certificate (for example from mkcert).
+
+The image runs `next start` in production mode, so the MCP bridge is off there unless you switch it on (see [Letting an AI client reach a copy on a NAS or server](#letting-an-ai-client-reach-a-copy-on-a-nas-or-server)). To offer a shared project folder, bind a writable directory and set `LAYERLING_SHARED_PROJECTS_DIR` in `compose.yml` to the path inside the container where it is mounted, for example `./shared-projects:/shared-projects` with `LAYERLING_SHARED_PROJECTS_DIR: "/shared-projects"` (see [Shared Designs on a Network](#shared-designs-on-a-network)). The container runs as the user with the number 999, so that user must be allowed to write to the folder: `sudo chown 999:999 ./shared-projects`, or add `user: "1000:1000"` to the service (your own user and group numbers, `id -u` and `id -g` show them) so that the container runs as you. Without it the folder shows up on the start page but nothing can be saved there. After changing it, run `docker compose up -d`: `docker compose restart` keeps the old setting. `docker exec <container> printenv LAYERLING_SHARED_PROJECTS_DIR` shows the one in use.
 
 To choose the colour theme people get on their first visit, set `LAYERLING_DEFAULT_THEME` to `system`, `light`, `dark` or `graphite` (the same way, in `compose.yml` or in the environment of `npm run start`). Anyone who has opened layerling before keeps the theme their browser already has, and anyone can still change it with the theme switch. Without the setting the theme follows the system. A copy served as plain files has no server to read it, so it does not apply there.
+
+With the shared folder on, `LAYERLING_NEW_DESIGNS_ON_SERVER` makes new designs start on the server: `true` is the start for people who have not chosen (they can untick **New designs on the server** on the start page), `always` holds for everyone and locks the tick. It is set the same way, and a copy served as plain files has no server to read it.
+
+Behind a reverse proxy with a domain, the proxy has to pass on the original `Host` and `X-Forwarded-Proto` (nginx: `proxy_set_header Host $host;` and `proxy_set_header X-Forwarded-Proto $scheme;`), otherwise saving to the server is refused with "Shared projects only accept requests from this site.". If the proxy rewrites the host and you cannot change that, list the address people use in `LAYERLING_ALLOWED_ORIGINS` (comma-separated, for example `https://layerling.example.com`).
 
 ### Static Hosting: Plain Files on a Web Server
 
@@ -232,17 +253,20 @@ npm run export
 
 The finished site is in **`apps/web/.next-export/`**. Copy the **contents** of that folder (not the folder itself) into the web server's document root, so that `index.html` lies directly in it.
 
-Three things to know:
+Four things to know:
 
 - **layerling needs to know its address.** The files refer to each other with paths that start at the root (`/_next/...`), so by default layerling must be served at the root of an address, such as `https://layerling.example.com/` or `http://192.168.0.5:8080/`. For a subfolder (`https://example.com/layerling/`) build with the folder as the base path: `LAYERLING_BASE_PATH=/layerling npm run export`; the files then refer to each other under that folder. It cannot be opened from disk (`file://`). If you only see a block of plain text without any styling, the script and style files did not load: open the browser's developer tools (F12), look at the Network tab for red `/_next/...` entries and compare their address with where you put the files.
 - **GitHub Pages:** `.github/workflows/pages.yml` builds the export on every push to `main` and publishes it, with the repository's folder (`/<repository>/`) as the base path, or none under a custom domain. Set the repository's Pages source to "GitHub Actions" once (Settings > Pages).
 - **Folders that start with an underscore must be served.** Some servers hide them (GitHub Pages does without a `.nojekyll` file, for example), and `_next` holds the whole program.
 - **A quick test on your own computer:** `npx serve apps/web/.next-export` and open the address it prints.
+- **Installing as an app and offline use need https.** The export holds the offline files (`sw.js`), but a browser uses them only on an `https://` address or on `localhost`, not on a plain `http://` address in your network.
 
 ### Shared Designs on a Network
 
+layerling itself is only files, so the shared folder needs something on the server that can write. There are two ways, and you need just one of them: **Node or Docker** (this section, with `LAYERLING_SHARED_PROJECTS_DIR`), or **a plain web server with PHP** (the `store` folder, further down). A web server that serves the files without either of them – `npx serve`, nginx or Apache without PHP – shows layerling fine, but has no server folder.
+
 If you run layerling with `npm run dev` or `npm run start` on a machine other people open in their browser, it can offer a
-shared folder for `.lyl` designs. Point `LAYERLING_SHARED_PROJECTS_DIR` at a directory before starting:
+shared folder for `.lyl` designs. `npm run start` serves what `npm run build` made, so run that once first. Point `LAYERLING_SHARED_PROJECTS_DIR` at a directory the user who starts layerling may write to (a folder under `/srv` often belongs to root, make one of your own or change its owner) and start:
 
 ```bash
 LAYERLING_SHARED_PROJECTS_DIR=/srv/layerling-projects npm run start
@@ -250,9 +274,11 @@ LAYERLING_SHARED_PROJECTS_DIR=/srv/layerling-projects npm run start
 
 The start page then shows a folder named **On the server** beside your browser designs. Open it and you are in that
 folder: **New design** starts one right there, **New folder** makes a subfolder, and a trail under the heading says where
-you are. A `..` tile leads back out. Designs move by dragging them onto a folder, onto that tile or onto a step of the
+you are. A `..` tile leads back out, and **Back to designs in this browser** at the left of the buttons returns to the designs of this browser. Designs move by dragging them onto a folder, onto that tile or onto a step of the
 trail – or through **Move to …** in their menu. A design from your browser goes onto the server the same way: drag its
 card onto the server folder.
+
+Two buttons on the start page save the trouble of moving designs one by one: **Put all on the server** moves every design of this browser into the server folder in one go, and the tick **New designs on the server** makes each new design start in the server folder, so it is saved there from the first change on. A design whose name is already taken on the server stays in the browser.
 
 The search box at the top searches the whole server folder, not just the one you are standing in. Every hit says
 which folder holds it, and that folder is a button: one click and you are there, with the search cleared. Folders are
@@ -294,7 +320,7 @@ Take this path if you want to change the code.
 
 ### What You Need
 
-- Node.js 20 or newer
+- Node.js 22.18 or newer (the guide and font scripts load TypeScript files directly, which older versions cannot); 24 works too, the Docker image uses it
 - npm, included with Node.js
 
 Check your versions with `node -v` and `npm -v`. If those commands do not work, install Node.js from the official
@@ -313,6 +339,8 @@ No Git? Press the green **Code** button on the GitHub page, choose **Download ZI
 extracted folder and start with `npm install`.
 
 Then open `http://127.0.0.1:3000/`. Leave the terminal open while you use the app; `Ctrl+C` stops the development server.
+
+To open the development server from another computer by a name, such as `http://myhost.local:3000/`, list that name in the environment variable `LAYERLING_ALLOWED_DEV_ORIGINS` before you start (several names separated by commas, `*.local` for every name ending in `.local`). Without it, the development server answers only to `localhost` and `127.0.0.1`. The static export and `npm run start` do not need it.
 
 On Linux and macOS, `scripts/start-layerling.sh` does the daily start for you: it updates the checkout first (skipped if you changed files in it), starts the server, waits until it answers and then opens the browser. Run it from anywhere, for example `~/layerling/scripts/start-layerling.sh`. It needs Git and Node.js, as above. If layerling already runs on that port, it only opens the browser instead of starting a second server. Port 3000 taken by something else? Start it with `PORT=3100 scripts/start-layerling.sh`. It has been tried on Debian Linux (without a desktop, so the browser step only prints the address) and in a Windows shell; macOS is untested – if it misbehaves on your system, please tell us in the discussions.
 
@@ -408,6 +436,30 @@ as the template and replacing the script path with the absolute path on your mac
 
 ```text
 Use $layerling-mcp-skill to list my open layerling editors and inspect the current scene.
+```
+
+### Gemini & Antigravity
+
+For Antigravity, the repo ships a copy of the skill at `.agents/skills/layerling-mcp-skill`, which Antigravity discovers automatically. For Gemini CLI, copy the skill from `docs/skills/layerling-mcp-skill` into your global skills folder.
+
+Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.gemini\skills" | Out-Null
+Copy-Item -Recurse -Force "docs\skills\layerling-mcp-skill" "$env:USERPROFILE\.gemini\skills\layerling-mcp-skill"
+```
+
+macOS or Linux:
+
+```bash
+mkdir -p ~/.gemini/skills
+cp -R docs/skills/layerling-mcp-skill ~/.gemini/skills/
+```
+
+Then add the server to your Gemini CLI `settings.json` or Antigravity `mcp_config.json`, using [`docs/mcp/gemini-config.example.json`](docs/mcp/gemini-config.example.json) as the template and replacing the script path with the absolute path on your machine. Restart the client and ask:
+
+```text
+Use the layerling MCP tools to list my open layerling editors and inspect the current scene.
 ```
 
 ### Letting an AI client reach a copy on a NAS or server

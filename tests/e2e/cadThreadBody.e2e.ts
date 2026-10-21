@@ -35,6 +35,14 @@ describe("the thread's exact body", () => {
     ["a tapped hole with a long chamfer at the top and none at the bottom", { threadRole: "bore", hole: true, threadChamfer: 1.2, threadChamferBottom: 0 }],
     ["a nut with different chamfers at its two faces", { threadRole: "nut", threadChamfer: 0.9, threadChamferBottom: 0.3 }],
     ["a rod chamfered at the top only", { threadChamfer: 1, threadChamferBottom: 0 }],
+    // A chamfer of any width above zero counts: a zero-width cone at the mouth (forum, 14.10.2026).
+    ["a tapped hole with a 0.001 mm chamfer", { threadRole: "bore", hole: true, threadChamfer: 0.001, threadChamferBottom: 0 }],
+    ["a nut with a 0.001 mm chamfer at both faces", { threadRole: "nut", threadChamfer: 0.001, threadChamferBottom: 0.001 }],
+    ["a rod with a 0.001 mm chamfer at the top", { threadChamfer: 0.001, threadChamferBottom: 0 }],
+    // The own profile: a trapezoid of its own depth and flank angle.
+    ["a rod with the own profile, 90 degrees and 0.4 mm deep", { threadProfile: "custom", threadFlankAngle: 90, threadDepth: 0.4 }],
+    ["a nut with the own profile, 45 degrees", { threadRole: "nut", threadProfile: "custom", threadFlankAngle: 45, threadDepth: 0.6 }],
+    ["a tapped hole with the own profile and a chamfer", { threadRole: "bore", hole: true, threadProfile: "custom", threadFlankAngle: 75, threadDepth: 0.5, threadChamfer: 0.4 }],
     ["a rod turned, tipped and lifted", { rotation: 30, rotationX: 90, elevation: 4, x: 12, z: -5 }],
   ];
 

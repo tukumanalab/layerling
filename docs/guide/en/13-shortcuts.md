@@ -5,7 +5,7 @@ summary: All keys at a glance, taken straight from the program so the list is al
 
 The shortcuts work as long as the workplane has the focus. While you type in a field they keep out of the way. On the Mac, [[Cmd]] applies wherever [[Ctrl]] is listed here.
 
-In the editor, {{ui:editor.keyboardShortcuts}} in the {{ui:editor.group.help}} area opens the same list as a window.
+In the editor, {{ui:editor.keyboardShortcuts}} in the {{ui:editor.group.help}} area opens the same list as a window. The printer button in the window ({{ui:shortcuts.print}}) prints the list on its own, black on white, the whole list on one side of an A4 or Letter sheet in three columns, to keep at hand as a quick reference; the print dialog of the browser also offers to save it as a PDF.
 
 ![The keyboard shortcuts window in the editor.](shot:shortcuts)
 
@@ -22,5 +22,17 @@ The guide you are reading has a search box too, at the top of every page: type a
 - With an empty field the search lists the commands you used last at the top.
 - The name of a body in your design finds that body and selects it, which helps in a design with many parts. Bodies only appear once you type.
 - It works in sketch mode as well, with the sketch tools.
+
+## Interactive Help
+
+Cannot find where to read about a button or a field? Let the program take you there. Click the question mark in the {{ui:editor.group.help}} area, or press [[Shift]]+[[F1]]. The pointer turns into a question mark, and whatever lies under it is outlined.
+
+- Click a button, a field, a switch, a handle, a group of the ribbon or the title bar of a window. It does **not** do what it normally does. A small window opens instead, with the name of the element, a short summary of the part of this guide that is about it, up to two more places that mention it, and {{ui:interactiveHelp.open}}.
+- The help is about the element you pointed at, not about the whole window around it. An element without a name of its own uses the nearest one around it; inside a window it falls back on that window's question mark.
+- {{ui:interactiveHelp.open}} opens the guide at that section in a new tab. There the section is outlined in colour, from its heading to its end, so you see where it starts and stops.
+- If the guide says nothing about the element, the window says so and offers {{ui:interactiveHelp.search}}.
+- [[Esc]], or the question mark again, leaves the mode. On a touch screen there is no hover: a tap on an element opens the window straight away.
+
+The window moves by its title bar like the other windows. The program finds the section by the name of the element - the label on a button, the name of a field - because this guide writes every button as it is called in the program. It looks it up in the same search as the box at the top of each guide page, in the language you are using, and runs entirely in your browser.
 
 {{shortcuts}}

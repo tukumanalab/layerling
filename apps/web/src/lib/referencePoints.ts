@@ -69,3 +69,93 @@ export function newReferencePositions(existing: readonly Pick<WorkplaneNote, "x"
   });
   return fresh;
 }
+
+/**
+ * Where the middle of a measurement lies, for a reference point (#323). A straight measurement
+ * between two points has its middle halfway; measured across a round hole that is its centre.
+ * A closed edge, such as the rim of a round hole, has the centre of the area it encloses - that does
+ * not depend on how many points the edge is cut into. An open edge has the point halfway along it.
+ */
+export function measurementMiddle(line: readonly ReferencePosition[]): ReferencePosition | null {
+  if (line.length < 2) return null;
+  const lerp = (a: ReferencePosition, b: ReferencePosition, amount: number): ReferencePosition => ({
+    x: a.x + (b.x - a.x) * amount,
+    y: a.y + (b.y - a.y) * amount,
+    z: a.z + (b.z - a.z) * amount,
+  });
+  const gap = (a: ReferencePosition, b: ReferencePosition) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+  if (line.length === 2) return lerp(line[0], line[1], 0.5);
+  let length = 0;
+  for (let index = 0; index + 1 < line.length; index += 1) length += gap(line[index], line[index + 1]);
+  if (length < 1e-9) return { ...line[0] };
+  const closed = line.length >= 4 && gap(line[0], line[line.length - 1]) <= 1e-6 * Math.max(1, length);
+  if (closed) {
+    // The centroid of the enclosed area: a fan of triangles from the first point, each weighted by
+    // its area along the loop's normal, so a loop that bends in and out is still counted correctly.
+    const origin = line[0];
+    const edge = (point: ReferencePosition) => ({ x: point.x - origin.x, y: point.y - origin.y, z: point.z - origin.z });
+    const cross = (a: ReturnType<typeof edge>, b: ReturnType<typeof edge>) => ({
+      x: a.y * b.z - a.z * b.y,
+      y: a.z * b.x - a.x * b.z,
+      z: a.x * b.y - a.y * b.x,
+    });
+    const fan: Array<{ area: ReturnType<typeof edge>; centre: ReturnType<typeof edge> }> = [];
+    const normal = { x: 0, y: 0, z: 0 };
+    for (let index = 1; index + 1 < line.length - 1; index += 1) {
+      const a = edge(line[index]);
+      const b = edge(line[index + 1]);
+      const area = cross(a, b);
+      normal.x += area.x;
+      normal.y += area.y;
+      normal.z += area.z;
+      fan.push({ area, centre: { x: (a.x + b.x) / 3, y: (a.y + b.y) / 3, z: (a.z + b.z) / 3 } });
+    }
+    const size = Math.hypot(normal.x, normal.y, normal.z);
+    if (size > 1e-9) {
+      const unit = { x: normal.x / size, y: normal.y / size, z: normal.z / size };
+      let total = 0;
+      const sum = { x: 0, y: 0, z: 0 };
+      fan.forEach(({ area, centre }) => {
+        const weight = area.x * unit.x + area.y * unit.y + area.z * unit.z;
+        total += weight;
+        sum.x += centre.x * weight;
+        sum.y += centre.y * weight;
+        sum.z += centre.z * weight;
+      });
+      if (Math.abs(total) > 1e-12) return { x: origin.x + sum.x / total, y: origin.y + sum.y / total, z: origin.z + sum.z / total };
+    }
+    const count = line.length - 1;
+    const average = line.slice(0, count).reduce((total, point) => ({ x: total.x + point.x, y: total.y + point.y, z: total.z + point.z }), { x: 0, y: 0, z: 0 });
+    return { x: average.x / count, y: average.y / count, z: average.z / count };
+  }
+  let walked = 0;
+  for (let index = 0; index + 1 < line.length; index += 1) {
+    const step = gap(line[index], line[index + 1]);
+    if (walked + step >= length / 2 && step > 1e-9) return lerp(line[index], line[index + 1], (length / 2 - walked) / step);
+    walked += step;
+  }
+  return { ...line[line.length - 1] };
+}
+
+/**
+ * The reference point nearest to a pointer on the screen, within `reach` pixels; null if none is that close.
+ * The tape measure snaps to it like to a measuring point (#334). `project` gives a point's place on the screen.
+ */
+export function nearestReferenceOnScreen<T extends ReferencePosition>(
+  points: readonly T[],
+  project: (point: ReferencePosition) => { x: number; y: number },
+  pointer: { x: number; y: number },
+  reach: number,
+): T | null {
+  let best: T | null = null;
+  let bestDistance = reach;
+  points.forEach((point) => {
+    const screen = project(point);
+    const distance = Math.hypot(screen.x - pointer.x, screen.y - pointer.y);
+    if (distance <= bestDistance) {
+      best = point;
+      bestDistance = distance;
+    }
+  });
+  return best;
+}
