@@ -136,7 +136,7 @@ function pointInPolygon(point: Point, polygon: Point[]) {
 /**
  * The contours of a glyph from opentype.js's path commands, in font units with y up. A line to the
  * point the pen is already on is left out: opentype.js draws one after the move and after many
- * curves of a TrueType outline, a quarter of all segments in Zen Maru Gothic, and it draws nothing.
+ * curves of a TrueType outline, a quarter of all segments in a Japanese font such as Zen Kaku Gothic New, and it draws nothing.
  */
 export function contoursFromCommands(commands: ReadonlyArray<{ type: string; x?: number; y?: number; x1?: number; y1?: number; x2?: number; y2?: number }>): Contour[] {
   const contours: Contour[] = [];

@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commonJapaneseCharacters, isJapaneseCharacter, level2JapaneseCharacters, textNeedsJapanese, textNeedsJapaneseLevel2 } from "@/lib/japaneseText";
-import { JAPANESE_FONT, customFontRevision, japaneseLevel2Loaded, japaneseTypefaceLoaded, loadJapaneseLevel2, loadJapaneseTypeface, loadTextFonts, resetJapaneseTypefaceForTests, setJapaneseTypefaceFetcherForTests, textFont } from "@/lib/textFonts";
+import { JAPANESE_FONT, builtInFontName, customFontRevision, japaneseLevel2Loaded, japaneseTypefaceLoaded, loadJapaneseLevel2, loadJapaneseTypeface, loadTextFonts, resetJapaneseTypefaceForTests, setJapaneseTypefaceFetcherForTests, textFont } from "@/lib/textFonts";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { FontData } from "three/examples/jsm/loaders/FontLoader.js";
 
 /*
- * Japanese text: the built-in faces have no kana and no kanji, so Zen Maru Gothic, cut down by
- * scripts/build-japanese-typeface.mjs, lends them to every face and is a face of its own.
+ * Japanese text: the built-in faces have no kana and no kanji, so Zen Kaku Gothic New (bold), cut
+ * down by scripts/build-japanese-typeface.mjs, lends them to every face and is a face of its own.
  */
 const fontRoot = fileURLToPath(new URL("../../apps/web/public/fonts/japanese/", import.meta.url));
 const generated = existsSync(`${fontRoot}version.txt`);
@@ -84,19 +84,38 @@ describe.skipIf(!generated)("the Japanese face", () => {
   });
 
   it("has every level-2 kanji, 邉 among them, and the letters a kanji is made of", async () => {
-    // M PLUS Rounded 1c lacked 1,447 of them, the 邉 of 渡邉 included; Zen Maru Gothic has them all.
+    // M PLUS Rounded 1c lacked 1,447 of them, the 邉 of 渡邉 included; Zen Kaku Gothic New has them all.
     const level2 = await readTypeface("level2");
     const glyphs = level2.glyphs as Record<string, { o?: string }>;
     expect(Object.keys(glyphs).length).toBe(level2JapaneseCharacters().length);
     for (const char of "邉") expect(glyphs[char]?.o?.length ?? 0).toBeGreaterThan(0);
     const base = await readTypeface("base");
-    expect(Object.keys(base.glyphs).length).toBe(commonJapaneseCharacters().size);
-    // Zen Maru Gothic's own units, so the glyphs are shared with the other faces rather than scaled copies.
+    // Zen Kaku Gothic New has no Greek, primes or daggers; Sans lends those (see below). Everything else is here.
+    const missing = [...commonJapaneseCharacters()].filter((char) => !(base.glyphs as Record<string, unknown>)[char]);
+    expect(missing.every((char) => /[\u0370-\u03ff\u2032\u2033\u2020\u2021]/.test(char)), missing.join("")).toBe(true);
+    expect(Object.keys(base.glyphs).length + missing.length).toBe(commonJapaneseCharacters().size);
+    // Zen Kaku Gothic New's own units, so the glyphs are shared with the other faces rather than scaled copies.
     expect(base.resolution).toBe(1000);
     await loadTextFonts();
     await loadJapaneseTypeface();
     await loadJapaneseLevel2();
     expect(textFont("Sans").generateShapes("渡邉", 10).length).toBeGreaterThan(0);
+  });
+
+  it("goes by the font's name, bold like the other faces, and still answers to the names it had before", async () => {
+    expect(JAPANESE_FONT).toBe("Zen Kaku Gothic New");
+    const base = await readTypeface("base");
+    expect(base.original_font_information?.fullName).toBe("Zen Kaku Gothic New Bold");
+    for (const old of ["Japanese", "Japanese Gothic", "Zen Maru Gothic"]) expect(builtInFontName(old), old).toBe(JAPANESE_FONT);
+    expect(builtInFontName("Sans")).toBe("Sans");
+    expect(builtInFontName(undefined)).toBeUndefined();
+    await loadTextFonts();
+    await loadJapaneseTypeface();
+    expect(textFont("Japanese")).toBe(textFont(JAPANESE_FONT));
+    expect(textFont("Zen Maru Gothic")).toBe(textFont(JAPANESE_FONT));
+    // The Greek, primes and daggers the font lacks come from Sans; the Cyrillic is its own.
+    const glyphs = textFont(JAPANESE_FONT).data.glyphs as Record<string, unknown>;
+    for (const char of "ΩαЯ′†") expect(glyphs[char], char).toBeDefined();
   });
 
   it("tries a failed file again the next time", async () => {

@@ -1,13 +1,17 @@
 // Builds the Japanese typeface the text shape falls back to for kana and kanji.
 //
-// The source is Zen Maru Gothic Regular (SIL Open Font License, fonts/zen-maru-gothic/OFL.txt
-// beside it), a rounded sans with every kanji of JIS X 0208: the 2,965 of level 1 and the 3,390
-// of level 2 (邉, 澤, 槇, 檜). M PLUS Rounded 1c, which three.js ships and the face was cut from
-// before, lacks 1,447 of the level-2 kanji, among them the 邉 of 渡邉. The font file is read with
+// The source is Zen Kaku Gothic New Bold (SIL Open Font License, fonts/zen-kaku-gothic-new/OFL.txt
+// beside it), a square-cut sans in the bold weight of the other built-in faces, with every kanji
+// of JIS X 0208: the 2,965 of level 1 and the 3,390 of level 2 (邉, 澤, 槇, 檜). M PLUS Rounded 1c,
+// which three.js ships and the face was cut from before, lacks 1,447 of the level-2 kanji, among
+// them the 邉 of 渡邉; Zen Maru Gothic, its rounded sibling that came between, looked too soft
+// and too thin for a sign. The font file is read with
 // opentype.js and turned into the typeface format the way a font of one's own is (customFonts.ts),
 // cut into two files: base.typeface.json keeps what most Japanese text needs (ASCII and Latin-1,
 // the symbols, kana, Greek and Cyrillic of JIS X 0208 rows 1-8, and the level-1 kanji of rows
-// 16-47) and level2.typeface.json the level-2 kanji of rows 48-84. Both go to
+// 16-47) and level2.typeface.json the level-2 kanji of rows 48-84. What the font lacks of the
+// base set - Zen Kaku Gothic New has no Greek, primes or daggers - is listed when it runs, and
+// Sans lends those at run time as it does for every face. Both go to
 // apps/web/public/fonts/japanese/<hash>/, which is gitignored like the occt runtime, and the hash
 // (also in version.txt, which next.config.ts reads) is of their content, so a browser cannot pair
 // new code with an older cut. They are plain files, not chunks: textFonts.ts fetches them the
@@ -25,7 +29,7 @@ register("./web-src-alias-hooks.mjs", import.meta.url);
 const { commonJapaneseCharacters, level2JapaneseCharacters } = await import(pathToFileURL(join(root, "apps", "web", "src", "lib", "japaneseText.ts")).href);
 const { contoursFromCommands, normalizeGlyphContours, outlineString } = await import(pathToFileURL(join(root, "apps", "web", "src", "lib", "customFonts.ts")).href);
 const { parse } = await import("opentype.js");
-const source = join(root, "fonts", "zen-maru-gothic", "ZenMaruGothic-Regular.ttf");
+const source = join(root, "fonts", "zen-kaku-gothic-new", "ZenKakuGothicNew-Bold.ttf");
 const outRoot = join(root, "apps", "web", "public", "fonts", "japanese");
 
 /*
@@ -70,10 +74,10 @@ async function main() {
   const resolution = font.unitsPerEm || 1000;
   const byCharacter = glyphsByCharacter(font);
   const english = (record) => record?.en ?? (record ? Object.values(record)[0] : undefined);
-  const fullName = english(font.names.fullName) ?? "Zen Maru Gothic Regular";
+  const fullName = english(font.names.fullName) ?? "Zen Kaku Gothic New Bold";
   const head = font.tables.head;
   const header = {
-    familyName: english(font.names.fontFamily) ?? "Zen Maru Gothic",
+    familyName: english(font.names.fontFamily) ?? "Zen Kaku Gothic New",
     ascender: font.ascender,
     descender: font.descender,
     underlinePosition: font.tables.post?.underlinePosition ?? -100,
@@ -107,6 +111,8 @@ async function main() {
   const size = (json) => `${(json.length / 1024 / 1024).toFixed(2)} MB`;
   const count = (cutFont) => Object.keys(cutFont.glyphs).length;
   console.log(`[japanese-typeface] ${fullName}: base ${count(base)} glyphs, ${size(base.json)}; level2 ${count(level2)} glyphs, ${size(level2.json)} -> apps/web/public/fonts/japanese/${hash}/`);
+  const missingBase = [...commonJapaneseCharacters()].filter((char) => !base.glyphs[char]);
+  if (missingBase.length > 0) console.log(`[japanese-typeface] ${missingBase.length} of the common characters are not in the source font (Sans lends them at run time): ${missingBase.join("")}`);
   const missing = level2Characters.length - count(level2);
   if (missing > 0) console.log(`[japanese-typeface] ${missing} of ${level2Characters.length} level-2 kanji are not in the source font`);
 }

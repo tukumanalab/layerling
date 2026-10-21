@@ -118,6 +118,7 @@ export function loadTextFonts(): Promise<void> {
 
 /** The typeface for a text shape; unknown names fall back to Multilanguage. */
 export function textFont(name: string | undefined): Font {
+  name = builtInFontName(name);
   if (!loadedFonts) {
     throw new Error("Text fonts are not loaded yet - await loadTextFonts() first");
   }
@@ -142,17 +143,29 @@ export function textFont(name: string | undefined): Font {
 }
 
 /*
- * Japanese. The built-in faces have no kana and no kanji; Zen Maru Gothic, cut down to what
- * Japanese text needs (scripts/build-japanese-typeface.mjs), is a face of its own and lends those
- * characters to every other face. It comes in two files under /fonts/japanese/<version>/, plain
+ * Japanese. The built-in faces have no kana and no kanji; Zen Kaku Gothic New (bold, like the
+ * other built-in faces), cut down to what Japanese text needs (scripts/build-japanese-typeface.mjs),
+ * is a face of its own, under the font's name, and lends those characters to every other face. It comes in two files under /fonts/japanese/<version>/, plain
  * files and not chunks, which the service worker keeps out of the install download and stores
  * on first use: `base` (about 2.6 MB gzipped: Latin, kana, symbols and the 2,965 level-1 kanji) and
- * `level2` (the rare kanji of names and places: 澤, 槇, 檜). Each is fetched the first time a text
+ * `level2` (the rare kanji of names and places: 澤, 槇, 檜). The Greek letters, primes and daggers of
+ * JIS X 0208 row 1-6 the font lacks come from Sans; its Cyrillic is its own. Each is fetched the first time a text
  * needs it - `ensureJapaneseGlyphs` - or, for base, the face is chosen, never before: most
  * visitors never write Japanese. Until it is here such a text shows "?" for them; when it
- * arrives, every text is drawn again (`onCustomFontsChanged`, `customFontRevision`).
+ * arrives, every text is drawn again (`onCustomFontsChanged`, `customFontRevision`). A design
+ * saved when the face was called "Japanese" (or, for a while, "Zen Maru Gothic" and
+ * "Japanese Gothic") still names it so; `builtInFontName` reads those as this face.
  */
-export const JAPANESE_FONT = "Japanese";
+export const JAPANESE_FONT = "Zen Kaku Gothic New";
+const JAPANESE_FONT_ALIASES = new Set(["Japanese", "Japanese Gothic", "Zen Maru Gothic"]);
+
+/** The built-in faces in the order the font menu shows them. */
+export const BUILT_IN_FONTS: readonly string[] = ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", JAPANESE_FONT];
+
+/** A built-in font name as it is called now: an older name of the Japanese face becomes the current one. */
+export function builtInFontName(name: string | undefined): string | undefined {
+  return name !== undefined && JAPANESE_FONT_ALIASES.has(name) ? JAPANESE_FONT : name;
+}
 
 type JapaneseFile = "base" | "level2";
 
@@ -285,7 +298,7 @@ export function customFontRevision(id: string | undefined) {
 
 /** The display name of a text's font: a built-in name, a font of one's own, or null when it is missing. */
 export function textFontLabel(id: string | undefined) {
-  if (!isCustomFontId(id)) return id ?? "Multilanguage";
+  if (!isCustomFontId(id)) return builtInFontName(id) ?? "Multilanguage";
   return customFonts.get(id)?.name ?? null;
 }
 
