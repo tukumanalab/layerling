@@ -118,6 +118,7 @@ export function loadTextFonts(): Promise<void> {
 
 /** The typeface for a text shape; unknown names fall back to Multilanguage. */
 export function textFont(name: string | undefined): Font {
+  name = builtInFontName(name);
   if (!loadedFonts) {
     throw new Error("Text fonts are not loaded yet - await loadTextFonts() first");
   }
@@ -158,14 +159,22 @@ export function textFont(name: string | undefined): Font {
  * visitors never write Japanese. Until it is here such a text shows "?" for them; when it
  * arrives, every text is drawn again (`onCustomFontsChanged`, `customFontRevision`).
  *
- * Japanese Gothic is Zen Kaku Gothic New, the square-cut sibling of Zen Maru Gothic, cut the
+ * Zen Kaku Gothic New, the square-cut sibling of Zen Maru Gothic in its bold weight, is cut the
  * same way into `gothic-base` and `gothic-level2`. It is a face of its own for a text that should
  * look crisp (a sign, a label) where the rounded one suits a name tag; it lends nothing to the
  * other faces, and is fetched only when a text is set in it. Until it is here such a text is drawn
- * in the rounded face if that has arrived, else in Multilanguage.
+ * in the rounded face if that has arrived, else in Multilanguage. Both faces go by their fonts'
+ * names; "Japanese" and "Japanese Gothic", their names before, still work in saved designs.
  */
-export const JAPANESE_FONT = "Japanese";
-export const JAPANESE_GOTHIC_FONT = "Japanese Gothic";
+export const JAPANESE_FONT = "Zen Maru Gothic";
+export const JAPANESE_GOTHIC_FONT = "Zen Kaku Gothic New";
+/** The names the two faces had before they were called by their fonts' names: designs saved then still name them. */
+const JAPANESE_FONT_ALIASES: Record<string, string> = { Japanese: JAPANESE_FONT, "Japanese Gothic": JAPANESE_GOTHIC_FONT };
+
+/** A built-in font name as it is called now: an older name of a Japanese face becomes the current one. */
+export function builtInFontName(name: string | undefined): string | undefined {
+  return name === undefined ? undefined : JAPANESE_FONT_ALIASES[name] ?? name;
+}
 
 type JapaneseFile = "base" | "level2" | "gothic-base" | "gothic-level2";
 
@@ -309,6 +318,7 @@ export function loadJapaneseGothicLevel2(): Promise<void> {
  */
 export function ensureJapaneseGlyphs(text: string, fontName?: string) {
   if (!textNeedsJapanese(text)) return;
+  fontName = builtInFontName(fontName);
   const ignore = () => {
     // Without it the text keeps its question marks, as before - the next text tries again.
   };

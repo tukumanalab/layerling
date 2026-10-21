@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commonJapaneseCharacters, isJapaneseCharacter, level2JapaneseCharacters, textNeedsJapanese, textNeedsJapaneseLevel2 } from "@/lib/japaneseText";
-import { JAPANESE_FONT, JAPANESE_GOTHIC_FONT, customFontRevision, ensureJapaneseGlyphs, japaneseGothicLevel2Loaded, japaneseGothicLoaded, japaneseLevel2Loaded, japaneseTypefaceLoaded, loadJapaneseGothic, loadJapaneseGothicLevel2, loadJapaneseLevel2, loadJapaneseTypeface, loadTextFonts, resetJapaneseTypefaceForTests, setJapaneseTypefaceFetcherForTests, textFont } from "@/lib/textFonts";
+import { JAPANESE_FONT, JAPANESE_GOTHIC_FONT, builtInFontName, customFontRevision, ensureJapaneseGlyphs, japaneseGothicLevel2Loaded, japaneseGothicLoaded, japaneseLevel2Loaded, japaneseTypefaceLoaded, loadJapaneseGothic, loadJapaneseGothicLevel2, loadJapaneseLevel2, loadJapaneseTypeface, loadTextFonts, resetJapaneseTypefaceForTests, setJapaneseTypefaceFetcherForTests, textFont } from "@/lib/textFonts";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { FontData } from "three/examples/jsm/loaders/FontLoader.js";
@@ -130,6 +130,25 @@ describe.skipIf(!generated)("the Japanese face", () => {
     for (const char of "澤槇檜邉") expect(glyphs[char]?.o?.length ?? 0, char).toBeGreaterThan(0);
     expect(gothic.generateShapes("渡邉", 10).length).toBeGreaterThan(0);
     expect(glyphs["邉"]?.o).not.toBe(rounded["邉"]?.o);
+  });
+
+  it("goes by the fonts' names, and still answers to the names the faces had before", async () => {
+    expect(JAPANESE_FONT).toBe("Zen Maru Gothic");
+    expect(JAPANESE_GOTHIC_FONT).toBe("Zen Kaku Gothic New");
+    expect(builtInFontName("Japanese")).toBe(JAPANESE_FONT);
+    expect(builtInFontName("Japanese Gothic")).toBe(JAPANESE_GOTHIC_FONT);
+    expect(builtInFontName("Sans")).toBe("Sans");
+    expect(builtInFontName(undefined)).toBeUndefined();
+    await loadTextFonts();
+    await loadJapaneseTypeface();
+    await loadJapaneseGothic();
+    expect(textFont("Japanese")).toBe(textFont(JAPANESE_FONT));
+    expect(textFont("Japanese Gothic")).toBe(textFont(JAPANESE_GOTHIC_FONT));
+  });
+
+  it("is bold, like the other built-in faces", async () => {
+    const gothic = await readTypeface("gothic-base");
+    expect(gothic.original_font_information?.fullName).toBe("Zen Kaku Gothic New Bold");
   });
 
   it("fetches the gothic files for a text set in that face, and the rounded ones for any other", async () => {

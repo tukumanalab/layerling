@@ -2,11 +2,13 @@
 //
 // Two faces, both under the SIL Open Font License with the OFL.txt beside each file, both with
 // every kanji of JIS X 0208: the 2,965 of level 1 and the 3,390 of level 2 (邉, 澤, 槇, 檜).
-// - Zen Maru Gothic Regular (fonts/zen-maru-gothic), a rounded sans: the "Japanese" face, which
-//   also lends kana and kanji to every other face. M PLUS Rounded 1c, which three.js ships and
+// - Zen Maru Gothic Regular (fonts/zen-maru-gothic), a rounded sans, which also lends kana and
+//   kanji to every other face. M PLUS Rounded 1c, which three.js ships and
 //   the face was cut from before, lacks 1,447 of the level-2 kanji, among them the 邉 of 渡邉.
-// - Zen Kaku Gothic New Regular (fonts/zen-kaku-gothic-new), its square-cut sibling: the
-//   "Japanese Gothic" face, for a text that should look crisp rather than soft.
+// - Zen Kaku Gothic New Bold (fonts/zen-kaku-gothic-new), its square-cut sibling, in the bold
+//   weight like the other built-in faces: a face of its own for a text that should look crisp
+//   rather than soft.
+// Each face is offered under the font's own name.
 // Each font file is read with opentype.js and turned into the typeface format the way a font of
 // one's own is (customFonts.ts), cut into two files: base keeps what most Japanese text needs
 // (ASCII and Latin-1, the symbols, kana, Greek and Cyrillic of JIS X 0208 rows 1-8, and the
@@ -32,7 +34,7 @@ const { parse } = await import("opentype.js");
 /** The faces, by the prefix of their files: "" for base/level2, "gothic-" for gothic-base/gothic-level2. */
 const SOURCES = {
   "": { file: join(root, "fonts", "zen-maru-gothic", "ZenMaruGothic-Regular.ttf"), fullName: "Zen Maru Gothic Regular", familyName: "Zen Maru Gothic" },
-  "gothic-": { file: join(root, "fonts", "zen-kaku-gothic-new", "ZenKakuGothicNew-Regular.ttf"), fullName: "Zen Kaku Gothic New Regular", familyName: "Zen Kaku Gothic New" },
+  "gothic-": { file: join(root, "fonts", "zen-kaku-gothic-new", "ZenKakuGothicNew-Bold.ttf"), fullName: "Zen Kaku Gothic New Bold", familyName: "Zen Kaku Gothic New" },
 };
 const outRoot = join(root, "apps", "web", "public", "fonts", "japanese");
 

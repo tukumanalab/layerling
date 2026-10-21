@@ -299,7 +299,7 @@ const SOLID_COLORS = [
   "#4b5563",
   "#111111",
 ];
-const TEXT_FONT_OPTIONS = ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Japanese", "Japanese Gothic"];
+const TEXT_FONT_OPTIONS = ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Zen Maru Gothic", "Zen Kaku Gothic New"];
 /** `label` traegt den Katalogschluessel, nicht den fertigen Text. */
 const GEAR_TYPE_OPTIONS: Array<{ value: GearType; label: MessageKey }> = [
   { value: "spur", label: "gear.spur" },
