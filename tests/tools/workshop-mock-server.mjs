@@ -1,12 +1,12 @@
-// A stand-in for "Layerling Workshop" for trying workshop mode by hand:
+// A stand-in for "3DP Workshop" for trying workshop mode by hand:
 //
-//   LAYERLING_BASE_PATH=/layerling-workshop/editor npm run export
+//   LAYERLING_BASE_PATH=/3dp-workshop/editor npm run export
 //   node tests/tools/workshop-mock-server.mjs [port]
 //
-//   /layerling-workshop/editor/...   the static export (apps/web/.next-export)
-//   /layerling-workshop/parent.html  a page that frames the editor, like the real workshop page.
+//   /3dp-workshop/editor/...   the static export (apps/web/.next-export)
+//   /3dp-workshop/parent.html  a page that frames the editor, like the real workshop page.
 //                                    Query: the editor's parameters (project_id, mode, readonly, ...).
-//   /layerling-workshop/api/store/   GET/POST/PUT of designs, kept in memory and in a temp folder
+//   /3dp-workshop/api/store/   GET/POST/PUT of designs, kept in memory and in a temp folder
 //   /__requests                      JSON list of every store request received (for checking)
 import { createServer } from "node:http";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -93,15 +93,15 @@ const parentPage = `<!doctype html><meta charset="utf-8"><title>mock workshop pa
   window.__messages = [];
   const params = new URLSearchParams(location.search);
   params.set("workshop", "1");
-  if (!params.has("api")) params.set("api", location.origin + "/layerling-workshop");
-  document.getElementById("editor").src = "/layerling-workshop/editor/?" + params;
+  if (!params.has("api")) params.set("api", location.origin + "/3dp-workshop");
+  document.getElementById("editor").src = "/3dp-workshop/editor/?" + params;
   addEventListener("message", (event) => {
     if (event.origin !== location.origin) return;
     window.__messages.push(event.data);
     document.getElementById("log").textContent = JSON.stringify(event.data);
   });
   window.requestSave = (requestId = "req-" + Date.now()) => {
-    document.getElementById("editor").contentWindow.postMessage({ type: "layerling-workshop:save-request", requestId }, location.origin);
+    document.getElementById("editor").contentWindow.postMessage({ type: "3dp-workshop:save-request", requestId }, location.origin);
     return requestId;
   };
   document.getElementById("save").onclick = () => window.requestSave();
@@ -113,9 +113,9 @@ createServer(async (req, res) => {
     const path = decodeURIComponent(url.pathname);
     if (path === "/__requests") return send(res, 200, requests);
     if (path === "/__designs") return send(res, 200, [...designs].map(([id, meta]) => ({ id, ...meta })));
-    if (path === "/layerling-workshop/parent.html") return send(res, 200, parentPage, types[".html"]);
+    if (path === "/3dp-workshop/parent.html") return send(res, 200, parentPage, types[".html"]);
 
-    const api = "/layerling-workshop/api/store/";
+    const api = "/3dp-workshop/api/store/";
     if (path.startsWith(api)) {
       const rest = path.slice(api.length);
       const body = req.method === "GET" ? Buffer.alloc(0) : await readBody(req);
@@ -147,7 +147,7 @@ createServer(async (req, res) => {
       return send(res, 404, { error: "not found" });
     }
 
-    const editor = "/layerling-workshop/editor";
+    const editor = "/3dp-workshop/editor";
     if (path === editor) {
       res.writeHead(301, { location: `${editor}/${url.search}` });
       return res.end();
@@ -166,5 +166,5 @@ createServer(async (req, res) => {
     send(res, 500, { error: String(error) });
   }
 }).listen(port, () => {
-  console.log(`workshop mock on http://localhost:${port}/layerling-workshop/parent.html  (editor: /layerling-workshop/editor/, data: ${dataDir})`);
+  console.log(`workshop mock on http://localhost:${port}/3dp-workshop/parent.html  (editor: /3dp-workshop/editor/, data: ${dataDir})`);
 });

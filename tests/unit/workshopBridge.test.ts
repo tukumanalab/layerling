@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { buildWorkshopForm, parseWorkshopParams, pngBlobFromDataUrl, WorkshopClient, type WorkshopConfig } from "@/lib/workshopBridge";
 
 const ORIGIN = "https://example.test";
-const base: WorkshopConfig = { api: `${ORIGIN}/layerling-workshop`, slug: "spring", projectId: null, sessionId: "s1", mode: "edit", readonly: false };
+const base: WorkshopConfig = { api: `${ORIGIN}/3dp-workshop`, slug: "spring", projectId: null, sessionId: "s1", mode: "edit", readonly: false };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -15,21 +15,21 @@ describe("parseWorkshopParams", () => {
   });
 
   it("reads every parameter", () => {
-    const config = parseWorkshopParams("?workshop=1&api=https://example.test/layerling-workshop/&slug=spring&project_id=p1&session_id=s1&mode=remix&readonly=1", ORIGIN);
-    expect(config).toEqual({ api: `${ORIGIN}/layerling-workshop`, slug: "spring", projectId: "p1", sessionId: "s1", mode: "remix", readonly: true });
+    const config = parseWorkshopParams("?workshop=1&api=https://example.test/3dp-workshop/&slug=spring&project_id=p1&session_id=s1&mode=remix&readonly=1", ORIGIN);
+    expect(config).toEqual({ api: `${ORIGIN}/3dp-workshop`, slug: "spring", projectId: "p1", sessionId: "s1", mode: "remix", readonly: true });
   });
 
   it("accepts a relative api and defaults the rest", () => {
-    const config = parseWorkshopParams("?workshop=1&api=/layerling-workshop", ORIGIN);
-    expect(config).toMatchObject({ api: `${ORIGIN}/layerling-workshop`, slug: "", projectId: null, sessionId: null, mode: "edit", readonly: false });
+    const config = parseWorkshopParams("?workshop=1&api=/3dp-workshop", ORIGIN);
+    expect(config).toMatchObject({ api: `${ORIGIN}/3dp-workshop`, slug: "", projectId: null, sessionId: null, mode: "edit", readonly: false });
   });
 
   it("falls back to the folder next to the editor's base path", () => {
-    expect(parseWorkshopParams("?workshop=1", ORIGIN, "/layerling-workshop/editor")?.api).toBe(`${ORIGIN}/layerling-workshop`);
+    expect(parseWorkshopParams("?workshop=1", ORIGIN, "/3dp-workshop/editor")?.api).toBe(`${ORIGIN}/3dp-workshop`);
   });
 
   it("refuses an api on another origin", () => {
-    expect(parseWorkshopParams("?workshop=1&api=https://evil.test/layerling-workshop", ORIGIN)).toBeNull();
+    expect(parseWorkshopParams("?workshop=1&api=https://evil.test/3dp-workshop", ORIGIN)).toBeNull();
   });
 });
 
@@ -76,7 +76,7 @@ describe("WorkshopClient", () => {
     expect(url).toBe(`${base.api}/api/store/workshops/spring/projects?sessionId=s1&title=My+design`);
     expect(init.method).toBe("POST");
     expect(init.credentials).toBe("same-origin");
-    expect(parent.postMessage).toHaveBeenCalledWith({ type: "layerling-workshop:project-id-updated", projectId: "new1" }, ORIGIN);
+    expect(parent.postMessage).toHaveBeenCalledWith({ type: "3dp-workshop:project-id-updated", projectId: "new1" }, ORIGIN);
     expect(client.projectId).toBe("new1");
 
     await client.save({ bytes: new Uint8Array([2]), thumbnail: null, title: "My design" });
@@ -107,18 +107,18 @@ describe("WorkshopClient", () => {
     const client = new WorkshopClient(base, { fetchImpl: vi.fn(), parent, origin: ORIGIN });
     let release: (value: { ok: boolean; saved: boolean }) => void = () => undefined;
     client.setSaveHandler(() => new Promise((resolve) => { release = resolve; }));
-    const pending = client.handleMessage({ origin: ORIGIN, data: { type: "layerling-workshop:save-request", requestId: "r1" } });
+    const pending = client.handleMessage({ origin: ORIGIN, data: { type: "3dp-workshop:save-request", requestId: "r1" } });
     expect(parent.postMessage).toHaveBeenCalledTimes(1);
-    expect(parent.postMessage).toHaveBeenLastCalledWith({ type: "layerling-workshop:save-ack", requestId: "r1" }, ORIGIN);
+    expect(parent.postMessage).toHaveBeenLastCalledWith({ type: "3dp-workshop:save-ack", requestId: "r1" }, ORIGIN);
     release({ ok: true, saved: true });
     await pending;
-    expect(parent.postMessage).toHaveBeenLastCalledWith({ type: "layerling-workshop:save-result", requestId: "r1", ok: true, saved: true }, ORIGIN);
+    expect(parent.postMessage).toHaveBeenLastCalledWith({ type: "3dp-workshop:save-result", requestId: "r1", ok: true, saved: true }, ORIGIN);
   });
 
   it("ignores other origins and other messages", async () => {
     const parent = { postMessage: vi.fn() };
     const client = new WorkshopClient(base, { fetchImpl: vi.fn(), parent, origin: ORIGIN });
-    await client.handleMessage({ origin: "https://evil.test", data: { type: "layerling-workshop:save-request", requestId: "r" } });
+    await client.handleMessage({ origin: "https://evil.test", data: { type: "3dp-workshop:save-request", requestId: "r" } });
     await client.handleMessage({ origin: ORIGIN, data: { type: "something-else" } });
     await client.handleMessage({ origin: ORIGIN, data: null });
     expect(parent.postMessage).not.toHaveBeenCalled();
@@ -127,16 +127,16 @@ describe("WorkshopClient", () => {
   it("reports ok:false when saving throws, and nothing saved when readonly or no editor yet", async () => {
     const parent = { postMessage: vi.fn() };
     const client = new WorkshopClient(base, { fetchImpl: vi.fn(), parent, origin: ORIGIN });
-    await client.handleMessage({ origin: ORIGIN, data: { type: "layerling-workshop:save-request", requestId: "a" } });
-    expect(parent.postMessage).toHaveBeenLastCalledWith({ type: "layerling-workshop:save-result", requestId: "a", ok: true, saved: false }, ORIGIN);
+    await client.handleMessage({ origin: ORIGIN, data: { type: "3dp-workshop:save-request", requestId: "a" } });
+    expect(parent.postMessage).toHaveBeenLastCalledWith({ type: "3dp-workshop:save-result", requestId: "a", ok: true, saved: false }, ORIGIN);
     client.setSaveHandler(async () => { throw new Error("boom"); });
-    await client.handleMessage({ origin: ORIGIN, data: { type: "layerling-workshop:save-request", requestId: "b" } });
-    expect(parent.postMessage).toHaveBeenLastCalledWith({ type: "layerling-workshop:save-result", requestId: "b", ok: false, saved: false }, ORIGIN);
+    await client.handleMessage({ origin: ORIGIN, data: { type: "3dp-workshop:save-request", requestId: "b" } });
+    expect(parent.postMessage).toHaveBeenLastCalledWith({ type: "3dp-workshop:save-result", requestId: "b", ok: false, saved: false }, ORIGIN);
     const readonly = new WorkshopClient({ ...base, readonly: true }, { fetchImpl: vi.fn(), parent, origin: ORIGIN });
     const handler = vi.fn(async () => ({ ok: true, saved: true }));
     readonly.setSaveHandler(handler);
-    await readonly.handleMessage({ origin: ORIGIN, data: { type: "layerling-workshop:save-request", requestId: "c" } });
+    await readonly.handleMessage({ origin: ORIGIN, data: { type: "3dp-workshop:save-request", requestId: "c" } });
     expect(handler).not.toHaveBeenCalled();
-    expect(parent.postMessage).toHaveBeenLastCalledWith({ type: "layerling-workshop:save-result", requestId: "c", ok: true, saved: false }, ORIGIN);
+    expect(parent.postMessage).toHaveBeenLastCalledWith({ type: "3dp-workshop:save-result", requestId: "c", ok: true, saved: false }, ORIGIN);
   });
 });

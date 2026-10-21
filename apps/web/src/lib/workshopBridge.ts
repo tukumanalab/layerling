@@ -1,5 +1,5 @@
 /**
- * Workshop mode: the editor embedded in "Layerling Workshop" (an iframe on the
+ * Workshop mode: the editor embedded in "3DP Workshop" (an iframe on the
  * same origin) keeps its designs on that service instead of in a file.
  *
  *   ?workshop=1&api=<origin+basePath>&slug=&project_id=&session_id=&mode=remix&readonly=1
@@ -14,7 +14,7 @@ import { BASE_PATH } from "@/lib/basePath";
 export const WORKSHOP_PROJECT_MEDIA_TYPE = "application/vnd.layerling.project+zip";
 
 export type WorkshopConfig = {
-  /** Origin plus base path of the service, no trailing slash: "https://host/layerling-workshop". */
+  /** Origin plus base path of the service, no trailing slash: "https://host/3dp-workshop". */
   api: string;
   slug: string;
   /** The design to open, if any. */
@@ -44,7 +44,7 @@ export class WorkshopError extends Error {
 export function parseWorkshopParams(search: string, origin: string, basePath = BASE_PATH): WorkshopConfig | null {
   const params = new URLSearchParams(search);
   if (params.get("workshop") !== "1") return null;
-  const fallbackApi = `${origin}${basePath.replace(/\/editor$/, "") || "/layerling-workshop"}`;
+  const fallbackApi = `${origin}${basePath.replace(/\/editor$/, "") || "/3dp-workshop"}`;
   let api: URL;
   try {
     api = new URL(params.get("api") || fallbackApi, origin);
@@ -162,7 +162,7 @@ export class WorkshopClient {
     if (!id) throw new WorkshopError("The server did not return a design id", response.status);
     if (creating) {
       this.currentId = id;
-      this.post({ type: "layerling-workshop:project-id-updated", projectId: id });
+      this.post({ type: "3dp-workshop:project-id-updated", projectId: id });
     }
     return { id, versionTimestamp: payload.versionTimestamp };
   }
@@ -183,9 +183,9 @@ export class WorkshopClient {
   async handleMessage(event: { origin: string; data: unknown }) {
     if (event.origin !== this.origin) return;
     const data = event.data as { type?: unknown; requestId?: unknown } | null;
-    if (!data || typeof data !== "object" || data.type !== "layerling-workshop:save-request") return;
+    if (!data || typeof data !== "object" || data.type !== "3dp-workshop:save-request") return;
     const requestId = data.requestId;
-    this.post({ type: "layerling-workshop:save-ack", requestId });
+    this.post({ type: "3dp-workshop:save-ack", requestId });
     let result: WorkshopSaveHandlerResult = { ok: true, saved: false };
     if (!this.config.readonly && this.saveHandler) {
       try {
@@ -194,7 +194,7 @@ export class WorkshopClient {
         result = { ok: false, saved: false };
       }
     }
-    this.post({ type: "layerling-workshop:save-result", requestId, ok: result.ok, saved: result.saved });
+    this.post({ type: "3dp-workshop:save-result", requestId, ok: result.ok, saved: result.saved });
   }
 
   /** Starts listening on a window; returns the way to stop. */
