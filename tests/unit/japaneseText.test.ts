@@ -1,17 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commonJapaneseCharacters, isJapaneseCharacter, level2JapaneseCharacters, textNeedsJapanese, textNeedsJapaneseLevel2 } from "@/lib/japaneseText";
-import { JAPANESE_FONT, customFontRevision, japaneseLevel2Loaded, japaneseTypefaceLoaded, loadJapaneseLevel2, loadJapaneseTypeface, loadTextFonts, resetJapaneseTypefaceForTests, setJapaneseTypefaceFetcherForTests, textFont } from "@/lib/textFonts";
+import { JAPANESE_FONT, JAPANESE_GOTHIC_FONT, customFontRevision, ensureJapaneseGlyphs, japaneseGothicLevel2Loaded, japaneseGothicLoaded, japaneseLevel2Loaded, japaneseTypefaceLoaded, loadJapaneseGothic, loadJapaneseGothicLevel2, loadJapaneseLevel2, loadJapaneseTypeface, loadTextFonts, resetJapaneseTypefaceForTests, setJapaneseTypefaceFetcherForTests, textFont } from "@/lib/textFonts";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { FontData } from "three/examples/jsm/loaders/FontLoader.js";
 
 /*
  * Japanese text: the built-in faces have no kana and no kanji, so Zen Maru Gothic, cut down by
- * scripts/build-japanese-typeface.mjs, lends them to every face and is a face of its own.
+ * scripts/build-japanese-typeface.mjs, lends them to every face and is a face of its own. Zen Kaku
+ * Gothic New, cut the same way, is the Japanese Gothic face: crisp where the other is soft.
  */
 const fontRoot = fileURLToPath(new URL("../../apps/web/public/fonts/japanese/", import.meta.url));
 const generated = existsSync(`${fontRoot}version.txt`);
-const readTypeface = async (file: "base" | "level2") => JSON.parse(readFileSync(`${fontRoot}${readFileSync(`${fontRoot}version.txt`, "utf8").trim()}/${file}.typeface.json`, "utf8")) as FontData;
+const readTypeface = async (file: "base" | "level2" | "gothic-base" | "gothic-level2") => JSON.parse(readFileSync(`${fontRoot}${readFileSync(`${fontRoot}version.txt`, "utf8").trim()}/${file}.typeface.json`, "utf8")) as FontData;
 
 describe("what Japanese text needs", () => {
   it("knows kana, kanji, their punctuation and the full-width forms", () => {
@@ -97,6 +98,57 @@ describe.skipIf(!generated)("the Japanese face", () => {
     await loadJapaneseTypeface();
     await loadJapaneseLevel2();
     expect(textFont("Sans").generateShapes("渡邉", 10).length).toBeGreaterThan(0);
+  });
+
+  it("has a gothic face of its own that lends nothing to the others", async () => {
+    await loadTextFonts();
+    await loadJapaneseTypeface();
+    expect(japaneseGothicLoaded()).toBe(false);
+    // Chosen before it is here: the rounded face meanwhile.
+    expect(textFont(JAPANESE_GOTHIC_FONT)).toBe(textFont(JAPANESE_FONT));
+    const before = customFontRevision(undefined);
+    await loadJapaneseGothic();
+    expect(japaneseGothicLoaded()).toBe(true);
+    expect(customFontRevision(undefined)).not.toBe(before);
+    const gothic = textFont(JAPANESE_GOTHIC_FONT);
+    expect(gothic).not.toBe(textFont(JAPANESE_FONT));
+    expect(gothic).not.toBe(textFont("Multilanguage"));
+    const glyphs = gothic.data.glyphs as Record<string, { o?: string }>;
+    const rounded = textFont(JAPANESE_FONT).data.glyphs as Record<string, { o?: string }>;
+    for (const char of "名前太郎ひらがなカタカナ高鈴渡") {
+      expect(glyphs[char]?.o?.length ?? 0, char).toBeGreaterThan(0);
+      expect(glyphs[char]?.o, `${char} drawn the same as the rounded face`).not.toBe(rounded[char]?.o);
+    }
+    expect(gothic.generateShapes("渡辺", 10).length).toBeGreaterThan(0);
+    // The Greek and Cyrillic Zen Kaku Gothic New lacks come from Sans; a level-2 kanji waits for the second file.
+    expect(glyphs["Я"]).toBeDefined();
+    expect(glyphs["Ω"]).toBeDefined();
+    expect(glyphs["邉"]).toBeUndefined();
+    expect(japaneseGothicLevel2Loaded()).toBe(false);
+    await loadJapaneseGothicLevel2();
+    expect(japaneseGothicLevel2Loaded()).toBe(true);
+    for (const char of "澤槇檜邉") expect(glyphs[char]?.o?.length ?? 0, char).toBeGreaterThan(0);
+    expect(gothic.generateShapes("渡邉", 10).length).toBeGreaterThan(0);
+    expect(glyphs["邉"]?.o).not.toBe(rounded["邉"]?.o);
+  });
+
+  it("fetches the gothic files for a text set in that face, and the rounded ones for any other", async () => {
+    await loadTextFonts();
+    const fetched: string[] = [];
+    setJapaneseTypefaceFetcherForTests(async (file) => {
+      fetched.push(file);
+      return readTypeface(file);
+    });
+    ensureJapaneseGlyphs("渡邉", JAPANESE_GOTHIC_FONT);
+    expect(fetched).toEqual(["gothic-base"]);
+    await loadJapaneseGothicLevel2();
+    expect(fetched).toEqual(["gothic-base", "gothic-level2"]);
+    expect(japaneseTypefaceLoaded()).toBe(false);
+    ensureJapaneseGlyphs("渡邉", "Sans");
+    await loadJapaneseLevel2();
+    expect(fetched).toEqual(["gothic-base", "gothic-level2", "base", "level2"]);
+    ensureJapaneseGlyphs("Anna", JAPANESE_GOTHIC_FONT);
+    expect(fetched.length).toBe(4);
   });
 
   it("tries a failed file again the next time", async () => {

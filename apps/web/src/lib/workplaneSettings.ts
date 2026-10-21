@@ -468,7 +468,7 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.text = optionalShapeText(source.text, fallbackEntry?.text, 24);
       entry.font = source.font === undefined
         ? fallbackEntry?.font
-        : ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil"].includes(source.font)
+        : ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Japanese", "Japanese Gothic"].includes(source.font)
           ? source.font
           : fallbackEntry?.font;
       entry.bevel = optionalShapeNumber(source.bevel, fallbackEntry?.bevel, 0, 8);

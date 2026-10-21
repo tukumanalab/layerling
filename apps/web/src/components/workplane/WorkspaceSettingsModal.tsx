@@ -132,7 +132,7 @@ const BOOLEAN_LIMIT_PRESET_LABEL_KEYS: Record<BooleanTriangleLimitPreset, Messag
   fast: "workspace.booleanTriangleLimitFast",
 };
 const HISTORY_CUSTOM_DEFAULT = 250;
-const TEXT_FONT_OPTIONS = ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Japanese"];
+const TEXT_FONT_OPTIONS = ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Japanese", "Japanese Gothic"];
 const GEAR_TYPE_OPTIONS: Array<{ value: GearType; label: MessageKey }> = [
   { value: "spur", label: "gear.spur" },
   { value: "helical", label: "gear.helical" },

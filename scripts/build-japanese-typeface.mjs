@@ -1,18 +1,22 @@
-// Builds the Japanese typeface the text shape falls back to for kana and kanji.
+// Builds the Japanese typefaces the text shape offers and falls back to for kana and kanji.
 //
-// The source is Zen Maru Gothic Regular (SIL Open Font License, fonts/zen-maru-gothic/OFL.txt
-// beside it), a rounded sans with every kanji of JIS X 0208: the 2,965 of level 1 and the 3,390
-// of level 2 (邉, 澤, 槇, 檜). M PLUS Rounded 1c, which three.js ships and the face was cut from
-// before, lacks 1,447 of the level-2 kanji, among them the 邉 of 渡邉. The font file is read with
-// opentype.js and turned into the typeface format the way a font of one's own is (customFonts.ts),
-// cut into two files: base.typeface.json keeps what most Japanese text needs (ASCII and Latin-1,
-// the symbols, kana, Greek and Cyrillic of JIS X 0208 rows 1-8, and the level-1 kanji of rows
-// 16-47) and level2.typeface.json the level-2 kanji of rows 48-84. Both go to
-// apps/web/public/fonts/japanese/<hash>/, which is gitignored like the occt runtime, and the hash
-// (also in version.txt, which next.config.ts reads) is of their content, so a browser cannot pair
-// new code with an older cut. They are plain files, not chunks: textFonts.ts fetches them the
-// first time a text needs them, and the service worker keeps them out of the install download.
-// It runs before dev, build and export.
+// Two faces, both under the SIL Open Font License with the OFL.txt beside each file, both with
+// every kanji of JIS X 0208: the 2,965 of level 1 and the 3,390 of level 2 (邉, 澤, 槇, 檜).
+// - Zen Maru Gothic Regular (fonts/zen-maru-gothic), a rounded sans: the "Japanese" face, which
+//   also lends kana and kanji to every other face. M PLUS Rounded 1c, which three.js ships and
+//   the face was cut from before, lacks 1,447 of the level-2 kanji, among them the 邉 of 渡邉.
+// - Zen Kaku Gothic New Regular (fonts/zen-kaku-gothic-new), its square-cut sibling: the
+//   "Japanese Gothic" face, for a text that should look crisp rather than soft.
+// Each font file is read with opentype.js and turned into the typeface format the way a font of
+// one's own is (customFonts.ts), cut into two files: base keeps what most Japanese text needs
+// (ASCII and Latin-1, the symbols, kana, Greek and Cyrillic of JIS X 0208 rows 1-8, and the
+// level-1 kanji of rows 16-47) and level2 the level-2 kanji of rows 48-84. The rounded face is
+// base.typeface.json and level2.typeface.json, the gothic one gothic-base.typeface.json and
+// gothic-level2.typeface.json. All go to apps/web/public/fonts/japanese/<hash>/, which is
+// gitignored like the occt runtime, and the hash (also in version.txt, which next.config.ts
+// reads) is of their content, so a browser cannot pair new code with an older cut. They are
+// plain files, not chunks: textFonts.ts fetches them the first time a text needs them, and the
+// service worker keeps them out of the install download. It runs before dev, build and export.
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { register } from "node:module";
@@ -25,7 +29,11 @@ register("./web-src-alias-hooks.mjs", import.meta.url);
 const { commonJapaneseCharacters, level2JapaneseCharacters } = await import(pathToFileURL(join(root, "apps", "web", "src", "lib", "japaneseText.ts")).href);
 const { contoursFromCommands, normalizeGlyphContours, outlineString } = await import(pathToFileURL(join(root, "apps", "web", "src", "lib", "customFonts.ts")).href);
 const { parse } = await import("opentype.js");
-const source = join(root, "fonts", "zen-maru-gothic", "ZenMaruGothic-Regular.ttf");
+/** The faces, by the prefix of their files: "" for base/level2, "gothic-" for gothic-base/gothic-level2. */
+const SOURCES = {
+  "": { file: join(root, "fonts", "zen-maru-gothic", "ZenMaruGothic-Regular.ttf"), fullName: "Zen Maru Gothic Regular", familyName: "Zen Maru Gothic" },
+  "gothic-": { file: join(root, "fonts", "zen-kaku-gothic-new", "ZenKakuGothicNew-Regular.ttf"), fullName: "Zen Kaku Gothic New Regular", familyName: "Zen Kaku Gothic New" },
+};
 const outRoot = join(root, "apps", "web", "public", "fonts", "japanese");
 
 /*
@@ -64,16 +72,17 @@ function typefaceGlyph(glyph, resolution) {
   };
 }
 
-async function main() {
-  const bytes = await readFile(source);
+/** The two cuts of one font file: base and level2, each as glyphs and as the JSON that is written. */
+async function cutFont({ file, fullName: defaultFullName, familyName: defaultFamilyName }) {
+  const bytes = await readFile(file);
   const font = parse(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
   const resolution = font.unitsPerEm || 1000;
   const byCharacter = glyphsByCharacter(font);
   const english = (record) => record?.en ?? (record ? Object.values(record)[0] : undefined);
-  const fullName = english(font.names.fullName) ?? "Zen Maru Gothic Regular";
+  const fullName = english(font.names.fullName) ?? defaultFullName;
   const head = font.tables.head;
   const header = {
-    familyName: english(font.names.fontFamily) ?? "Zen Maru Gothic",
+    familyName: english(font.names.fontFamily) ?? defaultFamilyName,
     ascender: font.ascender,
     descender: font.descender,
     underlinePosition: font.tables.post?.underlinePosition ?? -100,
@@ -90,10 +99,19 @@ async function main() {
     const information = { format: 0, fullName, license: english(font.names.license), note: `Subset by scripts/build-japanese-typeface.mjs: ${note}` };
     return { glyphs, json: JSON.stringify({ glyphs, ...header, original_font_information: information }) };
   };
-  const base = cut(commonJapaneseCharacters(), "Latin, JIS X 0208 rows 1-8 and 16-47");
-  const level2Characters = level2JapaneseCharacters();
-  const level2 = cut(level2Characters, "JIS X 0208 rows 48-84");
-  const hash = createHash("sha256").update(base.json).update(level2.json).digest("hex").slice(0, 12);
+  return {
+    fullName,
+    base: cut(commonJapaneseCharacters(), "Latin, JIS X 0208 rows 1-8 and 16-47"),
+    level2: cut(level2JapaneseCharacters(), "JIS X 0208 rows 48-84"),
+  };
+}
+
+async function main() {
+  const faces = [];
+  for (const [prefix, source] of Object.entries(SOURCES)) faces.push({ prefix, ...(await cutFont(source)) });
+  const digest = createHash("sha256");
+  for (const face of faces) digest.update(face.base.json).update(face.level2.json);
+  const hash = digest.digest("hex").slice(0, 12);
   // Other cuts go: the folders of earlier releases would only pile up.
   await mkdir(outRoot, { recursive: true });
   for (const entry of await readdir(outRoot)) {
@@ -101,14 +119,17 @@ async function main() {
   }
   const dest = join(outRoot, hash);
   await mkdir(dest, { recursive: true });
-  await writeFile(join(dest, "base.typeface.json"), base.json);
-  await writeFile(join(dest, "level2.typeface.json"), level2.json);
-  await writeFile(join(outRoot, "version.txt"), hash);
   const size = (json) => `${(json.length / 1024 / 1024).toFixed(2)} MB`;
   const count = (cutFont) => Object.keys(cutFont.glyphs).length;
-  console.log(`[japanese-typeface] ${fullName}: base ${count(base)} glyphs, ${size(base.json)}; level2 ${count(level2)} glyphs, ${size(level2.json)} -> apps/web/public/fonts/japanese/${hash}/`);
-  const missing = level2Characters.length - count(level2);
-  if (missing > 0) console.log(`[japanese-typeface] ${missing} of ${level2Characters.length} level-2 kanji are not in the source font`);
+  const level2Characters = level2JapaneseCharacters();
+  for (const face of faces) {
+    await writeFile(join(dest, `${face.prefix}base.typeface.json`), face.base.json);
+    await writeFile(join(dest, `${face.prefix}level2.typeface.json`), face.level2.json);
+    console.log(`[japanese-typeface] ${face.fullName}: ${face.prefix}base ${count(face.base)} glyphs, ${size(face.base.json)}; ${face.prefix}level2 ${count(face.level2)} glyphs, ${size(face.level2.json)} -> apps/web/public/fonts/japanese/${hash}/`);
+    const missing = level2Characters.length - count(face.level2);
+    if (missing > 0) console.log(`[japanese-typeface] ${face.fullName}: ${missing} of ${level2Characters.length} level-2 kanji are not in the source font`);
+  }
+  await writeFile(join(outRoot, "version.txt"), hash);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main();
