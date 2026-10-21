@@ -177,7 +177,7 @@ import { FONT_MANAGER_OPTION, requestFontManager } from "@/lib/fontManagerEvents
 import { QR_BYTE_CAPACITY, qrByteLength, qrTextFits, type QrCodeSettings } from "@/lib/qrCode";
 import { ICON_TAG_LAYERS, iconTagFitCount, MAX_ICON_TAG_WIDTH, MAX_ICON_TAGS, MIN_ICON_TAG_WIDTH, normalizeIconTagCount, type IconLayerStack } from "@/lib/iconTag";
 import { PICTURE_FILE_ACCEPT } from "@/lib/pictureIcon";
-import { customFontList, textFontLabel } from "@/lib/textFonts";
+import { BUILT_IN_FONTS, builtInFontName, customFontList, textFontLabel } from "@/lib/textFonts";
 import { MIN_SLOT_END_RATIO, normalizeSlotEndRatio, taperedSlotOutline } from "@/lib/slotGeometry";
 import { loftMeasures, loftShapePatch, loftTiltLimit, maxLoftWall, MAX_LOFT_SIDES, MAX_LOFT_TWIST, MIN_LOFT_SIDES, MIN_LOFT_SIZE, normalizeLoftOutline, type LoftMeasures } from "@/lib/loftGeometry";
 import { MAX_KNURL_ANGLE, MIN_KNURL_ANGLE, MIN_KNURL_COUNT, MIN_KNURL_DEPTH, knurlSettings, maxKnurlChamfer, maxKnurlCount, maxKnurlDepth, maxRoundKnurlDepth, normalizeKnurlAngle, normalizeKnurlChamfer, normalizeKnurlCount, normalizeKnurlDepth, normalizeKnurlPattern } from "@/lib/knurlGeometry";
@@ -299,7 +299,6 @@ const SOLID_COLORS = [
   "#4b5563",
   "#111111",
 ];
-const TEXT_FONT_OPTIONS = ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Zen Maru Gothic", "Zen Kaku Gothic New"];
 /** `label` traegt den Katalogschluessel, nicht den fertigen Text. */
 const GEAR_TYPE_OPTIONS: Array<{ value: GearType; label: MessageKey }> = [
   { value: "spur", label: "gear.spur" },
@@ -2274,11 +2273,12 @@ function sketchFillProperties(profile: SketchProfile, onUpdate: ShapeInspectorUp
  * has here shows as missing; its text is drawn in Multilanguage meanwhile.
  */
 function textFontProperty(shape: WorkplaneShape, onUpdate: ShapeInspectorUpdate): ShapePropertyConfig {
-  const current = shape.font ?? "Multilanguage";
+  // An older name of the Japanese face is shown as its current one.
+  const current = builtInFontName(shape.font) ?? "Multilanguage";
   const builtIn = t("font.builtInGroup");
   const own = t("font.customGroup");
   const options: SelectPropertyOption[] = [
-    ...TEXT_FONT_OPTIONS.map((value) => ({ value, label: value, group: builtIn })),
+    ...BUILT_IN_FONTS.map((value) => ({ value, label: value, group: builtIn })),
     ...customFontList().map((font) => ({ value: font.id, label: font.name, group: own })),
   ];
   if (!options.some((option) => option.value === current)) options.push({ value: current, label: textFontLabel(current) ?? t("font.missing"), group: own });

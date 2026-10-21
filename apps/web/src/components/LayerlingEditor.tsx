@@ -117,7 +117,7 @@ import { honeycombReplacementParts } from "@/lib/honeycombMigration";
 import { MeshSimplifyPanel } from "./workplane/MeshSimplifyPanel";
 import { addCustomFontFile, customFontErrorMessage, FontManagerPanel } from "./workplane/FontManagerPanel";
 import { onFontManagerRequested } from "@/lib/fontManagerEvents";
-import { customFontList, onCustomFontsChanged, textFontLabel } from "@/lib/textFonts";
+import { BUILT_IN_FONTS, customFontList, onCustomFontsChanged, textFontLabel } from "@/lib/textFonts";
 import { isCustomFontId } from "@/lib/customFonts";
 import { storedCustomFonts } from "@/lib/customFontStore";
 import { ArrayPanel } from "./workplane/ArrayPanel";
@@ -10195,7 +10195,7 @@ export function LayerlingEditor({
       if (command.action === "list_fonts") {
         const stored = new Set((await storedCustomFonts().catch(() => [])).map((font) => font.id));
         return {
-          builtIn: ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Zen Maru Gothic", "Zen Kaku Gothic New"],
+          builtIn: [...BUILT_IN_FONTS],
           custom: customFontList().map((font) => ({ id: font.id, name: font.name, stored: stored.has(font.id), complete: font.complete })),
         };
       }

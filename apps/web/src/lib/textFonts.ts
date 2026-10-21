@@ -1,7 +1,7 @@
 import { FontLoader, type Font, type FontData } from "three/examples/jsm/loaders/FontLoader.js";
 import { withBasePath } from "@/lib/basePath";
 import { isCustomFontId, type CustomTypeface } from "@/lib/customFonts";
-import { isJapaneseCharacter, textNeedsJapanese, textNeedsJapaneseLevel2 } from "@/lib/japaneseText";
+import { textNeedsJapanese, textNeedsJapaneseLevel2 } from "@/lib/japaneseText";
 
 /**
  * The typefaces the text shape offers, loaded on demand.
@@ -139,44 +139,35 @@ export function textFont(name: string | undefined): Font {
     // Chosen before it arrived: Multilanguage meanwhile, and the text is drawn again when it is here.
     void loadJapaneseTypeface();
   }
-  if (name === JAPANESE_GOTHIC_FONT) {
-    if (gothicFont) return gothicFont;
-    // Meanwhile the rounded face if it is here (same letters, softer), else Multilanguage.
-    void loadJapaneseGothic();
-    if (japaneseFont) return japaneseFont;
-  }
   return loadedFonts[name ?? "Multilanguage"] ?? loadedFonts.Multilanguage;
 }
 
 /*
- * Japanese. The built-in faces have no kana and no kanji; Zen Maru Gothic, cut down to what
- * Japanese text needs (scripts/build-japanese-typeface.mjs), is a face of its own and lends those
- * characters to every other face. It comes in two files under /fonts/japanese/<version>/, plain
+ * Japanese. The built-in faces have no kana and no kanji; Zen Kaku Gothic New (bold, like the
+ * other built-in faces), cut down to what Japanese text needs (scripts/build-japanese-typeface.mjs),
+ * is a face of its own, under the font's name, and lends those characters to every other face. It comes in two files under /fonts/japanese/<version>/, plain
  * files and not chunks, which the service worker keeps out of the install download and stores
  * on first use: `base` (about 2.6 MB gzipped: Latin, kana, symbols and the 2,965 level-1 kanji) and
- * `level2` (the rare kanji of names and places: 澤, 槇, 檜). Each is fetched the first time a text
+ * `level2` (the rare kanji of names and places: 澤, 槇, 檜). The Greek letters, primes and daggers of
+ * JIS X 0208 row 1-6 the font lacks come from Sans; its Cyrillic is its own. Each is fetched the first time a text
  * needs it - `ensureJapaneseGlyphs` - or, for base, the face is chosen, never before: most
  * visitors never write Japanese. Until it is here such a text shows "?" for them; when it
- * arrives, every text is drawn again (`onCustomFontsChanged`, `customFontRevision`).
- *
- * Zen Kaku Gothic New, the square-cut sibling of Zen Maru Gothic in its bold weight, is cut the
- * same way into `gothic-base` and `gothic-level2`. It is a face of its own for a text that should
- * look crisp (a sign, a label) where the rounded one suits a name tag; it lends nothing to the
- * other faces, and is fetched only when a text is set in it. Until it is here such a text is drawn
- * in the rounded face if that has arrived, else in Multilanguage. Both faces go by their fonts'
- * names; "Japanese" and "Japanese Gothic", their names before, still work in saved designs.
+ * arrives, every text is drawn again (`onCustomFontsChanged`, `customFontRevision`). A design
+ * saved when the face was called "Japanese" (or, for a while, "Zen Maru Gothic" and
+ * "Japanese Gothic") still names it so; `builtInFontName` reads those as this face.
  */
-export const JAPANESE_FONT = "Zen Maru Gothic";
-export const JAPANESE_GOTHIC_FONT = "Zen Kaku Gothic New";
-/** The names the two faces had before they were called by their fonts' names: designs saved then still name them. */
-const JAPANESE_FONT_ALIASES: Record<string, string> = { Japanese: JAPANESE_FONT, "Japanese Gothic": JAPANESE_GOTHIC_FONT };
+export const JAPANESE_FONT = "Zen Kaku Gothic New";
+const JAPANESE_FONT_ALIASES = new Set(["Japanese", "Japanese Gothic", "Zen Maru Gothic"]);
 
-/** A built-in font name as it is called now: an older name of a Japanese face becomes the current one. */
+/** The built-in faces in the order the font menu shows them. */
+export const BUILT_IN_FONTS: readonly string[] = ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", JAPANESE_FONT];
+
+/** A built-in font name as it is called now: an older name of the Japanese face becomes the current one. */
 export function builtInFontName(name: string | undefined): string | undefined {
-  return name === undefined ? undefined : JAPANESE_FONT_ALIASES[name] ?? name;
+  return name !== undefined && JAPANESE_FONT_ALIASES.has(name) ? JAPANESE_FONT : name;
 }
 
-type JapaneseFile = "base" | "level2" | "gothic-base" | "gothic-level2";
+type JapaneseFile = "base" | "level2";
 
 async function fetchJapaneseFile(file: JapaneseFile): Promise<FontData> {
   const response = await fetch(withBasePath(`/fonts/japanese/${process.env.NEXT_PUBLIC_JAPANESE_FONT_VERSION ?? ""}/${file}.typeface.json`));
@@ -191,11 +182,6 @@ let japanesePromise: Promise<void> | null = null;
 let japaneseLevel2Promise: Promise<void> | null = null;
 let japaneseLevel2Done = false;
 let japaneseRevision = 0;
-let gothicData: FontData | null = null;
-let gothicFont: Font | null = null;
-let gothicPromise: Promise<void> | null = null;
-let gothicLevel2Promise: Promise<void> | null = null;
-let gothicLevel2Done = false;
 
 export function japaneseTypefaceLoaded() {
   return japaneseFont !== null;
@@ -203,14 +189,6 @@ export function japaneseTypefaceLoaded() {
 
 export function japaneseLevel2Loaded() {
   return japaneseLevel2Done;
-}
-
-export function japaneseGothicLoaded() {
-  return gothicFont !== null;
-}
-
-export function japaneseGothicLevel2Loaded() {
-  return gothicLevel2Done;
 }
 
 /** Adds the characters a font lacks, in place: the parsed Font reads its glyphs at drawing time, so nothing is parsed again. */
@@ -265,71 +243,18 @@ export function loadJapaneseLevel2(): Promise<void> {
   return japaneseLevel2Promise;
 }
 
-/** The typeface without its kana and kanji. */
-function withoutJapanese(data: FontData): FontData {
-  const glyphs = data.glyphs as Record<string, GlyphData>;
-  return { ...data, glyphs: Object.fromEntries(Object.entries(glyphs).filter(([char]) => !isJapaneseCharacter(char))) } as FontData;
-}
-
-/** Fetches the gothic face once. It keeps its letters to itself; the Greek and Cyrillic it lacks come from Sans. */
-export function loadJapaneseGothic(): Promise<void> {
-  if (gothicFont) return Promise.resolve();
-  gothicPromise ??= japaneseFetcher("gothic-base")
-    .then((data) => {
-      gothicData = data;
-      // Only the letters Sans had of its own: by now the rounded face has lent Sans its kana and
-      // kanji, and a rounded 邉 taken from there would stay in front of the gothic one.
-      gothicFont = new FontLoader().parse(sansData ? withFallbackGlyphs(data, withoutJapanese(sansData)) : data);
-      japaneseRevision += 1;
-      customFontListeners.forEach((listener) => listener());
-    })
-    .catch((error) => {
-      gothicPromise = null;
-      throw error;
-    });
-  return gothicPromise;
-}
-
-/** Fetches the gothic face's level-2 kanji once, after its base, and adds them to it. */
-export function loadJapaneseGothicLevel2(): Promise<void> {
-  if (gothicLevel2Done) return Promise.resolve();
-  gothicLevel2Promise ??= loadJapaneseGothic()
-    .then(() => japaneseFetcher("gothic-level2"))
-    .then((data) => {
-      const borrowed = data.glyphs as Record<string, GlyphData>;
-      if (gothicData) lend({ data: gothicData }, borrowed);
-      if (gothicFont) lend(gothicFont, borrowed);
-      gothicLevel2Done = true;
-      japaneseRevision += 1;
-      customFontListeners.forEach((listener) => listener());
-    })
-    .catch((error) => {
-      gothicLevel2Promise = null;
-      throw error;
-    });
-  return gothicLevel2Promise;
-}
-
 /**
  * Called with every text that is drawn: one with kana or kanji starts the fetch of the Japanese
  * face if it has not happened yet, and one with a level-2 kanji the fetch of the second file.
- * A text set in the gothic face fetches that face's files the same way. Returns at once; the
- * text is drawn again when the face is here.
+ * Returns at once; the text is drawn again when the face is here.
  */
-export function ensureJapaneseGlyphs(text: string, fontName?: string) {
+export function ensureJapaneseGlyphs(text: string) {
   if (!textNeedsJapanese(text)) return;
-  fontName = builtInFontName(fontName);
   const ignore = () => {
     // Without it the text keeps its question marks, as before - the next text tries again.
   };
-  const level2 = textNeedsJapaneseLevel2(text);
-  if (fontName === JAPANESE_GOTHIC_FONT) {
-    if (!gothicFont && !gothicPromise) loadJapaneseGothic().catch(ignore);
-    if (!gothicLevel2Done && !gothicLevel2Promise && level2) loadJapaneseGothicLevel2().catch(ignore);
-    return;
-  }
   if (!japaneseFont && !japanesePromise) loadJapaneseTypeface().catch(ignore);
-  if (!japaneseLevel2Done && !japaneseLevel2Promise && level2) loadJapaneseLevel2().catch(ignore);
+  if (!japaneseLevel2Done && !japaneseLevel2Promise && textNeedsJapaneseLevel2(text)) loadJapaneseLevel2().catch(ignore);
 }
 
 /*
@@ -373,7 +298,7 @@ export function customFontRevision(id: string | undefined) {
 
 /** The display name of a text's font: a built-in name, a font of one's own, or null when it is missing. */
 export function textFontLabel(id: string | undefined) {
-  if (!isCustomFontId(id)) return id ?? "Multilanguage";
+  if (!isCustomFontId(id)) return builtInFontName(id) ?? "Multilanguage";
   return customFonts.get(id)?.name ?? null;
 }
 
@@ -390,11 +315,6 @@ export function resetJapaneseTypefaceForTests() {
   japaneseLevel2Promise = null;
   japaneseLevel2Done = false;
   japaneseRevision = 0;
-  gothicData = null;
-  gothicFont = null;
-  gothicPromise = null;
-  gothicLevel2Promise = null;
-  gothicLevel2Done = false;
   japaneseFetcher = fetchJapaneseFile;
 }
 

@@ -52,9 +52,9 @@ export function removeTextLayer(layers: readonly TextLayer[]): TextLayer[] {
 // at this font size, its outlines sampled with these curve segments, an empty text as a space.
 const LAYOUT_SIZE = 20;
 const curveSegmentsOf = (fontName: string) => (fontName === "Stencil" ? 1 : 8);
-const wordsOf = (shape: Pick<WorkplaneShape, "text" | "font">) => {
+const wordsOf = (shape: Pick<WorkplaneShape, "text">) => {
   const words = (shape.text ?? "TEXT").trim() || " ";
-  ensureJapaneseGlyphs(words, shape.font);
+  ensureJapaneseGlyphs(words);
   return words;
 };
 

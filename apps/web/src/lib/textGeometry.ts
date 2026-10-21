@@ -20,10 +20,10 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function textOf(shape: Pick<WorkplaneShape, "text" | "font">) {
+function textOf(shape: Pick<WorkplaneShape, "text">) {
   const text = (shape.text ?? "TEXT").trim() || " ";
   // Kana or kanji: fetch the Japanese face if it is not here yet; the text is drawn again when it is.
-  ensureJapaneseGlyphs(text, shape.font);
+  ensureJapaneseGlyphs(text);
   return text;
 }
 

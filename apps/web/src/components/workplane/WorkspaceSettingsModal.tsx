@@ -1,5 +1,6 @@
 "use client";
 
+import { BUILT_IN_FONTS } from "@/lib/textFonts";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
 import { MAX_OVERHANG_ANGLE, MIN_OVERHANG_ANGLE } from "@/lib/overhangLimits";
 import { Box as BoxIcon, ChevronDown, Grid3X3, History, Palette, Plus, RotateCcw, Ruler, Trash2, X } from "lucide-react";
@@ -132,7 +133,6 @@ const BOOLEAN_LIMIT_PRESET_LABEL_KEYS: Record<BooleanTriangleLimitPreset, Messag
   fast: "workspace.booleanTriangleLimitFast",
 };
 const HISTORY_CUSTOM_DEFAULT = 250;
-const TEXT_FONT_OPTIONS = ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Zen Maru Gothic", "Zen Kaku Gothic New"];
 const GEAR_TYPE_OPTIONS: Array<{ value: GearType; label: MessageKey }> = [
   { value: "spur", label: "gear.spur" },
   { value: "helical", label: "gear.helical" },
@@ -249,7 +249,7 @@ function specialFieldsForShape(
   if (kind === "text") {
     return [
       { type: "text", key: "text", label: t("prop.text"), defaultValue: defaults.text ?? "TEXT", maxLength: 24 },
-      { type: "select", key: "font", label: t("prop.font"), defaultValue: defaults.font ?? "Multilanguage", options: TEXT_FONT_OPTIONS.map((value) => ({ value, label: value })) },
+      { type: "select", key: "font", label: t("prop.font"), defaultValue: defaults.font ?? "Multilanguage", options: BUILT_IN_FONTS.map((value) => ({ value, label: value })) },
       { type: "number", key: "bevel", label: t("prop.bevel"), defaultValue: defaults.bevel ?? 0, min: 0, max: 8, unit: "mm" },
       { type: "number", key: "segments", label: t("prop.segments"), defaultValue: defaults.segments ?? 0, min: 0, max: 24, step: 1 },
     ];

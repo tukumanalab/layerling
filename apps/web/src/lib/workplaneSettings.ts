@@ -1,3 +1,4 @@
+import { BUILT_IN_FONTS, builtInFontName } from "@/lib/textFonts";
 import { DEFAULT_OVERHANG_ANGLE, normalizeOverhangAngle } from "@/lib/overhangLimits";
 import type { CustomSnapGrid, CustomSnapGridSize, GridSize, HistoryRetentionLimit, MeasurementAccuracy, ShapeCustomization, ShapeCustomizationMap, ShapeKind, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { normalizeScaleForUnits } from "@/lib/measurementUnits";
@@ -466,11 +467,9 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
     }
     if (kind === "text") {
       entry.text = optionalShapeText(source.text, fallbackEntry?.text, 24);
-      entry.font = source.font === undefined
-        ? fallbackEntry?.font
-        : ["Multilanguage", "Sans", "Serif", "Script", "Monospace", "Rounded", "Stencil", "Zen Maru Gothic", "Zen Kaku Gothic New", "Japanese", "Japanese Gothic"].includes(source.font)
-          ? source.font
-          : fallbackEntry?.font;
+      // An older name of the Japanese face is kept as its current one.
+      const font = builtInFontName(typeof source.font === "string" ? source.font : undefined);
+      entry.font = source.font === undefined ? fallbackEntry?.font : font !== undefined && BUILT_IN_FONTS.includes(font) ? font : fallbackEntry?.font;
       entry.bevel = optionalShapeNumber(source.bevel, fallbackEntry?.bevel, 0, 8);
       entry.segments = optionalShapeNumber(source.segments, fallbackEntry?.segments, 0, 24, true);
       entry.textCurved = typeof source.textCurved === "boolean" ? source.textCurved : fallbackEntry?.textCurved;
