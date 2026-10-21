@@ -1,6 +1,6 @@
 name: GitHub Pages
 
-# Publishes the static export to GitHub Pages on every push to main. The site is served from the
+# Publishes the static export to GitHub Pages on every push to tukumana (this fork's own branch; main mirrors upstream). The site is served from the
 # folder Pages gives the repository (https://<owner>.github.io/<repository>/), so the export is
 # built with that folder as its base path; a custom domain or an <owner>.github.io repository
 # gives an empty one and the files are requested from the root, as on any other web server.
@@ -9,7 +9,7 @@ name: GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [tukumana]
   workflow_dispatch:
 
 permissions:
