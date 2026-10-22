@@ -6,6 +6,8 @@ code still carries it - so a lower number further down is older, not newer.
 
 ## Unreleased
 
+- **The Japanese typeface is Zen Kaku Gothic New, bold:** Zen Maru Gothic (rounded, regular weight) looked too soft and too thin beside the other built-in faces, which are all bold, and printed thin. Zen Kaku Gothic New in its bold weight (SIL Open Font License, `fonts/zen-kaku-gothic-new/`) takes its place: the same cut by `scripts/build-japanese-typeface.mjs` into `base` and `level2`, every kanji of JIS X 0208 with 邉 among them, lent to every other face and a face of its own. That face now goes by the font's name in the font menu and in `list_fonts`; a design that names it "Japanese" from before still opens in it (`builtInFontName`). The Greek letters, primes and daggers the font lacks come from Sans, as the build script reports; its Cyrillic is its own. The built-in font names now live in one list, `BUILT_IN_FONTS`, read by the font menu, the settings, the MCP `list_fonts` and the validator. The guide (chapter Text, English and German) names it.
+
 ## 1.97.0
 
 - **Trackpad pinch zooms in full steps in Chrome:** Chrome (on a Mac and on Linux) sends a pinch as Ctrl wheel steps far smaller than a notch. OrbitControls counts those ten times over, but the notch count of #331 replaces the step it reads, so a pinch zoomed a tenth as far. `wheelZoomDelta` now multiplies a small Ctrl step by `PINCH_WHEEL_FACTOR` itself; a mouse notch with Ctrl held stays as it is, and Safari's pinch (`pinchWheelDelta`) is made that much smaller, so it zooms as before. Unit tests in `wheelZoom.test.ts`; not tried with a real trackpad. Reported by mail.

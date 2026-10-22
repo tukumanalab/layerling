@@ -35,6 +35,21 @@ git push origin tukumana
 4. `gh pr create -R henmedia/layerling --base main --head tukumanalab:<topic>`
 5. fork 内 PR はマージせず close。upstream でマージされたら topic ブランチを削除する
 
+## upstream でマージされる前に `tukumana` で使う
+
+upstream 向けの topic を先に Pages で使いたいときは、topic ブランチを `tukumana` へ merge で取り込みます（cherry-pick はしない）。
+
+1. 上の手順で topic を作って upstream へ PR を出す
+2. 同じ topic で `tukumana` 宛ての PR を作り、**Create a merge commit** でマージする（squash / rebase マージは使わない）
+
+   ```bash
+   gh pr create -R tukumanalab/layerling --base tukumana --head <topic>
+   ```
+
+3. upstream のレビューで直すときは topic に追加コミットを積み、もう一度 `tukumana` へ merge する。`tukumana` に入れた後の topic は rebase や force-push で書き換えない
+4. upstream でマージされたら、「upstream と同期する」の手順で `origin/main` を `tukumana` に merge する。中身が同じなら衝突しない。upstream のレビューで内容が変わってコンフリクトしたら、`origin/main` 側を採用して解決する
+5. topic ブランチを削除する
+
 ## fork 独自の機能
 
 `tukumana` から切って、`tukumana` 宛ての PR にします。upstream に出せるものになったら、
