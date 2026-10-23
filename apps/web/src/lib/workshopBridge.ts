@@ -14,7 +14,7 @@ import { BASE_PATH } from "@/lib/basePath";
 export const WORKSHOP_PROJECT_MEDIA_TYPE = "application/vnd.layerling.project+zip";
 
 export type WorkshopConfig = {
-  /** Origin plus base path of the service, no trailing slash: "https://host/3dp-workshop". */
+  /** Origin plus base path of the service, no trailing slash: "https://host/3dp". */
   api: string;
   slug: string;
   /** The design to open, if any. */
@@ -44,7 +44,7 @@ export class WorkshopError extends Error {
 export function parseWorkshopParams(search: string, origin: string, basePath = BASE_PATH): WorkshopConfig | null {
   const params = new URLSearchParams(search);
   if (params.get("workshop") !== "1") return null;
-  const fallbackApi = `${origin}${basePath.replace(/\/editor$/, "") || "/3dp-workshop"}`;
+  const fallbackApi = `${origin}${basePath.replace(/\/editor$/, "") || "/3dp"}`;
   let api: URL;
   try {
     api = new URL(params.get("api") || fallbackApi, origin);

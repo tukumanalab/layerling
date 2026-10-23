@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { buildWorkshopForm, parseWorkshopParams, pngBlobFromDataUrl, WorkshopClient, type WorkshopConfig } from "@/lib/workshopBridge";
 
 const ORIGIN = "https://example.test";
-const base: WorkshopConfig = { api: `${ORIGIN}/3dp-workshop`, slug: "spring", projectId: null, sessionId: "s1", mode: "edit", readonly: false };
+const base: WorkshopConfig = { api: `${ORIGIN}/3dp`, slug: "spring", projectId: null, sessionId: "s1", mode: "edit", readonly: false };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -15,21 +15,21 @@ describe("parseWorkshopParams", () => {
   });
 
   it("reads every parameter", () => {
-    const config = parseWorkshopParams("?workshop=1&api=https://example.test/3dp-workshop/&slug=spring&project_id=p1&session_id=s1&mode=remix&readonly=1", ORIGIN);
-    expect(config).toEqual({ api: `${ORIGIN}/3dp-workshop`, slug: "spring", projectId: "p1", sessionId: "s1", mode: "remix", readonly: true });
+    const config = parseWorkshopParams("?workshop=1&api=https://example.test/3dp/&slug=spring&project_id=p1&session_id=s1&mode=remix&readonly=1", ORIGIN);
+    expect(config).toEqual({ api: `${ORIGIN}/3dp`, slug: "spring", projectId: "p1", sessionId: "s1", mode: "remix", readonly: true });
   });
 
   it("accepts a relative api and defaults the rest", () => {
-    const config = parseWorkshopParams("?workshop=1&api=/3dp-workshop", ORIGIN);
-    expect(config).toMatchObject({ api: `${ORIGIN}/3dp-workshop`, slug: "", projectId: null, sessionId: null, mode: "edit", readonly: false });
+    const config = parseWorkshopParams("?workshop=1&api=/3dp", ORIGIN);
+    expect(config).toMatchObject({ api: `${ORIGIN}/3dp`, slug: "", projectId: null, sessionId: null, mode: "edit", readonly: false });
   });
 
   it("falls back to the folder next to the editor's base path", () => {
-    expect(parseWorkshopParams("?workshop=1", ORIGIN, "/3dp-workshop/editor")?.api).toBe(`${ORIGIN}/3dp-workshop`);
+    expect(parseWorkshopParams("?workshop=1", ORIGIN, "/3dp/editor")?.api).toBe(`${ORIGIN}/3dp`);
   });
 
   it("refuses an api on another origin", () => {
-    expect(parseWorkshopParams("?workshop=1&api=https://evil.test/3dp-workshop", ORIGIN)).toBeNull();
+    expect(parseWorkshopParams("?workshop=1&api=https://evil.test/3dp", ORIGIN)).toBeNull();
   });
 });
 
