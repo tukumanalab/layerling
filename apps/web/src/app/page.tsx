@@ -33,6 +33,8 @@ import { importFailureSummary, importModelFiles } from "@/lib/modelImport";
 import { loadTextFonts } from "@/lib/textFonts";
 import { loadStoredCustomFonts } from "@/lib/customFontStore";
 import { fetchServerDefaults, type NewDesignsOnServerSetting } from "@/lib/serverDefaults";
+import { setServerSimpleMode } from "@/lib/simpleMode";
+import { useSimpleMode } from "@/lib/useSimpleMode";
 import { applyAppTheme, getAppThemePreference, hasStoredAppTheme, readStoredAppTheme, resolveAppTheme, setAppTheme, storeAppTheme, subscribeToAppTheme, type AppThemePreference, type ResolvedAppTheme } from "@/lib/appTheme";
 import { hydrateEditorHistoryState, notesForHistoryIndex, type EditorHistoryEntry } from "@/lib/editorHistory";
 import { detectLanguage, setLanguage, t, translate, type Language } from "@/lib/i18n";
@@ -66,12 +68,12 @@ import { ToolbarImportIcon } from "@/components/toolbarIcons";
 import { writeDesignView, writeSavedViews } from "@/lib/designView";
 import { useFileAccept } from "@/lib/fileAccept";
 import { lylFileAccessSupported, onLylFilesLaunched, pickFilesToImport, rememberLylFile, type LylFileHandle } from "@/lib/lylFileAccess";
-import { exportLylProject, importLylProject, inspectLylProjectPackage, LYL_CREATED_WITH_VERSION, LYL_MEDIA_TYPE } from "@/lib/lylProject";
+import { exportLylProject, importLylProject, inspectLylProjectPackage, LYL_CREATED_WITH_VERSION, LYL_MEDIA_TYPE, withLylProjectName } from "@/lib/lylProject";
 import { backupDesignAlreadyThere, backupEntryPaths, backupFileName, backupFolderPaths, backupThumbnailPath, unpackBackupFolders, isBackupFileName, packBackup, unpackBackup, zipHoldsDesigns } from "@/lib/projectBackup";
 import { customShapesBackupEntries, restoreCustomShapesFromBackup } from "@/lib/myShapes";
 import { SHARED_PROJECTS_ENDPOINT } from "@/lib/sharedProjectsEndpoint";
 import { PICTURE_FILE_ACCEPT } from "@/lib/pictureIcon";
-import { designsToRecover, isInlineThumbnail, orphanedProjectIds, projectListForLocalStorage, withStoredThumbnails, writeProjectList } from "@/lib/designListStorage";
+import { designsToRecover, hiddenCopiesOf, isInlineThumbnail, LOST_DESIGNS_RECOVERED_KEY, orphanedProjectIds, projectListForLocalStorage, withStoredThumbnails, writeProjectList } from "@/lib/designListStorage";
 import { deleteDesignThumbnail, loadDesignThumbnails, saveDesignThumbnail } from "@/lib/designThumbnailStore";
 import { DEFAULT_SNAP_GRID, DEFAULT_WORKPLANE_WORKSPACE, normalizeSnapGrid, normalizeWorkspaceSettings, readWorkspaceDefault, workplaneSettingsFingerprint } from "@/lib/workplaneSettings";
 import type { GridSize, ProjectAsset, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
@@ -449,7 +451,8 @@ async function loadProjectShapes(projectId: string) {
 /** The .lyl bytes of a project: the stored package, or a freshly packed one. */
 async function projectPackageBytes(project: DashboardProject) {
   const stored = await loadProjectPackage(project.id);
-  if (stored) return stored;
+  // Under the card's name: a rename on the start page leaves the old one in the saved package (#689).
+  if (stored) return withLylProjectName(stored, project.name);
   const context = projectShapeSaveContext(project);
   return exportLylProject({
     projectId: project.id,
@@ -719,20 +722,7 @@ async function loadProjectShapeRecord(projectId: string): Promise<ProjectShapeRe
  * left where it is, and so is a second copy of a design that is already back.
  */
 async function recoverOrphanedProjects(listed: DashboardProject[]): Promise<DashboardProject[]> {
-  const orphans = orphanedProjectIds(listed.map((project) => project.id), await storedProjectShapeIds());
-  const candidates: Array<{ id: string; name: string; createdAt: number; revision: number; record: ProjectShapeRecord; bytes: Uint8Array }> = [];
-  for (const projectId of orphans) {
-    try {
-      const record = await loadProjectShapeRecord(projectId);
-      const stored = record?.lylPackage ?? record?.skfPackage;
-      if (!record || !stored) continue;
-      const bytes = new Uint8Array(stored);
-      const summary = await inspectLylProjectPackage(bytes);
-      candidates.push({ id: projectId, name: summary.projectName, createdAt: summary.createdAt, revision: record.revision, record, bytes });
-    } catch {
-      // Unreadable: it stays in the database untouched, nothing is lost by leaving it.
-    }
-  }
+  const candidates = await orphanedProjectRecords(listed.map((project) => project.id));
   const recovered: DashboardProject[] = [];
   for (const { id: projectId, record, bytes } of designsToRecover(listed, candidates)) {
     try {
@@ -759,6 +749,33 @@ async function recoverOrphanedProjects(listed: DashboardProject[]): Promise<Dash
     }
   }
   return recovered;
+}
+
+/** Deletes the copies of a design a restore left behind without a card, so none of them comes back as it (#656). */
+async function deleteHiddenCopies(design: Pick<DashboardProject, "name" | "createdAt">, listedIds: string[]) {
+  for (const projectId of hiddenCopiesOf(design, await orphanedProjectRecords(listedIds))) {
+    await deleteProjectShapes(projectId);
+    void deleteDesignThumbnail(projectId);
+  }
+}
+
+/** The stored designs no card points to, with name and creation time read from their package. */
+async function orphanedProjectRecords(listedIds: string[]) {
+  const orphans = orphanedProjectIds(listedIds, await storedProjectShapeIds());
+  const candidates: Array<{ id: string; name: string; createdAt: number; revision: number; record: ProjectShapeRecord; bytes: Uint8Array }> = [];
+  for (const projectId of orphans) {
+    try {
+      const record = await loadProjectShapeRecord(projectId);
+      const stored = record?.lylPackage ?? record?.skfPackage;
+      if (!record || !stored) continue;
+      const bytes = new Uint8Array(stored);
+      const summary = await inspectLylProjectPackage(bytes);
+      candidates.push({ id: projectId, name: summary.projectName, createdAt: summary.createdAt, revision: record.revision, record, bytes });
+    } catch {
+      // Unreadable: it stays in the database untouched, nothing is lost by leaving it.
+    }
+  }
+  return candidates;
 }
 
 /** The card pictures read from their own database, so a list read again from localStorage gets them back. */
@@ -1078,6 +1095,7 @@ export default function Home() {
     if (!STATIC_EXPORT_BUILD) {
       void fetchServerDefaults().then((defaults) => {
         setServerNewDesigns(defaults.newDesignsOnServer);
+        setServerSimpleMode(defaults.simpleMode);
         if (!themeOnRecord && defaults.theme && getAppThemePreference() === "system") setAppTheme(defaults.theme);
       });
     }
@@ -1092,8 +1110,22 @@ export default function Home() {
       thumbnails.forEach((dataUrl, projectId) => {
         if (!knownDesignThumbnails.has(projectId)) knownDesignThumbnails.set(projectId, dataUrl);
       });
-      // Designs whose card the list lost come back from their stored shapes (#656).
-      const recovered = await recoverOrphanedProjects(storedProjects).catch(() => []);
+      // Designs whose card the list lost come back from their stored shapes (#656), looked for once per browser.
+      let recovered: DashboardProject[] = [];
+      let recoveredBefore = true;
+      try {
+        recoveredBefore = window.localStorage.getItem(LOST_DESIGNS_RECOVERED_KEY) !== null;
+      } catch {
+        // Without localStorage there is no list to have lost either.
+      }
+      if (!recoveredBefore) {
+        recovered = await recoverOrphanedProjects(storedProjects).catch(() => []);
+        try {
+          window.localStorage.setItem(LOST_DESIGNS_RECOVERED_KEY, String(Date.now()));
+        } catch {
+          // Then it looks again next time, which is what it did before.
+        }
+      }
       setProjects((current) => {
         const listed = new Set(current.map((project) => project.id));
         const added = recovered.filter((project) => !listed.has(project.id));
@@ -2302,6 +2334,8 @@ export default function Home() {
   };
 
   const deleteProject = (projectId: string) => {
+    const deleted = projects.find((project) => project.id === projectId);
+    const remainingIds = projects.filter((project) => project.id !== projectId).map((project) => project.id);
     setProjects((current) => current.filter((project) => project.id !== projectId));
     setProjectShapesById((current) => {
       const next = { ...current };
@@ -2316,9 +2350,11 @@ export default function Home() {
     }
     knownDesignThumbnails.delete(projectId);
     void deleteDesignThumbnail(projectId);
-    void deleteProjectShapes(projectId).catch(() => {
-      setDashboardNotice(t("notice.projectShapesDeleteFailed"));
-    });
+    void deleteProjectShapes(projectId)
+      .then(() => (deleted ? deleteHiddenCopies(deleted, remainingIds) : undefined))
+      .catch(() => {
+        setDashboardNotice(t("notice.projectShapesDeleteFailed"));
+      });
   };
 
   const emptyProjectPrompt = view === "dashboard" && emptyProjectPromptId ? projects.find((project) => project.id === emptyProjectPromptId) ?? null : null;
@@ -2870,6 +2906,7 @@ function Dashboard({
   const offlineOk = useOfflineAvailable();
   const { update, isDismissed, dismiss: dismissUpdate } = useAppUpdate(LYL_CREATED_WITH_VERSION);
   const whatsNew = useWhatsNew(LYL_CREATED_WITH_VERSION);
+  const simpleMode = useSimpleMode();
   const [openProjectMenuId, setOpenProjectMenuId] = useState<string | null>(null);
   const [openSharedProjectMenuKey, setOpenSharedProjectMenuKey] = useState<string | null>(null);
   const [projectPendingDeleteId, setProjectPendingDeleteId] = useState<string | null>(null);
@@ -3116,7 +3153,7 @@ function Dashboard({
 
       <div className="dashboard-layout">
         <section className={`dashboard-main${hasProjects ? " has-projects" : ""}`} aria-label={dashboardSection === "shared" ? t("shared.title") : t("dashboard.projects")}>
-          {update && !isDismissed ? (
+          {update && !isDismissed && !simpleMode ? (
             <aside
               className="dashboard-update-notice"
               role="status"
@@ -3244,7 +3281,7 @@ function Dashboard({
                         <span className="project-preview server-folder-preview">
                           <FolderUp aria-hidden="true" />
                         </span>
-                        <span className="project-card-title">..</span>
+                        <span className="project-card-title" translate="no">..</span>
                         <span className="project-card-meta">
                           {parentStorePath(sharedPath)
                             ? t("shared.parentFolderIn", { name: parentStorePath(sharedPath).split("/").slice(-1)[0] })
@@ -3269,7 +3306,7 @@ function Dashboard({
                         <span className="project-preview server-folder-preview">
                           <FolderKanban aria-hidden="true" />
                         </span>
-                        <span className="project-card-title">{folder.name}</span>
+                        <span className="project-card-title" translate="no">{folder.name}</span>
                         <span className="project-card-meta">{searchResults
                           ? (folder.path ? t("shared.searchFolderIn", { name: folder.path }) : t("shared.searchFolderRoot"))
                           : t("shared.folderMeta")}</span>
@@ -3347,7 +3384,7 @@ function Dashboard({
                     >
                       <button className="project-card-open" type="button" onClick={() => onOpenSharedProject(project)}>
                         <ProjectPreview accent={PROJECT_ACCENTS[index % PROJECT_ACCENTS.length]} thumbnailUrl={project.thumbnailUrl} />
-                        <span className="project-card-title">{project.name}</span>
+                        <span className="project-card-title" translate="no">{project.name}</span>
                         <span className="project-card-meta">{formatUpdated(project.updatedAt, language)} - {formatFileSize(project.size)}</span>
                       </button>
                       {/* Ein Treffer sagt, wo er liegt - und der Ordner ist ein
@@ -3466,9 +3503,9 @@ function Dashboard({
                   {dashboardNotice}
                 </div>
               ) : null}
-              {whatsNew.view ? <WhatsNewCard view={whatsNew.view} current={LYL_CREATED_WITH_VERSION} onClose={whatsNew.dismiss} /> : null}
-              <InstallAppHint />
-              <TabletHint />
+              {whatsNew.view && !simpleMode ? <WhatsNewCard view={whatsNew.view} current={LYL_CREATED_WITH_VERSION} onClose={whatsNew.dismiss} /> : null}
+              {simpleMode ? null : <InstallAppHint />}
+              {simpleMode ? null : <TabletHint />}
               {/* The designs live in the browser, and a browser can fail or break with an update: said plainly and always (not to be closed). */}
               <aside className="storage-notice" aria-label={t("storageNotice.title")}>
                 <span className="storage-notice-icon" aria-hidden="true">
@@ -3520,7 +3557,7 @@ function Dashboard({
                               className={localDropTarget === folder.id ? "drop-target" : undefined}
                               {...localDropTargetProps(folder.id)}
                             >
-                              {folder.name}
+                              <span translate="no">{folder.name}</span>
                             </button>
                           </Fragment>
                         );
@@ -3593,7 +3630,7 @@ function Dashboard({
                         <span className="project-preview server-folder-preview">
                           <FolderUp aria-hidden="true" />
                         </span>
-                        <span className="project-card-title">..</span>
+                        <span className="project-card-title" translate="no">..</span>
                         <span className="project-card-meta">
                           {openParentId ? t("shared.parentFolderIn", { name: folderName(openParentId) }) : t("dashboard.parentFolderRoot")}
                         </span>
@@ -3622,7 +3659,7 @@ function Dashboard({
                         <span className="project-preview server-folder-preview">
                           <FolderKanban size={46} strokeWidth={1.5} aria-hidden="true" />
                         </span>
-                        <span className="project-card-title">{t("dashboard.sharedProjects")}</span>
+                        <span className="project-card-title" translate="no">{t("dashboard.sharedProjects")}</span>
                         {/* Beim Suchen sagt die Kachel, wieviel auf dem Server
                             gefunden wurde - sonst wuesste niemand, dass es dort
                             ueberhaupt etwas zu holen gibt. */}
@@ -3662,7 +3699,7 @@ function Dashboard({
                           <span className="project-preview server-folder-preview">
                             <Folder aria-hidden="true" />
                           </span>
-                          <span className="project-card-title">{folder.name}</span>
+                          <span className="project-card-title" translate="no">{folder.name}</span>
                           <span className="project-card-meta">{localSearch && where.length
                             ? t("shared.searchFolderIn", { name: where.join(" / ") })
                             : contents.designs === 0 && contents.folders === 0
@@ -3736,7 +3773,7 @@ function Dashboard({
                     >
                       <button className="project-card-open" type="button" onClick={() => onOpenProject(project.id)}>
                         <ProjectPreview accent={project.accent} thumbnailUrl={project.thumbnailUrl} />
-                        <span className="project-card-title">{project.name}</span>
+                        <span className="project-card-title" translate="no">{project.name}</span>
                         <span className="project-card-meta">
                           {formatUpdated(project.updatedAt, language)} - {t("dashboard.shapeCount", { count: project.shapes })}
                         </span>
@@ -3846,7 +3883,7 @@ function Dashboard({
                   there for anyone who wants to read it again. `open` is keyed
                   to the unfiltered count, so a fruitless search neither opens
                   nor closes it behind the reader's back. */}
-              <details className="dashboard-welcome" open={!hasProjects}>
+              {simpleMode ? null : <details className="dashboard-welcome" open={!hasProjects}>
                 <summary className="dashboard-welcome-summary">
                   <span className="dashboard-welcome-summary-title">{t("welcome.teaserTitle")}</span>
                   <span className="dashboard-welcome-summary-hint">{t("welcome.teaserHint")}</span>
@@ -3854,7 +3891,7 @@ function Dashboard({
                 <div className="dashboard-welcome-body">
                   <WelcomeGuideBody tr={t} offline={offlineOk} />
                 </div>
-              </details>
+              </details>}
             </>
           )}
           <AppFooter version={LYL_CREATED_WITH_VERSION} updateInfo={update} />
@@ -3980,7 +4017,7 @@ function Dashboard({
                     }}
                   >
                     <FolderKanban size={18} />
-                    <span>{folder.name}</span>
+                    <span translate="no">{folder.name}</span>
                   </button>
                 ))}
               </div>

@@ -120,7 +120,8 @@ html:where([data-theme="dark"][data-palette="graphite"])[data-toolbar-size="smal
   --editor-toolbar-height: 109px;
 }
 
-html:where([data-theme="dark"][data-palette="graphite"])[data-toolbar-size="large"] {
+html:where([data-theme="dark"][data-palette="graphite"])[data-toolbar-size="large"],
+html:where([data-theme="dark"][data-palette="graphite"])[data-simple-mode="on"]:not([data-toolbar-size]) {
   --toolbar-scale: 1.25;
   --editor-toolbar-tools-height: 87px;
   --editor-toolbar-height: 131px;
@@ -1867,6 +1868,10 @@ html[data-theme="dark"]:where([data-palette="graphite"]) .shell-openings-summary
   border: 1px solid #dddddd;
 }
 
+:where(html[data-theme="dark"][data-palette="graphite"]) .shape-menu-item .shape-menu-thumb::after {
+  background: var(--shape-default-color);
+}
+
 :where(html[data-theme="dark"][data-palette="graphite"]) .shape-menu-dropdown:not(.sketch-shape-menu-dropdown) {
   --shape-menu-columns: 4;
   --shape-menu-width: calc(var(--shape-menu-columns) * 210px + (var(--shape-menu-columns) - 1) * 4px + 34px);
@@ -1876,7 +1881,8 @@ html:where([data-theme="dark"][data-palette="graphite"])[data-toolbar-size="smal
   --shape-menu-columns: 5;
 }
 
-html:where([data-theme="dark"][data-palette="graphite"])[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-dropdown) {
+html:where([data-theme="dark"][data-palette="graphite"])[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-dropdown),
+html:where([data-theme="dark"][data-palette="graphite"])[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.sketch-shape-menu-dropdown) {
   --shape-menu-columns: 3;
 }
 
@@ -7394,6 +7400,57 @@ html[data-theme="dark"]:where([data-palette="graphite"]) .interactive-help-windo
 :where(html[data-theme="dark"][data-palette="graphite"]) .edge-modifier-footer a {
   border: 1px solid #c8c8c8;
   text-decoration: none;
+}
+
+:where(html[data-theme="dark"][data-palette="graphite"]) .simple-mode-hold {
+  border: 1px solid var(--workspace-border, rgba(127, 127, 127, 0.5));
+  background: transparent;
+  color: inherit;
+}
+
+:where(html[data-theme="dark"][data-palette="graphite"]) .simple-mode-hold::after {
+  background: currentColor;
+}
+
+:where(html[data-theme="dark"][data-palette="graphite"]) .dashboard-welcome-switch a,
+:where(html[data-theme="dark"][data-palette="graphite"]) .dashboard-welcome-videos a,
+:where(html[data-theme="dark"][data-palette="graphite"]) .whats-new-note a,
+:where(html[data-theme="dark"][data-palette="graphite"]) .guide-videos a,
+:where(html[data-theme="dark"][data-palette="graphite"]) .interactive-help-more a {
+  color: #8f4700;
+  text-decoration: underline;
+}
+
+:where(html[data-theme="dark"][data-palette="graphite"]) .dashboard-welcome-switch a:hover,
+:where(html[data-theme="dark"][data-palette="graphite"]) .dashboard-welcome-videos a:hover,
+:where(html[data-theme="dark"][data-palette="graphite"]) .whats-new-note a:hover,
+:where(html[data-theme="dark"][data-palette="graphite"]) .guide-videos a:hover,
+:where(html[data-theme="dark"][data-palette="graphite"]) .interactive-help-more a:hover {
+  color: #ad6206;
+}
+
+:where(html[data-theme="dark"][data-palette="graphite"]) .dashboard-welcome-switch a[target="_blank"]::after,
+:where(html[data-theme="dark"][data-palette="graphite"]) .dashboard-welcome-videos a[target="_blank"]::after,
+:where(html[data-theme="dark"][data-palette="graphite"]) .whats-new-note a[target="_blank"]::after,
+:where(html[data-theme="dark"][data-palette="graphite"]) .guide-videos a[target="_blank"]::after,
+:where(html[data-theme="dark"][data-palette="graphite"]) .interactive-help-more a[target="_blank"]::after {
+  text-decoration: none;
+}
+
+html[data-theme="dark"]:where([data-palette="graphite"]) .dashboard-welcome-switch a,
+html[data-theme="dark"]:where([data-palette="graphite"]) .dashboard-welcome-videos a,
+html[data-theme="dark"]:where([data-palette="graphite"]) .whats-new-note a,
+html[data-theme="dark"]:where([data-palette="graphite"]) .guide-videos a,
+html[data-theme="dark"]:where([data-palette="graphite"]) .interactive-help-more a {
+  color: #f3a452;
+}
+
+html[data-theme="dark"]:where([data-palette="graphite"]) .dashboard-welcome-switch a:hover,
+html[data-theme="dark"]:where([data-palette="graphite"]) .dashboard-welcome-videos a:hover,
+html[data-theme="dark"]:where([data-palette="graphite"]) .whats-new-note a:hover,
+html[data-theme="dark"]:where([data-palette="graphite"]) .guide-videos a:hover,
+html[data-theme="dark"]:where([data-palette="graphite"]) .interactive-help-more a:hover {
+  color: #ffc784;
 }
 
 :where(html[data-theme="dark"][data-palette="graphite"]) .history-view-bar {

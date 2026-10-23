@@ -59,7 +59,7 @@ Die KI arbeitet mit denselben Funktionen wie du, sie läuft über denselben Weg 
 | `layerling_place_on_face` | setzt Objekte auf eine Fläche eines anderen, auch schräg, wie die Taste C |
 | `layerling_perforate_face` | schneidet ein Lochmuster in eine ebene Fläche, die Löcher bleiben als Aussparungen mit dem Körper gruppiert |
 | `layerling_sweep_sketch` | zieht einen rechteckigen oder runden Querschnitt entlang eines Pfades aus Punkten als einen exakten Körper; ein geschlossener Pfad ergibt einen Ring |
-| `layerling_push_face` | zieht eine ebene Fläche heraus oder schneidet eine Tasche hinein, mit Rand zur Kante und Eckenradius; das neue Teil ist ein Skizzenkörper, mit dem Körper gruppiert |
+| `layerling_push_face` | zieht eine ebene Fläche heraus oder schneidet eine Tasche hinein, mit Rand zur Kante und Eckenradius; das neue Teil ist ein Skizzenkörper, mit dem Körper gruppiert, oder mit `separate` ein freier eigener Körper |
 | `layerling_mate_faces` | legt eine Fläche eines Objekts an die Fläche eines anderen, gegeneinander oder bündig |
 | `layerling_open_group` | öffnet eine Gruppe, damit ihre Teile einzeln änderbar sind, auch eine Gruppe in einer geöffneten |
 | `layerling_close_group` | schließt sie wieder („Fertig“) oder bricht ab |
@@ -79,6 +79,7 @@ Die KI arbeitet mit denselben Funktionen wie du, sie läuft über denselben Weg 
 | `layerling_layer_text` | macht aus einem Text einen Stapel aus Schichten für den Mehrfarbdruck (Buchstaben, breitere Ränder, Platte ohne Löcher) oder baut einen Stapel neu, mit Loch für den Schlüsselring, Ecken je Schicht und gerundeter oder abgeschrägter Buchstabenkante; mit einer Namensliste ein Schild je Name |
 | `layerling_layer_icon` | macht aus einem SVG-Symbol (dem Text der Datei oder einem extrudierten Skizzenkörper) ein Symbolschild in Schichten für den Mehrfarbdruck - Symbol, breitere Ränder, Platte ohne Löcher - oder baut eines mit neuer Breite oder neuen Schichten neu; mit einer Anzahl füllt es die Platte mit Kopien |
 | `layerling_create_qr_code` | erzeugt aus einem Text oder einer Webadresse einen QR-Code wie {{ui:shape.qrCode}} in der Formenbibliothek - den Code allein, erhaben auf einer Platte oder graviert, mit Fehlerkorrektur, Breite, Höhe, Ruhezone und auf Wunsch als Aussparung; warnt, wenn ein Modul unter 0,8 mm kommt |
+| `layerling_reference_image` | legt ein Referenzbild aus einem Bild an wie {{ui:import.referenceImage}} oder verschiebt, dreht, kalibriert (zwei Punkte des Bildes und ihr wirklicher Abstand), blendet oder sperrt eines - eine Hilfe, die nie exportiert oder gedruckt wird |
 | `layerling_measure_section` | misst auf einer Schnittebene zwischen zwei Punkten, die am Umriss einrasten – Wandstärken, Spalte, Passungen |
 | `layerling_show_overhangs` | schaltet die Überhang-Schraffur ein oder aus, setzt den Winkel und nennt je Körper die Fläche, die Stützen bräuchte |
 | `layerling_estimate_print` | schätzt Volumen, Gewicht und Filament für die Auswahl oder den ganzen Entwurf: für einen massiven Körper und als grobe Schätzung mit Wänden und Füllung wie im Exportfenster |
@@ -100,7 +101,7 @@ Die KI arbeitet mit denselben Funktionen wie du, sie läuft über denselben Weg 
 | `layerling_restore_from_history` | holt Objekte (auch Teile in Gruppen) aus einem früheren Stand als Kopien in den Entwurf zurück, wie „In den Entwurf holen“ in der Verlaufsansicht - ein Schritt, den Rückgängig zurücknimmt |
 | `layerling_export_section_svg` | liefert die Umrisse auf einer Schnittebene als SVG im Maßstab 1:1, aus denselben Körpern wie der Export |
 | `layerling_export_drawing` | macht die Werkstattzeichnung des Exports „2D“: drei Ansichten im Maßstab 1:1 auf einem ISO-Blatt mit Gesamtmaßen und einer Tabelle der runden Bohrungen, als SVG-Text oder PDF |
-| `layerling_export_mesh` | schreibt die Datei des Exportfensters als STL, 3MF oder OBJ, aus denselben Körpern; an einen Pfad auf diesem Rechner oder als Base64 |
+| `layerling_export_mesh` | schreibt die Datei des Exportfensters als STL, 3MF, OBJ oder SVG (Draufsicht, Aufstandsfläche oder sichtbare Kanten), aus denselben Körpern; an einen Pfad auf diesem Rechner oder als Base64 |
 | `layerling_save_project` | speichert den ganzen bearbeitbaren Entwurf als .lyl-Datei an einem Pfad auf dem Rechner, auf dem der MCP-Server läuft, ohne Dialog; eine vorhandene Datei wird nur mit `overwrite` ersetzt, geschrieben wird über eine temporäre Datei, und das Ziel von Strg+S im Editor bleibt, wie es war |
 | `layerling_set_workplane` | legt die Arbeitsebene auf eine Seite eines Körpers, setzt sie auf die Grundplatte zurück oder blendet sie aus und ein |
 | `layerling_capture_image` | nimmt ein Bild der Ansicht auf, von vorn, oben, seitlich, schräg von einer Ecke und mehr |

@@ -16,6 +16,8 @@ Jeśli Twoja przeglądarka to potrafi, na stronie startowej pojawia się wskazó
 
 Wskazówkę na stronie startowej zamkniesz przyciskiem {{ui:installHint.dismiss}}. Ponowne uruchomienie zainstalowanej aplikacji w Chrome albo Edge przenosi na wierzch otwarte okno, zamiast otwierać kolejne.
 
+Na komputerze zainstalowany layerling w Chrome albo Edge rejestruje się też jako program do plików `.lyl`: dwuklik na projekcie w menedżerze plików otwiera go w layerling, a [[Ctrl]]+[[S]] zapisuje z powrotem do tego pliku. Na Androidzie to nie działa, bo przeglądarka nie oferuje tam powiązania plików dla zainstalowanych aplikacji internetowych. Otwórz projekt przyciskiem {{ui:dashboard.importGeometry}} na stronie startowej.
+
 ## Aktualizacje
 
 Gdy jest nowsza wersja, layerling pokazuje to na stronie startowej. Przez {{ui:dashboard.updateBannerLink}} przeczytasz, co się zmieniło. Numer wersji jest w prawym dolnym rogu. Po przeładowaniu strony masz nową wersję.

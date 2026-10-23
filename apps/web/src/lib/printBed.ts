@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { quaternionForShape } from "@/lib/geometryRotation";
 import { PRINTER_PRESETS, type PrinterPreset } from "@/lib/printerPresets.generated";
-import { isNonSolidShapeKind, shapeDepth, shapeWidth } from "@/lib/workplaneShapes";
+import { isNonSolidShape, shapeDepth, shapeWidth } from "@/lib/workplaneShapes";
 import type { WorkplaneShape } from "@/types/layerling";
 
 export function printerPresetById(id: string | undefined | null): PrinterPreset | null {
@@ -88,7 +88,7 @@ const BED_EDGE_TOLERANCE = 0.01;
 export function bedOverhangs(shapes: readonly WorkplaneShape[], width: number, depth: number, height?: number): BedOverhang[] {
   const halfWidth = width / 2;
   const halfDepth = depth / 2;
-  const printed = shapes.filter((shape) => !shape.hole && !shape.hidden && !isNonSolidShapeKind(shape.kind));
+  const printed = shapes.filter((shape) => !shape.hole && !shape.hidden && !isNonSolidShape(shape));
   const vertical = new Map(printed.map((shape) => [shape, shapeVerticalExtent(shape)]));
   const base = Math.min(...[...vertical.values()].map((extent) => extent.minY));
   const overhangs: BedOverhang[] = [];

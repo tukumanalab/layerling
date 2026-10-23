@@ -79,6 +79,7 @@ AI'en arbejder med de samme funktioner som dig, gennem den samme vej som din han
 | `layerling_layer_text` | laver en tekst om til en stak lag til et flerfarvet print (bogstaver, bredere kanter, en plade uden huller) eller bygger en stak igen, med et nøgleringshul, hjørnerne pr. lag og en rundet eller faset bogstavkant; med en navneliste, ét tag pr. navn |
 | `layerling_layer_icon` | laver et SVG-ikon (filens tekst, eller en ekstraheret skitseform) til et lagdelt ikon-tag til et flerfarvet print - ikonet, bredere kanter, en plade uden huller - eller bygger et igen med en ny bredde eller lag; med et antal fylder den pladen med kopier |
 | `layerling_create_qr_code` | laver en QR-kode af en tekst eller webadresse som {{ui:shape.qrCode}} i formbiblioteket - koden alene, hævet på en plade eller graveret, med fejlkorrektion, bredde, højde, stillezone og som hul, hvis du vil; advarer, når et modul kommer under 0,8 mm |
+| `layerling_reference_image` | tilføjer et referencebillede fra et billede som {{ui:import.referenceImage}}, eller flytter, drejer, kalibrerer (to punkter på billedet og deres virkelige afstand), toner eller låser et - en hjælp, der aldrig eksporteres eller printes |
 | `layerling_measure_section` | måler på et skæreplan mellem to punkter der snapper til omridset - vægtykkelse, mellemrum, pasninger |
 | `layerling_show_overhangs` | slår overhængsskraveringen til eller fra, sætter vinklen og rapporterer for hver form det areal der ville have brug for støtte |
 | `layerling_estimate_print` | estimerer volumen, vægt og filament for markeringen eller hele designet: for en solid form, og som et groft gæt med vægge og fyldning som eksportvinduet |
@@ -100,7 +101,7 @@ AI'en arbejder med de samme funktioner som dig, gennem den samme vej som din han
 | `layerling_restore_from_history` | henter objekter (også dele i grupper) fra en tidligere tilstand tilbage i designet som kopier, som historikvisningens knap til at hente ind i designet - ét trin, som fortryd tager tilbage |
 | `layerling_export_section_svg` | returnerer omridsene på et skæreplan som en SVG i 1:1, fra de samme former som eksporten |
 | `layerling_export_drawing` | laver værkstedstegningen fra "2D"-eksporten: tre visninger i 1:1 på et ISO-ark med samlede størrelser og en tabel over de runde boringer, som SVG-tekst eller PDF |
-| `layerling_export_mesh` | skriver eksportvinduets fil som STL, 3MF eller OBJ af de samme legemer; til en sti på denne computer eller som base64 |
+| `layerling_export_mesh` | skriver eksportvinduets fil som STL, 3MF, OBJ eller SVG (topvisning, fodaftryk eller synlige kanter) af de samme legemer; til en sti på denne computer eller som base64 |
 | `layerling_save_project` | gemmer hele det redigerbare design som en .lyl-fil på en sti på den computer, hvor MCP-serveren kører, uden dialog; en eksisterende fil erstattes kun med `overwrite`, der skrives via en midlertidig fil, og målet for Ctrl+S i editoren bliver, som det var |
 | `layerling_set_workplane` | lægger arbejdsplanet på en side af en form eller tilbage på grundpladen, og skjuler eller viser det |
 | `layerling_capture_image` | tager et billede af visningen: forfra, oppefra, fra siden, diagonalt fra et hjørne og mere |

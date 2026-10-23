@@ -79,6 +79,7 @@ Az MI ugyanazokkal a funkciókkal dolgozik, mint te, ugyanazon az úton, mint a 
 | `layerling_layer_text` | egy szöveget rétegekből álló kötegbe alakít többszínű nyomtatáshoz (betűk, szélesebb szegélyek, egy lyukak nélküli lap), vagy újraépít egy köteget, kulcstartólyukkal, rétegenkénti sarkokkal és lekerekített vagy letört betűéllel; névlistával nevenként egy címkét készít |
 | `layerling_layer_icon` | egy SVG-ikont (a fájl szövegét vagy egy kihúzott vázlattestet) rétegekből álló ikoncímkévé alakít többszínű nyomtatáshoz – az ikon, szélesebb szegélyek, egy lyukak nélküli lap –, vagy új szélességgel vagy rétegekkel újraépít egyet; darabszámmal másolatokkal tölti meg a tárgyasztalt |
 | `layerling_create_qr_code` | szövegből vagy webcímből QR-kódot készít, mint az alakzatkönyvtár {{ui:shape.qrCode}} eleme – csak a kódot, lapon kiemelve vagy gravírozva, hibajavítással, szélességgel, magassággal, csendes zónával és kérésre üregként; figyelmeztet, ha egy modul 0,8 mm alá kerül |
+| `layerling_reference_image` | képből mintaképet ad hozzá, mint a {{ui:import.referenceImage}}, vagy egyet mozgat, forgat, kalibrál (a kép két pontja és valódi távolságuk), halványít vagy zárol - segédlet, amely sosem exportálódik és sosem nyomtatódik |
 | `layerling_measure_section` | egy vágósíkon két, a körvonalhoz illeszkedő pont között mér – falvastagság, rések, illesztések |
 | `layerling_show_overhangs` | be- vagy kikapcsolja a túlnyúlások sraffozását, beállítja a szöget, és minden testnél megadja azt a területet, amelyhez támasz kellene |
 | `layerling_estimate_print` | megbecsüli a térfogatot, a tömeget és a filamentet a kijelöléshez vagy a teljes tervhez: tömör testre, és durva becslésként falakkal és kitöltéssel, mint az exportálási ablak |
@@ -100,7 +101,7 @@ Az MI ugyanazokkal a funkciókkal dolgozik, mint te, ugyanazon az úton, mint a 
 | `layerling_restore_from_history` | objektumokat (csoportokon belüli alkatrészeket is) hoz vissza másolatként egy korábbi állapotból a tervbe, mint az előzménynézet visszahozó gombja - egy lépés, amelyet a visszavonás visszavesz |
 | `layerling_export_section_svg` | 1:1 méretarányú SVG-ként adja vissza egy vágósík körvonalait, ugyanazokból a testekből, mint az export |
 | `layerling_export_drawing` | elkészíti a „2D” export műhelyrajzát: három nézet 1:1 méretarányban ISO lapon, befoglaló méretekkel és a kerek furatok táblázatával, SVG-szövegként vagy PDF-ként |
-| `layerling_export_mesh` | az exportablak fájlját STL, 3MF vagy OBJ formában írja ki ugyanazokból a testekből; ezen a számítógépen megadott helyre vagy base64-ként |
+| `layerling_export_mesh` | az exportablak fájlját STL, 3MF, OBJ vagy SVG (felülnézet, felfekvési felület vagy látható élek) formában írja ki ugyanazokból a testekből; ezen a számítógépen megadott helyre vagy base64-ként |
 | `layerling_save_project` | elmenti a teljes szerkeszthető tervet .lyl fájlként egy útvonalra azon a gépen, amelyen az MCP-kiszolgáló fut, párbeszédablak nélkül; meglévő fájlt csak az `overwrite` cserél le, ideiglenes fájlon át íródik, és a Ctrl+S célja a szerkesztőben változatlan marad |
 | `layerling_set_workplane` | egy test oldalára vagy vissza az alaplapra teszi a munkasíkot, és elrejti vagy megmutatja |
 | `layerling_capture_image` | képet készít a nézetről: elölről, felülről, oldalról, ferdén egy sarokból és még sok másból |

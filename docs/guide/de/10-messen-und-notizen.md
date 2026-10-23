@@ -63,10 +63,10 @@ Eine Notiz hält fest, was die Geometrie nicht sagt: „Hier ist eine Schraube 0
 - {{ui:note.detach}} löst eine angeheftete Notiz vom Körper.
 - {{ui:editor.tool.group}} nimmt eine angeheftete Notiz mit in die Gruppe; {{ui:editor.tool.ungroup}} gibt sie an das sichtbare Teil darunter weiter, auch an eine Gruppe darin. Solange eine Gruppe mit {{ui:group.edit}} offen ist, wandern ihre Notizen mit dem Teil darunter und kehren mit {{ui:group.done}} zur Gruppe zurück; Abbrechen stellt sie wieder her, wie sie waren.
 - Wird ihr Körper gelöscht oder liegt kein sichtbarer Körper mehr darunter, bleibt die Notiz stehen, wo sie war, auf der Arbeitsebene.
-- Ziehen verschiebt die Notiz, ein Klick öffnet sie zum Bearbeiten.
+- Ziehen an der Nadel verschiebt die Notiz. Ein Klick auf die Nadel klappt die Karte zu, nur die kleine Nummer bleibt; ein weiterer Klick klappt sie wieder auf. Ein Klick in den Text bearbeitet ihn.
 - Beim Schreiben übernimmt [[Enter]] den Text, und [[Esc]] stellt ihn wieder her, wie er vorher war; [[Umschalt]]+[[Enter]] beginnt eine neue Zeile.
 
-Notizen werden im Entwurf gespeichert, tauchen in keinem Export auf und lassen sich über {{ui:visibility.notes}} ein- und ausblenden.
+Notizen werden im Entwurf gespeichert, tauchen in keinem Export auf und lassen sich über {{ui:visibility.notes}} (unter {{ui:editor.visibilityOptions}}, dem Pfeil neben dem Augen-Symbol) ein- und ausblenden.
 
 ## Bezugspunkte
 
@@ -77,3 +77,15 @@ Ein Bezugspunkt ist eine bloße Markierung im Raum, wie ein Bleistiftstrich oder
 - Ziehst du eine Form, rasten ihre Kanten und ihre Mitte an einem Punkt ein, wie sie an anderen Formen einrasten ({{ui:workspace.objectSnap}}). Auch das Winkellineal rastet an Punkten ein.
 - Punkte werden im Entwurf gespeichert, tauchen in keinem Export auf und werden zusammen mit den Notizen über {{ui:visibility.notes}} ein- und ausgeblendet.
 - Eine KI kann sie mit `layerling_add_reference_points`, `layerling_list_reference_points` und `layerling_remove_reference_points` setzen, auflisten und entfernen.
+
+## Referenzbilder
+
+Ein Referenzbild ist ein Bild, an dem du Teile ausrichtest: Leg das Foto einer Platine auf den Boden ihres Gehäuses und setz die Abstandshalter, Löcher und Ausschnitte für die Anschlüsse genau darauf. Es ist eine Hilfe, kein Körper: Es wird nie gedruckt, nie exportiert (STL, 3MF, OBJ, STEP, SVG), gehört nie zu einer Gruppe, einem Bündel oder einem Schnitt, und die Druckschätzung lässt es weg.
+
+- Öffne {{ui:editor.import}} und wähle {{ui:import.referenceImage}}, dann ein PNG-, JPG-, WebP-, GIF- oder BMP-Bild. Es landet auf der Arbeitsebene - auf der Platte oder auf der Fläche, auf die du die Arbeitsebene gelegt hast -, mit der längeren Seite 100 mm und halb durchsichtig.
+- Verschieb, dreh und skalier es mit seinen Griffen wie jede Form. Ein Körper davor wird zuerst gewählt, du greifst also beim Arbeiten darauf nicht versehentlich das Bild.
+- {{ui:referenceImage.seeThrough}} in seinen Einstellungen blendet es von ganz sichtbar bis kaum noch da.
+- {{ui:referenceImage.calibrate}} gibt ihm seine wirkliche Größe wie in der Skizze: Klicke zwei Punkte auf dem Bild an, deren wirklichen Abstand du kennst - zwei Befestigungslöcher der Platine etwa - und gib diesen Abstand unter {{ui:referenceImage.distance}} ein. Das Bild behält seine Proportionen und seine Mitte.
+- Sperre es mit dem Schloss im Kopf seiner Einstellungen, dann bleibt es liegen: Klicks gehen durch es hindurch auf die Platte. In der Objektliste wählst du es wieder aus, um es zu entsperren.
+- Das Bild liegt einmal in der Entwurfsdatei, egal wie oft es kopiert oder rückgängig gemacht wird. Ein großes Bild macht die Datei um so viel größer; die Meldung beim Hinzufügen nennt seine Größe.
+- Eine KI legt eines mit `layerling_reference_image` an, verschiebt, kalibriert, blendet und sperrt es.

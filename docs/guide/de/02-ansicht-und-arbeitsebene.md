@@ -39,6 +39,7 @@ Am linken Rand liegt eine schmale Leiste. Von oben nach unten:
 - {{ui:camera.focusSelection}} zoomt auf die Auswahl ([[F]] oder [[Umschalt]]+[[F]]).
 - {{ui:camera.zoomIn}} und {{ui:camera.zoomOut}} zoomen schrittweise, ebenso die Tasten [[+]] und [[−]].
 - {{ui:camera.orthographic}} schaltet auf eine flache Ansicht um, in der parallele Kanten parallel bleiben. Das ist zum Messen und zum Ausrichten von Kanten oft angenehmer als die perspektivische Ansicht. Mit [[O]] wechselst du hin und her, ein zweiter Klick geht zurück.
+- {{ui:camera.secondView}} öffnet eine zweite Ansicht des Entwurfs in einem eigenen Fenster, siehe unten. Ein zweiter Klick schließt es.
 - {{ui:camera.hideWorkplane}} (das Auge über dem Gitter) blendet die Platte mit ihrem Gitter aus, damit du die Unterseite eines Entwurfs von unten ansehen kannst. Es ändert sich nur die Ansicht: Neue Formen landen weiter auf der Arbeitsebene. Ein zweiter Klick blendet sie wieder ein.
 - {{ui:camera.placeWorkplane}}, das Maßband und das Winkellineal sind eigene Werkzeuge, sie kommen weiter unten und im Kapitel [Messen und Notizen](chapter:messen-und-notizen) vor.
 
@@ -47,6 +48,10 @@ Am linken Rand liegt eine schmale Leiste. Von oben nach unten:
 Ein Entwurf öffnet sich so, wie du ihn verlassen hast: Blickwinkel, Zoom und Ausschnitt der Ansicht bleiben mit ihm in diesem Browser erhalten, du machst also dort weiter, wo du aufgehört hast, auch nach „Home“ oder dem Schließen der Seite. Eine gespeicherte Datei (.lyl) nimmt die Ansicht mit, sie öffnet sich also auch anderswo darin. Die Ansicht gehört nicht zum Rückgängig-Verlauf.
 
 Du kannst in jedem Entwurf außerdem vier eigene Ansichten festhalten. [[Umschalt]]+[[7]], [[Umschalt]]+[[8]], [[Umschalt]]+[[9]] oder [[Umschalt]]+[[0]] speichert die Ansicht genau so, wie sie ist - Blickwinkel, Ausschnitt, Zoom und flach oder perspektivisch - unter dieser Taste, und die Taste allein ([[7]], [[8]], [[9]] oder [[0]]) holt sie zurück. Eine Meldung unten bestätigt das Speichern; speicherst du erneut unter derselben Taste, ersetzt das die Ansicht. Wie die Ansicht oben bleiben die gespeicherten Ansichten mit dem Entwurf in diesem Browser und reisen in einer gespeicherten Datei (.lyl) mit; zum Rückgängig-Verlauf gehören sie nicht.
+
+### Eine zweite Ansicht im eigenen Fenster
+
+{{ui:camera.secondView}} öffnet ein Fenster, das denselben Entwurf durch eine eigene Kamera zeigt. So siehst du ihn von zwei Seiten zugleich - etwa von vorn, während du von oben arbeitest. Jede Änderung im Editor erscheint dort sofort; geändert wird der Entwurf nur im Hauptfenster, und auch die Griffe bleiben dort. Im zweiten Fenster drehen die Maus und der Ansichtswürfel dessen Ansicht wie hier, ebenso die Tasten: [[1]] bis [[6]], [[F]], [[Pos1]], [[O]], [[+]] und [[−]], die Pfeiltasten zum Drehen und [[Strg]] mit den Pfeilen zum Verschieben. [[F]] zoomt dort auf das, was im Editor ausgewählt ist. Auch die vier gespeicherten Ansichten des Entwurfs gelten dort: [[7]], [[8]], [[9]] und [[0]] holen sie zurück, und [[Umschalt]] mit einer dieser Tasten speichert die Ansicht dieses Fensters darunter - für beide Fenster. Seine eigene Kameraleiste hat {{ui:camera.home}}, {{ui:camera.focusSelection}}, {{ui:camera.zoomIn}}, {{ui:camera.zoomOut}}, {{ui:camera.orthographic}} und {{ui:camera.hideWorkplane}}, und sie wirken nur auf dieses Fenster. Das Fenster öffnet sich dort, wo du es verlassen hast, in derselben Größe, und schließt sich mit dem Editor. Auf Handys und Tablets wird der Knopf nicht angezeigt.
 
 ## Ins Innere schauen: die Schnittansicht
 
@@ -89,13 +94,15 @@ Das Gitter zeigt die Größe der Platte. Unten rechts steht das **Raster**: Vers
 
 ### Das Einstellungsfenster
 
-Das Zahnrad im Menüband ({{ui:editor.workspaceSettings}}) öffnet die Einstellungen. Links liegen fünf Bereiche: {{ui:workspace.appearance}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}} und {{ui:workspace.history}}. Eine Änderung gilt sofort. {{ui:workspace.makeDefault}} unten sichert die aktuellen Einstellungen als Vorgabe, sodass ein neues Design mit ihnen beginnt, und {{ui:workspace.close}} oben rechts schließt das Fenster. Dieser Teil geht die Einstellungen eine nach der anderen durch.
+Das Zahnrad im Menüband ({{ui:editor.workspaceSettings}}) öffnet die Einstellungen. Links liegen fünf Bereiche: {{ui:workspace.appearance}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}} und {{ui:workspace.history}}. Eine Änderung gilt sofort. {{ui:workspace.makeDefault}} unten sichert die aktuellen Einstellungen als Vorgabe, sodass ein neues Design mit ihnen beginnt. Eine geöffnete Datei bringt ihre eigenen Einstellungen mit; {{ui:workspace.useMyDefault}} daneben legt deine gesicherten Farben, das Raster und das Übrige auf den offenen Entwurf und lässt die Größe der Platte, den Drucker und die Einheiten unberührt. {{ui:workspace.close}} oben rechts schließt das Fenster. Dieser Teil geht die Einstellungen eine nach der anderen durch.
 
 ### Darstellung: Thema, Leiste und Ansichtswürfel
 
 {{ui:workspace.theme}} legt das Farbschema des ganzen Programms fest: {{ui:workspace.themeSystem}} folgt deinem Rechner, dazu kommen {{ui:workspace.themeLight}}, {{ui:workspace.themeDark}} und {{ui:workspace.themeGraphite}}. Du kannst es auch oben rechts im Editor ändern.
 
 {{ui:workspace.toolbarSize}} macht die Knöpfe der Leiste oben, ihr Formenmenü, die Kamerasteuerung links und die Eigenschaftentafel rechts kleiner oder größer: {{ui:workspace.toolbarSizeSmall}}, {{ui:workspace.toolbarSizeMedium}} (wie bisher) oder {{ui:workspace.toolbarSizeLarge}}. Klein lässt auf einem Laptop mehr Platz für die Arbeitsebene, groß trifft sich leichter auf einem großen Bildschirm oder mit dem Finger. Mit großen Knöpfen gehen die Gruppen der Leiste in eine zweite Zeile, wenn das Fenster für sie zu schmal ist. Die Größe merkt sich dieser Browser, sie gilt für jedes Design.
+
+{{ui:workspace.shapeColors}} zeigt auf den Bildern der Formenbibliothek die Farbe, in der eine neue Form beginnt (die Farbe ihrer Art oder die, die du mit {{ui:inspector.saveDefaults}} gespeichert hast). Schalte es aus, wenn dir graue Bilder lieber sind; dein Browser merkt sich die Wahl.
 
 {{ui:workspace.viewCubePosition}} stellt den Ansichtswürfel in eine andere Ecke der Arbeitsfläche: {{ui:workspace.viewCubePositionTopLeft}} (wie bisher), {{ui:workspace.viewCubePositionTopRight}}, {{ui:workspace.viewCubePositionBottomLeft}} oder {{ui:workspace.viewCubePositionBottomRight}}. In jeder Ecke außer oben links rückt die Kamerasteuerung nach oben an den Platz, den der Würfel frei gemacht hat. Unten rechts steht der Würfel knapp über der Auswahl {{ui:inspector.snapGrid}}. Solange rechts die Eigenschaften einer Form offen sind, weicht ein Würfel auf der rechten Seite links daneben aus. Die Ecke merkt sich dieser Browser, sie gilt für jedes Design. In einem schmalen Fenster, etwa auf dem Handy, ist die Einstellung ausgeblendet und der Würfel bleibt oben links.
 
