@@ -37,6 +37,7 @@ U levého okraje je úzká lišta. Shora obsahuje:
 - {{ui:camera.focusSelection}} přiblíží výběr, [[F]] nebo [[Shift]]+[[F]].
 - {{ui:camera.zoomIn}} a {{ui:camera.zoomOut}} mění přiblížení po krocích, stejně jako [[+]] a [[−]].
 - {{ui:camera.orthographic}} zapne rovnoběžné promítání bez perspektivy. Rovnoběžné hrany zůstávají rovnoběžné, což usnadňuje měření a zarovnávání. Přepíná je i [[O]]; dalším kliknutím se vrátíte.
+- {{ui:camera.secondView}} otevře druhý pohled na projekt ve vlastním okně, popsaném níže. Druhé kliknutí ho zavře.
 - {{ui:camera.hideWorkplane}}, oko nad mřížkou, skryje podložku, aby bylo vidět spodní strany modelu. Mění pouze zobrazení; nové tvary stále dopadají na pracovní rovinu. Další kliknutí ji ukáže.
 - {{ui:camera.placeWorkplane}}, měření vzdáleností a úhelník jsou samostatné nástroje popsané níže a v kapitole [Měření a poznámky](chapter:measuring-and-notes).
 
@@ -45,6 +46,10 @@ Malá šipka úplně nahoře lištu skryje, pokud překáží.
 Projekt se otevírá s naposledy použitým úhlem, přiblížením a polohou pohledu. Pokračujete tak na stejném místě i po návratu na přehled projektů či zavření stránky. Pohled se přenáší také v souboru `.lyl`. Není součástí historie kroků zpět.
 
 V každém projektu si také můžete uložit čtyři vlastní pohledy. [[Shift]]+[[7]], [[Shift]]+[[8]], [[Shift]]+[[9]] nebo [[Shift]]+[[0]] uloží pohled přesně tak, jak je - úhel, polohu, přiblížení a kolmé či perspektivní zobrazení - pod tuto klávesu, a samotná klávesa ([[7]], [[8]], [[9]] nebo [[0]]) ho vrátí. Uložení potvrdí zpráva dole; nové uložení pod stejnou klávesu pohled nahradí. Stejně jako pohled výše zůstávají uložené pohledy s projektem v tomto prohlížeči a přenášejí se v uloženém souboru `.lyl`. Nejsou součástí historie kroků zpět.
+
+### Druhý pohled ve vlastním okně
+
+{{ui:camera.secondView}} otevře okno, které ukazuje tentýž projekt vlastní kamerou, takže ho vidíte ze dvou stran naráz - třeba zepředu, zatímco pracujete shora. Každá změna v editoru se tam hned projeví; projekt se mění jen v hlavním okně a úchyty zůstávají také tam. Ve druhém okně myš a pohledová kostka otáčejí jeho pohledem stejně jako zde, a stejně tak klávesy: [[1]] až [[6]], [[F]], [[Home]], [[O]], [[+]] a [[−]], šipky pro otáčení a [[Ctrl]] se šipkami pro posun. [[F]] tam přiblíží to, co je vybrané v editoru. Fungují tam i čtyři uložené pohledy projektu: [[7]], [[8]], [[9]] a [[0]] je vrátí a [[Shift]] s jednou z těchto kláves pod ni uloží pohled tohoto okna - pro obě okna. Jeho vlastní lišta kamery má {{ui:camera.home}}, {{ui:camera.focusSelection}}, {{ui:camera.zoomIn}}, {{ui:camera.zoomOut}}, {{ui:camera.orthographic}} a {{ui:camera.hideWorkplane}}, které působí jen na toto okno. Okno se otevře tam, kde jste ho nechali, ve stejné velikosti, a zavře se spolu s editorem. Na telefonech a tabletech se tlačítko nezobrazuje.
 
 ## Pohled dovnitř: řez
 

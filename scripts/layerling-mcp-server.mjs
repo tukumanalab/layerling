@@ -170,6 +170,8 @@ async function callTool(name, args) {
       return bridgeCommand("clear_history", args);
     case "layerling_layer_icon":
       return bridgeCommand("layer_icon", args, 60000);
+    case "layerling_reference_image":
+      return bridgeCommand("reference_image", args, 60000);
     case "layerling_create_qr_code":
       return bridgeCommand("create_qr_code", args, 60000);
     case "layerling_measure_section":

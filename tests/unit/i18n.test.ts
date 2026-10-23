@@ -107,7 +107,7 @@ describe("language detection", () => {
     expect(languageFromTag("en-GB")).toBe("en");
     expect(languageFromTag("fr-FR")).toBe("fr");
     expect(languageFromTag("ru-RU")).toBe("ru");
-    expect(languageFromTag("es-ES")).toBe(null);
+    expect(languageFromTag("sv-SE")).toBe(null);
     expect(languageFromTag(undefined)).toBe(null);
   });
 
@@ -119,6 +119,12 @@ describe("language detection", () => {
     expect(languageFromTag("pt-PT")).toBe(null);
   });
 
+  it("serves Spanish for the Spanish of Spain and of Latin America", () => {
+    expect(languageFromTag("es-ES")).toBe("es");
+    expect(languageFromTag("es-MX")).toBe("es");
+    expect(languageFromTag("es-419")).toBe("es");
+  });
+
   it("recognises only the languages it can serve", () => {
     expect(isLanguage("de")).toBe(true);
     expect(isLanguage("nl")).toBe(true);
@@ -127,7 +133,8 @@ describe("language detection", () => {
     expect(isLanguage("ru")).toBe(true);
     expect(isLanguage("it")).toBe(true);
     expect(isLanguage("ar")).toBe(true);
-    expect(isLanguage("es")).toBe(false);
+    expect(isLanguage("es")).toBe(true);
+    expect(isLanguage("sv")).toBe(false);
     expect(isLanguage(null)).toBe(false);
   });
 
@@ -158,10 +165,10 @@ describe("language detection", () => {
     expect(withBrowser(["de-AT", "de"])).toBe("de");
     expect(withBrowser(["de"])).toBe("de");
     // A language we do not serve falls back to English rather than to nothing.
-    expect(withBrowser(["es-ES", "ko"])).toBe("en");
+    expect(withBrowser(["sv-SE", "ko"])).toBe("en");
     expect(withBrowser(["ja-JP", "ja"])).toBe("ja");
     // The first tag we can serve wins, even behind one we cannot.
-    expect(withBrowser(["es-ES", "de-DE"])).toBe("de");
+    expect(withBrowser(["sv-SE", "de-DE"])).toBe("de");
     // A stored choice outranks the browser in both directions.
     expect(withBrowser(["de-DE"], "en")).toBe("en");
     expect(withBrowser(["en-US"], "de")).toBe("de");

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { analyseCatalogue } from "../../scripts/i18n-status.mjs";
 import { effectiveChapters } from "../../scripts/build-guide.mjs";
-import { createCatalogueStore } from "@/lib/i18n";
+import { LANGUAGE_BOOT_SCRIPT, createCatalogueStore } from "@/lib/i18n";
 import { LANGUAGE_INFO, LANGUAGES, isLanguage, languageFromTag } from "@/lib/languages";
 import { MESSAGES_EN } from "@/lib/messages.en";
 
@@ -63,6 +63,30 @@ describe("the language registry", () => {
 
   it("recognises a browser's language by its primary tag", () => {
     for (const language of LANGUAGES) expect(languageFromTag(`${language.toUpperCase()}-xx`)).toBe(language);
+  });
+
+  it("recognises Simplified and Traditional Chinese by script and region", () => {
+    expect(languageFromTag("zh-Hans-CN")).toBe("zh-cn");
+    expect(languageFromTag("zh-Hans")).toBe("zh-cn");
+    expect(languageFromTag("zh-TW")).toBe("zh-tw");
+    expect(languageFromTag("zh-HK")).toBe("zh-tw");
+    expect(languageFromTag("zh-MO")).toBe("zh-tw");
+    expect(languageFromTag("zh-Hant-CN")).toBe("zh-tw");
+    expect(languageFromTag("zh-Hant")).toBe("zh-tw");
+  });
+
+  it("gives the page the same lang before paint that the app will use", () => {
+    const painted = (languages: string[], stored: string | null = null) => {
+      const documentElement = { lang: "" };
+      const run = new Function("document", "navigator", "localStorage", LANGUAGE_BOOT_SCRIPT);
+      run({ documentElement }, { languages, language: languages[0] }, { getItem: () => stored });
+      return documentElement.lang;
+    };
+    expect(painted(["zh-Hant-TW"])).toBe("zh-TW");
+    expect(painted(["zh-Hans-CN"])).toBe("zh-CN");
+    expect(painted(["zh-HK"])).toBe("zh-TW");
+    expect(painted(["en-US"])).toBe("en");
+    expect(painted(["en-US"], "zh-tw")).toBe("zh-TW");
   });
 });
 

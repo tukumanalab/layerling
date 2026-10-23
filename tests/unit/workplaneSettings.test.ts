@@ -355,3 +355,12 @@ describe("reset grid (#503)", () => {
     expect(readWorkspaceDefault(storage)).toBeNull();
   });
 });
+
+describe("STL as a download (#731)", () => {
+  it("is off until switched on, and a saved choice is kept", () => {
+    expect(DEFAULT_WORKPLANE_WORKSPACE.stlAsDownload).toBe(false);
+    expect(normalizeWorkspaceSettings({}, DEFAULT_WORKPLANE_WORKSPACE).stlAsDownload).toBe(false);
+    expect(normalizeWorkspaceSettings({ stlAsDownload: true }, DEFAULT_WORKPLANE_WORKSPACE).stlAsDownload).toBe(true);
+    expect(normalizeWorkspaceSettings({ stlAsDownload: "yes" }, DEFAULT_WORKPLANE_WORKSPACE).stlAsDownload).toBe(false);
+  });
+});

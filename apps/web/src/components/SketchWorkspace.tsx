@@ -9,11 +9,12 @@ import { SketchRevolvePreview } from "@/components/SketchRevolvePreview";
 import { ToolbarConstructionLineIcon } from "@/components/toolbarIcons";
 import { constructionCrossings } from "@/lib/sketchConstruction";
 import { outlineSideMiddles, sketchSnapPoints } from "@/lib/sketchSnapPoints";
+import { openEndPoints } from "@/lib/sketchPointJoin";
 import { canApplySketchCornerTreatment } from "@/lib/sketchFilletChamfer";
 import { t } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
 import { useMovablePanel, type MovablePanelOptions } from "@/lib/useMovablePanel";
-import { parseMeasurementInput, resolveMeasurementInput } from "@/lib/measurementUnits";
+import { currentLengthUnitLabel, formatLengthMm, lengthDisplayUnit, parseLengthMm, parseMeasurementInput, resolveLengthMm, setLengthUnit } from "@/lib/measurementUnits";
 import { applySegmentDimension, SEGMENT_DIMENSION_CENTER } from "@/lib/sketchDimensions";
 import { applyCornerAngle, sketchCornerAt, type CornerTurn, type SketchCorner } from "@/lib/sketchAngles";
 import { isSegmentCurved } from "@/lib/sketchSegmentCurve";
@@ -25,8 +26,9 @@ import { isSketchPrimitive, type SketchPrimitive } from "@/lib/sketchPrimitives"
 import { meshForShape } from "@/lib/editorMeshCore";
 import { mirrorSign, resizedImportedMeshPositions } from "@/lib/workplaneShapes";
 import { DEFAULT_SNAP_GRID, DEFAULT_WORKPLANE_WORKSPACE, keyboardNudgeCoarseFactor, keyboardNudgeStep, normalizeSnapGrid, normalizeWorkspaceSettings, snapGridStep as snapStep, orbitControlsZoomSpeed, zoomDistanceScale, ZOOM_STEP_IN, ZOOM_STEP_OUT } from "@/lib/workplaneSettings";
-import type { GridSize, SketchImage, SketchOperation, SketchPoint, SketchProfile, SketchSegment, SketchStroke, SketchStrokeAlign, SketchStrokeCap, SketchStrokeJoin, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
+import type { GridSize, SketchImage, SketchOperation, SketchPoint, SketchProfile, SketchSegment, SketchStroke, SketchStrokeAlign, SketchStrokeCap, SketchStrokeJoin, SweepAnchor, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { resizePointerOnGrid } from "@/lib/sketchFrameResize";
+import { viewArrowStep } from "@/lib/viewArrowKeys";
 import { resizeSketchPoints, resizeSketchPointsToSize, type ResizeHandle, type SelectionBounds } from "@/lib/sketchSelectionResize";
 import { changesLockedOutline, sketchLockState } from "@/lib/sketchLock";
 import { dragRotationDegrees, rotateSketchPointsAbout, sketchPointsPivot } from "@/lib/sketchRotation";
@@ -44,6 +46,8 @@ export type { SketchPrimitive } from "@/lib/sketchPrimitives";
 export type SketchTool = "line" | "arc" | "bezier" | "smooth" | SketchPrimitive | "select" | "refine" | "erase" | "measure";
 /** The keys 1 to 4 and the drawing tool each picks, in the order of the tools on the left (#347). */
 export const SKETCH_TOOL_KEYS: Readonly<Record<string, SketchTool>> = { "1": "line", "2": "bezier", "3": "smooth", "4": "refine" };
+/** With the Select tool and something selected, the same keys change it instead (#347): 1 straight / corner, 2 curve, 3 smooth. */
+export const SKETCH_EDIT_KEYS: Readonly<Record<string, "straight" | "curve" | "smooth">> = { "1": "straight", "2": "curve", "3": "smooth" };
 export type { SketchSelection } from "@/lib/sketchSelection";
 export type SketchMeasurement = { start: SketchPoint; end: SketchPoint } | null;
 
@@ -52,6 +56,8 @@ type SketchWorkspaceProps = {
   operation?: SketchOperation;
   /** What the sketch becomes changed from the badge at the top (#655). */
   onOperationChange?: (operation: SketchOperation) => void;
+  /** Which edge of a swept section runs along the path, from the badge at the top (#732). */
+  onSweepAnchorChange?: (anchor: SweepAnchor) => void;
   revolvePreviewPositions?: number[] | null;
   referenceShapes: WorkplaneShape[];
   /** Where a workplane inside a body cuts it: the outline of the cut per body (id), as an SVG path of loops. */
@@ -98,6 +104,8 @@ type SketchWorkspaceProps = {
   onSelectTool?: (tool: SketchTool) => void;
   onInsertPoint: (segmentId: string, point: { x: number; z: number }, amount: number) => void;
   onSetPointMode: (id: string, mode: "corner" | "smooth" | "split") => void;
+  /** Several points at once, one undo step: the keys 1 and 3 on a selection (#347). */
+  onSetPointsMode?: (ids: string[], mode: "corner" | "smooth") => void;
   /** Bends a straight side into a curve with handles, or makes a curved side straight again. */
   onCurveSegment?: (id: string) => void;
   /** Curve or straighten all the selected lines at once (#283). */
@@ -227,9 +235,18 @@ const IMAGE_SETTINGS_PANEL: MovablePanelOptions = {
   dockedAt: (area, panel) => ({ left: area.width - panel.width, top: 0 }),
 };
 
+// Lengths read and type in the workspace unit (#757); the sketch itself stays in millimetres.
 function formatDimension(value: number, accuracy: 1 | 2 | 3) {
+  return formatLengthMm(value, accuracy);
+}
+
+function formatPlainNumber(value: number, accuracy: 1 | 2 | 3) {
   const threshold = 0.5 * 10 ** -accuracy;
   return (Math.abs(value) < threshold ? 0 : value).toFixed(accuracy);
+}
+
+function defaultCornerText() {
+  return formatLengthMm(2, 2);
 }
 
 function dimensionPillSize(label: string, screenUnit: number, extra = 24) {
@@ -536,6 +553,7 @@ export function SketchWorkspace({
   profile,
   operation = "extrude",
   onOperationChange,
+  onSweepAnchorChange,
   revolvePreviewPositions = null,
   referenceShapes,
   referenceSlices,
@@ -572,6 +590,7 @@ export function SketchWorkspace({
   onSelectTool,
   onInsertPoint,
   onSetPointMode,
+  onSetPointsMode,
   onCurveSegment,
   onCurveSegments,
   onMirror,
@@ -592,6 +611,8 @@ export function SketchWorkspace({
 }: SketchWorkspaceProps) {
   useLanguage();
   const workspace = useMemo(() => normalizeWorkspaceSettings(initialWorkspace, DEFAULT_WORKPLANE_WORKSPACE), [initialWorkspace]);
+  setLengthUnit(workspace);
+  const unitLabel = lengthDisplayUnit(workspace).label;
   const [snap, setSnap] = useState<GridSize>(() => normalizeSnapGrid(initialSnap, DEFAULT_SNAP_GRID));
   // One grid for the sketch and the 3D view: what the editor holds wins, and a pick here goes back to it.
   useEffect(() => {
@@ -847,7 +868,7 @@ export function SketchWorkspace({
     setLocalCornerDialog(dialog);
     onCornerDialogChange?.(dialog);
   }, [onCornerDialogChange]);
-  const [cornerValue, setCornerValue] = useState("2");
+  const [cornerValue, setCornerValue] = useState(defaultCornerText);
   // Mirror (#512): the bar with the choice of axis, and the step where a line is picked as the axis.
   const [mirrorOpen, setMirrorOpen] = useState(false);
   const [mirrorPicking, setMirrorPicking] = useState(false);
@@ -880,7 +901,7 @@ export function SketchWorkspace({
 
   useEffect(() => {
     setCornerDialog(null);
-    setCornerValue("2");
+    setCornerValue(defaultCornerText());
   }, [selectedPoint?.id, setCornerDialog]);
 
   // One corner, or several selected ones that get the same radius or distance at once (#269).
@@ -895,7 +916,7 @@ export function SketchWorkspace({
   const manyLines = selected?.kind === "multiple" && selectedLines.length > 0 && Boolean(onCurveSegments && onStraightenSegments);
   const handleApplyCorner = () => {
     if (selectedCornerIds.length === 0 || !activeCornerDialog) return;
-    const val = parseMeasurementInput(cornerValue);
+    const val = parseLengthMm(cornerValue);
     if (!Number.isFinite(val) || val <= 0) return;
     if (activeCornerDialog === "fillet") {
       onApplyFillet?.(selectedCornerIds, val);
@@ -924,7 +945,7 @@ export function SketchWorkspace({
         }}
         autoFocus
       />
-      <span className="sketch-corner-unit">mm</span>
+      <span className="sketch-corner-unit">{unitLabel}</span>
       <button
         type="button"
         className="sketch-corner-submit"
@@ -969,7 +990,7 @@ export function SketchWorkspace({
   const commitDimensionEdit = useCallback((symmetric = false) => {
     if (!editingDimension || dimensionEditDoneRef.current) return;
     dimensionEditDoneRef.current = true;
-    const length = parseMeasurementInput(editingDimension.value);
+    const length = parseLengthMm(editingDimension.value);
     const segment = profile.segments.find((entry) => entry.id === editingDimension.segmentId);
     if (segment && Number.isFinite(length) && length > 0.001) {
       const anchor = symmetric
@@ -992,7 +1013,7 @@ export function SketchWorkspace({
       const bounds = boundsForSketchPoints(startPoints);
       if (bounds) {
         const current = editingBoxSize.axis === "x" ? bounds.width : bounds.depth;
-        const size = resolveMeasurementInput(editingBoxSize.value, current);
+        const size = resolveLengthMm(editingBoxSize.value, current);
         if (Number.isFinite(size) && size > 0) {
           onTransformPoints(resizeSketchPointsToSize(startPoints, bounds, editingBoxSize.axis, size, keepProportionsRef.current), t("sketch.shapeResized"));
         }
@@ -1100,7 +1121,7 @@ export function SketchWorkspace({
       let nearestDistance = reach;
       // A dragged point leaves out the middle of its own lines, which would move away under it.
       const targets = pointerAction?.kind === "move-point"
-        ? [...referenceSnapPoints, ...crossingSnapPoints, ...sketchSnapPoints(displayProfile, pointerAction.pointId)]
+        ? [...referenceSnapPoints, ...crossingSnapPoints, ...sketchSnapPoints(displayProfile, pointerAction.pointId), ...openEndPoints(displayProfile, pointerAction.pointId)]
         : snapTargets;
       targets.forEach((candidate) => {
         const distance = Math.hypot(candidate.x - local.x, candidate.z - local.z);
@@ -1444,6 +1465,27 @@ export function SketchWorkspace({
     return true;
   }, [focusBounds, workspace.depth, workspace.width]);
 
+  // The keys 1 to 3 on a selection with the Select tool (#347). False when the selection has nothing to
+  // change this way, so the key goes on to pick the drawing tool.
+  const editSelectionByKey = (action: "straight" | "curve" | "smooth"): boolean => {
+    if (tool !== "select") return false;
+    const lineIds = selectedLines.map((segment) => segment.id);
+    if (action === "curve") {
+      if (!lineIds.length || !(onCurveSegments || onCurveSegment)) return false;
+      if (canCurveLines) (onCurveSegments ?? ((ids: string[]) => ids.forEach((id) => onCurveSegment?.(id))))(lineIds);
+      return true;
+    }
+    if (action === "straight" && lineIds.length && (onStraightenSegments || onStraightenSegment)) {
+      if (canStraightenLines) (onStraightenSegments ?? ((ids: string[]) => ids.forEach((id) => onStraightenSegment?.(id))))(lineIds);
+      return true;
+    }
+    if (!selectedCornerIds.length) return false;
+    if (onSetPointsMode) onSetPointsMode(selectedCornerIds, action === "smooth" ? "smooth" : "corner");
+    else if (selectedCornerIds.length === 1) onSetPointMode(selectedCornerIds[0], action === "smooth" ? "smooth" : "corner");
+    else return false;
+    return true;
+  };
+
   useEffect(() => {
     const syncShiftConstrain = (shiftKey: boolean) => {
       if (!lastPointerRef.current) return;
@@ -1475,6 +1517,23 @@ export function SketchWorkspace({
       }
       const target = event.target;
       if (target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      // As in the 3D view: with nothing selected, Ctrl+arrows slide the sketch that way, a tenth of the
+      // view a press (Shift: half).
+      const panStep = !selected && !selectedHandle && !pointerAction ? viewArrowStep(event)?.pan : undefined;
+      if (panStep && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        setView((current) => {
+          const height = workspace.depth / current.zoom;
+          return {
+            ...current,
+            pan: {
+              x: clamp(current.pan.x - panStep[0] * height, -workspace.width / 2, workspace.width / 2),
+              z: clamp(current.pan.z + panStep[1] * height, -workspace.depth / 2, workspace.depth / 2),
+            },
+          };
+        });
+        return;
+      }
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (activePoint && !pointerAction && (tool === "line" || tool === "smooth") && /^[0-9.,<]$/.test(event.key)) {
         event.preventDefault();
@@ -1504,6 +1563,8 @@ export function SketchWorkspace({
       } else if (event.key === "-" || event.key === "_") {
         event.preventDefault();
         zoomByButton(ZOOM_STEP_OUT);
+      } else if (!activePoint && !pointerAction && SKETCH_EDIT_KEYS[event.key] && editSelectionByKey(SKETCH_EDIT_KEYS[event.key])) {
+        event.preventDefault();
       } else if (onSelectTool && !activePoint && !pointerAction && SKETCH_TOOL_KEYS[event.key]) {
         // 1 to 4 pick the drawing tools, as in Tinkercad (#347). While a line is being drawn the digits
         // are its length (above), so they only come here when no line is in progress.
@@ -1557,7 +1618,8 @@ export function SketchWorkspace({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [activePoint, focusSelection, onMoveHandle, onSelectTool, onTransformPoints, onUpdateImage, pendingMeasurementStart, pointerAction, profile, resetView, selected, selectedHandle, snap, tool, workspace.depth, workspace.width]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- editSelectionByKey is rebuilt from the selection, which is listed
+  }, [activePoint, focusSelection, onMoveHandle, onSetPointMode, onSetPointsMode, onCurveSegment, onCurveSegments, onStraightenSegment, onStraightenSegments, selectedLines, selectedCornerIds, canCurveLines, canStraightenLines, onSelectTool, onTransformPoints, onUpdateImage, pendingMeasurementStart, pointerAction, profile, resetView, selected, selectedHandle, snap, tool, workspace.depth, workspace.width]);
 
   const beginEntityDrag = (event: ReactPointerEvent<SVGElement>, action: PointerAction) => {
     if (event.button !== 0) return;
@@ -1582,7 +1644,7 @@ export function SketchWorkspace({
   const pointerAngle = activePoint && hover ? sketchLineAngle(activePoint, hover) : 0;
   const typedLineTarget = (() => {
     if (!typedLine || !activePoint) return null;
-    const length = parseMeasurementInput(typedLine.length);
+    const length = parseLengthMm(typedLine.length);
     if (!Number.isFinite(length) || length <= 0.001) return null;
     const typedAngle = typedLine.angle.trim() ? parseMeasurementInput(typedLine.angle) : pointerAngle;
     return Number.isFinite(typedAngle) ? sketchPolarPoint(activePoint, length, typedAngle) : null;
@@ -1827,6 +1889,18 @@ export function SketchWorkspace({
             <option value="revolve">{t("sketch.modeBadgeRevolve")}</option>
             <option value="sweep">{t("sketch.modeBadgeSweep")}</option>
           </select>
+          {operation === "sweep" && onSweepAnchorChange ? (
+            <select
+              aria-label={t("sketch.sweepAnchorHint")}
+              title={t("sketch.sweepAnchorHint")}
+              value={profile.sweepAnchor ?? "center"}
+              onChange={(event) => onSweepAnchorChange(event.target.value as SweepAnchor)}
+            >
+              <option value="center">{t("sketch.sweepAnchorCenter")}</option>
+              <option value="left">{t("sketch.sweepAnchorLeft")}</option>
+              <option value="right">{t("sketch.sweepAnchorRight")}</option>
+            </select>
+          ) : null}
         </label>
       ) : (
         <div className="sketch-mode-badge">{operation === "revolve" ? t("sketch.modeBadgeRevolve") : operation === "sweep" ? t("sketch.modeBadgeSweep") : t("sketch.modeBadge")}</div>
@@ -2612,7 +2686,7 @@ export function SketchWorkspace({
                   onKeyDown={fieldKeys}
                   onBlur={leave}
                 />
-                <span>mm</span>
+                <span>{unitLabel}</span>
               </label>
               <label>
                 <span>{t("sketch.typedAngle")}</span>
@@ -2620,7 +2694,7 @@ export function SketchWorkspace({
                   ref={typedLineAngleRef}
                   value={typedLine.angle}
                   placeholder={String(Math.round(pointerAngle * 10) / 10)}
-                  inputMode="decimal"
+                  inputMode="text"
                   onFocus={(event) => event.currentTarget.select()}
                   onChange={(event) => setTypedLine((prev) => prev ? { ...prev, angle: event.target.value.replace("<", "") } : null)}
                   onKeyDown={fieldKeys}
@@ -2771,8 +2845,8 @@ export function SketchWorkspace({
             cornerDialogContent
           ) : (
             <>
-              <button type="button" title={t("sketch.makeCorner")} onClick={() => onSetPointMode(selectedPoint.id, "corner")}><CornerDownRight /><span>{t("sketch.corner")}</span></button>
-              <button type="button" title={t("sketch.makeSmooth")} onClick={() => onSetPointMode(selectedPoint.id, "smooth")}><Waves /><span>{t("sketch.smooth")}</span></button>
+              <button type="button" title={`${t("sketch.makeCorner")} (1)`} aria-keyshortcuts="1" onClick={() => onSetPointMode(selectedPoint.id, "corner")}><CornerDownRight /><span>{t("sketch.corner")}</span></button>
+              <button type="button" title={`${t("sketch.makeSmooth")} (3)`} aria-keyshortcuts="3" onClick={() => onSetPointMode(selectedPoint.id, "smooth")}><Waves /><span>{t("sketch.smooth")}</span></button>
               <button type="button" title={t("sketch.splitHandles")} onClick={() => onSetPointMode(selectedPoint.id, "split")}><Split /><span>{t("sketch.split")}</span></button>
               {canApplySketchCornerTreatment(displayProfile, selectedPoint.id) ? (
                 <>
@@ -2782,7 +2856,7 @@ export function SketchWorkspace({
                     title={t("sketch.filletCorner")}
                     onClick={() => {
                       setCornerDialog("fillet");
-                      setCornerValue("2");
+                      setCornerValue(defaultCornerText());
                     }}
                   >
                     <Spline />
@@ -2793,7 +2867,7 @@ export function SketchWorkspace({
                     title={t("sketch.chamferCorner")}
                     onClick={() => {
                       setCornerDialog("chamfer");
-                      setCornerValue("2");
+                      setCornerValue(defaultCornerText());
                     }}
                   >
                     <Slash />
@@ -2820,7 +2894,7 @@ export function SketchWorkspace({
                 title={t("sketch.filletCorners", { count: selectedCornerIds.length })}
                 onClick={() => {
                   setCornerDialog("fillet");
-                  setCornerValue("2");
+                  setCornerValue(defaultCornerText());
                 }}
               >
                 <Spline />
@@ -2831,7 +2905,7 @@ export function SketchWorkspace({
                 title={t("sketch.chamferCorners", { count: selectedCornerIds.length })}
                 onClick={() => {
                   setCornerDialog("chamfer");
-                  setCornerValue("2");
+                  setCornerValue(defaultCornerText());
                 }}
               >
                 <Slash />
@@ -2842,8 +2916,8 @@ export function SketchWorkspace({
               {manyCorners && manyLines ? <span className="sketch-point-divider" /> : null}
               {manyLines ? (
                 <>
-                  <button type="button" title={t("sketch.curveLineHint")} disabled={!canCurveLines} onClick={() => onCurveSegments?.(selectedLines.map((segment) => segment.id))}><Spline /><span>{t("sketch.curveLine")}</span></button>
-                  <button type="button" title={t("sketch.straightenLineHint")} disabled={!canStraightenLines} onClick={() => onStraightenSegments?.(selectedLines.map((segment) => segment.id))}><Minus /><span>{t("sketch.straightenLine")}</span></button>
+                  <button type="button" title={`${t("sketch.curveLineHint")} (2)`} aria-keyshortcuts="2" disabled={!canCurveLines} onClick={() => onCurveSegments?.(selectedLines.map((segment) => segment.id))}><Spline /><span>{t("sketch.curveLine")}</span></button>
+                  <button type="button" title={`${t("sketch.straightenLineHint")} (1)`} aria-keyshortcuts="1" disabled={!canStraightenLines} onClick={() => onStraightenSegments?.(selectedLines.map((segment) => segment.id))}><Minus /><span>{t("sketch.straightenLine")}</span></button>
                 </>
               ) : null}
               {mirrorButton}
@@ -2882,8 +2956,8 @@ export function SketchWorkspace({
       ) : null}
       {selectedSegment && tool === "select" && onCurveSegment && onStraightenSegment && !mirrorOpen ? (
         <div className="sketch-point-actions" aria-label={t("sketch.segmentActions")}>
-          <button type="button" title={t("sketch.curveLineHint")} disabled={selectedSegmentCurved} onClick={() => onCurveSegment(selectedSegment.id)}><Spline /><span>{t("sketch.curveLine")}</span></button>
-          <button type="button" title={t("sketch.straightenLineHint")} disabled={!selectedSegmentCurved && (selectedSegment.kind ?? "line") === "line"} onClick={() => onStraightenSegment(selectedSegment.id)}><Minus /><span>{t("sketch.straightenLine")}</span></button>
+          <button type="button" title={`${t("sketch.curveLineHint")} (2)`} aria-keyshortcuts="2" disabled={selectedSegmentCurved} onClick={() => onCurveSegment(selectedSegment.id)}><Spline /><span>{t("sketch.curveLine")}</span></button>
+          <button type="button" title={`${t("sketch.straightenLineHint")} (1)`} aria-keyshortcuts="1" disabled={!selectedSegmentCurved && (selectedSegment.kind ?? "line") === "line"} onClick={() => onStraightenSegment(selectedSegment.id)}><Minus /><span>{t("sketch.straightenLine")}</span></button>
           {onSetSegmentConstruction ? (
             <button
               type="button"
@@ -2953,7 +3027,7 @@ function SketchImageInspector({
   const [calibrateDraft, setCalibrateDraft] = useState("");
   useEffect(() => setCalibrateDraft(measured > 0 ? formatDimension(measured, accuracy) : ""), [accuracy, measured]);
   const applyCalibration = () => {
-    const length = parseMeasurementInput(calibrateDraft);
+    const length = parseLengthMm(calibrateDraft);
     if (Number.isFinite(length) && length > 0) onCalibrate({ type: "apply", length });
   };
   const aspect = image.width / Math.max(0.5, image.depth);
@@ -3053,7 +3127,7 @@ function SketchImageInspector({
                   onChange={(event) => setCalibrateDraft(event.currentTarget.value)}
                   onKeyDown={(event) => { if (event.key === "Enter") applyCalibration(); if (event.key === "Escape") onCalibrate({ type: "cancel" }); }}
                 />
-                <span>mm</span>
+                <span>{currentLengthUnitLabel()}</span>
               </div>
               <button className="sketch-image-aspect-toggle active" type="button" onClick={applyCalibration}>
                 <Check size={17} />
@@ -3190,10 +3264,12 @@ function SketchImageRange({
   onChange: (value: number) => void;
 }) {
   const safeValue = clamp(Number.isFinite(value) ? value : min, min, max);
-  const [draft, setDraft] = useState(formatDimension(safeValue, accuracy));
-  useEffect(() => setDraft(formatDimension(safeValue, accuracy)), [accuracy, safeValue]);
+  const isLength = suffix === "mm";
+  const formatValue = isLength ? formatDimension : formatPlainNumber;
+  const [draft, setDraft] = useState(formatValue(safeValue, accuracy));
+  useEffect(() => setDraft(formatValue(safeValue, accuracy)), [accuracy, safeValue, formatValue]);
   const commit = () => {
-    const parsed = parseMeasurementInput(draft);
+    const parsed = isLength ? parseLengthMm(draft) : parseMeasurementInput(draft);
     onChange(clamp(Number.isFinite(parsed) ? parsed : safeValue, min, max));
   };
   const position = ((safeValue - min) / Math.max(0.001, max - min)) * 100;
@@ -3204,7 +3280,7 @@ function SketchImageRange({
         <input
           className="sketch-image-number-input"
           type="text"
-          inputMode="decimal"
+          inputMode={min < 0 ? "text" : "decimal"}
           onFocus={(event) => selectWholeValue(event.currentTarget)}
           value={draft}
           disabled={disabled}
@@ -3212,7 +3288,7 @@ function SketchImageRange({
           onBlur={commit}
           onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
         />
-        <span>{suffix}</span>
+        <span>{isLength ? currentLengthUnitLabel() : suffix}</span>
       </div>
       <input type="range" min={min} max={max} step={accuracy === 1 ? 0.1 : 0.01} value={safeValue} disabled={disabled} onChange={(event) => onChange(Number(event.currentTarget.value))} />
     </label>
@@ -3236,7 +3312,7 @@ function SketchImagePositionField({
   const [draft, setDraft] = useState(formatted);
   useEffect(() => setDraft(formatted), [formatted]);
   const commit = () => {
-    const parsed = parseMeasurementInput(draft);
+    const parsed = parseLengthMm(draft);
     const next = Number.isFinite(parsed) ? parsed : value;
     onChange(next);
     setDraft(formatDimension(next, accuracy));
@@ -3247,7 +3323,7 @@ function SketchImagePositionField({
       <span>{label}</span>
       <input
         type="text"
-        inputMode="decimal"
+        inputMode="text"
         onFocus={(event) => selectWholeValue(event.currentTarget)}
         value={draft}
         disabled={disabled}

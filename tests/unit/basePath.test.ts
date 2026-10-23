@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { BASE_PATH, withBasePath } from "@/lib/basePath";
 import { precachePaths, serviceWorkerSource } from "../../scripts/generate-service-worker.mjs";
 
@@ -10,6 +10,20 @@ describe("the base path", () => {
   it("is empty by default, so addresses start at the root", () => {
     expect(BASE_PATH).toBe("");
     expect(withBasePath("/occt/1.0")).toBe("/occt/1.0");
+  });
+
+  it("keeps help links inside a deployment folder, including section anchors", async () => {
+    vi.stubEnv("NEXT_PUBLIC_BASE_PATH", "/layerling");
+    vi.resetModules();
+    try {
+      const { guideHref } = await import("@/lib/guideLinks");
+      expect(guideHref("en")).toBe("/layerling/guide/index.html");
+      expect(guideHref("ja", "text")).toBe("/layerling/guide-ja/text.html");
+      expect(guideHref("en", undefined, "addShape")).toBe("/layerling/guide/shapes.html#adding-a-shape");
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
   });
 
   it("goes in front of the stored paths of the offline copy", () => {

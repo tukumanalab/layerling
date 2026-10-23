@@ -21,7 +21,7 @@
     <a href="#layerling-mcp-skill"><img alt="Von einer KI steuerbar" src="https://img.shields.io/badge/KI--steuerbar-MCP--Server-16c0d4"></a>
   </p>
 
-  <p><a href="README.md">English</a> · <strong>Deutsch</strong> · <a href="README.nl.md">Nederlands</a></p>
+  <p><a href="README.md">English</a> · <strong>Deutsch</strong> · <a href="README.nl.md">Nederlands</a> · <a href="README.zh-cn.md">简体中文</a> · <a href="README.zh-tw.md">繁體中文</a></p>
 </div>
 
 <p align="center">
@@ -117,6 +117,7 @@ Ein vollständiges CAD-Paket ist es nicht: Es gibt keine parametrische Zeitleist
 - **Vier gespeicherte Ansichten je Entwurf** – **Umschalt+7**, **8**, **9** oder **0** speichert die Ansicht genau so, wie sie ist (Blickwinkel, Ausschnitt, Zoom), und die Taste allein holt sie zurück. Jeder Entwurf hat seine eigenen, und eine gespeicherte `.lyl`-Datei nimmt sie mit.
 - **Der Ansichtswürfel in jeder Ecke** – Einstellungen > Darstellung > **Position des Ansichtswürfels** stellt den Würfel oben links, oben rechts, unten links oder unten rechts hin; in jeder Ecke außer oben links rückt die Kamerasteuerung an seinen Platz nach oben.
 - **Von unten schauen** – das Auge über dem Gitter in der Kameraleiste blendet die Platte aus, damit die Unterseite eines Entwurfs frei zu sehen ist.
+- **Eine zweite Ansicht im eigenen Fenster** – ein Knopf in der Kameraleiste öffnet ein zweites Fenster, das denselben Entwurf durch eine eigene Kamera zeigt, mit eigenem Ansichtswürfel und eigener Kameraleiste, und folgt jeder Änderung. Es öffnet sich dort, wo du es zuletzt gelassen hast.
 - **Fenster nach Wunsch** – Objektliste, Einstellungen, Schnittansicht, Maßband und die Werkzeugfenster für Kanten, Aushöhlen und Muster lassen sich an ihrer Titelleiste frei verschieben und öffnen sich dort wieder; ein Doppelklick dockt sie an.
 - **Rechtsklick-Menü** – ein kurzer Rechtsklick auf einen Körper bringt die häufigsten Befehle: duplizieren, Aussparung oder Körper, gruppieren, Fase, Rundung und Aushöhlen für einen Körper, spiegeln und um Prozent skalieren, ausblenden, sperren, auf die Arbeitsebene setzen, löschen. Ziehen mit der rechten Taste dreht weiter die Ansicht.
 - **Schnittansicht** – die Ansicht entlang einer Ebene quer zu X, Y oder Z aufschneiden, um Wände, Hohlräume und ineinandergreifende Teile zu sehen, mit grobem und feinem Regler. Geschnitten wird nur die Ansicht: Entwurf und jeder Export bleiben ganz. Den Schnitt selbst speichert „Schnitt als SVG“ im Maßstab 1:1, etwa für einen Laser oder eine Schablone, und „Messen“ liest Wandstärken und Spalte direkt auf dem Schnitt ab, im rechten Winkel zur Wand eingerastet.

@@ -1,5 +1,886 @@
 [
   {
+    "version": "1.103.1",
+    "items": [
+      {
+        "title": {
+          "de": "Mehrere Objekte drehen sich starr, auch über den Rand",
+          "en": "Several objects turn rigidly, even past the edge",
+          "ja": "複数の部品を、位置関係を保ったまま回転"
+        },
+        "body": {
+          "de": "Beim Drehen mehrerer Objekte mit dem Drehgriff wurde jeder Mittelpunkt auf das Raster gerundet und auf die Arbeitsfläche begrenzt, so blieben Objekte am Rand hängen und die Anordnung ging verloren. Die Gruppe dreht sich jetzt exakt um ihren Drehpunkt und behält die Abstände, auch wenn Teile über den Rand der Fläche wandern.",
+          "en": "When several objects were turned with the rotate handle, each centre was rounded to the grid and kept inside the workplane, so objects near the edge got stuck and the arrangement broke. The group now turns exactly around its pivot and keeps its spacing, even when parts move past the edge of the plane.",
+          "ja": "複数の部品を回転すると、中心がグリッドや作業平面の端に制限され、並びが崩れることがありました。回転の中心を軸に正確に回り、部品が作業平面からはみ出しても間隔を保つようになりました。"
+        }
+      },
+      {
+        "title": {
+          "de": "Skizze: Tasten 1 bis 3 ändern auch die Auswahl",
+          "en": "Sketch: keys 1 to 3 also change a selection",
+          "ja": "スケッチの選択した線や点を、1・2・3キーで変更"
+        },
+        "body": {
+          "de": "Mit dem Werkzeug Auswählen und gewählten Linien oder Punkten macht die Taste 1 Linien gerade und Punkte zu Ecken, 2 macht Linien zu Kurven und 3 macht Punkte weich, alle gewählten auf einmal. Ohne Auswahl wählen die Tasten wie bisher das Zeichenwerkzeug. Die Tasten stehen in den Hinweisen der Knöpfe.",
+          "en": "With the Select tool and lines or points selected, key 1 makes lines straight and points corners, 2 turns lines into curves and 3 makes points smooth, all selected ones at once. With nothing selected the keys still pick the drawing tool. The keys are named in the tooltips of the buttons.",
+          "ja": "選択ツールで線や点を選んでいるとき、1で直線と角、2で曲線、3で滑らかな点にまとめて変更できます。何も選んでいないときは、これまでどおり描画ツールを切り替えます。ボタンのヒントにもキーを表示します。"
+        }
+      },
+      {
+        "title": {
+          "de": "Gridfinity-Bodenplatte passend zur Schublade",
+          "en": "Fit a Gridfinity baseplate to a drawer",
+          "ja": "Gridfinityのベースプレートを引き出しに合わせる"
+        },
+        "body": {
+          "de": "Eine Gridfinity-Bodenplatte hat jetzt „Schubladenbreite“ und „Schubladentiefe“ im Eigenschaften-Fenster: Tippe das Innenmaß der Schublade ein, und die Platte nimmt so viele Einheiten, wie hineinpassen, und verteilt den Rest gleichmäßig auf den Ausgleich, sodass sie 0,5 mm kleiner als die Schublade wird.",
+          "en": "A Gridfinity baseplate now has \"Drawer width\" and \"Drawer depth\" in the Properties panel: type the drawer's inside size, and the plate takes as many units as fit and splits the rest evenly into its padding, so it comes out 0.5 mm smaller than the drawer.",
+          "ja": "プロパティに「引き出しの幅」と「引き出しの奥行き」が加わりました。内寸を入力すると、収まる数のユニットを並べ、余りを左右や前後の余白に均等に振り分けます。プレートは引き出しの内寸より0.5 mm小さくなります。"
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.103.0",
+    "items": [
+      {
+        "title": {
+          "de": "STL als normalen Download speichern",
+          "en": "Save STL as a plain download",
+          "ja": "STLを通常のダウンロードとして保存"
+        },
+        "body": {
+          "de": "In Chrome und Edge schreibt der STL-Export jedes Mal in dieselbe Datei. In den Einstellungen unter Aussehen schaltest du jetzt \"STL als Download speichern\" ein: Dann bekommst du einen normalen Download, und der Browser nummeriert die Dateien selbst, name (1).stl, name (2).stl.",
+          "en": "In Chrome and Edge the STL export writes into the same file each time. In the settings under Appearance you can now switch on \"Save STL as a download\": you then get a plain download and the browser numbers the files itself, name (1).stl, name (2).stl.",
+          "ja": "ChromeとEdgeでは、STLを毎回同じファイルへ上書きできます。設定の「外観」で「STLをダウンロードとして保存」をオンにすると、通常のダウンロードになり、同名のファイルはブラウザーが「名前 (1).stl」「名前 (2).stl」のように番号を付けます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Zurück zu deinen eigenen Einstellungen",
+          "en": "Back to your own settings",
+          "ja": "保存しておいた自分の設定に戻す"
+        },
+        "body": {
+          "de": "Eine geöffnete Datei bringt ihre eigenen Farben, ihr Raster und ihre Platte mit. In den Einstellungen gibt es neben \"Als Vorgabe speichern\" jetzt \"Meine Vorgabe verwenden\": Es legt deine gespeicherten Farben, das Raster, die Schatten, die Kamera und die Formstarts auf den offenen Entwurf. Plattengröße, Drucker und Einheiten bleiben beim Entwurf.",
+          "en": "A file you open brings its own colours, grid and plate. Next to \"Make default\" the settings now have \"Use my default\": it puts your saved colours, grid, shadows, camera and shape starts on the open design. The size of the plate, the printer and the units stay as they are.",
+          "ja": "開いたファイルには、そのデザインの色やグリッド、プレートの設定が含まれます。「初期値にする」の隣の「自分の初期値を使う」で、保存しておいた色、グリッド、影、カメラ、シェイプの初期値を適用できます。プレートのサイズ、プリンター、単位はそのままです。"
+        }
+      },
+      {
+        "title": {
+          "de": "Skalieren in Prozent mit der Tastatur",
+          "en": "Scale by percent from the keyboard",
+          "ja": "キーボードだけでパーセント拡大・縮小"
+        },
+        "body": {
+          "de": "Das Prozentfeld hat beim Öffnen den Fokus, und Enter wendet die Skalierung an. Strg+K, Prozentwert, Enter: ganz ohne Maus.",
+          "en": "The percentage field has the focus when the window opens, and Enter applies the scale. Ctrl+K, the percentage and Enter do it without the mouse.",
+          "ja": "拡大・縮小の画面を開くと、パーセントの入力欄にフォーカスが移り、Enterで適用できます。Ctrl+Kでコマンドを選び、パーセントを入力してEnterを押せば、マウスを使わずに操作できます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Materialschätzung auf Klick",
+          "en": "Material estimate on a click",
+          "ja": "材料の見積もりは、必要なときに計算"
+        },
+        "body": {
+          "de": "Der Material-Kasten im Exportfenster rechnet erst, wenn du auf \"Berechnen\" drückst. Bei feinen Mehrfarbmodellen bleibt der Export-Knopf so sofort bedienbar.",
+          "en": "The Material box in the export window now works out its numbers only when you press Calculate. For finely traced multicolour models the Export button stays usable at once.",
+          "ja": "エクスポート画面の材料の見積もりは、「計算」を押したときだけ実行するようになりました。細かい多色モデルでも、計算の完了を待たずにエクスポートを操作できます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Kegelradius beim Auflösen einer Gruppe",
+          "en": "Cone radius kept when ungrouping",
+          "ja": "グループ解除後も円錐の大きさを維持"
+        },
+        "body": {
+          "de": "Ein Kegel, der mit anderen Teilen gruppiert und vergrößert wurde, behält beim Auflösen der Gruppe jetzt auch seinen größeren Grundradius.",
+          "en": "A cone that was grouped with other parts and made larger now keeps its larger base radius when the group is ungrouped.",
+          "ja": "円錐をほかの部品とグループ化して拡大したあと、グループを解除しても、底面の半径が拡大後の値を保つようになりました。"
+        }
+      },
+      {
+        "title": {
+          "de": "Die Drehkörper-Vorschau lässt sich mit der Maus drehen",
+          "en": "The revolve preview turns with the mouse",
+          "ar": "معاينة الجسم الدوّار تدور بالفأرة",
+          "cs": "Náhled rotačního tělesa se otáčí myší",
+          "da": "Forhåndsvisningen af omdrejningslegemet kan drejes med musen",
+          "fr": "L'aperçu de la révolution se tourne à la souris",
+          "hu": "A forgástest előnézete egérrel forgatható",
+          "it": "L'anteprima del solido di rotazione si gira con il mouse",
+          "ja": "回転体のプレビューをマウスで回せるように",
+          "nl": "Het voorbeeld van het draailichaam draait met de muis",
+          "pl": "Podgląd bryły obrotowej obraca się myszą",
+          "pt-br": "A pré-visualização do sólido de revolução gira com o mouse",
+          "ru": "Предпросмотр тела вращения поворачивается мышью",
+          "sl": "Predogled vrtenine se vrti z miško",
+          "tr": "Döndürme gövdesinin önizlemesi fareyle döndürülebiliyor",
+          "es": "La vista previa del sólido de revolución gira con el ratón"
+        },
+        "body": {
+          "de": "In der Skizze mit „Drehen“ ist die kleine 3D-Vorschau kein Standbild mehr: Mit der linken oder rechten Taste ziehen dreht sie, das Rad zoomt und die Radtaste verschiebt sie, so siehst du auch die Unterseite. Die eingestellte Ansicht bleibt beim Weiterzeichnen erhalten.",
+          "en": "In the sketch with Revolve, the small 3D preview is no longer a still picture: drag with the left or the right button to turn it, use the wheel to zoom and the wheel button to move it, so you can see the underside too. The view you set stays while you keep drawing.",
+          "ar": "في الرسم مع «تدوير»، لم تعد المعاينة ثلاثية الأبعاد الصغيرة صورة ثابتة: اسحب بالزر الأيسر أو الأيمن لتدويرها، وبعجلة الفأرة لتكبيرها، وبزر العجلة لتحريكها، فترى الجانب السفلي أيضًا. تبقى الزاوية التي ضبطتها أثناء متابعة الرسم.",
+          "cs": "V náčrtu s Rotací už malý 3D náhled není pevný obrázek: tažením levým nebo pravým tlačítkem ho otočíte, kolečkem zvětšíte a kolečkovým tlačítkem posunete, takže uvidíte i spodní stranu. Nastavený pohled zůstane i při dalším kreslení.",
+          "da": "I skitsen med Drej er den lille 3D-forhåndsvisning ikke længere et stillbillede: træk med venstre eller højre knap for at dreje den, brug hjulet til at zoome og hjulknappen til at flytte den, så du også kan se undersiden. Den indstillede visning bliver, mens du tegner videre.",
+          "fr": "Dans l'esquisse avec Révolution, le petit aperçu 3D n'est plus une image fixe : glissez avec le bouton gauche ou droit pour le tourner, utilisez la molette pour zoomer et le bouton de la molette pour le déplacer, pour voir aussi le dessous. La vue réglée reste pendant que vous continuez à dessiner.",
+          "hu": "A Forgatás üzemmódú vázlatban a kis 3D-előnézet már nem állókép: a bal vagy a jobb gombbal húzva elforgatható, a görgővel nagyítható, a görgőgombbal pedig mozgatható, így az alsó oldal is látszik. A beállított nézet megmarad, miközben tovább rajzolsz.",
+          "it": "Nello schizzo con Rotazione, la piccola anteprima 3D non è più un'immagine fissa: trascina con il tasto sinistro o destro per ruotarla, usa la rotellina per lo zoom e il tasto della rotellina per spostarla, così vedi anche il lato inferiore. La vista impostata resta mentre continui a disegnare.",
+          "ja": "「回転」のスケッチで、小さな3Dプレビューは静止画ではなくなりました。左または右ボタンのドラッグで回転、ホイールでズーム、ホイールボタンで移動でき、下側も見られます。設定した視点は、スケッチを描き続けても保たれます。",
+          "nl": "In de schets met Draaien is het kleine 3D-voorbeeld geen stilstaand beeld meer: sleep met de linker- of rechterknop om het te draaien, gebruik het wiel om te zoomen en de wielknop om het te verplaatsen, zodat je ook de onderkant ziet. De ingestelde weergave blijft behouden terwijl je verder tekent.",
+          "pl": "W szkicu z Obrotem mały podgląd 3D nie jest już nieruchomym obrazem: przeciągnij lewym lub prawym przyciskiem, aby go obrócić, kółkiem przybliżaj, a przyciskiem kółka przesuwaj, dzięki czemu widać też spód. Ustawiony widok zostaje, gdy rysujesz dalej.",
+          "pt-br": "No esboço com Revolução, a pequena pré-visualização 3D não é mais uma imagem parada: arraste com o botão esquerdo ou direito para girá-la, use a roda para dar zoom e o botão da roda para movê-la, assim você vê também a parte de baixo. A vista que você ajustou continua enquanto você segue desenhando.",
+          "ru": "В эскизе с вращением маленький 3D-предпросмотр больше не статичная картинка: перетаскивайте левой или правой кнопкой, чтобы повернуть, колесом — масштабировать, кнопкой колеса — сдвигать, чтобы видеть и нижнюю сторону. Выбранный вид сохраняется, пока вы продолжаете рисовать.",
+          "sl": "V skici z vrtenjem majhen 3D-predogled ni več mirujoča slika: z vlečenjem z levim ali desnim gumbom ga zasukate, s kolescem povečate, z gumbom kolesca premaknete, tako da vidite tudi spodnjo stran. Nastavljen pogled ostane, medtem ko rišete naprej.",
+          "tr": "Döndürme ile çizimde küçük 3B önizleme artık durağan bir resim değil: sol veya sağ düğmeyle sürükleyerek döndür, tekerlekle yakınlaştır, tekerlek düğmesiyle kaydır; böylece alt tarafı da görürsün. Ayarladığın görünüm çizmeye devam ederken korunur.",
+          "es": "En el boceto con Revolución, la pequeña vista previa 3D ya no es una imagen fija: arrastra con el botón izquierdo o derecho para girarla, usa la rueda para hacer zoom y el botón de la rueda para moverla, así ves también la parte inferior. La vista que ajustes se mantiene mientras sigues dibujando."
+        }
+      },
+      {
+        "title": {
+          "de": "Fläche herausschieben: neues Teil als eigener Körper",
+          "en": "Face tool: the new part as a body of its own",
+          "ja": "面から作る部品を、独立したボディにできるように"
+        },
+        "body": {
+          "de": "Im Fenster Fläche gibt es den Schalter \"Als eigener Körper (nicht gruppiert)\". Ist er an, steht das herausgeschobene Teil (oder das Loch einer Tasche) neben dem Körper statt in einer Gruppe: Du kannst es gleich in der Größe ändern, verschieben oder damit schneiden.",
+          "en": "The Face window has a new switch, \"As a body of its own (not grouped)\". With it on, the part pushed out of the face (or the hole of a pocket) stands beside the body instead of in a group with it: resize it, move it or use it to cut right away.",
+          "ja": "面ツールに「独立したボディとして作る（グループ化しない）」が加わりました。オンにすると、面から押し出した部品やポケット用の穴を、元のボディとグループ化せずに作成します。すぐにサイズ変更、移動、切り抜きに使えます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Strg+Pfeiltasten verschieben die Skizze",
+          "en": "Ctrl+arrows slide the sketch",
+          "ar": "Ctrl مع الأسهم يُزيح الرسم التخطيطي",
+          "cs": "Ctrl+šipky posouvají náčrt",
+          "da": "Ctrl+piletaster flytter skitsen",
+          "fr": "Ctrl+flèches fait glisser l'esquisse",
+          "hu": "A Ctrl+nyilak eltolják a vázlatot",
+          "it": "Ctrl+frecce spostano lo schizzo",
+          "ja": "Ctrl+矢印キーでスケッチをスライド",
+          "nl": "Ctrl+pijltjes verschuiven de schets",
+          "pl": "Ctrl+strzałki przesuwają szkic",
+          "pt-br": "Ctrl+setas deslocam o esboço",
+          "ru": "Ctrl+стрелки сдвигают эскиз",
+          "sl": "Ctrl+puščice premikajo skico",
+          "tr": "Ctrl+oklar çizimi kaydırır",
+          "es": "Ctrl+flechas desplazan el boceto"
+        },
+        "body": {
+          "de": "Ist im Skizzen-Editor nichts ausgewählt, verschieben Strg und die Pfeiltasten die Ansicht, wie in der 3D-Ansicht: ein Zehntel des Bildes pro Druck, mit Umschalt dazu die Hälfte. Die Skizze wandert in Pfeilrichtung.",
+          "en": "With nothing selected in the sketch editor, Ctrl and the arrow keys slide the view, as in the 3D view: a tenth of the view a press, half with Shift as well. The sketch moves the way the arrow points.",
+          "ar": "عند عدم تحديد أي شيء في محرر الرسم التخطيطي، يُزيح Ctrl مع الأسهم العرض كما في العرض ثلاثي الأبعاد: عُشر الصورة لكل ضغطة، ونصفها مع Shift أيضًا. ويتحرك الرسم في اتجاه السهم.",
+          "cs": "Když v editoru náčrtu není nic vybráno, Ctrl se šipkami posouvá pohled jako ve 3D pohledu: o desetinu obrazu na stisknutí, se Shift o polovinu. Náčrt se posouvá ve směru šipky.",
+          "da": "Når intet er markeret i skitseeditoren, flytter Ctrl og piletasterne visningen som i 3D-visningen: en tiendedel af billedet pr. tryk, halvdelen med Shift oveni. Skitsen flytter sig den vej, pilen peger.",
+          "fr": "Quand rien n'est sélectionné dans l'éditeur d'esquisse, Ctrl et les flèches font glisser la vue, comme dans la vue 3D : un dixième de l'image par appui, la moitié avec Shift en plus. L'esquisse se déplace dans le sens de la flèche.",
+          "hu": "Ha a vázlatszerkesztőben semmi sincs kijelölve, a Ctrl és a nyilak eltolják a nézetet, mint a 3D nézetben: lenyomásonként a kép tizedével, Shifttel együtt a felével. A vázlat a nyíl irányába mozdul.",
+          "it": "Senza nulla selezionato nell'editor di schizzi, Ctrl e le frecce spostano la vista, come nella vista 3D: un decimo dell'immagine a pressione, la metà con anche Maiusc. Lo schizzo si muove nella direzione della freccia.",
+          "ja": "スケッチエディターで何も選択していないとき、Ctrlと矢印キーで3Dビューと同じようにビューをスライドできます。1回押すごとに画面の10分の1、Shiftも押すと半分動きます。スケッチは矢印の方向に動きます。",
+          "nl": "Als er in de schetseditor niets geselecteerd is, schuiven Ctrl en de pijltjestoetsen de weergave, net als in de 3D-weergave: een tiende van het beeld per druk, de helft met Shift erbij. De schets beweegt in de richting van het pijltje.",
+          "pl": "Gdy w edytorze szkiców nic nie jest zaznaczone, Ctrl ze strzałkami przesuwa widok, jak w widoku 3D: o jedną dziesiątą obrazu na naciśnięcie, o połowę z dodatkowym Shift. Szkic przesuwa się w stronę strzałki.",
+          "pt-br": "Sem nada selecionado no editor de esboços, Ctrl e as setas deslocam a vista, como na vista 3D: um décimo da imagem por toque, a metade com Shift também. O esboço se move na direção da seta.",
+          "ru": "Если в редакторе эскизов ничего не выделено, Ctrl со стрелками сдвигает вид, как в 3D-виде: на десятую часть изображения за нажатие, на половину — вместе с Shift. Эскиз движется в сторону стрелки.",
+          "sl": "Ko v urejevalniku skic ni nič izbrano, Ctrl in puščice premikajo pogled kot v 3D pogledu: za desetino slike na pritisk, s Shift povrhu za polovico. Skica se premakne v smer puščice.",
+          "tr": "Çizim düzenleyicisinde hiçbir şey seçili değilken Ctrl ve ok tuşları, 3B görünümde olduğu gibi görünümü kaydırır: her basışta görüntünün onda biri, Shift ile birlikte yarısı. Çizim okun gösterdiği yöne hareket eder.",
+          "es": "Sin nada seleccionado en el editor de bocetos, Ctrl y las flechas desplazan la vista, como en la vista 3D: una décima parte de la imagen por pulsación, o la mitad si además pulsas Mayús. El boceto se mueve hacia donde apunta la flecha."
+        }
+      },
+      {
+        "title": {
+          "de": "Ausgleich für Gridfinity-Bodenplatten",
+          "en": "Padding for Gridfinity baseplates",
+          "ja": "Gridfinityのベースプレートに余白を追加"
+        },
+        "body": {
+          "de": "Eine Gridfinity-Bodenplatte kann jetzt an jeder Seite einen massiven Ausgleich bekommen, damit sie eine Schublade füllt, die keine ganze Zahl von Einheiten misst: Stell im Eigenschaften-Fenster „Ausgleich rechts“ oder eine andere Seite ein. Das Raster bleibt bei ganzen Einheiten, und die Platte wird um den Ausgleich größer.",
+          "en": "A Gridfinity baseplate can now have a solid border on any side, so it fills a drawer that is not a whole number of units: set \"Padding on the right\" or another side in the Properties panel. The grid stays whole units, and the plate's size grows with the padding.",
+          "ja": "プロパティの「右側の余白」などで、ベースプレートの各辺に縁を追加できます。42 mm単位にぴったり合わない引き出しでも、グリッドのユニットを保ちながら、外側のサイズを合わせられます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Loft: Segmente pro Kreis einstellbar",
+          "en": "Loft: segments per circle",
+          "ja": "ロフトの円の分割数を変更"
+        },
+        "body": {
+          "de": "Die Kreise und runden Ecken eines Loft waren immer aus 96 Teilstücken gebaut, bei großen runden Enden sah man die Facetten. Das neue Feld \"Segmente pro Kreis\" (16 bis 360) stellt es ein. Es gilt in der Ansicht und in STL, OBJ und 3MF.",
+          "en": "The circles and rounded corners of a Loft were always built from 96 pieces, so on a large round end the facets showed. The new field \"Segments per circle\" (16 to 360) sets it, in the view and in STL, OBJ and 3MF.",
+          "ja": "ロフトの円や丸い角は、これまで1周を96分割して表示・出力していました。「円1周の分割数」で16〜360に変更できます。画面表示とSTL・OBJ・3MFに反映され、大きな円の角張りを調整できます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Ein skalierter Stern behält seine Form",
+          "en": "A scaled star keeps its shape",
+          "ja": "星を拡大・縮小しても形を保つ"
+        },
+        "body": {
+          "de": "Beim Ändern der Größe eines Sterns wuchs nur der äußere Radius, so wurde ein kleinerer Stern weniger spitz und ein größerer spitzer. Der innere Radius und die Rundungen wachsen jetzt mit.",
+          "en": "When a star was resized only its outer size changed, so a smaller star came out less pointy and a larger one more pointy. The inner size and the roundings now stretch with it.",
+          "ja": "星のサイズを変えると外側だけが変わり、小さくすると丸みのある星、大きくすると尖った星になっていました。内側のサイズと角の丸みも、一緒に拡大・縮小するようになりました。"
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.102.0",
+    "items": [
+      {
+        "title": {
+          "de": "Keine Fremdkörper mehr beim Verrunden importierter Teile",
+          "en": "No stray strip when rounding an imported part",
+          "ja": "読み込んだ部品のフィレットで不要な面が出る問題を修正"
+        },
+        "body": {
+          "de": "Beim Verrunden eines importierten Teils mit einem engen Einschnitt konnte bei großem Radius ein dünner Streifen über dem Einschnitt entstehen. Jetzt meldet layerling, dass der Radius für diese Kante zu groß ist, statt den Streifen zu zeigen.",
+          "en": "Rounding an imported part with a narrow bay could leave a thin strip over the bay at a large radius. Now layerling says the radius is too large for that edge instead of showing the strip.",
+          "ja": "狭い切り込みのある部品に大きな半径のフィレットをかけると、切り込みをまたぐ細い面ができることがありました。その場合は誤った面を表示せず、エッジに対して半径が大きすぎることを知らせます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Der SVG-Grundriss wird an der Arbeitsfläche geschnitten",
+          "en": "The SVG footprint is cut at the workplane",
+          "ar": "يُقطع أثر الارتكاز في SVG عند مستوى العمل",
+          "cs": "Půdorys v SVG se řeže u pracovní roviny",
+          "da": "SVG-fodaftrykket skæres ved arbejdsplanet",
+          "fr": "L'empreinte SVG est coupée au niveau du plan de travail",
+          "hu": "Az SVG felfekvési felület a munkasíknál metsz",
+          "it": "L'impronta SVG viene tagliata al piano di lavoro",
+          "ja": "SVGの接地面を作業面で切るように",
+          "nl": "De SVG-voetafdruk wordt bij het werkvlak gesneden",
+          "pl": "Ślad w SVG jest przecinany na płaszczyźnie roboczej",
+          "pt-br": "A pegada em SVG é cortada no plano de trabalho",
+          "ru": "След в SVG режется на рабочей плоскости",
+          "sl": "Odtis v SVG se reže na delovni ravnini",
+          "tr": "SVG taban izi çalışma düzleminde kesiliyor",
+          "es": "La huella en SVG se corta en el plano de trabajo"
+        },
+        "body": {
+          "de": "Beim SVG-Export „Aufstandsfläche auf der Arbeitsebene“ konnte ein Teil, das unter die Arbeitsebene reicht, den Schnitt mit nach unten ziehen, und die Teile, die auf der Arbeitsebene stehen, fehlten in der Datei. Der Schnitt liegt jetzt knapp über der Arbeitsebene, sobald ein Teil hindurchreicht.",
+          "en": "With \"Footprint on the workplane\" in the SVG export, one part reaching below the workplane could pull the cut down with it, and the parts standing on the workplane were missing from the file. The cut now lies just above the workplane whenever a part reaches through it.",
+          "ar": "في تصدير SVG بخيار «أثر الارتكاز على مستوى العمل»، كان جزء يمتد تحت مستوى العمل يسحب القطع معه إلى الأسفل، وكانت الأجزاء الواقفة على مستوى العمل مفقودة من الملف. صار القطع الآن فوق مستوى العمل مباشرة كلما امتد جزء عبره.",
+          "cs": "U exportu SVG s volbou „Půdorys na pracovní rovině“ mohl jeden díl zasahující pod pracovní rovinu stáhnout řez s sebou dolů a díly stojící na pracovní rovině v souboru chyběly. Řez teď leží těsně nad pracovní rovinou, kdykoli jí některý díl prochází.",
+          "da": "Ved \"Fodaftryk på arbejdsplanet\" i SVG-eksporten kunne en del, der rager ned under arbejdsplanet, trække snittet med ned, og de dele, der står på arbejdsplanet, manglede i filen. Snittet ligger nu lige over arbejdsplanet, så snart en del går igennem det.",
+          "fr": "Avec « Empreinte sur le plan de travail » dans l'export SVG, une pièce descendant sous le plan de travail pouvait entraîner la coupe vers le bas, et les pièces posées sur le plan manquaient dans le fichier. La coupe se place maintenant juste au-dessus du plan de travail dès qu'une pièce le traverse.",
+          "hu": "Az SVG-export „Felfekvési felület a munkasíkon” nézetében egy, a munkasík alá nyúló rész magával húzhatta lefelé a metszetet, és a munkasíkon álló részek hiányoztak a fájlból. A metszet most közvetlenül a munkasík fölött van, ha egy rész átnyúlik rajta.",
+          "it": "Con «Impronta sul piano di lavoro» nell'esportazione SVG, un pezzo che scendeva sotto il piano di lavoro poteva trascinare in basso il taglio, e i pezzi appoggiati sul piano mancavano nel file. Il taglio ora si trova appena sopra il piano di lavoro ogni volta che un pezzo lo attraversa.",
+          "ja": "SVG書き出しの「作業面への接地面」で、作業面より下にはみ出す部品が1つあると切断位置が一緒に下がり、作業面に載っている部品がファイルから抜けることがありました。部品が作業面を貫いているときは、切断位置を作業面のすぐ上にしました。",
+          "nl": "Bij \"Voetafdruk op het werkvlak\" in de SVG-export kon één onderdeel dat onder het werkvlak uitsteekt de snede mee omlaag trekken, waardoor de onderdelen die op het werkvlak staan in het bestand ontbraken. De snede ligt nu net boven het werkvlak zodra een onderdeel erdoorheen gaat.",
+          "pl": "Przy „Ślad na płaszczyźnie roboczej” w eksporcie SVG jedna część sięgająca poniżej płaszczyzny roboczej mogła pociągnąć cięcie w dół, a części stojące na płaszczyźnie roboczej brakowało w pliku. Cięcie leży teraz tuż nad płaszczyzną roboczą, gdy tylko jakaś część przez nią przechodzi.",
+          "pt-br": "Com \"Pegada no plano de trabalho\" na exportação SVG, uma peça que passava abaixo do plano de trabalho podia puxar o corte para baixo, e as peças apoiadas no plano de trabalho faltavam no arquivo. O corte agora fica logo acima do plano de trabalho sempre que uma peça o atravessa.",
+          "ru": "При «След на рабочей плоскости» в экспорте SVG одна деталь, уходящая ниже рабочей плоскости, могла утянуть сечение вниз, и детали, стоящие на рабочей плоскости, пропадали из файла. Теперь сечение проходит чуть выше рабочей плоскости, если какая-то деталь её пересекает.",
+          "sl": "Pri »Odtis na delovni ravnini« v izvozu SVG je lahko en del, ki sega pod delovno ravnino, potegnil rez s seboj navzdol, deli, ki stojijo na delovni ravnini, pa so v datoteki manjkali. Rez zdaj leži tik nad delovno ravnino, kadar jo kak del prebada.",
+          "tr": "SVG dışa aktarımında \"Çalışma düzlemindeki taban izi\" seçildiğinde, çalışma düzleminin altına inen tek bir parça kesiti de aşağı çekebiliyordu ve çalışma düzleminde duran parçalar dosyada eksik kalıyordu. Kesit artık bir parça çalışma düzleminden geçtiğinde düzlemin hemen üstünde yer alıyor.",
+          "es": "Con «Huella en el plano de trabajo» en la exportación SVG, una pieza que bajaba por debajo del plano de trabajo podía arrastrar el corte hacia abajo, y las piezas apoyadas en el plano faltaban en el archivo. Ahora el corte queda justo encima del plano de trabajo siempre que una pieza lo atraviesa."
+        }
+      },
+      {
+        "title": {
+          "de": "Referenzbilder zum Ausrichten",
+          "en": "Reference images to line parts up on",
+          "ar": "صور مرجعية لمحاذاة القطع",
+          "cs": "Referenční obrázky pro zarovnání dílů",
+          "da": "Referencebilleder til at placere dele efter",
+          "fr": "Images de référence pour aligner les pièces",
+          "hu": "Mintaképek az igazításhoz",
+          "it": "Immagini di riferimento per allineare i pezzi",
+          "ja": "部品を合わせるための参照画像",
+          "nl": "Referentiebeelden om onderdelen op uit te lijnen",
+          "pl": "Obrazy referencyjne do ustawiania części",
+          "pt-br": "Imagens de referência para alinhar peças",
+          "ru": "Опорные изображения для выравнивания деталей",
+          "sl": "Referenčne slike za poravnavo delov",
+          "tr": "Parçaları hizalamak için referans görselleri",
+          "es": "Imágenes de referencia para alinear piezas"
+        },
+        "body": {
+          "de": "Im Import gibt es jetzt Referenzbild: ein Bild, das auf der Platte oder auf der Fläche der Arbeitsebene liegt, etwa das Foto einer Platine unter ihrem Gehäuse. Du machst es durchsichtig, kalibrierst es mit zwei Punkten und ihrem wirklichen Abstand und sperrst es. Es wird nie gedruckt oder exportiert.",
+          "en": "The import window now has Reference image: a picture on the plate or on the workplane's face, a photo of a board under its case, say. Make it see-through, calibrate it by two points and their real distance, and lock it. It is never printed or exported.",
+          "ar": "في نافذة الاستيراد الآن «صورة مرجعية»: صورة على اللوح أو على وجه مستوى العمل، مثل صورة لوحة إلكترونية تحت علبتها. اجعلها شفافة، وعايرها بنقطتين ومسافتهما الحقيقية، وثبّتها. لا تُطبع ولا تُصدَّر أبدًا.",
+          "cs": "V okně importu je nově Referenční obrázek: obrázek na desce nebo na ploše pracovní roviny, třeba fotka desky pod jejím krytem. Můžete ho zprůhlednit, kalibrovat pomocí dvou bodů a jejich skutečné vzdálenosti a zamknout. Nikdy se netiskne ani neexportuje.",
+          "da": "Importvinduet har nu Referencebillede: et billede på pladen eller på arbejdsplanets flade, for eksempel et foto af et print under dets kabinet. Gør det gennemsigtigt, kalibrér det med to punkter og deres rigtige afstand, og lås det. Det bliver aldrig printet eller eksporteret.",
+          "fr": "La fenêtre d'import a maintenant Image de référence : une image sur le plateau ou sur la face du plan de travail, par exemple la photo d'une carte sous son boîtier. Rendez-la transparente, calibrez-la avec deux points et leur distance réelle, et verrouillez-la. Elle n'est jamais imprimée ni exportée.",
+          "hu": "Az importálás ablakban most már Mintakép is van: egy kép a tárgyasztalon vagy a munkasík felületén, például egy áramköri lap fotója a doboza alatt. Átlátszóvá teheted, két ponttal és valódi távolságukkal kalibrálhatod, és zárolhatod. Sosem nyomtatódik ki és sosem exportálódik.",
+          "it": "La finestra di importazione ha ora Immagine di riferimento: un'immagine sulla piastra o sulla faccia del piano di lavoro, per esempio la foto di una scheda sotto il suo case. Rendila trasparente, calibrala con due punti e la loro distanza reale, e bloccala. Non viene mai stampata né esportata.",
+          "ja": "インポート画面に「参照画像」が加わりました。プレートや作業面の上に画像を置けます。たとえばケースの下に入る基板の写真です。透過にしたり、2点と実際の距離で校正したり、ロックしたりできます。印刷も書き出しもされません。",
+          "nl": "Het importvenster heeft nu Referentiebeeld: een beeld op de plaat of op het vlak van het werkvlak, bijvoorbeeld een foto van een printplaat onder zijn behuizing. Maak het doorzichtig, kalibreer het met twee punten en hun echte afstand, en vergrendel het. Het wordt nooit geprint of geëxporteerd.",
+          "pl": "W oknie importu jest teraz Obraz referencyjny: obraz na płycie lub na ścianie płaszczyzny roboczej, na przykład zdjęcie płytki pod jej obudową. Możesz go uczynić półprzezroczystym, skalibrować dwoma punktami i ich rzeczywistą odległością oraz zablokować. Nigdy nie jest drukowany ani eksportowany.",
+          "pt-br": "A janela de importação agora tem Imagem de referência: uma imagem na placa ou na face do plano de trabalho, por exemplo a foto de uma placa sob a sua caixa. Deixe-a transparente, calibre-a por dois pontos e a distância real deles, e trave-a. Ela nunca é impressa nem exportada.",
+          "ru": "В окне импорта появилось Опорное изображение: картинка на плите или на грани рабочей плоскости, например фото платы под её корпусом. Сделайте его полупрозрачным, откалибруйте по двум точкам и их реальному расстоянию и заблокируйте. Оно никогда не печатается и не экспортируется.",
+          "sl": "V oknu za uvoz je zdaj Referenčna slika: slika na plošči ali na ploskvi delovne ravnine, na primer fotografija vezja pod njegovim ohišjem. Naredite jo prosojno, umerite jo z dvema točkama in njuno pravo razdaljo ter jo zaklenite. Nikoli se ne natisne ali izvozi.",
+          "tr": "İçe aktarma penceresinde artık Referans görseli var: plakanın veya çalışma düzleminin yüzeyinin üzerinde bir görsel, örneğin bir kartın kasasının altındaki fotoğrafı. Saydamlaştırabilir, iki nokta ve gerçek mesafeleriyle kalibre edebilir ve kilitleyebilirsin. Hiçbir zaman yazdırılmaz ya da dışa aktarılmaz.",
+          "es": "La ventana de importación tiene ahora Imagen de referencia: una imagen sobre la placa o sobre la cara del plano de trabajo, por ejemplo la foto de una placa bajo su carcasa. Hazla transparente, calíbrala con dos puntos y su distancia real, y bloquéala. Nunca se imprime ni se exporta."
+        }
+      },
+      {
+        "title": {
+          "de": "Verrunden bei geneigten Körpern",
+          "en": "Fillets on leaning bodies",
+          "ja": "傾きやねじれのある部品のフィレット位置を修正"
+        },
+        "body": {
+          "de": "Verrundung und Fase an einem Körper mit Verjüngung und Neigung oder Verdrehung verschieben ihn nicht mehr: Die Neigung wurde nach dem Verrunden ein zweites Mal angewendet, jetzt bleibt der Körper, wie er vor der Kante war.",
+          "en": "A fillet or chamfer on a body with taper and lean or twist no longer shifts it: the lean was applied a second time after the edge work, now the body stays as it was before the edge.",
+          "ja": "テーパーと傾き、またはねじれを設定した部品にフィレットや面取りをかけても、位置や形がずれなくなりました。エッジ処理のあとに傾きが二重に適用されていた問題を修正しています。"
+        }
+      },
+      {
+        "title": {
+          "de": "Sichtbare Kanten im SVG: Rundungen und geschlossene Umrisse",
+          "en": "Visible edges in the SVG: rounded edges and closed outlines",
+          "ja": "SVGに丸いエッジの輪郭を出し、輪郭を閉じるように"
+        },
+        "body": {
+          "de": "Im SVG-Export „Sichtbare Kanten von oben“ bekommt eine verrundete Oberkante jetzt ihren äußeren Umriss, dort, wo die Rundung in die Wand darunter übergeht – ebenso die Draufsicht der 2D-Zeichnung. Die Umrisse bleiben auch an spitzen Ecken von Schrift geschlossen und dort, wo eine Bohrung durch zwei aufeinanderliegende Teile geht, sodass sich jede Fläche im Laserprogramm gravieren lässt.",
+          "en": "In the SVG export's \"Visible edges from above\", a rounded top edge now gets its outer outline, where the rounding runs into the wall below it – and so does the 2D drawing's top view. Outlines also stay closed at the sharp corners of text and where a bore goes through two parts lying on each other, so a laser program can engrave every area.",
+          "ja": "SVGの「上から見える辺」で、丸い上端にも外側の輪郭が付くようになりました。2D図面の上面図にも反映されます。文字の鋭い角や、重なった部品を貫く穴でも輪郭が閉じ、レーザーソフトで領域を塗りつぶしやすくなります。"
+        }
+      },
+      {
+        "title": {
+          "de": "Sweep: Kante des Profils auf den Pfad legen",
+          "en": "Sweep: put an edge of the section on the path",
+          "ja": "スイープで断面の端をパスに合わせる"
+        },
+        "body": {
+          "de": "In der Pfad-Skizze sitzt das Profil nicht mehr nur mittig auf dem Pfad: Im Menü neben der Modusanzeige legst du stattdessen seine linke oder rechte Kante auf den Pfad. So folgt eine Leiste der Kante eines Teils, ohne dass du den Pfad um die halbe Breite verschieben musst.",
+          "en": "In the sweep sketch the section is no longer only centred on the path: in the menu next to the mode badge you can put its left or right edge on the path instead. A rail then follows the edge of a part without you having to move the path by half the width.",
+          "ja": "スイープの断面は、中心だけでなく、左端または右端をパスに合わせられるようになりました。モード名の隣のメニューで選びます。レールの幅の半分だけパスをずらす必要がなくなります。"
+        }
+      },
+      {
+        "title": {
+          "de": "3MF- und OBJ-Export deutlich schneller",
+          "en": "3MF and OBJ export much faster",
+          "ja": "3MFとOBJの書き出しを高速化"
+        },
+        "body": {
+          "de": "Ein fein aus einem Bild nachgezeichnetes Modell mit vielen Dreiecken hielt die Seite beim Schreiben der Datei lange beschäftigt, auf langsamen Rechnern bis Chrome fragte, ob er warten soll. Das Verschweißen der Punkte, der größte Einzelposten, ist rund dreißigmal schneller.",
+          "en": "A finely traced model with many triangles kept the page busy while the file was written, on slow computers until Chrome asked whether to wait. Welding the points, the biggest single item, is about thirty times faster.",
+          "ja": "三角形の多いモデルの書き出しで画面が長く応答しなくなる問題を軽減しました。特に時間のかかっていた頂点の結合処理は、開発元の計測で約30倍速くなっています。書き出し全体が30倍になるという意味ではありません。"
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.101.0",
+    "items": [
+      {
+        "title": {
+          "de": "Tinkercad-Designs mitnehmen",
+          "en": "Take your Tinkercad designs with you",
+          "ar": "انقل تصاميمك من Tinkercad معك",
+          "cs": "Přeneste si své návrhy z Tinkercadu",
+          "da": "Tag dine Tinkercad-designs med",
+          "fr": "Emportez vos designs Tinkercad",
+          "hu": "Hozd át a Tinkercad-terveidet",
+          "it": "Porta con te i tuoi design di Tinkercad",
+          "ja": "Tinkercadのデザインを持ってこよう",
+          "nl": "Neem je Tinkercad-ontwerpen mee",
+          "pl": "Zabierz swoje projekty z Tinkercada",
+          "pt-br": "Leve seus designs do Tinkercad com você",
+          "ru": "Перенесите свои проекты из Tinkercad",
+          "sl": "Prenesite svoje načrte iz Tinkercada",
+          "tr": "Tinkercad tasarımlarını yanına al",
+          "es": "Trae tus diseños de Tinkercad"
+        },
+        "body": {
+          "de": "Jemand aus der Community hat ein kostenloses Lesezeichen gebaut, Export to layerling, das ein Tinkercad-Design in deinem Browser samt echter Formen in eine layerling-Datei umwandelt. Es ist ein eigenes Projekt, nicht Teil von layerling, und wir haben es selbst noch nicht getestet – wir sind gespannt, wie es bei dir läuft. Du findest es in der Anleitung unter „Dateien und Speichern“ und auf der Startseite.",
+          "en": "A member of the community has made a free bookmark, Export to layerling, that converts a Tinkercad design in your browser into a layerling file with its real shapes. It is a project of its own, not part of layerling, and we have not tested it ourselves yet - we are curious how it works for you. You find it in the guide under Files and saving and on the start page.",
+          "ar": "صنع أحد أفراد المجتمع إشارة مرجعية مجانية باسم Export to layerling، تحوّل تصميم Tinkercad في متصفحك إلى ملف layerling بأشكاله الحقيقية. هو مشروع مستقل وليس جزءًا من layerling، ولم نجرّبه بأنفسنا بعد - نتطلع لمعرفة كيف يعمل معك. ستجده في الدليل ضمن الملفات والحفظ وفي الصفحة الرئيسية.",
+          "cs": "Někdo z komunity vytvořil bezplatnou záložku Export to layerling, která v prohlížeči převede návrh z Tinkercadu i se skutečnými tvary na soubor layerlingu. Je to samostatný projekt, není součástí layerlingu a sami jsme ho ještě nezkoušeli – zajímá nás, jak vám bude fungovat. Najdete ho v průvodci v části Soubory a ukládání a na úvodní stránce.",
+          "da": "Én fra fællesskabet har lavet et gratis bogmærke, Export to layerling, der laver et Tinkercad-design i din browser om til en layerling-fil med de rigtige former. Det er et projekt for sig, ikke en del af layerling, og vi har ikke selv prøvet det endnu – vi er spændte på, hvordan det virker for dig. Du finder det i vejledningen under Filer og gemning og på startsiden.",
+          "fr": "Un membre de la communauté a créé un favori gratuit, Export to layerling, qui convertit un design Tinkercad dans votre navigateur en fichier layerling avec ses vraies formes. C'est un projet à part, qui ne fait pas partie de layerling, et nous ne l'avons pas encore testé nous-mêmes – nous sommes curieux de savoir comment il fonctionne pour vous. Vous le trouvez dans le guide sous Fichiers et enregistrement, et sur la page d'accueil.",
+          "hu": "Valaki a közösségből készített egy ingyenes könyvjelzőt, az Export to layerlinget, amely a böngésződben egy Tinkercad-tervet a valódi formáival együtt layerling-fájllá alakít. Ez önálló projekt, nem része a layerlingnek, és mi magunk még nem próbáltuk ki – kíváncsiak vagyunk, nálad hogyan működik. Megtalálod az útmutatóban a Fájlok és mentés résznél, valamint a kezdőlapon.",
+          "it": "Una persona della community ha creato un segnalibro gratuito, Export to layerling, che converte nel tuo browser un design di Tinkercad in un file layerling con le sue forme reali. È un progetto a sé, non parte di layerling, e non l'abbiamo ancora provato noi: siamo curiosi di sapere come funziona per te. Lo trovi nella guida, sotto File e salvataggio, e nella pagina iniziale.",
+          "ja": "コミュニティの方が、ブラウザ上でTinkercadのデザインを本物の形のままlayerlingのファイルに変換する無料のブックマーク「Export to layerling」を作りました。これは独立したプロジェクトでlayerlingの一部ではなく、私たちもまだ試していません。皆さんの環境でどう動くか楽しみです。ガイドの「ファイルと保存」とスタートページで紹介しています。",
+          "nl": "Iemand uit de community heeft een gratis bladwijzer gemaakt, Export to layerling, die een Tinkercad-ontwerp in je browser met zijn echte vormen omzet naar een layerling-bestand. Het is een eigen project, geen onderdeel van layerling, en we hebben het zelf nog niet getest – we zijn benieuwd hoe het voor jou werkt. Je vindt het in de handleiding onder Bestanden en opslaan en op de startpagina.",
+          "pl": "Ktoś ze społeczności zrobił darmową zakładkę Export to layerling, która w przeglądarce zamienia projekt z Tinkercada wraz z prawdziwymi kształtami na plik layerlinga. To osobny projekt, nie jest częścią layerlinga i sami jeszcze go nie testowaliśmy – jesteśmy ciekawi, jak u Ciebie działa. Znajdziesz go w przewodniku w części Pliki i zapisywanie oraz na stronie startowej.",
+          "pt-br": "Alguém da comunidade criou um favorito gratuito, Export to layerling, que converte um design do Tinkercad no seu navegador em um arquivo do layerling com suas formas reais. É um projeto à parte, não faz parte do layerling, e ainda não o testamos: estamos curiosos para saber como funciona para você. Você o encontra no guia, em Arquivos e salvamento, e na página inicial.",
+          "ru": "Участник сообщества сделал бесплатную закладку Export to layerling, которая в браузере превращает проект Tinkercad вместе с настоящими формами в файл layerling. Это отдельный проект, он не входит в layerling, и мы сами его ещё не проверяли — нам интересно, как он работает у вас. Он описан в руководстве в разделе «Файлы и сохранение» и на стартовой странице.",
+          "sl": "Nekdo iz skupnosti je naredil brezplačen zaznamek Export to layerling, ki v brskalniku pretvori načrt iz Tinkercada z vsemi pravimi oblikami v datoteko layerlinga. Je samostojen projekt, ni del layerlinga in ga sami še nismo preizkusili – zanima nas, kako deluje pri vas. Najdete ga v priročniku v poglavju Datoteke in shranjevanje ter na začetni strani.",
+          "tr": "Topluluktan biri, tarayıcında bir Tinkercad tasarımını gerçek şekilleriyle bir layerling dosyasına dönüştüren ücretsiz bir yer imi yaptı: Export to layerling. Ayrı bir proje, layerling'in parçası değil ve biz henüz kendimiz denemedik – senin için nasıl çalıştığını merak ediyoruz. Kılavuzda Dosyalar ve kaydetme bölümünde ve başlangıç sayfasında bulabilirsin.",
+          "es": "Alguien de la comunidad ha creado un marcador gratuito, Export to layerling, que convierte un diseño de Tinkercad en tu navegador en un archivo de layerling con sus formas reales. Es un proyecto aparte, no forma parte de layerling, y aún no lo hemos probado nosotros: tenemos curiosidad por saber cómo te funciona. Lo encuentras en la guía, en Archivos y guardado, y en la página de inicio."
+        }
+      },
+      {
+        "title": {
+          "de": "Eine zweite Ansicht im eigenen Fenster",
+          "en": "A second view in its own window",
+          "ar": "عرض ثانٍ في نافذة خاصة به",
+          "cs": "Druhý pohled ve vlastním okně",
+          "da": "En anden visning i sit eget vindue",
+          "fr": "Une deuxième vue dans sa propre fenêtre",
+          "hu": "Második nézet saját ablakban",
+          "it": "Una seconda vista nella sua finestra",
+          "ja": "専用ウィンドウで2つ目のビュー",
+          "nl": "Een tweede weergave in een eigen venster",
+          "pl": "Drugi widok we własnym oknie",
+          "pt-br": "Uma segunda vista em sua própria janela",
+          "ru": "Второй вид в отдельном окне",
+          "sl": "Drugi pogled v lastnem oknu",
+          "tr": "Kendi penceresinde ikinci bir görünüm",
+          "es": "Una segunda vista en su propia ventana"
+        },
+        "body": {
+          "de": "Der neue Knopf in der Kameraleiste öffnet ein zweites Fenster, das denselben Entwurf durch eine eigene Kamera zeigt. Es folgt jeder Änderung, hat seinen eigenen Ansichtswürfel und seine eigene Kameraleiste und öffnet sich dort, wo du es verlassen hast.",
+          "en": "The new button in the camera bar opens a second window that shows the same design through a camera of its own. It follows every change, has its own view cube and camera bar, and opens where you left it.",
+          "ar": "يفتح الزر الجديد في شريط الكاميرا نافذة ثانية تعرض التصميم نفسه عبر كاميرا خاصة بها. تتبع كل تغيير، ولها مكعب عرض وشريط كاميرا خاصان بها، وتُفتح حيث تركتها.",
+          "cs": "Nové tlačítko v liště kamery otevře druhé okno, které ukazuje tentýž projekt vlastní kamerou. Sleduje každou změnu, má vlastní pohledovou kostku i lištu kamery a otevře se tam, kde jste ho nechali.",
+          "da": "Den nye knap i kamerabjælken åbner et andet vindue, der viser det samme design gennem sit eget kamera. Det følger hver ændring, har sin egen visningsterning og kamerabjælke og åbner, hvor du forlod det.",
+          "fr": "Le nouveau bouton de la barre de caméra ouvre une deuxième fenêtre qui montre le même design à travers sa propre caméra. Elle suit chaque modification, a son propre cube de vue et sa propre barre de caméra, et s'ouvre là où vous l'avez laissée.",
+          "hu": "A kamerasáv új gombja egy második ablakot nyit, amely ugyanazt a tervet saját kamerán át mutatja. Követ minden változtatást, saját nézetkockája és kamerasávja van, és ott nyílik meg, ahol hagytad.",
+          "it": "Il nuovo pulsante nella barra della fotocamera apre una seconda finestra che mostra lo stesso progetto da una fotocamera propria. Segue ogni modifica, ha il suo cubo di vista e la sua barra della fotocamera, e si apre dove l'hai lasciata.",
+          "ja": "カメラバーの新しいボタンで、同じデザインを専用のカメラで映す2つ目のウィンドウが開きます。すべての変更に追従し、専用のビューキューブとカメラバーを持ち、前回閉じた位置に開きます。",
+          "nl": "De nieuwe knop in de camerabalk opent een tweede venster dat hetzelfde ontwerp door een eigen camera toont. Het volgt elke wijziging, heeft een eigen weergavekubus en camerabalk, en opent waar je het liet.",
+          "pl": "Nowy przycisk na pasku kamery otwiera drugie okno, które pokazuje ten sam projekt przez własną kamerę. Śledzi każdą zmianę, ma własną kostkę widoku i pasek kamery i otwiera się tam, gdzie je zostawiłeś.",
+          "pt-br": "O novo botão na barra da câmera abre uma segunda janela que mostra o mesmo projeto por uma câmera própria. Ela acompanha cada alteração, tem seu próprio cubo de vista e sua própria barra da câmera, e abre onde você a deixou.",
+          "ru": "Новая кнопка на панели камеры открывает второе окно, которое показывает тот же проект через собственную камеру. Оно следит за каждым изменением, у него свой куб вида и своя панель камеры, и оно открывается там, где вы его оставили.",
+          "sl": "Novi gumb v vrstici kamere odpre drugo okno, ki kaže isti načrt skozi lastno kamero. Sledi vsaki spremembi, ima svojo kocko pogleda in vrstico kamere ter se odpre tam, kjer ste ga pustili.",
+          "tr": "Kamera çubuğundaki yeni düğme, aynı tasarımı kendi kamerasından gösteren ikinci bir pencere açar. Her değişikliği izler, kendi görünüm küpü ve kamera çubuğu vardır ve onu bıraktığınız yerde açılır.",
+          "es": "El nuevo botón de la barra de cámara abre una segunda ventana que muestra el mismo diseño a través de una cámara propia. Sigue cada cambio, tiene su propio cubo de vista y su propia barra de cámara, y se abre donde la dejaste."
+        }
+      },
+      {
+        "title": {
+          "de": "SVG mit den sichtbaren Kanten von oben",
+          "en": "SVG with the edges seen from above",
+          "ar": "SVG بالحواف المرئية من الأعلى",
+          "cs": "SVG s viditelnými hranami shora",
+          "da": "SVG med de synlige kanter set ovenfra",
+          "fr": "SVG avec les arêtes vues du dessus",
+          "hu": "SVG a felülről látható élekkel",
+          "it": "SVG con gli spigoli visti dall'alto",
+          "ja": "上から見える辺のSVG",
+          "nl": "SVG met de zichtbare randen van bovenaf",
+          "pl": "SVG z krawędziami widocznymi z góry",
+          "pt-br": "SVG com as arestas vistas de cima",
+          "ru": "SVG с видимыми кромками сверху",
+          "sl": "SVG z vidnimi robovi od zgoraj",
+          "tr": "Yukarıdan görünen kenarlarla SVG",
+          "es": "SVG con las aristas vistas desde arriba"
+        },
+        "body": {
+          "de": "Im SVG-Export gibt es unter Ansicht neben der Silhouette jetzt „Sichtbare Kanten von oben“: die Kanten, die man von oben sieht, als Linien in der Farbe ihres Körpers, mit Taschen, vertiefter und erhabener Schrift und Teilen auf anderen Teilen. Jede Fläche hat einen geschlossenen Umriss, auch wo zwei Körper aneinanderstoßen, und lässt sich im Laserprogramm gravieren, ohne die Plätze anderer Körper mitzunehmen. Ein Entwurf mit zu vielen Kanten bekommt die Silhouette, und die Meldung sagt das. Die Silhouette bleibt die Voreinstellung.",
+          "en": "The SVG export has a new view next to the silhouette, \"Visible edges from above\": the edges you see from above as lines in the colour of their body, with pockets, engraved and raised text and parts standing on others. Every area has a closed outline, also where two bodies meet, and engraves in a laser program without taking in the places of other bodies. A design with too many edges gets the silhouette, and the message says so. The silhouette stays the default.",
+          "ar": "يتضمن تصدير SVG عرضًا جديدًا بجانب الصورة الظلية: «الحواف المرئية من الأعلى»، أي الحواف التي تراها من الأعلى كخطوط بلون جسمها، مع الجيوب والنص المحفور والبارز والقطع الموضوعة فوق قطع أخرى. لكل مساحة حدّ مغلق، حتى حيث يتلامس جسمان، ويمكن نقشها في برنامج الليزر دون أخذ أماكن الأجسام الأخرى. التصميم الذي يحوي حوافًا أكثر من اللازم يحصل على الصورة الظلية، وتذكر الرسالة ذلك. وتبقى الصورة الظلية هي الافتراضية.",
+          "cs": "Export SVG má vedle siluety nový pohled „Viditelné hrany shora“: hrany, které vidíte shora, jako čáry v barvě svého tělesa, včetně kapes, vyrytého a vyvýšeného textu a dílů stojících na jiných dílech. Každá plocha má uzavřený obrys, i tam, kde se dvě tělesa dotýkají, a v laserovém programu ji lze gravírovat, aniž by se zabrala místa jiných těles. Návrh s příliš mnoha hranami dostane siluetu a zpráva to oznámí. Standardem zůstává silueta.",
+          "da": "SVG-eksporten har en ny visning ved siden af silhuetten, \"Synlige kanter set ovenfra\": de kanter, man ser ovenfra, som linjer i deres legemes farve, med lommer, indgraveret og ophøjet tekst og dele, der står på andre dele. Hvert område har en lukket kontur, også hvor to legemer mødes, og kan graveres i et laserprogram uden at tage andre legemers pladser med. Et design med for mange kanter får silhuetten, og meddelelsen siger det. Silhuetten er stadig standard.",
+          "fr": "L'export SVG a une nouvelle vue à côté de la silhouette, « Arêtes visibles du dessus » : les arêtes qu'on voit d'en haut, en lignes de la couleur de leur corps, avec les poches, le texte gravé ou en relief et les pièces posées sur d'autres. Chaque zone a un contour fermé, même là où deux corps se touchent, et se grave dans un logiciel laser sans prendre la place des autres corps. Un design avec trop d'arêtes reçoit la silhouette, et le message l'indique. La silhouette reste le choix par défaut.",
+          "hu": "Az SVG-exportnak a sziluett mellett új nézete van, a „Látható élek felülről”: a felülről látható élek vonalakként, a testük színében, a zsebekkel, a bevésett és kiemelkedő szöveggel és a más részeken álló darabokkal. Minden területnek zárt körvonala van, ott is, ahol két test találkozik, és lézerprogramban gravírozható anélkül, hogy más testek helyét is bevonná. A túl sok élű terv a sziluettet kapja, és az üzenet ezt jelzi. A sziluett marad az alapértelmezett.",
+          "it": "L'esportazione SVG ha una nuova vista accanto alla silhouette, «Spigoli visibili dall'alto»: gli spigoli che si vedono dall'alto come linee nel colore del loro corpo, con tasche, testo inciso e in rilievo e pezzi appoggiati su altri. Ogni area ha un contorno chiuso, anche dove due corpi si incontrano, e si può incidere in un programma laser senza includere i posti degli altri corpi. Un design con troppi spigoli riceve la silhouette, e il messaggio lo dice. La silhouette resta l'impostazione predefinita.",
+          "ja": "SVGの書き出しに、シルエットの隣に新しい表示「上から見える辺」が加わりました。上から見える辺を、そのボディの色の線として書き出し、ポケット、彫り込みや浮き出しの文字、他の部品の上に載った部品も含みます。どの領域も閉じた輪郭を持ち、2つのボディが接する場所でも同じです。レーザーソフトで他のボディの場所を巻き込まずに彫刻できます。辺が多すぎるデザインはシルエットになり、メッセージでお知らせします。標準はこれまでどおりシルエットです。",
+          "nl": "De SVG-export heeft naast het silhouet een nieuwe weergave, \"Zichtbare randen van bovenaf\": de randen die je van bovenaf ziet, als lijnen in de kleur van hun lichaam, met zakken, gegraveerde en verhoogde tekst en delen die op andere delen staan. Elk vlak heeft een gesloten contour, ook waar twee lichamen elkaar raken, en is in een laserprogramma te graveren zonder de plaatsen van andere lichamen mee te nemen. Een ontwerp met te veel randen krijgt het silhouet, en de melding zegt dat. Het silhouet blijft de standaard.",
+          "pl": "Eksport SVG ma obok sylwetki nowy widok „Widoczne krawędzie z góry”: krawędzie widoczne z góry jako linie w kolorze swojej bryły, z kieszeniami, wygrawerowanym i wypukłym tekstem oraz częściami stojącymi na innych. Każdy obszar ma zamknięty kontur, także tam, gdzie stykają się dwie bryły, i można go grawerować w programie do lasera bez zabierania miejsc innych brył. Projekt z zbyt wieloma krawędziami dostaje sylwetkę, a komunikat o tym informuje. Sylwetka pozostaje domyślna.",
+          "pt-br": "A exportação SVG tem uma nova vista ao lado da silhueta, \"Arestas visíveis de cima\": as arestas que se veem de cima como linhas na cor do seu corpo, com bolsos, texto gravado e em relevo e peças apoiadas em outras. Cada área tem um contorno fechado, também onde dois corpos se encontram, e pode ser gravada em um programa de laser sem levar os lugares de outros corpos. Um design com arestas demais recebe a silhueta, e a mensagem avisa. A silhueta continua sendo o padrão.",
+          "ru": "У экспорта SVG рядом с силуэтом появился новый вид «Видимые кромки сверху»: кромки, которые видны сверху, в виде линий цвета своего тела, вместе с карманами, вырезанным и выпуклым текстом и деталями, стоящими на других. У каждой области замкнутый контур, в том числе там, где соприкасаются два тела, и её можно гравировать в лазерной программе, не захватывая места других тел. Проект со слишком большим числом кромок получает силуэт, и сообщение об этом говорит. Силуэт остаётся видом по умолчанию.",
+          "sl": "Izvoz SVG ima poleg silhuete nov pogled »Vidni robovi od zgoraj«: robovi, ki jih vidite od zgoraj, kot črte v barvi svojega telesa, skupaj z žepi, vgraviranim in dvignjenim besedilom ter deli, ki stojijo na drugih. Vsaka površina ima zaprt obris, tudi tam, kjer se dve telesi stikata, in jo je mogoče gravirati v laserskem programu, ne da bi zajeli mesta drugih teles. Načrt s preveč robovi dobi silhueto, sporočilo pa to pove. Silhueta ostaja privzeta.",
+          "tr": "SVG dışa aktarımında siluetin yanında yeni bir görünüm var: \"Yukarıdan görünen kenarlar\". Yukarıdan görünen kenarlar, gövdelerinin renginde çizgiler olarak yazılır; cepler, oyulmuş ve kabartmalı yazı ve başka parçaların üzerinde duran parçalar da dahildir. Her alanın kapalı bir dış hattı vardır, iki gövdenin buluştuğu yerde de, ve lazer programında diğer gövdelerin yerlerini almadan gravür edilebilir. Çok fazla kenarı olan tasarım siluet alır ve mesaj bunu söyler. Siluet varsayılan olarak kalır.",
+          "es": "La exportación SVG tiene una vista nueva junto a la silueta, «Aristas visibles desde arriba»: las aristas que se ven desde arriba como líneas del color de su cuerpo, con bolsillos, texto grabado y en relieve y piezas colocadas sobre otras. Cada área tiene un contorno cerrado, también donde se tocan dos cuerpos, y se puede grabar en un programa láser sin incluir los lugares de otros cuerpos. Un diseño con demasiadas aristas recibe la silueta, y el mensaje lo indica. La silueta sigue siendo la opción por defecto."
+        }
+      },
+      {
+        "title": {
+          "de": "Das Mausrad zoomt wieder richtig",
+          "en": "The mouse wheel zooms properly again",
+          "ar": "عجلة الفأرة تكبّر وتصغّر بشكل صحيح مجددًا",
+          "cs": "Kolečko myši zase správně přibližuje",
+          "da": "Musehjulet zoomer rigtigt igen",
+          "fr": "La molette de la souris zoome de nouveau correctement",
+          "hu": "Az egérgörgő újra rendesen nagyít",
+          "it": "La rotellina del mouse torna a ingrandire come si deve",
+          "ja": "マウスホイールのズームが正しく働くように",
+          "nl": "Het muiswiel zoomt weer goed",
+          "pl": "Kółko myszy znów poprawnie przybliża",
+          "pt-br": "A roda do mouse volta a dar zoom direito",
+          "ru": "Колесо мыши снова нормально масштабирует",
+          "sl": "Miškino kolesce spet pravilno približuje",
+          "tr": "Fare tekerleği yeniden düzgün yakınlaştırıyor",
+          "es": "La rueda del ratón vuelve a hacer zoom como debe"
+        },
+        "body": {
+          "de": "Ist Windows so eingestellt, dass das Mausrad pro Rastung einen Bildschirm scrollt (oder in Firefox), zoomte das Rad in der 3D-Ansicht kaum, egal wie die Zoomgeschwindigkeit stand. Eine Rastung zoomt jetzt wie bei jedem anderen Rad. In den Arbeitsbereich-Einstellungen laufen lange Beschriftungen nicht mehr in die nächste Zeile.",
+          "en": "If Windows is set to scroll one screen at a time per wheel notch (or in Firefox), the wheel barely zoomed in the 3D view, whatever the zoom speed. A notch now zooms like on any other wheel. In the workspace settings, long labels no longer run over the next row.",
+          "ar": "إذا كان ويندوز مضبوطًا على تمرير شاشة كاملة لكل نقرة من العجلة (أو في Firefox)، كانت العجلة بالكاد تغيّر التكبير في العرض ثلاثي الأبعاد مهما كانت سرعة التكبير. صارت النقرة الآن تكبّر كأي عجلة أخرى. وفي إعدادات مساحة العمل لم تعد التسميات الطويلة تتداخل مع السطر التالي.",
+          "cs": "Když je Windows nastaveno na posun o jednu obrazovku na zářez kolečka (nebo ve Firefoxu), kolečko v 3D pohledu téměř nepřibližovalo, ať byla rychlost zoomu jakákoli. Zářez teď přibližuje jako u každého jiného kolečka. V nastavení pracovní plochy dlouhé popisky už nezasahují do dalšího řádku.",
+          "da": "Hvis Windows er sat til at rulle en hel skærm pr. hjulklik (eller i Firefox), zoomede hjulet knapt nok i 3D-visningen, uanset zoomhastigheden. Et klik zoomer nu som på ethvert andet hjul. I arbejdsområdets indstillinger løber lange etiketter ikke længere ind i næste linje.",
+          "fr": "Quand Windows défile d'un écran par cran de molette (ou dans Firefox), la molette ne zoomait presque pas dans la vue 3D, quelle que soit la vitesse de zoom. Un cran zoome maintenant comme sur toute autre molette. Dans les réglages de l'espace de travail, les longs libellés ne débordent plus sur la ligne suivante.",
+          "hu": "Ha a Windows görgetésenként egy képernyőnyit görget (vagy Firefoxban), a görgő a 3D nézetben alig nagyított, bármilyen volt is a nagyítás sebessége. Egy kattintás most úgy nagyít, mint bármely más görgőn. A munkaterület beállításaiban a hosszú feliratok már nem csúsznak a következő sorba.",
+          "it": "Se Windows è impostato per scorrere una schermata per scatto della rotellina (o in Firefox), la rotellina nella vista 3D ingrandiva appena, qualunque fosse la velocità dello zoom. Uno scatto ora ingrandisce come con qualsiasi altra rotellina. Nelle impostazioni dell'area di lavoro, le etichette lunghe non finiscono più sulla riga successiva.",
+          "ja": "Windowsがホイール1クリックにつき1画面分スクロールする設定(またはFirefox)の場合、ズーム速度にかかわらず3Dビューでホイールがほとんどズームしませんでした。1クリックが他のホイールと同じようにズームします。作業領域の設定では、長いラベルが次の行にはみ出さなくなりました。",
+          "nl": "Als Windows is ingesteld om per klik van het wiel een heel scherm te scrollen (of in Firefox), zoomde het wiel in de 3D-weergave nauwelijks, ongeacht de zoomsnelheid. Een klik zoomt nu zoals bij elk ander wiel. In de instellingen van de werkruimte lopen lange labels niet meer over in de volgende regel.",
+          "pl": "Jeśli Windows jest ustawiony na przewijanie o jeden ekran na ząbek kółka (albo w Firefoksie), kółko w widoku 3D prawie nie przybliżało, niezależnie od szybkości zoomu. Jeden ząbek przybliża teraz jak każde inne kółko. W ustawieniach obszaru roboczego długie etykiety nie wchodzą już na następny wiersz.",
+          "pt-br": "Se o Windows está configurado para rolar uma tela inteira por clique da roda (ou no Firefox), a roda quase não dava zoom na vista 3D, qualquer que fosse a velocidade do zoom. Um clique agora dá zoom como em qualquer outra roda. Nas configurações da área de trabalho, rótulos longos não passam mais para a linha seguinte.",
+          "ru": "Если в Windows колесо прокручивает по целому экрану за щелчок (или в Firefox), в 3D-виде оно почти не масштабировало, какой бы ни была скорость масштабирования. Теперь щелчок масштабирует как на любом другом колесе. В настройках рабочей области длинные подписи больше не заходят на следующую строку.",
+          "sl": "Če je Windows nastavljen na pomik za cel zaslon na klik kolesca (ali v Firefoxu), kolesce v 3D pogledu skoraj ni približevalo, ne glede na hitrost povečave. Klik zdaj približa kot pri vsakem drugem kolescu. V nastavitvah delovnega območja dolge oznake ne segajo več v naslednjo vrstico.",
+          "tr": "Windows tekerleğin her tıkında bir ekran kaydıracak şekilde ayarlıysa (veya Firefox'ta), tekerlek 3B görünümde yakınlaştırma hızı ne olursa olsun neredeyse hiç yakınlaştırmıyordu. Bir tık artık diğer tüm tekerlekler gibi yakınlaştırıyor. Çalışma alanı ayarlarında uzun etiketler artık sonraki satıra taşmıyor.",
+          "es": "Si Windows está configurado para desplazar una pantalla por cada paso de la rueda (o en Firefox), la rueda apenas hacía zoom en la vista 3D, fuera cual fuera la velocidad del zoom. Un paso ahora hace zoom como en cualquier otra rueda. En los ajustes del área de trabajo, las etiquetas largas ya no pasan a la fila siguiente."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.100.0",
+    "items": [
+      {
+        "title": {
+          "de": "layerling spricht Chinesisch",
+          "en": "layerling speaks Chinese",
+          "hu": "A layerling kínaiul is beszél",
+          "ja": "簡体字・繁体字の中国語に対応"
+        },
+        "body": {
+          "de": "Die Oberfläche und die Anleitung gibt es jetzt auf Chinesisch, vereinfacht und traditionell. Du wählst sie im Sprachmenü; ein chinesischer Browser bekommt sie von selbst. Was noch nicht übersetzt ist, erscheint auf Englisch.",
+          "en": "The interface and the guide are now in Chinese, simplified and traditional. Choose one in the language menu; a Chinese browser gets it by itself. Whatever is not translated yet shows in English.",
+          "hu": "A felület és az útmutató mostantól kínaiul is elérhető, egyszerűsített és hagyományos írással. A nyelvmenüben választható, egy kínai böngésző magától megkapja. Ami még nincs lefordítva, angolul jelenik meg.",
+          "ja": "画面とユーザーガイドが、簡体字と繁体字の中国語に対応しました。言語メニューで選べます。中国語のブラウザーでは自動で選ばれ、まだ訳されていない箇所は英語で表示します。"
+        }
+      },
+      {
+        "title": {
+          "de": "Offene Seiten für Gridfinity-Behälter",
+          "en": "Open sides for Gridfinity bins",
+          "ja": "Gridfinityのビンの側面を開けられるように"
+        },
+        "body": {
+          "de": "Ein Gridfinity-Behälter kann jetzt an jeder Seite offen sein, ohne Wand und Stapelrand: Schalte im Eigenschaften-Fenster „Vorne offen“ oder eine andere Seite ein, und Behälter, die zueinander offen sind, ergeben eine durchgehende Reihe. Sind alle vier Seiten offen, wird der Behälter zur Schale.",
+          "en": "A Gridfinity bin can now be open on any side, with no wall and no stacking lip there: switch on \"Open at the front\" or another side in the Properties panel, and bins open towards each other make one continuous run. With all four sides open the bin is a tray.",
+          "ja": "「前側を開く」などの設定で、ビンの好きな側面の壁と積み重ね用の縁をなくせます。開いた側を向かい合わせにすれば、連続した長いトレイとして使えます。4面すべてを開くこともできます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Gruppen im STEP-Export",
+          "en": "Groups in the STEP export",
+          "hu": "Csoportok a STEP-exportban",
+          "ja": "STEP出力にグループ全体を含めるように修正"
+        },
+        "body": {
+          "de": "Eine Gruppe, etwa ein Würfel mit Gewindeloch, fehlte bisher im STEP, und es kam nur die Schraube heraus. Jetzt geht die Gruppe als die genauen Körper mit, die sie enthält, und ihre Löcher schneiden nur ihre eigenen Körper.",
+          "en": "A group, a block with a tapped hole say, was missing from the STEP, and only the screw came out. Now the group goes along as the exact bodies it holds, and its holes cut only its own bodies.",
+          "hu": "Egy csoport, például egy menetes furatú kocka, eddig hiányzott a STEP-ből, és csak a csavar került ki. Most a csoport a benne lévő pontos testekként kerül az exportba, és a lyukai csak a saját testeit vágják.",
+          "ja": "ねじ穴のあるブロックなど、グループ化した部品がSTEPから抜け、ねじだけが出力されることがありました。グループ内の正確なCAD形状も出力し、グループ内の穴はそのグループの部品だけを切り抜くようになりました。"
+        }
+      },
+      {
+        "title": {
+          "de": "Formenbibliothek in Farbe",
+          "en": "The shape library in colour",
+          "ja": "シェイプライブラリの画像を色付きに"
+        },
+        "body": {
+          "de": "Die Bilder in der Formenbibliothek tragen jetzt die Farbe, in der die Form eingefügt wird: ein roter Quader, ein oranger Zylinder, eine blaue Kugel. Wer die grauen Bilder lieber mag, schaltet „Formen in Farbe“ in den Arbeitsbereich-Einstellungen aus.",
+          "en": "The pictures in the shape library now wear the colour the shape is added in: a red box, an orange cylinder, a blue sphere. If you prefer the grey pictures, switch off \"Shapes in colour\" in the workspace settings.",
+          "ja": "シェイプライブラリの画像が、追加時の色で表示されるようになりました。赤い直方体、オレンジの円柱、青い球などです。灰色の画像を使いたい場合は、設定で「シェイプを色付きで表示」をオフにできます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Der Ansichtswürfel dreht sanft",
+          "en": "The view cube turns smoothly",
+          "ja": "ビューキューブの切り替えを滑らかに"
+        },
+        "body": {
+          "de": "Ein Klick auf eine Fläche, Kante oder Ecke des Ansichtswürfels lässt die Kamera jetzt in etwa einer Drittelsekunde dorthin drehen, statt zu springen. Ein Zug mit der Maus oder dem Finger beendet die Drehung sofort; wer Bewegung reduziert hat, bekommt weiter den Sprung.",
+          "en": "A click on a face, edge or corner of the view cube now turns the camera there in about a third of a second instead of jumping. A drag with the mouse or a finger ends the turn at once; if your system is set to reduce motion, you still get the jump.",
+          "ja": "ビューキューブの面、辺、角をクリックすると、視点が約3分の1秒で滑らかに切り替わります。マウスや指でドラッグすれば、その場で切り替えを止められます。OSで動きを減らす設定にしている場合は、すぐに切り替わります。"
+        }
+      },
+      {
+        "title": {
+          "de": "Texthöhe bleibt bei „Proportionen beibehalten“ frei",
+          "en": "A text's height ignores \"Keep proportions\"",
+          "ja": "文字の厚さを変えても、文字サイズを変えないように"
+        },
+        "body": {
+          "de": "Mit „Proportionen beibehalten“ änderte die Eingabe der Höhe eines Textes auch Breite und Tiefe, also die Schriftgröße. Die Höhe eines Textes ist nur die Dicke der Buchstaben und bleibt jetzt außen vor.",
+          "en": "With \"Keep proportions\" on, typing a text's height also changed its width and depth, and with them the letter size. A text's height is only the thickness of its letters and is now left out.",
+          "ja": "「縦横比を保つ」がオンのときにテキストの高さを入力すると、幅と奥行き、文字サイズまで変わっていました。高さは文字の厚さだけを表すため、ほかの寸法と連動しないようになりました。"
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.99.0",
+    "items": [
+      {
+        "title": {
+          "de": "Eckenradius der abgerundeten Box auf 0,01 mm genau",
+          "en": "Rounded box corner radius to 0.01 mm",
+          "ja": "角丸直方体の半径を0.01 mm単位で保持"
+        },
+        "body": {
+          "de": "Bei der abgerundeten Box rundete das Feld Eckenradius auf Zehntel: aus 0,25 mm wurde 0,3 mm. Jetzt bleiben zwei Nachkommastellen erhalten, auch beim Radius oben und unten.",
+          "en": "The corner radius field of the rounded box rounded to tenths, so 0.25 mm came back as 0.3 mm. Now two decimals are kept, for the radius at the top and bottom too.",
+          "ja": "角丸直方体の角の半径が小数第1位に丸められ、0.25 mmが0.3 mmになっていました。上下の角も含め、小数第2位まで保持するようになりました。"
+        }
+      },
+      {
+        "title": {
+          "de": "Lücke in der Skizze schließen",
+          "en": "Close a gap in a sketch",
+          "ja": "スケッチの端同士をつないで輪郭を閉じる"
+        },
+        "body": {
+          "de": "Hast du in der Skizze eine Seite einer Form gelöscht, ziehst du jetzt einfach das eine offene Ende auf das andere: Es rastet ein, beide werden zu einem Punkt, und der Umriss ist wieder geschlossen. Eine neue Linie dazwischen ist nicht mehr nötig.",
+          "en": "If you erased a side of a shape in the sketch, just drag one open end onto the other: it snaps there, the two become one point, and the outline is closed again. No need to draw a new line in between.",
+          "ja": "スケッチで辺を消して輪郭が開いた場合は、片方の端をもう片方へドラッグすると吸着し、1つの点につながります。間に新しい線を描かずに輪郭を閉じられます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Schilder auf Seitenflächen",
+          "en": "Tags on side faces",
+          "hu": "Címkék oldallapokon",
+          "ja": "側面に置いたネームタグの重なり方を修正"
+        },
+        "body": {
+          "de": "Ein Namens- oder Symbolschild auf einer stehenden oder schrägen Fläche baut seine Schichten jetzt aus der Fläche heraus auf. Bisher lag die Grundplatte vorn und die Buchstaben verschoben dahinter.",
+          "en": "A name tag or icon tag on a standing or sloped face now builds its layers out of the face. Before, the base plate came out in front with the letters shifted behind it.",
+          "hu": "Egy álló vagy ferde lapon lévő név- vagy ikoncímke most a lapból kifelé építi fel a rétegeit. Korábban az alaplap került előre, a betűk pedig eltolva mögé.",
+          "ja": "垂直な面や傾いた面にネームタグ・アイコンタグを置くとき、レイヤーがその面から正しい向きに積み上がるようになりました。台座が前、文字が後ろにずれていた問題を修正しています。"
+        }
+      },
+      {
+        "title": {
+          "de": "layerling spricht Spanisch",
+          "en": "layerling speaks Spanish",
+          "hu": "A layerling spanyolul is beszél",
+          "ja": "スペイン語に対応"
+        },
+        "body": {
+          "de": "Die Oberfläche und die Anleitung gibt es jetzt auf Spanisch (Spanien). Du wählst sie im Sprachmenü; ein spanischer Browser bekommt sie von selbst. Was noch nicht übersetzt ist, erscheint auf Englisch.",
+          "en": "The interface and the guide are now in Spanish (Spain). Choose it in the language menu; a Spanish browser gets it by itself. Whatever is not translated yet shows in English.",
+          "hu": "A felület és az útmutató mostantól spanyolul (Spanyolország) is elérhető. A nyelvmenüben választható, egy spanyol böngésző magától megkapja. Ami még nincs lefordítva, angolul jelenik meg.",
+          "ja": "画面とユーザーガイドがスペインのスペイン語に対応しました。言語メニューで選べます。スペイン語のブラウザーでは自動で選ばれ、まだ訳されていない箇所は英語で表示します。"
+        }
+      },
+      {
+        "title": {
+          "de": "Dünne importierte Teile haben die richtige Größe",
+          "en": "Thin imported parts have the right size",
+          "hu": "A vékony importált alkatrészek mérete helyes",
+          "ja": "1 mm未満の読み込み部品のサイズを修正"
+        },
+        "body": {
+          "de": "Ein importiertes Teil, das dünner als 1 mm ist, zeigte 1 mm an und wurde bei einer eingegebenen Höhe zu klein. Jetzt stimmen die Maße, auch bei schon gespeicherten Formen.",
+          "en": "An imported part thinner than 1 mm showed 1 mm and came out too small when you typed a height. The sizes are right now, saved shapes included.",
+          "hu": "Az 1 mm-nél vékonyabb importált alkatrész 1 mm-t mutatott, és beírt magasságnál túl kicsi lett. Most a méretek helyesek, a már elmentett formáké is.",
+          "ja": "1 mmより薄い部品が1 mmと表示され、高さを入力すると小さくなりすぎることがありました。保存したシェイプも含め、正しいサイズを扱うようになりました。"
+        }
+      },
+      {
+        "title": {
+          "de": "Scharnier aufklappen",
+          "en": "Fold the hinge open or shut",
+          "hu": "A csuklópánt nyitása és csukása",
+          "ja": "ヒンジの開き具合を調整"
+        },
+        "body": {
+          "de": "Beim Scharnier gibt es einen neuen Regler, den Öffnungswinkel. Er klappt das zweite Blatt um den Stift hoch, von flach (0°) bis zugeklappt (180°), damit sich das Scharnier so setzen lässt, wie es im Entwurf steht.",
+          "en": "The hinge has a new slider, the opening angle. It folds the second leaf up about the pin, from flat (0°) to closed (180°), so you can set the hinge as it stands in your design.",
+          "hu": "A csuklópántnak új csúszkája van, a nyitási szög. A második szárnyat a csap körül felhajtja, laposról (0°) zárt állásig (180°), így a csuklópánt úgy állítható be, ahogy a tervben áll.",
+          "ja": "ヒンジに「開く角度」のスライダーが加わりました。ピンを軸に片側を回転させ、平らに開いた0°から閉じた180°まで、デザインで使う姿勢にできます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Einfacher Modus für Kinder",
+          "en": "A simple mode for children",
+          "hu": "Egyszerű mód gyerekeknek",
+          "ja": "子どもや初心者向けの簡易モード"
+        },
+        "body": {
+          "de": "In den Einstellungen schaltest Du einen einfachen Modus ein: weniger Werkzeuge, eine kurze Formenliste, größere Knöpfe und eine Startseite ohne Verweise nach außen. Ausschalten geht nur mit zwei Sekunden Halten. Ein Link mit ?mode=simple schaltet ihn auf dem Gerät ein, ein Server kann ihn vorgeben.",
+          "en": "Switch on a simple mode in the settings: fewer tools, a short list of shapes, larger buttons and a start page without links out of layerling. Leaving it takes a two-second press. A link with ?mode=simple switches it on for that device, and a server can set it.",
+          "hu": "A beállításokban bekapcsolhat egy egyszerű módot: kevesebb eszköz, rövid alakzatlista, nagyobb gombok és kifelé mutató hivatkozások nélküli kezdőoldal. Kikapcsolni csak kétmásodperces nyomva tartással lehet. A ?mode=simple hivatkozás bekapcsolja az eszközön, a szerver pedig előírhatja.",
+          "ja": "設定で簡易モードをオンにすると、ツールとシェイプの数を絞り、ボタンを大きくし、スタートページから外部リンクを隠します。解除には2秒間の長押しが必要です。?mode=simple付きのリンクやサーバー設定からも有効にできます。"
+        }
+      },
+      {
+        "title": {
+          "de": "SVG aus CorelDRAW lässt sich importieren",
+          "en": "SVG files from CorelDRAW import",
+          "hu": "A CorelDRAW-ból származó SVG-fájlok importálhatók",
+          "ja": "UTF-16で保存したSVGの読み込みに対応"
+        },
+        "body": {
+          "de": "Manche Programme, etwa CorelDRAW, speichern SVG-Dateien als UTF-16. Solche Dateien meldeten bisher \"SVG is not valid XML\". Jetzt werden sie gelesen.",
+          "en": "Some programs, CorelDRAW for one, save SVG files as UTF-16. Such files used to fail with \"SVG is not valid XML\". Now they are read.",
+          "hu": "Egyes programok, például a CorelDRAW, UTF-16 kódolással mentik az SVG-fájlokat. Az ilyen fájlok eddig az „SVG is not valid XML” hibát adták. Most beolvashatók.",
+          "ja": "CorelDRAWなどがUTF-16で保存したSVGは、「SVGは有効なXMLではありません」と表示され、読み込めませんでした。この形式のSVGも読み込めるようになりました。"
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.98.0",
+    "items": [
+      {
+        "title": {
+          "de": "Innen hohl mit einem Klick",
+          "en": "Hollow inside in one click",
+          "hu": "Belül üreges egy kattintással",
+          "ja": "ワンクリックで密閉した空洞を作る"
+        },
+        "body": {
+          "de": "Beim Aushöhlen steht unter den Seiten jetzt „Geschlossen (Hohlraum innen)“: ein Klick schließt alle Seiten, und der Hohlraum bleibt rundum zu.",
+          "en": "When hollowing, \"Closed (cavity inside)\" now sits below the sides: one click closes every side, and the cavity stays sealed all round.",
+          "hu": "Üregesítéskor az oldalak alatt most ott a „Zárt (belső üreg)”: egy kattintás minden oldalt bezár, és az üreg körben zárva marad.",
+          "ja": "中空にする画面で、側面のボタンの下に「閉じる（内部に空洞）」が加わりました。1回押すだけですべての面を閉じ、外側に開口のない空洞を作れます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Dünne Böden bleiben beim Schneiden stehen",
+          "en": "Thin floors stay when you cut",
+          "hu": "A vékony alj megmarad vágáskor",
+          "ja": "穴の下に薄い底板が残るように修正"
+        },
+        "body": {
+          "de": "Liegt ein Loch knapp über dem Boden eines Körpers, bleibt genau so viel Boden stehen, wie darunter Platz ist. Bisher verschwand ein Boden bis 0,05 mm ganz, und ein dickerer wurde 0,05 mm zu dünn.",
+          "en": "A hole a little above the bottom of a body now leaves just as much floor as there is below it. Before, a floor up to 0.05 mm vanished completely, and a thicker one came out 0.05 mm too thin.",
+          "hu": "Ha egy lyuk kicsivel egy test alja fölött van, most pontosan annyi alj marad meg, amennyi alatta van. Korábban a legfeljebb 0,05 mm-es alj teljesen eltűnt, a vastagabb pedig 0,05 mm-rel vékonyabb lett.",
+          "ja": "底面より少し上に穴を置くとき、穴の下の厚さを正しく残すようになりました。以前は0.05 mm以下の底板が消え、それより厚い底板も0.05 mm薄くなることがありました。"
+        }
+      },
+      {
+        "title": {
+          "de": "Das Schlüsselring-Loch, wo du willst",
+          "en": "The key ring hole wherever you want",
+          "hu": "Kulcstartólyuk oda, ahová szeretnéd",
+          "ja": "ネームタグのキーリング穴を好きな場所に"
+        },
+        "body": {
+          "de": "Beim Namensschild und beim Symbolschild gibt es neben Links, Rechts und Oben jetzt Frei: Daneben liegt eine eigene Lasche mit dem Loch, die du wie jede Form verschiebst und drehst. „Am Schild befestigen“ macht sie genau dort zum Teil des Schilds, das Loch geht durch jede Schicht. Frei holt sie wieder heraus.",
+          "en": "On the name tag and the icon tag there is now Free beside Left, Right and Top: a tab of its own with the hole lies beside the tag, to move and turn like any shape. \"Fix to the tag\" makes it part of the tag just where it is, the hole through every layer. Free brings it out again.",
+          "hu": "A névcímkén és az ikoncímkén a Bal, Jobb és Felül mellett most már Szabad is van: a címke mellé kerül egy külön fül a lyukkal, amelyet úgy mozgatsz és forgatsz, mint bármelyik alakzatot. A „Rögzítés a címkéhez” pontosan ott a címke részévé teszi, a lyuk minden rétegen átmegy. A Szabad újra kiveszi.",
+          "ja": "ネームタグとアイコンタグのキーリング穴に、左・右・上に加えて「自由」が加わりました。穴付きのタブを独立した部品として動かし、回転できます。「タグに固定」でその位置に結合し、すべてのレイヤーに穴を開けます。再び「自由」にすると取り出せます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Gelöschte Entwürfe bleiben gelöscht",
+          "en": "Deleted designs stay deleted",
+          "hu": "A törölt tervek törölve maradnak",
+          "ja": "削除したデザインが復活する問題を修正"
+        },
+        "body": {
+          "de": "Wer nach dem Listenverlust eine Sicherung zurückgespielt hatte, sah gelöschte Entwürfe beim nächsten Start ohne Bild wiederkommen. Das Zurückholen läuft jetzt nur noch einmal, und beim Löschen gehen die versteckten Kopien mit.",
+          "en": "If you had restored a backup after the list was lost, deleted designs came back without a picture at the next start. The rescue now runs only once, and deleting a design removes its hidden copies too.",
+          "hu": "Ha a lista elvesztése után visszaállítottál egy biztonsági mentést, a törölt tervek a következő indításkor kép nélkül visszatértek. A visszaállítás most csak egyszer fut le, és a törlés a rejtett másolatokat is eltávolítja.",
+          "ja": "バックアップを戻したあと、削除したデザインが次の起動時に画像のない状態で復活することがありました。過去のデータを探す復旧処理は1回だけ実行し、デザインを削除するときは隠れた重複も削除するようになりました。"
+        }
+      },
+      {
+        "title": {
+          "de": "Browser-Übersetzung wieder möglich",
+          "en": "Browser translation works again",
+          "hu": "A böngésző fordítása újra működik",
+          "ja": "ブラウザーの翻訳を再び使えるように"
+        },
+        "body": {
+          "de": "Spricht layerling deine Sprache noch nicht, darf der Browser die Seite wieder übersetzen. Deine eigenen Entwurfs-, Ordner- und Formnamen bleiben dabei, wie sie sind.",
+          "en": "If layerling does not speak your language yet, the browser may translate the page again. Your own names for designs, folders and shapes stay as they are.",
+          "hu": "Ha a layerling még nem beszéli a nyelvedet, a böngésző újra lefordíthatja az oldalt. A tervek, mappák és alakzatok saját neveid változatlanok maradnak.",
+          "ja": "Layerlingがまだ対応していない言語では、ブラウザーの翻訳を使えるようになりました。自分で付けたデザイン名、フォルダー名、シェイプ名は翻訳されず、そのまま表示します。"
+        }
+      },
+      {
+        "title": {
+          "de": "Zahnräder mit bis zu 150 Zähnen",
+          "en": "Gears with up to 150 teeth",
+          "hu": "Fogaskerekek legfeljebb 150 foggal",
+          "ja": "歯車の上限を150歯に拡大"
+        },
+        "body": {
+          "de": "Zahnräder, Hohlräder und Zahnstangen haben jetzt bis zu 150 statt 64 Zähne, etwa für große Räder mit kleinem Modul.",
+          "en": "Gears, ring gears and racks now take up to 150 teeth instead of 64, for large wheels with a small module, say.",
+          "hu": "A fogaskerekek, belső fogazatú kerekek és fogaslécek most 64 helyett legfeljebb 150 fogat kaphatnak, például kis modulú nagy kerekekhez.",
+          "ja": "このバージョンでは、歯車、内歯車、ラックの歯数の上限が64から150になりました。小さなモジュールで大きな歯車を作れます。なお、続くv1.99.0では上限が500歯へ拡大されています。"
+        }
+      },
+      {
+        "title": {
+          "de": "Mit dem Mausrad durch den Verlauf",
+          "en": "Through the history with the mouse wheel",
+          "hu": "Az egérgörgővel az előzményekben",
+          "ja": "マウスホイールで履歴を移動"
+        },
+        "body": {
+          "de": "In der Verlaufsansicht geht das Mausrad über dem Schieber einen Stand je Raste weiter, nach oben zu einem früheren. Bild↑ und Bild↓ springen zehn Stände, Pos1 und Ende zum ältesten und zum aktuellen Stand.",
+          "en": "In the history view the mouse wheel over the slider goes one state per notch, up to an earlier one. Page Up and Page Down jump ten states, Home and End go to the oldest and to the current state.",
+          "hu": "Az előzmények nézetben a csúszka fölötti egérgörgő kattanásonként egy állapotot lép, felfelé egy korábbira. A Page Up és a Page Down tíz állapotot ugrik, a Home és az End a legrégebbi és a jelenlegi állapotra visz.",
+          "ja": "履歴のスライダー上でホイールを回すと、1刻みずつ前後へ移動できます。上へ回すと前の状態になります。Page Up・Page Downは10刻み、Homeは最も古い状態、Endは現在の状態へ移動します。"
+        }
+      },
+      {
+        "title": {
+          "de": "Verrundung mit wachsendem Radius",
+          "en": "A fillet with a growing radius",
+          "hu": "Lekerekítés növekvő sugárral",
+          "ja": "エッジの両端で半径を変えるフィレット"
+        },
+        "body": {
+          "de": "Beim Verrunden gibt es jetzt „Variabler Radius“: Eine Kante wird an einem Ende klein und am anderen groß verrundet, gleichmäßig dazwischen. „Enden tauschen“ dreht die Richtung um.",
+          "en": "Filleting now has \"Variable radius\": one edge is rounded small at one end and large at the other, evenly in between. \"Swap ends\" turns it round.",
+          "hu": "A lekerekítésnél most van „Változó sugár”: egy él az egyik végén kicsit, a másikon nagyot kap, közte egyenletesen. A „Végek felcserélése” megfordítja.",
+          "ja": "フィレットに「可変半径」が加わりました。1本のエッジの片端を小さく、もう片端を大きくして、その間を滑らかに変化させられます。「両端を入れ替え」で大小の向きを逆にできます。"
+        }
+      },
+      {
+        "title": {
+          "de": "SVG nur mit der Aufstandsfläche",
+          "en": "SVG with only the footprint",
+          "hu": "SVG csak a felfekvési felülettel",
+          "ja": "作業平面との接地面だけをSVGに出力"
+        },
+        "body": {
+          "de": "Beim Export als SVG gibt es jetzt die Ansicht „Aufstandsfläche auf der Arbeitsebene“: Sie schreibt nur die Umrisse, mit denen die Objekte auf der Arbeitsebene stehen, als Linien in Millimetern. Die Silhouette von oben bleibt die Voreinstellung.",
+          "en": "The SVG export now has the view \"Footprint on the workplane\": it writes only the outlines where the objects stand on the workplane, as lines in millimetres. The silhouette from above stays the default.",
+          "hu": "Az SVG exportban most van „Felfekvési felület a munkasíkon” nézet: csak azokat a körvonalakat írja ki, amelyekkel a tárgyak a munkasíkon állnak, vonalakként milliméterben. A felülnézeti sziluett marad az alapértelmezés.",
+          "ja": "SVGの表示方法に「作業平面への接地面」が加わりました。部品が作業平面に接する輪郭だけを、mm単位の線として出力します。これまでの「上から見たシルエット」も引き続き選べます。"
+        }
+      },
+      {
+        "title": {
+          "de": "Umbenannt bleibt umbenannt",
+          "en": "Renamed stays renamed",
+          "hu": "Az átnevezés megmarad",
+          "ja": "バックアップでも変更後の名前を維持"
+        },
+        "body": {
+          "de": "Ein auf der Startseite umbenannter Entwurf behält seinen neuen Namen jetzt auch in einer Sicherung und beim Verschieben in den Serverordner.",
+          "en": "A design renamed on the start page now keeps its new name in a backup and when it is moved to the server folder.",
+          "hu": "A kezdőlapon átnevezett terv mostantól a mentésben és a szervermappába áthelyezéskor is megtartja az új nevét.",
+          "ja": "スタートページでデザイン名を変えたあと、バックアップやサーバーフォルダーへの移動でも、その名前を維持するようになりました。"
+        }
+      },
+      {
+        "title": {
+          "de": "Minuszeichen auf Handy und Tablet",
+          "en": "A minus key on phone and tablet",
+          "hu": "Mínuszjel telefonon és táblagépen",
+          "ja": "スマートフォンやタブレットで負の数を入力しやすく"
+        },
+        "body": {
+          "de": "Felder, die auch negative Werte nehmen, etwa Position, Drehung oder Verschieben, zeigen auf Handy und Tablet jetzt eine Tastatur mit Minuszeichen.",
+          "en": "Fields that also take negative values, such as position, rotation or a move, now show a keyboard with a minus key on phones and tablets.",
+          "hu": "A negatív értéket is elfogadó mezők, például a pozíció, az elforgatás vagy az eltolás, telefonon és táblagépen mostantól mínuszjeles billentyűzetet mutatnak.",
+          "ja": "位置、角度、移動量など、負の値を入力できる欄では、マイナス記号のあるキーボードを表示するようになりました。"
+        }
+      }
+    ]
+  },
+  {
     "version": "1.97.0",
     "items": [
       {

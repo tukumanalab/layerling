@@ -33,6 +33,7 @@ Ved venstre kant er en smal bjælke. Fra toppen:
 - {{ui:camera.focusSelection}} zoomer til markeringen ([[F]] eller [[Shift]]+[[F]]).
 - {{ui:camera.zoomIn}} og {{ui:camera.zoomOut}} zoomer skridt for skridt, ligesom tasterne [[+]] og [[−]].
 - {{ui:camera.orthographic}} skifter til en flad visning hvor parallelle kanter forbliver parallelle. Til måling og justering af kanter er det ofte mere behageligt end perspektivvisningen. [[O]] skifter frem og tilbage, og endnu et klik vender tilbage.
+- {{ui:camera.secondView}} åbner en anden visning af designet i sit eget vindue, beskrevet nedenfor. Et klik mere lukker det.
 - {{ui:camera.hideWorkplane}} (øjet over et gitter) skjuler pladen med sit gitter, så du kan se undersiden af et design nedefra. Kun visningen ændres: nye former lander stadig på arbejdsplanet. Endnu et klik viser den igen.
 - {{ui:camera.placeWorkplane}}, målebåndet og vinkelmåleren er deres egne værktøjer, dækket nedenfor og i [Måling og noter](chapter:measuring-and-notes).
 
@@ -41,6 +42,10 @@ Den lille pil helt øverst på bjælken skjuler den hvis den er i vejen.
 Et design åbner som du forlod det: visningens vinkel, zoom og position gemmes med det i denne browser, så du fortsætter hvor du stoppede, også efter at have trykket Hjem eller lukket siden. En gemt fil (.lyl) tager visningen med sig, så den åbner i den andre steder også. Visningen er ikke del af fortryd-historikken.
 
 Du kan også gemme fire af dine egne visninger i hvert design. [[Shift]]+[[7]], [[Shift]]+[[8]], [[Shift]]+[[9]] eller [[Shift]]+[[0]] gemmer visningen præcis som den er - vinkel, position, zoom, og flad eller perspektiv - under den tast, og tasten alene ([[7]], [[8]], [[9]] eller [[0]]) henter den tilbage. En besked forneden bekræfter at den er gemt; gemmer du igen under samme tast, erstattes visningen. Ligesom visningen ovenfor bliver de gemte visninger hos designet i denne browser og følger med i en gemt fil (.lyl); de er ikke del af fortryd-historikken.
+
+### En anden visning i sit eget vindue
+
+{{ui:camera.secondView}} åbner et vindue, der viser det samme design gennem sit eget kamera, så du kan se det fra to sider på én gang - forfra, for eksempel, mens du arbejder ovenfra. Hver ændring, du laver i editoren, vises der med det samme; selve designet ændres kun i hovedvinduet, og håndtagene bliver også der. I det andet vindue drejer musen og visningsterningen dets visning som her, og det gør tasterne også: [[1]] til [[6]], [[F]], [[Home]], [[O]], [[+]] og [[−]], piletasterne til at dreje og [[Ctrl]] med pilene til at skubbe. [[F]] zoomer der ind på det, der er valgt i editoren. Designets fire gemte visninger virker der også: [[7]], [[8]], [[9]] og [[0]] henter dem tilbage, og [[Shift]] med en af disse taster gemmer vinduets visning under den - for begge vinduer. Dets egen kamerabjælke har {{ui:camera.home}}, {{ui:camera.focusSelection}}, {{ui:camera.zoomIn}}, {{ui:camera.zoomOut}}, {{ui:camera.orthographic}} og {{ui:camera.hideWorkplane}}, og de virker kun på det vindue. Vinduet åbner, hvor du forlod det, i samme størrelse, og lukker sammen med editoren. På telefoner og tablets vises knappen ikke.
 
 ## Kigge indeni: snitvisningen
 

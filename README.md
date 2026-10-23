@@ -21,7 +21,7 @@
     <a href="#layerling-mcp-skill"><img alt="Drivable by AI" src="https://img.shields.io/badge/AI--drivable-MCP%20server-16c0d4"></a>
   </p>
 
-  <p><strong>English</strong> · <a href="README.de.md">Deutsch</a> · <a href="README.nl.md">Nederlands</a></p>
+  <p><strong>English</strong> · <a href="README.de.md">Deutsch</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.zh-cn.md">简体中文</a> · <a href="README.zh-tw.md">繁體中文</a></p>
 </div>
 
 <p align="center">
@@ -116,6 +116,7 @@ It is not a full CAD package: there is no parametric timeline and no assemblies.
 - **Four saved views per design** – **Shift+7**, **8**, **9** or **0** saves the view exactly as it is (angle, pan, zoom), and the key alone brings it back. Each design keeps its own, and a saved `.lyl` file carries them along.
 - **The view cube in any corner** – Settings > Appearance > **View cube position** puts the cube in the top left, top right, bottom left or bottom right; in any corner but the top left, the camera controls move up into its place.
 - **Look from below** – the eye over a grid in the camera bar hides the plate, so the underside of a design can be seen without it in the way.
+- **A second view in its own window** – a button in the camera bar opens a second window that shows the same design through a camera of its own, with its own view cube and camera bar, and follows every change. It opens where you last left it.
 - **Panels where you want them** – the object list, the settings, the section view, the tape measure and the tool panels for edges, hollowing and patterns move by their title bar and open there again; a double-click docks them.
 - **Right-click menu** – a short right click on a body brings up the most used commands: duplicate, hole or solid, group, chamfer, fillet and hollow for one body, mirror and scale by percent, hide, lock, drop to the workplane, delete. Dragging with the right button still turns the view.
 - **Section view** – cut the view open along a plane across X, Y or Z to look at walls, cavities and parts that fit into each other, with a coarse and a fine slider. Only the view is cut: the design and every export stay whole. "Section as SVG" saves the cut itself at 1:1, for a laser or a template, and "Measure" reads wall thickness and gaps right on the cut, snapping square to the wall.
@@ -237,6 +238,8 @@ Everyday commands:
 The image runs `next start` in production mode, so the MCP bridge is off there unless you switch it on (see [Letting an AI client reach a copy on a NAS or server](#letting-an-ai-client-reach-a-copy-on-a-nas-or-server)). To offer a shared project folder, bind a writable directory and set `LAYERLING_SHARED_PROJECTS_DIR` in `compose.yml` to the path inside the container where it is mounted, for example `./shared-projects:/shared-projects` with `LAYERLING_SHARED_PROJECTS_DIR: "/shared-projects"` (see [Shared Designs on a Network](#shared-designs-on-a-network)). The container runs as the user with the number 999, so that user must be allowed to write to the folder: `sudo chown 999:999 ./shared-projects`, or add `user: "1000:1000"` to the service (your own user and group numbers, `id -u` and `id -g` show them) so that the container runs as you. Without it the folder shows up on the start page but nothing can be saved there. After changing it, run `docker compose up -d`: `docker compose restart` keeps the old setting. `docker exec <container> printenv LAYERLING_SHARED_PROJECTS_DIR` shows the one in use.
 
 To choose the colour theme people get on their first visit, set `LAYERLING_DEFAULT_THEME` to `system`, `light`, `dark` or `graphite` (the same way, in `compose.yml` or in the environment of `npm run start`). Anyone who has opened layerling before keeps the theme their browser already has, and anyone can still change it with the theme switch. Without the setting the theme follows the system. A copy served as plain files has no server to read it, so it does not apply there.
+
+For a class or a workshop with children, `LAYERLING_SIMPLE_MODE` starts layerling in its simple mode: the ribbon keeps the tools a workshop uses, the shape library a short list, the buttons are larger, and the start page shows the designs and no news, no welcome text and no links out of layerling. `true` is the start for people who have not chosen (the settings have a switch, and leaving the mode there takes a press held for two seconds), `always` holds for everyone and takes the switch away. A link ending in `?mode=simple` switches it on for the device that opens it, and `?mode=full` off again. It is set the same way as the others, and a copy served as plain files has no server to read it (the link and the setting still work there).
 
 With the shared folder on, `LAYERLING_NEW_DESIGNS_ON_SERVER` makes new designs start on the server: `true` is the start for people who have not chosen (they can untick **New designs on the server** on the start page), `always` holds for everyone and locks the tick. It is set the same way, and a copy served as plain files has no server to read it.
 

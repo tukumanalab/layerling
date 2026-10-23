@@ -467,7 +467,8 @@ html[data-toolbar-size="small"] {
   --editor-toolbar-height: 109px;
 }
 
-html[data-toolbar-size="large"] {
+html[data-toolbar-size="large"],
+html[data-simple-mode="on"]:not([data-toolbar-size]) {
   --toolbar-scale: 1.25;
   --editor-toolbar-tools-height: 87px;
   --editor-toolbar-height: 131px;
@@ -476,7 +477,9 @@ html[data-toolbar-size="large"] {
 /* Large icons no longer fit the widths measured for the media queries below,
    so the groups wrap onto a further row at any width rather than being cut off. */
 html[data-toolbar-size="large"] .toolbar-mode-content,
-html[data-toolbar-size="large"] .sketch-toolbar-ribbon {
+html[data-toolbar-size="large"] .sketch-toolbar-ribbon,
+html[data-simple-mode="on"]:not([data-toolbar-size]) .toolbar-mode-content,
+html[data-simple-mode="on"]:not([data-toolbar-size]) .sketch-toolbar-ribbon {
   flex-wrap: wrap;
   height: auto;
 }
@@ -3437,6 +3440,11 @@ html[data-theme="dark"] .edge-modifier-quick-actions button.active {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.shell-closed-option {
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 6px;
+}
+
 .shell-openings-summary {
   display: block;
   margin-top: 6px;
@@ -4742,6 +4750,42 @@ html[data-theme="dark"] .shell-openings-summary {
   font-size: 0.85em;
 }
 
+/* The colour a library entry lands in: its own, or the colour its kind saves in the shape defaults.
+   The grey icon keeps its shading; a colour layer masked by the icon's outline multiplies over it. */
+.shape-menu-item .shape-menu-thumb {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  max-width: none;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.shape-menu-item .shape-menu-thumb img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.shape-menu-item .shape-menu-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--shape-default-color);
+  -webkit-mask: var(--shape-icon) center / contain no-repeat;
+  mask: var(--shape-icon) center / contain no-repeat;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* The setting "Shapes in colour" (lib/shapeColors.ts): off leaves the grey pictures. */
+html[data-shape-colors="off"] .shape-menu-item .shape-menu-thumb::after {
+  display: none;
+}
+
 /* Custom shapes above the basic shapes (#109). Both scroll together in the
    menu body, so the library list itself no longer scrolls on its own there. */
 .shape-menu-body {
@@ -4775,7 +4819,8 @@ html[data-toolbar-size="small"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   --shape-menu-columns: 5;
 }
 
-html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-dropdown) {
+html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-dropdown),
+html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.sketch-shape-menu-dropdown) {
   --shape-menu-columns: 3;
 }
 
@@ -4839,7 +4884,7 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   padding: 5px;
 }
 
-.shape-menu-icons-only .shape-menu-item > span:not(.my-shape-no-preview) {
+.shape-menu-icons-only .shape-menu-item > span:not(.my-shape-no-preview):not(.shape-menu-thumb) {
   display: none;
 }
 
@@ -5130,6 +5175,12 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   background: #fcfaf6;
   border: 1px solid #ebe4d7;
   border-radius: 6px;
+}
+
+.print-estimate-calculate {
+  justify-self: start;
+  padding: 0 14px;
+  cursor: pointer;
 }
 
 .print-estimate-settings {
@@ -6029,7 +6080,49 @@ html[data-theme="dark"] .visibility-hidden-badge {
   display: block;
   width: 100%;
   height: 100%;
+  /* The box lets clicks through; the picture itself is turned and zoomed with the mouse. */
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
   background: radial-gradient(circle at 50% 48%, rgba(255, 239, 221, 0.98), rgba(238, 208, 176, 0.96));
+}
+
+.sketch-revolve-preview-reset {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  color: #7a6249;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(204, 186, 166, 0.9);
+  border-radius: 8px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.sketch-revolve-preview-reset:hover,
+.sketch-revolve-preview-reset:focus-visible {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme="dark"] .sketch-revolve-preview-reset {
+  color: #dfc5aa;
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(108, 81, 53, 0.8);
+}
+
+html[data-theme="dark"] .sketch-revolve-preview-reset:hover,
+html[data-theme="dark"] .sketch-revolve-preview-reset:focus-visible {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.sketch-revolve-preview canvas:active {
+  cursor: grabbing;
 }
 
 .sketch-revolve-preview-empty {
@@ -11093,7 +11186,8 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
   grid-template-columns: 145px 1fr;
   align-items: center;
   gap: 8px;
-  min-height: 20px;
+  /* No min-height: the settings body is a grid of a fixed height, which gives an auto row only its minimum, so a
+     label that wraps to two lines ran over the next row. */
   font-size: 14px;
   font-weight: 700;
 }
@@ -11783,6 +11877,11 @@ html[data-theme="dark"] .workspace-reset-row button {
   font-size: 11px;
   font-weight: 650;
   line-height: 1.5;
+}
+
+.workspace-footer-buttons {
+  display: flex;
+  gap: 8px;
 }
 
 .make-default-button {
@@ -15797,4 +15896,85 @@ html[data-theme="dark"] .interactive-help-window a:not(.primary):not(.secondary)
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
+}
+
+/* Simple mode (#695): leaving it is a press held for two seconds; the bar fills while it is held. */
+.simple-mode-hold {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  padding: 8px 14px;
+  border: 1px solid var(--workspace-border, rgba(127, 127, 127, 0.5));
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.simple-mode-hold::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 4px;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: currentColor;
+}
+
+.simple-mode-hold.holding::after {
+  transform: scaleX(1);
+  transition: transform 2s linear;
+}
+
+/* Links inside running text: the page resets every link to its surroundings,
+   so a link in a sentence looked like plain text. These get the accent colour, an underline and a
+   small arrow for "opens in a new tab", in the welcome panel, the what's-new note, the video lists
+   and the help window. */
+.dashboard-welcome-switch a,
+.dashboard-welcome-videos a,
+.whats-new-note a,
+.guide-videos a,
+.interactive-help-more a {
+  color: #8f4700;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.dashboard-welcome-switch a:hover,
+.dashboard-welcome-videos a:hover,
+.whats-new-note a:hover,
+.guide-videos a:hover,
+.interactive-help-more a:hover {
+  color: #ad6206;
+  text-decoration-thickness: 2.5px;
+}
+
+.dashboard-welcome-switch a[target="_blank"]::after,
+.dashboard-welcome-videos a[target="_blank"]::after,
+.whats-new-note a[target="_blank"]::after,
+.guide-videos a[target="_blank"]::after,
+.interactive-help-more a[target="_blank"]::after {
+  content: "\00a0\2197\FE0E";
+  display: inline-block;
+  font-size: 0.85em;
+  text-decoration: none;
+}
+
+html[data-theme="dark"] .dashboard-welcome-switch a,
+html[data-theme="dark"] .dashboard-welcome-videos a,
+html[data-theme="dark"] .whats-new-note a,
+html[data-theme="dark"] .guide-videos a,
+html[data-theme="dark"] .interactive-help-more a {
+  color: #f3a452;
+}
+
+html[data-theme="dark"] .dashboard-welcome-switch a:hover,
+html[data-theme="dark"] .dashboard-welcome-videos a:hover,
+html[data-theme="dark"] .whats-new-note a:hover,
+html[data-theme="dark"] .guide-videos a:hover,
+html[data-theme="dark"] .interactive-help-more a:hover {
+  color: #ffc784;
 }

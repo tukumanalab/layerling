@@ -83,6 +83,7 @@ AI pracuje tymi samymi funkcjami co Ty, tą samą drogą co Twoja praca w edytor
 | `layerling_layer_text` | zmienia tekst w stos warstw do druku wielokolorowego (litery, szersze obrzeża, płytka bez otworów) albo buduje stos ponownie, z otworem na kółko do kluczy, narożnikami dla każdej warstwy i zaokrągloną lub sfazowaną krawędzią liter. Z listą imion jedna plakietka na imię |
 | `layerling_layer_icon` | zmienia ikonę SVG (tekst pliku albo wyciągniętą bryłę ze szkicu) w warstwową plakietkę z ikoną do druku wielokolorowego (ikona, szersze obrzeża, płytka bez otworów) albo buduje ją ponownie z nową szerokością lub warstwami. Z liczbą wypełnia płytę kopiami |
 | `layerling_create_qr_code` | tworzy kod QR z tekstu lub adresu strony, jak {{ui:shape.qrCode}} w bibliotece kształtów – sam kod, wypukły na płytce albo grawerowany, z korekcją błędów, szerokością, wysokością, strefą ciszy i na życzenie jako otwór; ostrzega, gdy moduł jest mniejszy niż 0,8 mm |
+| `layerling_reference_image` | dodaje obraz referencyjny ze zdjęcia, jak {{ui:import.referenceImage}}, albo przesuwa, obraca, kalibruje (dwa punkty obrazu i ich rzeczywista odległość), rozjaśnia lub blokuje go - pomoc, która nigdy nie jest eksportowana ani drukowana |
 | `layerling_measure_section` | mierzy na płaszczyźnie cięcia między dwoma punktami przyciąganymi do konturu: grubość ścianek, szczeliny, pasowania |
 | `layerling_show_overhangs` | włącza albo wyłącza kreskowanie nawisów, ustawia kąt i podaje dla każdej bryły powierzchnię, która wymagałaby podpór |
 | `layerling_estimate_print` | szacuje objętość, masę i filament dla zaznaczenia albo całego projektu: dla pełnej bryły oraz zgrubnie ze ściankami i wypełnieniem, jak okno eksportu |
@@ -104,7 +105,7 @@ AI pracuje tymi samymi funkcjami co Ty, tą samą drogą co Twoja praca w edytor
 | `layerling_restore_from_history` | przywraca obiekty (także części wewnątrz grup) z wcześniejszego stanu do projektu jako kopie, jak przycisk Przywróć do projektu w widoku historii. To jeden krok, który cofanie wycofuje |
 | `layerling_export_section_svg` | zwraca kontury na płaszczyźnie cięcia jako SVG w skali 1:1, z tych samych brył co eksport |
 | `layerling_export_drawing` | tworzy rysunek warsztatowy eksportu „2D”: trzy widoki w skali 1:1 na arkuszu ISO z wymiarami gabarytowymi i tabelą okrągłych otworów, jako tekst SVG albo PDF |
-| `layerling_export_mesh` | zapisuje plik okna eksportu jako STL, 3MF albo OBJ, z tych samych brył, do ścieżki na tym komputerze albo jako base64 |
+| `layerling_export_mesh` | zapisuje plik okna eksportu jako STL, 3MF, OBJ albo SVG (widok z góry, ślad albo widoczne krawędzie), z tych samych brył, do ścieżki na tym komputerze albo jako base64 |
 | `layerling_save_project` | zapisuje cały edytowalny projekt jako plik .lyl pod ścieżką na komputerze, na którym działa serwer MCP, bez okna dialogowego; istniejący plik jest zastępowany tylko z `overwrite`, zapis idzie przez plik tymczasowy, a cel Ctrl+S w edytorze pozostaje bez zmian |
 | `layerling_set_workplane` | kładzie płaszczyznę roboczą na boku bryły albo z powrotem na płycie bazowej oraz ją ukrywa lub pokazuje |
 | `layerling_capture_image` | robi zdjęcie widoku: z przodu, z góry, z boku, ukośnie od narożnika i inne |

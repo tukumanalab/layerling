@@ -37,6 +37,7 @@ Ob levem robu je ozka vrstica. Od zgoraj navzdol:
 - {{ui:camera.focusSelection}} se približa izboru ([[F]] ali [[Shift]]+[[F]]).
 - {{ui:camera.zoomIn}} in {{ui:camera.zoomOut}} zumirata po korakih, prav tako tipki [[+]] in [[−]].
 - {{ui:camera.orthographic}} preklopi na ploski pogled, v katerem vzporedni robovi ostanejo vzporedni. To je za merjenje in za poravnavanje robov pogosto prijetnejše kot perspektivni pogled. S [[O]] preklapljaš sem in tja, drugi klik gre nazaj.
+- {{ui:camera.secondView}} odpre drugi pogled na načrt v lastnem oknu, opisanem spodaj. Drugi klik ga zapre.
 - {{ui:camera.hideWorkplane}} (oko nad mrežo) skrije ploščo z mrežo, da lahko spodnjo stran načrta pogledaš od spodaj. Spremeni se samo pogled: nove oblike še naprej pristanejo na delovni ravnini. Drugi klik jo spet prikaže.
 - {{ui:camera.placeWorkplane}}, merilni trak in kotomer so lastna orodja, ki so opisana spodaj in v poglavju [Merjenje in opombe](chapter:merjenje-in-opombe).
 
@@ -45,6 +46,10 @@ Z majhno puščico čisto na vrhu vrstice jo lahko skriješ, če te moti.
 Načrt se odpre tako, kot si ga zapustil: zorni kot, povečava in izrez pogleda ostanejo z njim v tem brskalniku, zato nadaljuješ tam, kjer si nehal, tudi po »Domov« ali po zaprtju strani. Shranjena datoteka (.lyl) vzame pogled s seboj, zato se odpre tako tudi drugje. Pogled ne spada v zgodovino razveljavitev.
 
 V vsakem načrtu lahko shraniš tudi štiri lastne poglede. [[Shift]]+[[7]], [[Shift]]+[[8]], [[Shift]]+[[9]] ali [[Shift]]+[[0]] shrani pogled natanko takšen, kot je - zorni kot, izrez, povečavo ter raven ali perspektivni pogled - pod to tipko, sama tipka ([[7]], [[8]], [[9]] ali [[0]]) pa ga vrne. Sporočilo spodaj potrdi shranjevanje; ponovno shranjevanje pod isto tipko pogled zamenja. Tako kot zgornji pogled ostanejo shranjeni pogledi z načrtom v tem brskalniku in gredo s seboj v shranjeni datoteki (.lyl); ne spadajo v zgodovino razveljavitev.
+
+### Drugi pogled v lastnem oknu
+
+{{ui:camera.secondView}} odpre okno, ki kaže isti načrt skozi lastno kamero, tako da ga vidite z dveh strani hkrati - na primer od spredaj, medtem ko delate od zgoraj. Vsaka sprememba v urejevalniku se tam takoj pokaže; načrt se spreminja le v glavnem oknu, in tudi ročaji ostanejo tam. V drugem oknu miška in kocka pogleda vrtita njegov pogled kot tukaj, prav tako tipke: [[1]] do [[6]], [[F]], [[Home]], [[O]], [[+]] in [[−]], puščice za vrtenje in [[Ctrl]] s puščicami za premik. [[F]] tam približa tisto, kar je izbrano v urejevalniku. Tam delujejo tudi štirje shranjeni pogledi načrta: [[7]], [[8]], [[9]] in [[0]] jih vrnejo, [[Shift]] z eno od teh tipk pa pod njo shrani pogled tega okna - za obe okni. Njegova lastna vrstica kamere ima {{ui:camera.home}}, {{ui:camera.focusSelection}}, {{ui:camera.zoomIn}}, {{ui:camera.zoomOut}}, {{ui:camera.orthographic}} in {{ui:camera.hideWorkplane}}, ki delujejo le na to okno. Okno se odpre tam, kjer ste ga pustili, v enaki velikosti, in se zapre skupaj z urejevalnikom. Na telefonih in tablicah gumb ni prikazan.
 
 ## Pogled v notranjost: prerezni pogled
 

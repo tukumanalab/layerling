@@ -16,6 +16,7 @@ import { importedShapeFromSvg } from "@/lib/svgImport";
 import { importedShapeFrom3mf } from "@/lib/threemfImport";
 import { normalizeDesignView, normalizeSavedViews, readDesignView, readSavedViews, type DesignView, type SavedDesignViews } from "@/lib/designView";
 import { isSketchKeyring } from "@/lib/sketchKeyring";
+import { isReferenceImageOpacity } from "@/lib/referenceImage";
 import { isThreadProfile } from "@/lib/threadProfiles";
 import { normalizeSnapGrid, normalizeWorkspaceSettings } from "@/lib/workplaneSettings";
 import type { CadDisplayEdge, GridSize, ProjectAsset, ProjectAssetSourceFormat, SketchOperation, SketchRevolveSettings, WorkplaneNote, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
@@ -33,7 +34,7 @@ function knownSchema(schema: unknown) {
 export const LYL_FORMAT_VERSION = 2;
 export const LYL_MINIMUM_READER_VERSION = 2;
 export const LYL_OLDEST_READABLE_FORMAT_VERSION = 1;
-export const LYL_CREATED_WITH_VERSION = "1.97.0";
+export const LYL_CREATED_WITH_VERSION = "1.103.1";
 export const LYL_MEDIA_TYPE = "application/vnd.layerling.project+zip";
 
 export const LYL_LIMITS = {
@@ -740,6 +741,7 @@ async function serializeShapeNode(
       ...(sketchProfile.silhouette ? { silhouette: true } : {}),
       ...(sketchProfile.keyring ? { keyring: sketchProfile.keyring } : {}),
       ...(sketchProfile.inset ? { inset: sketchProfile.inset } : {}),
+      ...(sketchProfile.sweepAnchor && sketchProfile.sweepAnchor !== "center" ? { sweepAnchor: sketchProfile.sweepAnchor } : {}),
     };
   }
 
@@ -1190,7 +1192,8 @@ function validateSketchProfile(value: unknown, label: string) {
     if (segment.construction !== undefined && typeof segment.construction !== "boolean") throw new Error(`${label}.segments[${index}].construction must be true or false`);
   });
   if (profile.silhouette !== undefined && typeof profile.silhouette !== "boolean") throw new Error(`${label}.silhouette must be true or false`);
-  if (profile.keyring !== undefined && !isSketchKeyring(profile.keyring)) throw new Error(`${label}.keyring must be { side, diameter, x, z }`);
+  if (profile.keyring !== undefined && !isSketchKeyring(profile.keyring)) throw new Error(`${label}.keyring must be { side, diameter, x, z } and a free place (#598) with corners of -1 or 1 if it has one`);
+  if (profile.sweepAnchor !== undefined && profile.sweepAnchor !== "left" && profile.sweepAnchor !== "center" && profile.sweepAnchor !== "right") throw new Error(`${label}.sweepAnchor must be left, center or right`);
   if (profile.inset !== undefined) {
     const inset = objectRecord(profile.inset, `${label}.inset`);
     const distance = finiteNumber(inset.distance, `${label}.inset.distance`);
@@ -1292,6 +1295,13 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   if (definition.layeredIcon !== undefined && typeof definition.layeredIcon !== "boolean") {
     throw new Error(`${label}.layeredIcon must be true or false`);
   }
+  if (definition.keyringTab !== undefined && typeof definition.keyringTab !== "boolean") {
+    throw new Error(`${label}.keyringTab must be true or false`);
+  }
+  // A reference image's see-through (#680): 0.1 to 1, or none on an old picture plate.
+  if (definition.imagePlate !== undefined && !isReferenceImageOpacity((definition.imagePlate as { opacity?: unknown } | null)?.opacity)) {
+    throw new Error(`${label}.imagePlate.opacity must be a number from 0.1 to 1`);
+  }
   // A QR code's settings (#553): a text and known choices. Old projects have none.
   if (definition.qrCode !== undefined && !normalizeQrSettings(definition.qrCode)) {
     throw new Error(`${label}.qrCode must hold the code's text`);
@@ -1302,9 +1312,9 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   if (textJoin !== undefined && !SKETCH_STROKE_JOINS.includes(textJoin as never)) {
     throw new Error(`${label}.textStroke.join must be miter, round or bevel`);
   }
-  // A name tag's key ring hole (#215): a known side, a diameter within range, how far beyond the letters it sits.
+  // A name tag's key ring hole (#215): a known side, a diameter within range, how far beyond the letters it sits; where it was put freely (#598).
   if (definition.textKeyring !== undefined && !isTextKeyring(definition.textKeyring)) {
-    throw new Error(`${label}.textKeyring must be a side (left, right or top), a diameter of 1 to 20 mm and an offset`);
+    throw new Error(`${label}.textKeyring must be a side (left, right or top), a diameter of 1 to 20 mm and an offset, and a free place (#598) with corners of -1 or 1 if it has one`);
   }
   if (definition.parametricSource !== undefined) {
     // Was der Koerper vor dem Drehen war. Fehlt oder stimmt hier etwas nicht,
@@ -1428,7 +1438,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "gear") {
     const teeth = finiteNumber(definition.teeth, `${label}.teeth`);
-    if (!Number.isInteger(teeth) || teeth < 6 || teeth > 64) throw new Error(`${label}.teeth is outside the supported range`);
+    if (!Number.isInteger(teeth) || teeth < 6 || teeth > 150) throw new Error(`${label}.teeth is outside the supported range`);
     const toothSize = finiteNumber(definition.toothSize, `${label}.toothSize`);
     if (toothSize <= 0) throw new Error(`${label}.toothSize must be positive`);
     if (definition.toothWidth !== undefined) {
@@ -1542,10 +1552,10 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.gridfinityType !== undefined && definition.gridfinityType !== "bin" && definition.gridfinityType !== "baseplate") {
       throw new Error(`${label}.gridfinityType is invalid`);
     }
-    for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "hingePinless"] as const) {
+    for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityOpenBack", "gridfinityOpenFront", "gridfinityOpenLeft", "gridfinityOpenRight", "hingePinless"] as const) {
       if (definition[key] !== undefined && typeof definition[key] !== "boolean") throw new Error(`${label}.${key} must be true or false`);
     }
-    for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
+    for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       // Only an offset runs both ways along a wall.
@@ -1587,7 +1597,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "hinge") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["hingeKnuckles", "hingePinDiameter", "hingeLeafThickness", "hingeClearance"] as const) {
+    for (const key of ["hingeKnuckles", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeAngle"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       if (value < 0 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
@@ -1599,7 +1609,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "loft") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftBottomSides", "loftTopSides", "loftOffsetX", "loftOffsetZ", "loftWall", "loftTwist", "loftTiltX", "loftTiltZ", "loftSmooth"] as const) {
+    for (const key of ["loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftBottomSides", "loftTopSides", "loftOffsetX", "loftOffsetZ", "loftWall", "loftTwist", "loftTiltX", "loftTiltZ", "loftSmooth", "loftSegments"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       if (Math.abs(value) > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
@@ -2145,6 +2155,24 @@ export async function inspectLylProjectPackage(input: ArrayBuffer | Uint8Array):
     modifiedAt: Date.parse(validated.document.metadata.modifiedAt),
     formatVersion: validated.document.formatVersion,
   };
+}
+
+/**
+ * The package with another design name inside. Renaming a design on the start page changes its card only; the
+ * saved package keeps the old name until the design is changed again, so whatever hands the package on writes the
+ * card's name in first (#689). Everything else stays as it was; a package that already has the name comes back as is.
+ */
+export async function withLylProjectName(input: ArrayBuffer | Uint8Array, projectName: string): Promise<Uint8Array> {
+  const bytes = projectInputBytes(input);
+  const name = projectName.trim();
+  const prefix = strFromU8(bytes.subarray(0, Math.min(bytes.length, 64))).trimStart();
+  if (!name || prefix.startsWith("{")) return bytes;
+  const { files, validated } = await readPackagedLyl(bytes);
+  if (validated.document.metadata.projectName === name) return bytes;
+  const raw = JSON.parse(strFromU8(files["project.json"])) as { metadata: { projectName: string } };
+  raw.metadata.projectName = name;
+  files["project.json"] = strToU8(JSON.stringify(raw));
+  return zipAsync(Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))), 1);
 }
 
 export async function importLylProject(input: ArrayBuffer | Uint8Array, options: ImportLylOptions = {}): Promise<LylRestoredProject> {

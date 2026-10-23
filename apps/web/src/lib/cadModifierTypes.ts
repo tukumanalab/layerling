@@ -308,6 +308,14 @@ export type CadModifierGridfinityPart = {
   gridfinityScoopRight?: boolean;
   gridfinityScoopRadius?: number;
   gridfinityFloorHeight?: number;
+  gridfinityOpenBack?: boolean;
+  gridfinityOpenFront?: boolean;
+  gridfinityOpenLeft?: boolean;
+  gridfinityOpenRight?: boolean;
+  gridfinityPaddingBack?: number;
+  gridfinityPaddingFront?: number;
+  gridfinityPaddingLeft?: number;
+  gridfinityPaddingRight?: number;
   gridfinityCompartmentsX?: number;
   gridfinityCompartmentsZ?: number;
   gridfinityDividerThickness?: number;
@@ -386,6 +394,8 @@ export type CadModifierWorkerRequest =
       amount: number;
       quality: CadModifierQuality;
       chamferAngle: number;
+      // Only for "fillet" of one edge (#687): the radius at the edge's end, `amount` the one at its start.
+      endAmount?: number;
       // Only for "shell": which faces stay open; `amount` is the wall thickness.
       shellOpenings?: ShellOpenings;
       shellEdges?: ShellEdges;

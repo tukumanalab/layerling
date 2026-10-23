@@ -5,6 +5,7 @@ import { withBasePath } from "@/lib/basePath";
 import { useEffect, useState, type ReactNode } from "react";
 import { LANGUAGE_INFO, t, type Language } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
+import { useSimpleMode } from "@/lib/useSimpleMode";
 import { SOURCE_CODE_URL, releaseNotesUrl, type AppUpdateInfo } from "@/lib/appUpdate";
 import { useAppUpdate } from "@/lib/useAppUpdate";
 import { SHOW_WHATS_NEW_EVENT } from "@/lib/useWhatsNew";
@@ -106,6 +107,7 @@ export function AppFooter({
   onBugReport?: () => void;
 }) {
   const language = useLanguage();
+  const simpleMode = useSimpleMode();
   const sponsor = supportLink(SUPPORT_SETTINGS, language);
   const { update: hookUpdate } = useAppUpdate(version);
   const update = updateInfo !== undefined ? updateInfo : hookUpdate;
@@ -116,6 +118,9 @@ export function AppFooter({
   useEffect(() => {
     setRunsLocally(["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname));
   }, []);
+
+  // The footer is all links out of the program: the project, the forum, the release notes, the support page (#695).
+  if (simpleMode) return null;
 
   return (
     <>
