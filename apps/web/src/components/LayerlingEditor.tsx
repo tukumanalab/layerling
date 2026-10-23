@@ -11100,7 +11100,8 @@ export function LayerlingEditor({
   const saveToWorkshop = (explicit: boolean): Promise<WorkshopSaveHandlerResult> => {
     const run = async (): Promise<WorkshopSaveHandlerResult> => {
       if (!workshop || workshop.config.readonly) return { ok: true, saved: false };
-      const fingerprint = projectSceneFingerprint(shapesRef.current, notesRef.current);
+      // The name counts too: a rename alone is a change the service should get.
+      const fingerprint = `${projectName}\n${projectSceneFingerprint(shapesRef.current, notesRef.current)}`;
       if (!explicit && workshopSavedRef.current?.fingerprint === fingerprint) return { ok: true, saved: false };
       if (explicit && projectInteractionActiveRef.current) {
         setNotice(t("status.finishBeforeSave"));
@@ -11153,9 +11154,9 @@ export function LayerlingEditor({
     if (!workshop) return;
     // What the design looked like when it opened counts as saved.
     if (workshopSavedRef.current?.projectId !== (projectId ?? null)) {
-      workshopSavedRef.current = { projectId: projectId ?? null, fingerprint: projectSceneFingerprint(shapes, notes) };
+      workshopSavedRef.current = { projectId: projectId ?? null, fingerprint: `${projectName}\n${projectSceneFingerprint(shapes, notes)}` };
     }
-  }, [notes, projectId, shapes, workshop]);
+  }, [notes, projectId, projectName, shapes, workshop]);
 
   /** Ctrl+S: into the file the design is tied to; the first time it asks for one (#251). */
   const saveDesignRef = useRef<() => void>(() => undefined);

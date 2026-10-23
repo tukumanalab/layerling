@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { buildWorkshopForm, parseWorkshopParams, pngBlobFromDataUrl, WorkshopClient, type WorkshopConfig } from "@/lib/workshopBridge";
 
 const ORIGIN = "https://example.test";
-const base: WorkshopConfig = { api: `${ORIGIN}/3dp`, slug: "spring", projectId: null, sessionId: "s1", mode: "edit", readonly: false };
+const base: WorkshopConfig = { api: `${ORIGIN}/3dp`, slug: "spring", projectId: null, title: null, sessionId: "s1", mode: "edit", readonly: false };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -15,13 +15,13 @@ describe("parseWorkshopParams", () => {
   });
 
   it("reads every parameter", () => {
-    const config = parseWorkshopParams("?workshop=1&api=https://example.test/3dp/&slug=spring&project_id=p1&session_id=s1&mode=remix&readonly=1", ORIGIN);
-    expect(config).toEqual({ api: `${ORIGIN}/3dp`, slug: "spring", projectId: "p1", sessionId: "s1", mode: "remix", readonly: true });
+    const config = parseWorkshopParams("?workshop=1&api=https://example.test/3dp/&slug=spring&project_id=p1&title=%E3%83%AD%E3%82%B1%E3%83%83%E3%83%88&session_id=s1&mode=remix&readonly=1", ORIGIN);
+    expect(config).toEqual({ api: `${ORIGIN}/3dp`, slug: "spring", projectId: "p1", title: "ロケット", sessionId: "s1", mode: "remix", readonly: true });
   });
 
   it("accepts a relative api and defaults the rest", () => {
     const config = parseWorkshopParams("?workshop=1&api=/3dp", ORIGIN);
-    expect(config).toMatchObject({ api: `${ORIGIN}/3dp`, slug: "", projectId: null, sessionId: null, mode: "edit", readonly: false });
+    expect(config).toMatchObject({ api: `${ORIGIN}/3dp`, slug: "", projectId: null, title: null, sessionId: null, mode: "edit", readonly: false });
   });
 
   it("falls back to the folder next to the editor's base path", () => {
@@ -53,6 +53,12 @@ describe("multipart building", () => {
 });
 
 describe("WorkshopClient", () => {
+  it("tells the parent about a rename", () => {
+    const parent = { postMessage: vi.fn() };
+    new WorkshopClient(base, { parent, origin: ORIGIN }).notifyRenamed("ロケット");
+    expect(parent.postMessage).toHaveBeenCalledWith({ type: "3dp-workshop:project-renamed", title: "ロケット" }, ORIGIN);
+  });
+
   it("loads a design with the cookies of the page", async () => {
     const fetchImpl = vi.fn(async () => new Response(new Uint8Array([1, 2, 3])));
     const client = new WorkshopClient({ ...base, projectId: "p 1" }, { fetchImpl, parent: null, origin: ORIGIN });

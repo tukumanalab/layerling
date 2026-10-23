@@ -2,7 +2,7 @@
  * Workshop mode: the editor embedded in "3DP Workshop" (an iframe on the
  * same origin) keeps its designs on that service instead of in a file.
  *
- *   ?workshop=1&api=<origin+basePath>&slug=&project_id=&session_id=&mode=remix&readonly=1
+ *   ?workshop=1&api=<origin+basePath>&slug=&project_id=&title=&session_id=&mode=remix&readonly=1
  *
  * Everything the mode needs from the outside lives in this file: reading the
  * address, loading and saving over the service's store API (multipart, cookies of
@@ -19,6 +19,8 @@ export type WorkshopConfig = {
   slug: string;
   /** The design to open, if any. */
   projectId: string | null;
+  /** The design's title on the service; it wins over the name inside the .lyl. */
+  title: string | null;
   sessionId: string | null;
   /** remix: the opened design is only a template; the first save creates a new one. */
   mode: "edit" | "remix";
@@ -58,6 +60,7 @@ export function parseWorkshopParams(search: string, origin: string, basePath = B
     api: `${api.origin}${api.pathname.replace(/\/+$/, "")}`,
     slug: clean(params.get("slug")) ?? "",
     projectId: clean(params.get("project_id")),
+    title: clean(params.get("title")),
     sessionId: clean(params.get("session_id")),
     mode: params.get("mode") === "remix" ? "remix" : "edit",
     readonly: params.get("readonly") === "1",
@@ -165,6 +168,11 @@ export class WorkshopClient {
       this.post({ type: "3dp-workshop:project-id-updated", projectId: id });
     }
     return { id, versionTimestamp: payload.versionTimestamp };
+  }
+
+  /** Tells the page around the editor that the design was renamed, so its header follows. */
+  notifyRenamed(title: string) {
+    this.post({ type: "3dp-workshop:project-renamed", title });
   }
 
   setSaveHandler(handler: WorkshopSaveHandler | null) {

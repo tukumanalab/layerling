@@ -1626,7 +1626,7 @@ export default function Home() {
     openEditor(project.id, { allowMissingFromStorage: true });
   };
 
-  const openLylProjectFromFile = useCallback(async (file: File, sharedProject?: SharedProject, fileHandle?: LylFileHandle) => {
+  const openLylProjectFromFile = useCallback(async (file: File, sharedProject?: SharedProject, fileHandle?: LylFileHandle, nameOverride?: string) => {
     setDashboardNotice(t("notice.validatingFile", { name: file.name }));
     try {
       const restored = await importLylProject(await file.arrayBuffer());
@@ -1641,7 +1641,7 @@ export default function Home() {
         // Der Dateiname sticht den Namen im Paket: Auf der Karte steht der
         // Dateiname, und eine Kopie traegt den des Originals im Paket, bis der
         // erste Speicherlauf ihn nachzieht.
-        ...(existing ?? newProject(sharedProject?.name ?? restored.projectName, projects.length, restored.shapes.length, sharedProject ? null : openFolderId)),
+        ...(existing ?? newProject(sharedProject?.name ?? nameOverride ?? restored.projectName, projects.length, restored.shapes.length, sharedProject ? null : openFolderId)),
         createdAt: restored.createdAt,
         updatedAt: now,
         revision: now,
@@ -1706,7 +1706,8 @@ export default function Home() {
           createAndOpenProject();
           return;
         }
-        const opened = await openLylProjectFromFile(new File([bytes as BlobPart], "design.lyl"));
+        // The title on the service wins: it may have been changed there since the last save.
+        const opened = await openLylProjectFromFile(new File([bytes as BlobPart], "design.lyl"), undefined, undefined, workshop.config.title ?? undefined);
         if (!opened.ok) throw new Error(opened.message);
       } catch (error) {
         // Not a blank design instead: saving that over the real one would lose it.
@@ -2703,6 +2704,7 @@ export default function Home() {
               onProjectWorkspaceChange={updateProjectWorkspace}
               onProjectNameChange={(name) => {
                 if (activeProjectId) renameProject(activeProjectId, name);
+                workshop?.notifyRenamed(name);
               }}
               onCreateProjectFromState={createProjectFromHistoryState}
               projectId={activeProjectId}
