@@ -5,31 +5,37 @@
       {
         "title": {
           "de": "Mehrere Objekte drehen sich starr, auch über den Rand",
-          "en": "Several objects turn rigidly, even past the edge"
+          "en": "Several objects turn rigidly, even past the edge",
+          "ja": "複数の部品を、位置関係を保ったまま回転"
         },
         "body": {
           "de": "Beim Drehen mehrerer Objekte mit dem Drehgriff wurde jeder Mittelpunkt auf das Raster gerundet und auf die Arbeitsfläche begrenzt, so blieben Objekte am Rand hängen und die Anordnung ging verloren. Die Gruppe dreht sich jetzt exakt um ihren Drehpunkt und behält die Abstände, auch wenn Teile über den Rand der Fläche wandern.",
-          "en": "When several objects were turned with the rotate handle, each centre was rounded to the grid and kept inside the workplane, so objects near the edge got stuck and the arrangement broke. The group now turns exactly around its pivot and keeps its spacing, even when parts move past the edge of the plane."
+          "en": "When several objects were turned with the rotate handle, each centre was rounded to the grid and kept inside the workplane, so objects near the edge got stuck and the arrangement broke. The group now turns exactly around its pivot and keeps its spacing, even when parts move past the edge of the plane.",
+          "ja": "複数の部品を回転すると、中心がグリッドや作業平面の端に制限され、並びが崩れることがありました。回転の中心を軸に正確に回り、部品が作業平面からはみ出しても間隔を保つようになりました。"
         }
       },
       {
         "title": {
           "de": "Skizze: Tasten 1 bis 3 ändern auch die Auswahl",
-          "en": "Sketch: keys 1 to 3 also change a selection"
+          "en": "Sketch: keys 1 to 3 also change a selection",
+          "ja": "スケッチの選択した線や点を、1・2・3キーで変更"
         },
         "body": {
           "de": "Mit dem Werkzeug Auswählen und gewählten Linien oder Punkten macht die Taste 1 Linien gerade und Punkte zu Ecken, 2 macht Linien zu Kurven und 3 macht Punkte weich, alle gewählten auf einmal. Ohne Auswahl wählen die Tasten wie bisher das Zeichenwerkzeug. Die Tasten stehen in den Hinweisen der Knöpfe.",
-          "en": "With the Select tool and lines or points selected, key 1 makes lines straight and points corners, 2 turns lines into curves and 3 makes points smooth, all selected ones at once. With nothing selected the keys still pick the drawing tool. The keys are named in the tooltips of the buttons."
+          "en": "With the Select tool and lines or points selected, key 1 makes lines straight and points corners, 2 turns lines into curves and 3 makes points smooth, all selected ones at once. With nothing selected the keys still pick the drawing tool. The keys are named in the tooltips of the buttons.",
+          "ja": "選択ツールで線や点を選んでいるとき、1で直線と角、2で曲線、3で滑らかな点にまとめて変更できます。何も選んでいないときは、これまでどおり描画ツールを切り替えます。ボタンのヒントにもキーを表示します。"
         }
       },
       {
         "title": {
           "de": "Gridfinity-Bodenplatte passend zur Schublade",
-          "en": "Fit a Gridfinity baseplate to a drawer"
+          "en": "Fit a Gridfinity baseplate to a drawer",
+          "ja": "Gridfinityのベースプレートを引き出しに合わせる"
         },
         "body": {
           "de": "Eine Gridfinity-Bodenplatte hat jetzt „Schubladenbreite“ und „Schubladentiefe“ im Eigenschaften-Fenster: Tippe das Innenmaß der Schublade ein, und die Platte nimmt so viele Einheiten, wie hineinpassen, und verteilt den Rest gleichmäßig auf den Ausgleich, sodass sie 0,5 mm kleiner als die Schublade wird.",
-          "en": "A Gridfinity baseplate now has \"Drawer width\" and \"Drawer depth\" in the Properties panel: type the drawer's inside size, and the plate takes as many units as fit and splits the rest evenly into its padding, so it comes out 0.5 mm smaller than the drawer."
+          "en": "A Gridfinity baseplate now has \"Drawer width\" and \"Drawer depth\" in the Properties panel: type the drawer's inside size, and the plate takes as many units as fit and splits the rest evenly into its padding, so it comes out 0.5 mm smaller than the drawer.",
+          "ja": "プロパティに「引き出しの幅」と「引き出しの奥行き」が加わりました。内寸を入力すると、収まる数のユニットを並べ、余りを左右や前後の余白に均等に振り分けます。プレートは引き出しの内寸より0.5 mm小さくなります。"
         }
       }
     ]
@@ -40,51 +46,61 @@
       {
         "title": {
           "de": "STL als normalen Download speichern",
-          "en": "Save STL as a plain download"
+          "en": "Save STL as a plain download",
+          "ja": "STLを通常のダウンロードとして保存"
         },
         "body": {
           "de": "In Chrome und Edge schreibt der STL-Export jedes Mal in dieselbe Datei. In den Einstellungen unter Aussehen schaltest du jetzt \"STL als Download speichern\" ein: Dann bekommst du einen normalen Download, und der Browser nummeriert die Dateien selbst, name (1).stl, name (2).stl.",
-          "en": "In Chrome and Edge the STL export writes into the same file each time. In the settings under Appearance you can now switch on \"Save STL as a download\": you then get a plain download and the browser numbers the files itself, name (1).stl, name (2).stl."
+          "en": "In Chrome and Edge the STL export writes into the same file each time. In the settings under Appearance you can now switch on \"Save STL as a download\": you then get a plain download and the browser numbers the files itself, name (1).stl, name (2).stl.",
+          "ja": "ChromeとEdgeでは、STLを毎回同じファイルへ上書きできます。設定の「外観」で「STLをダウンロードとして保存」をオンにすると、通常のダウンロードになり、同名のファイルはブラウザーが「名前 (1).stl」「名前 (2).stl」のように番号を付けます。"
         }
       },
       {
         "title": {
           "de": "Zurück zu deinen eigenen Einstellungen",
-          "en": "Back to your own settings"
+          "en": "Back to your own settings",
+          "ja": "保存しておいた自分の設定に戻す"
         },
         "body": {
           "de": "Eine geöffnete Datei bringt ihre eigenen Farben, ihr Raster und ihre Platte mit. In den Einstellungen gibt es neben \"Als Vorgabe speichern\" jetzt \"Meine Vorgabe verwenden\": Es legt deine gespeicherten Farben, das Raster, die Schatten, die Kamera und die Formstarts auf den offenen Entwurf. Plattengröße, Drucker und Einheiten bleiben beim Entwurf.",
-          "en": "A file you open brings its own colours, grid and plate. Next to \"Make default\" the settings now have \"Use my default\": it puts your saved colours, grid, shadows, camera and shape starts on the open design. The size of the plate, the printer and the units stay as they are."
+          "en": "A file you open brings its own colours, grid and plate. Next to \"Make default\" the settings now have \"Use my default\": it puts your saved colours, grid, shadows, camera and shape starts on the open design. The size of the plate, the printer and the units stay as they are.",
+          "ja": "開いたファイルには、そのデザインの色やグリッド、プレートの設定が含まれます。「初期値にする」の隣の「自分の初期値を使う」で、保存しておいた色、グリッド、影、カメラ、シェイプの初期値を適用できます。プレートのサイズ、プリンター、単位はそのままです。"
         }
       },
       {
         "title": {
           "de": "Skalieren in Prozent mit der Tastatur",
-          "en": "Scale by percent from the keyboard"
+          "en": "Scale by percent from the keyboard",
+          "ja": "キーボードだけでパーセント拡大・縮小"
         },
         "body": {
           "de": "Das Prozentfeld hat beim Öffnen den Fokus, und Enter wendet die Skalierung an. Strg+K, Prozentwert, Enter: ganz ohne Maus.",
-          "en": "The percentage field has the focus when the window opens, and Enter applies the scale. Ctrl+K, the percentage and Enter do it without the mouse."
+          "en": "The percentage field has the focus when the window opens, and Enter applies the scale. Ctrl+K, the percentage and Enter do it without the mouse.",
+          "ja": "拡大・縮小の画面を開くと、パーセントの入力欄にフォーカスが移り、Enterで適用できます。Ctrl+Kでコマンドを選び、パーセントを入力してEnterを押せば、マウスを使わずに操作できます。"
         }
       },
       {
         "title": {
           "de": "Materialschätzung auf Klick",
-          "en": "Material estimate on a click"
+          "en": "Material estimate on a click",
+          "ja": "材料の見積もりは、必要なときに計算"
         },
         "body": {
           "de": "Der Material-Kasten im Exportfenster rechnet erst, wenn du auf \"Berechnen\" drückst. Bei feinen Mehrfarbmodellen bleibt der Export-Knopf so sofort bedienbar.",
-          "en": "The Material box in the export window now works out its numbers only when you press Calculate. For finely traced multicolour models the Export button stays usable at once."
+          "en": "The Material box in the export window now works out its numbers only when you press Calculate. For finely traced multicolour models the Export button stays usable at once.",
+          "ja": "エクスポート画面の材料の見積もりは、「計算」を押したときだけ実行するようになりました。細かい多色モデルでも、計算の完了を待たずにエクスポートを操作できます。"
         }
       },
       {
         "title": {
           "de": "Kegelradius beim Auflösen einer Gruppe",
-          "en": "Cone radius kept when ungrouping"
+          "en": "Cone radius kept when ungrouping",
+          "ja": "グループ解除後も円錐の大きさを維持"
         },
         "body": {
           "de": "Ein Kegel, der mit anderen Teilen gruppiert und vergrößert wurde, behält beim Auflösen der Gruppe jetzt auch seinen größeren Grundradius.",
-          "en": "A cone that was grouped with other parts and made larger now keeps its larger base radius when the group is ungrouped."
+          "en": "A cone that was grouped with other parts and made larger now keeps its larger base radius when the group is ungrouped.",
+          "ja": "円錐をほかの部品とグループ化して拡大したあと、グループを解除しても、底面の半径が拡大後の値を保つようになりました。"
         }
       },
       {
@@ -128,11 +144,13 @@
       {
         "title": {
           "de": "Fläche herausschieben: neues Teil als eigener Körper",
-          "en": "Face tool: the new part as a body of its own"
+          "en": "Face tool: the new part as a body of its own",
+          "ja": "面から作る部品を、独立したボディにできるように"
         },
         "body": {
           "de": "Im Fenster Fläche gibt es den Schalter \"Als eigener Körper (nicht gruppiert)\". Ist er an, steht das herausgeschobene Teil (oder das Loch einer Tasche) neben dem Körper statt in einer Gruppe: Du kannst es gleich in der Größe ändern, verschieben oder damit schneiden.",
-          "en": "The Face window has a new switch, \"As a body of its own (not grouped)\". With it on, the part pushed out of the face (or the hole of a pocket) stands beside the body instead of in a group with it: resize it, move it or use it to cut right away."
+          "en": "The Face window has a new switch, \"As a body of its own (not grouped)\". With it on, the part pushed out of the face (or the hole of a pocket) stands beside the body instead of in a group with it: resize it, move it or use it to cut right away.",
+          "ja": "面ツールに「独立したボディとして作る（グループ化しない）」が加わりました。オンにすると、面から押し出した部品やポケット用の穴を、元のボディとグループ化せずに作成します。すぐにサイズ変更、移動、切り抜きに使えます。"
         }
       },
       {
@@ -176,31 +194,37 @@
       {
         "title": {
           "de": "Ausgleich für Gridfinity-Bodenplatten",
-          "en": "Padding for Gridfinity baseplates"
+          "en": "Padding for Gridfinity baseplates",
+          "ja": "Gridfinityのベースプレートに余白を追加"
         },
         "body": {
           "de": "Eine Gridfinity-Bodenplatte kann jetzt an jeder Seite einen massiven Ausgleich bekommen, damit sie eine Schublade füllt, die keine ganze Zahl von Einheiten misst: Stell im Eigenschaften-Fenster „Ausgleich rechts“ oder eine andere Seite ein. Das Raster bleibt bei ganzen Einheiten, und die Platte wird um den Ausgleich größer.",
-          "en": "A Gridfinity baseplate can now have a solid border on any side, so it fills a drawer that is not a whole number of units: set \"Padding on the right\" or another side in the Properties panel. The grid stays whole units, and the plate's size grows with the padding."
+          "en": "A Gridfinity baseplate can now have a solid border on any side, so it fills a drawer that is not a whole number of units: set \"Padding on the right\" or another side in the Properties panel. The grid stays whole units, and the plate's size grows with the padding.",
+          "ja": "プロパティの「右側の余白」などで、ベースプレートの各辺に縁を追加できます。42 mm単位にぴったり合わない引き出しでも、グリッドのユニットを保ちながら、外側のサイズを合わせられます。"
         }
       },
       {
         "title": {
           "de": "Loft: Segmente pro Kreis einstellbar",
-          "en": "Loft: segments per circle"
+          "en": "Loft: segments per circle",
+          "ja": "ロフトの円の分割数を変更"
         },
         "body": {
           "de": "Die Kreise und runden Ecken eines Loft waren immer aus 96 Teilstücken gebaut, bei großen runden Enden sah man die Facetten. Das neue Feld \"Segmente pro Kreis\" (16 bis 360) stellt es ein. Es gilt in der Ansicht und in STL, OBJ und 3MF.",
-          "en": "The circles and rounded corners of a Loft were always built from 96 pieces, so on a large round end the facets showed. The new field \"Segments per circle\" (16 to 360) sets it, in the view and in STL, OBJ and 3MF."
+          "en": "The circles and rounded corners of a Loft were always built from 96 pieces, so on a large round end the facets showed. The new field \"Segments per circle\" (16 to 360) sets it, in the view and in STL, OBJ and 3MF.",
+          "ja": "ロフトの円や丸い角は、これまで1周を96分割して表示・出力していました。「円1周の分割数」で16〜360に変更できます。画面表示とSTL・OBJ・3MFに反映され、大きな円の角張りを調整できます。"
         }
       },
       {
         "title": {
           "de": "Ein skalierter Stern behält seine Form",
-          "en": "A scaled star keeps its shape"
+          "en": "A scaled star keeps its shape",
+          "ja": "星を拡大・縮小しても形を保つ"
         },
         "body": {
           "de": "Beim Ändern der Größe eines Sterns wuchs nur der äußere Radius, so wurde ein kleinerer Stern weniger spitz und ein größerer spitzer. Der innere Radius und die Rundungen wachsen jetzt mit.",
-          "en": "When a star was resized only its outer size changed, so a smaller star came out less pointy and a larger one more pointy. The inner size and the roundings now stretch with it."
+          "en": "When a star was resized only its outer size changed, so a smaller star came out less pointy and a larger one more pointy. The inner size and the roundings now stretch with it.",
+          "ja": "星のサイズを変えると外側だけが変わり、小さくすると丸みのある星、大きくすると尖った星になっていました。内側のサイズと角の丸みも、一緒に拡大・縮小するようになりました。"
         }
       }
     ]
@@ -211,11 +235,13 @@
       {
         "title": {
           "de": "Keine Fremdkörper mehr beim Verrunden importierter Teile",
-          "en": "No stray strip when rounding an imported part"
+          "en": "No stray strip when rounding an imported part",
+          "ja": "読み込んだ部品のフィレットで不要な面が出る問題を修正"
         },
         "body": {
           "de": "Beim Verrunden eines importierten Teils mit einem engen Einschnitt konnte bei großem Radius ein dünner Streifen über dem Einschnitt entstehen. Jetzt meldet layerling, dass der Radius für diese Kante zu groß ist, statt den Streifen zu zeigen.",
-          "en": "Rounding an imported part with a narrow bay could leave a thin strip over the bay at a large radius. Now layerling says the radius is too large for that edge instead of showing the strip."
+          "en": "Rounding an imported part with a narrow bay could leave a thin strip over the bay at a large radius. Now layerling says the radius is too large for that edge instead of showing the strip.",
+          "ja": "狭い切り込みのある部品に大きな半径のフィレットをかけると、切り込みをまたぐ細い面ができることがありました。その場合は誤った面を表示せず、エッジに対して半径が大きすぎることを知らせます。"
         }
       },
       {
@@ -297,41 +323,49 @@
       {
         "title": {
           "de": "Verrunden bei geneigten Körpern",
-          "en": "Fillets on leaning bodies"
+          "en": "Fillets on leaning bodies",
+          "ja": "傾きやねじれのある部品のフィレット位置を修正"
         },
         "body": {
           "de": "Verrundung und Fase an einem Körper mit Verjüngung und Neigung oder Verdrehung verschieben ihn nicht mehr: Die Neigung wurde nach dem Verrunden ein zweites Mal angewendet, jetzt bleibt der Körper, wie er vor der Kante war.",
-          "en": "A fillet or chamfer on a body with taper and lean or twist no longer shifts it: the lean was applied a second time after the edge work, now the body stays as it was before the edge."
+          "en": "A fillet or chamfer on a body with taper and lean or twist no longer shifts it: the lean was applied a second time after the edge work, now the body stays as it was before the edge.",
+          "ja": "テーパーと傾き、またはねじれを設定した部品にフィレットや面取りをかけても、位置や形がずれなくなりました。エッジ処理のあとに傾きが二重に適用されていた問題を修正しています。"
         }
       },
       {
         "title": {
           "de": "Sichtbare Kanten im SVG: Rundungen und geschlossene Umrisse",
-          "en": "Visible edges in the SVG: rounded edges and closed outlines"
+          "en": "Visible edges in the SVG: rounded edges and closed outlines",
+          "ja": "SVGに丸いエッジの輪郭を出し、輪郭を閉じるように"
         },
         "body": {
           "de": "Im SVG-Export „Sichtbare Kanten von oben“ bekommt eine verrundete Oberkante jetzt ihren äußeren Umriss, dort, wo die Rundung in die Wand darunter übergeht – ebenso die Draufsicht der 2D-Zeichnung. Die Umrisse bleiben auch an spitzen Ecken von Schrift geschlossen und dort, wo eine Bohrung durch zwei aufeinanderliegende Teile geht, sodass sich jede Fläche im Laserprogramm gravieren lässt.",
-          "en": "In the SVG export's \"Visible edges from above\", a rounded top edge now gets its outer outline, where the rounding runs into the wall below it – and so does the 2D drawing's top view. Outlines also stay closed at the sharp corners of text and where a bore goes through two parts lying on each other, so a laser program can engrave every area."
+          "en": "In the SVG export's \"Visible edges from above\", a rounded top edge now gets its outer outline, where the rounding runs into the wall below it – and so does the 2D drawing's top view. Outlines also stay closed at the sharp corners of text and where a bore goes through two parts lying on each other, so a laser program can engrave every area.",
+          "ja": "SVGの「上から見える辺」で、丸い上端にも外側の輪郭が付くようになりました。2D図面の上面図にも反映されます。文字の鋭い角や、重なった部品を貫く穴でも輪郭が閉じ、レーザーソフトで領域を塗りつぶしやすくなります。"
         }
       },
       {
         "title": {
           "de": "Sweep: Kante des Profils auf den Pfad legen",
-          "en": "Sweep: put an edge of the section on the path"
+          "en": "Sweep: put an edge of the section on the path",
+          "ja": "スイープで断面の端をパスに合わせる"
         },
         "body": {
           "de": "In der Pfad-Skizze sitzt das Profil nicht mehr nur mittig auf dem Pfad: Im Menü neben der Modusanzeige legst du stattdessen seine linke oder rechte Kante auf den Pfad. So folgt eine Leiste der Kante eines Teils, ohne dass du den Pfad um die halbe Breite verschieben musst.",
-          "en": "In the sweep sketch the section is no longer only centred on the path: in the menu next to the mode badge you can put its left or right edge on the path instead. A rail then follows the edge of a part without you having to move the path by half the width."
+          "en": "In the sweep sketch the section is no longer only centred on the path: in the menu next to the mode badge you can put its left or right edge on the path instead. A rail then follows the edge of a part without you having to move the path by half the width.",
+          "ja": "スイープの断面は、中心だけでなく、左端または右端をパスに合わせられるようになりました。モード名の隣のメニューで選びます。レールの幅の半分だけパスをずらす必要がなくなります。"
         }
       },
       {
         "title": {
           "de": "3MF- und OBJ-Export deutlich schneller",
-          "en": "3MF and OBJ export much faster"
+          "en": "3MF and OBJ export much faster",
+          "ja": "3MFとOBJの書き出しを高速化"
         },
         "body": {
           "de": "Ein fein aus einem Bild nachgezeichnetes Modell mit vielen Dreiecken hielt die Seite beim Schreiben der Datei lange beschäftigt, auf langsamen Rechnern bis Chrome fragte, ob er warten soll. Das Verschweißen der Punkte, der größte Einzelposten, ist rund dreißigmal schneller.",
-          "en": "A finely traced model with many triangles kept the page busy while the file was written, on slow computers until Chrome asked whether to wait. Welding the points, the biggest single item, is about thirty times faster."
+          "en": "A finely traced model with many triangles kept the page busy while the file was written, on slow computers until Chrome asked whether to wait. Welding the points, the biggest single item, is about thirty times faster.",
+          "ja": "三角形の多いモデルの書き出しで画面が長く応答しなくなる問題を軽減しました。特に時間のかかっていた頂点の結合処理は、開発元の計測で約30倍速くなっています。書き出し全体が30倍になるという意味ではありません。"
         }
       }
     ]
@@ -500,64 +534,76 @@
         "title": {
           "de": "layerling spricht Chinesisch",
           "en": "layerling speaks Chinese",
-          "hu": "A layerling kínaiul is beszél"
+          "hu": "A layerling kínaiul is beszél",
+          "ja": "簡体字・繁体字の中国語に対応"
         },
         "body": {
           "de": "Die Oberfläche und die Anleitung gibt es jetzt auf Chinesisch, vereinfacht und traditionell. Du wählst sie im Sprachmenü; ein chinesischer Browser bekommt sie von selbst. Was noch nicht übersetzt ist, erscheint auf Englisch.",
           "en": "The interface and the guide are now in Chinese, simplified and traditional. Choose one in the language menu; a Chinese browser gets it by itself. Whatever is not translated yet shows in English.",
-          "hu": "A felület és az útmutató mostantól kínaiul is elérhető, egyszerűsített és hagyományos írással. A nyelvmenüben választható, egy kínai böngésző magától megkapja. Ami még nincs lefordítva, angolul jelenik meg."
+          "hu": "A felület és az útmutató mostantól kínaiul is elérhető, egyszerűsített és hagyományos írással. A nyelvmenüben választható, egy kínai böngésző magától megkapja. Ami még nincs lefordítva, angolul jelenik meg.",
+          "ja": "画面とユーザーガイドが、簡体字と繁体字の中国語に対応しました。言語メニューで選べます。中国語のブラウザーでは自動で選ばれ、まだ訳されていない箇所は英語で表示します。"
         }
       },
       {
         "title": {
           "de": "Offene Seiten für Gridfinity-Behälter",
-          "en": "Open sides for Gridfinity bins"
+          "en": "Open sides for Gridfinity bins",
+          "ja": "Gridfinityのビンの側面を開けられるように"
         },
         "body": {
           "de": "Ein Gridfinity-Behälter kann jetzt an jeder Seite offen sein, ohne Wand und Stapelrand: Schalte im Eigenschaften-Fenster „Vorne offen“ oder eine andere Seite ein, und Behälter, die zueinander offen sind, ergeben eine durchgehende Reihe. Sind alle vier Seiten offen, wird der Behälter zur Schale.",
-          "en": "A Gridfinity bin can now be open on any side, with no wall and no stacking lip there: switch on \"Open at the front\" or another side in the Properties panel, and bins open towards each other make one continuous run. With all four sides open the bin is a tray."
+          "en": "A Gridfinity bin can now be open on any side, with no wall and no stacking lip there: switch on \"Open at the front\" or another side in the Properties panel, and bins open towards each other make one continuous run. With all four sides open the bin is a tray.",
+          "ja": "「前側を開く」などの設定で、ビンの好きな側面の壁と積み重ね用の縁をなくせます。開いた側を向かい合わせにすれば、連続した長いトレイとして使えます。4面すべてを開くこともできます。"
         }
       },
       {
         "title": {
           "de": "Gruppen im STEP-Export",
           "en": "Groups in the STEP export",
-          "hu": "Csoportok a STEP-exportban"
+          "hu": "Csoportok a STEP-exportban",
+          "ja": "STEP出力にグループ全体を含めるように修正"
         },
         "body": {
           "de": "Eine Gruppe, etwa ein Würfel mit Gewindeloch, fehlte bisher im STEP, und es kam nur die Schraube heraus. Jetzt geht die Gruppe als die genauen Körper mit, die sie enthält, und ihre Löcher schneiden nur ihre eigenen Körper.",
           "en": "A group, a block with a tapped hole say, was missing from the STEP, and only the screw came out. Now the group goes along as the exact bodies it holds, and its holes cut only its own bodies.",
-          "hu": "Egy csoport, például egy menetes furatú kocka, eddig hiányzott a STEP-ből, és csak a csavar került ki. Most a csoport a benne lévő pontos testekként kerül az exportba, és a lyukai csak a saját testeit vágják."
+          "hu": "Egy csoport, például egy menetes furatú kocka, eddig hiányzott a STEP-ből, és csak a csavar került ki. Most a csoport a benne lévő pontos testekként kerül az exportba, és a lyukai csak a saját testeit vágják.",
+          "ja": "ねじ穴のあるブロックなど、グループ化した部品がSTEPから抜け、ねじだけが出力されることがありました。グループ内の正確なCAD形状も出力し、グループ内の穴はそのグループの部品だけを切り抜くようになりました。"
         }
       },
       {
         "title": {
           "de": "Formenbibliothek in Farbe",
-          "en": "The shape library in colour"
+          "en": "The shape library in colour",
+          "ja": "シェイプライブラリの画像を色付きに"
         },
         "body": {
           "de": "Die Bilder in der Formenbibliothek tragen jetzt die Farbe, in der die Form eingefügt wird: ein roter Quader, ein oranger Zylinder, eine blaue Kugel. Wer die grauen Bilder lieber mag, schaltet „Formen in Farbe“ in den Arbeitsbereich-Einstellungen aus.",
-          "en": "The pictures in the shape library now wear the colour the shape is added in: a red box, an orange cylinder, a blue sphere. If you prefer the grey pictures, switch off \"Shapes in colour\" in the workspace settings."
+          "en": "The pictures in the shape library now wear the colour the shape is added in: a red box, an orange cylinder, a blue sphere. If you prefer the grey pictures, switch off \"Shapes in colour\" in the workspace settings.",
+          "ja": "シェイプライブラリの画像が、追加時の色で表示されるようになりました。赤い直方体、オレンジの円柱、青い球などです。灰色の画像を使いたい場合は、設定で「シェイプを色付きで表示」をオフにできます。"
         }
       },
       {
         "title": {
           "de": "Der Ansichtswürfel dreht sanft",
-          "en": "The view cube turns smoothly"
+          "en": "The view cube turns smoothly",
+          "ja": "ビューキューブの切り替えを滑らかに"
         },
         "body": {
           "de": "Ein Klick auf eine Fläche, Kante oder Ecke des Ansichtswürfels lässt die Kamera jetzt in etwa einer Drittelsekunde dorthin drehen, statt zu springen. Ein Zug mit der Maus oder dem Finger beendet die Drehung sofort; wer Bewegung reduziert hat, bekommt weiter den Sprung.",
-          "en": "A click on a face, edge or corner of the view cube now turns the camera there in about a third of a second instead of jumping. A drag with the mouse or a finger ends the turn at once; if your system is set to reduce motion, you still get the jump."
+          "en": "A click on a face, edge or corner of the view cube now turns the camera there in about a third of a second instead of jumping. A drag with the mouse or a finger ends the turn at once; if your system is set to reduce motion, you still get the jump.",
+          "ja": "ビューキューブの面、辺、角をクリックすると、視点が約3分の1秒で滑らかに切り替わります。マウスや指でドラッグすれば、その場で切り替えを止められます。OSで動きを減らす設定にしている場合は、すぐに切り替わります。"
         }
       },
       {
         "title": {
           "de": "Texthöhe bleibt bei „Proportionen beibehalten“ frei",
-          "en": "A text's height ignores \"Keep proportions\""
+          "en": "A text's height ignores \"Keep proportions\"",
+          "ja": "文字の厚さを変えても、文字サイズを変えないように"
         },
         "body": {
           "de": "Mit „Proportionen beibehalten“ änderte die Eingabe der Höhe eines Textes auch Breite und Tiefe, also die Schriftgröße. Die Höhe eines Textes ist nur die Dicke der Buchstaben und bleibt jetzt außen vor.",
-          "en": "With \"Keep proportions\" on, typing a text's height also changed its width and depth, and with them the letter size. A text's height is only the thickness of its letters and is now left out."
+          "en": "With \"Keep proportions\" on, typing a text's height also changed its width and depth, and with them the letter size. A text's height is only the thickness of its letters and is now left out.",
+          "ja": "「縦横比を保つ」がオンのときにテキストの高さを入力すると、幅と奥行き、文字サイズまで変わっていました。高さは文字の厚さだけを表すため、ほかの寸法と連動しないようになりました。"
         }
       }
     ]
@@ -568,93 +614,109 @@
       {
         "title": {
           "de": "Eckenradius der abgerundeten Box auf 0,01 mm genau",
-          "en": "Rounded box corner radius to 0.01 mm"
+          "en": "Rounded box corner radius to 0.01 mm",
+          "ja": "角丸直方体の半径を0.01 mm単位で保持"
         },
         "body": {
           "de": "Bei der abgerundeten Box rundete das Feld Eckenradius auf Zehntel: aus 0,25 mm wurde 0,3 mm. Jetzt bleiben zwei Nachkommastellen erhalten, auch beim Radius oben und unten.",
-          "en": "The corner radius field of the rounded box rounded to tenths, so 0.25 mm came back as 0.3 mm. Now two decimals are kept, for the radius at the top and bottom too."
+          "en": "The corner radius field of the rounded box rounded to tenths, so 0.25 mm came back as 0.3 mm. Now two decimals are kept, for the radius at the top and bottom too.",
+          "ja": "角丸直方体の角の半径が小数第1位に丸められ、0.25 mmが0.3 mmになっていました。上下の角も含め、小数第2位まで保持するようになりました。"
         }
       },
       {
         "title": {
           "de": "Lücke in der Skizze schließen",
-          "en": "Close a gap in a sketch"
+          "en": "Close a gap in a sketch",
+          "ja": "スケッチの端同士をつないで輪郭を閉じる"
         },
         "body": {
           "de": "Hast du in der Skizze eine Seite einer Form gelöscht, ziehst du jetzt einfach das eine offene Ende auf das andere: Es rastet ein, beide werden zu einem Punkt, und der Umriss ist wieder geschlossen. Eine neue Linie dazwischen ist nicht mehr nötig.",
-          "en": "If you erased a side of a shape in the sketch, just drag one open end onto the other: it snaps there, the two become one point, and the outline is closed again. No need to draw a new line in between."
+          "en": "If you erased a side of a shape in the sketch, just drag one open end onto the other: it snaps there, the two become one point, and the outline is closed again. No need to draw a new line in between.",
+          "ja": "スケッチで辺を消して輪郭が開いた場合は、片方の端をもう片方へドラッグすると吸着し、1つの点につながります。間に新しい線を描かずに輪郭を閉じられます。"
         }
       },
       {
         "title": {
           "de": "Schilder auf Seitenflächen",
           "en": "Tags on side faces",
-          "hu": "Címkék oldallapokon"
+          "hu": "Címkék oldallapokon",
+          "ja": "側面に置いたネームタグの重なり方を修正"
         },
         "body": {
           "de": "Ein Namens- oder Symbolschild auf einer stehenden oder schrägen Fläche baut seine Schichten jetzt aus der Fläche heraus auf. Bisher lag die Grundplatte vorn und die Buchstaben verschoben dahinter.",
           "en": "A name tag or icon tag on a standing or sloped face now builds its layers out of the face. Before, the base plate came out in front with the letters shifted behind it.",
-          "hu": "Egy álló vagy ferde lapon lévő név- vagy ikoncímke most a lapból kifelé építi fel a rétegeit. Korábban az alaplap került előre, a betűk pedig eltolva mögé."
+          "hu": "Egy álló vagy ferde lapon lévő név- vagy ikoncímke most a lapból kifelé építi fel a rétegeit. Korábban az alaplap került előre, a betűk pedig eltolva mögé.",
+          "ja": "垂直な面や傾いた面にネームタグ・アイコンタグを置くとき、レイヤーがその面から正しい向きに積み上がるようになりました。台座が前、文字が後ろにずれていた問題を修正しています。"
         }
       },
       {
         "title": {
           "de": "layerling spricht Spanisch",
           "en": "layerling speaks Spanish",
-          "hu": "A layerling spanyolul is beszél"
+          "hu": "A layerling spanyolul is beszél",
+          "ja": "スペイン語に対応"
         },
         "body": {
           "de": "Die Oberfläche und die Anleitung gibt es jetzt auf Spanisch (Spanien). Du wählst sie im Sprachmenü; ein spanischer Browser bekommt sie von selbst. Was noch nicht übersetzt ist, erscheint auf Englisch.",
           "en": "The interface and the guide are now in Spanish (Spain). Choose it in the language menu; a Spanish browser gets it by itself. Whatever is not translated yet shows in English.",
-          "hu": "A felület és az útmutató mostantól spanyolul (Spanyolország) is elérhető. A nyelvmenüben választható, egy spanyol böngésző magától megkapja. Ami még nincs lefordítva, angolul jelenik meg."
+          "hu": "A felület és az útmutató mostantól spanyolul (Spanyolország) is elérhető. A nyelvmenüben választható, egy spanyol böngésző magától megkapja. Ami még nincs lefordítva, angolul jelenik meg.",
+          "ja": "画面とユーザーガイドがスペインのスペイン語に対応しました。言語メニューで選べます。スペイン語のブラウザーでは自動で選ばれ、まだ訳されていない箇所は英語で表示します。"
         }
       },
       {
         "title": {
           "de": "Dünne importierte Teile haben die richtige Größe",
           "en": "Thin imported parts have the right size",
-          "hu": "A vékony importált alkatrészek mérete helyes"
+          "hu": "A vékony importált alkatrészek mérete helyes",
+          "ja": "1 mm未満の読み込み部品のサイズを修正"
         },
         "body": {
           "de": "Ein importiertes Teil, das dünner als 1 mm ist, zeigte 1 mm an und wurde bei einer eingegebenen Höhe zu klein. Jetzt stimmen die Maße, auch bei schon gespeicherten Formen.",
           "en": "An imported part thinner than 1 mm showed 1 mm and came out too small when you typed a height. The sizes are right now, saved shapes included.",
-          "hu": "Az 1 mm-nél vékonyabb importált alkatrész 1 mm-t mutatott, és beírt magasságnál túl kicsi lett. Most a méretek helyesek, a már elmentett formáké is."
+          "hu": "Az 1 mm-nél vékonyabb importált alkatrész 1 mm-t mutatott, és beírt magasságnál túl kicsi lett. Most a méretek helyesek, a már elmentett formáké is.",
+          "ja": "1 mmより薄い部品が1 mmと表示され、高さを入力すると小さくなりすぎることがありました。保存したシェイプも含め、正しいサイズを扱うようになりました。"
         }
       },
       {
         "title": {
           "de": "Scharnier aufklappen",
           "en": "Fold the hinge open or shut",
-          "hu": "A csuklópánt nyitása és csukása"
+          "hu": "A csuklópánt nyitása és csukása",
+          "ja": "ヒンジの開き具合を調整"
         },
         "body": {
           "de": "Beim Scharnier gibt es einen neuen Regler, den Öffnungswinkel. Er klappt das zweite Blatt um den Stift hoch, von flach (0°) bis zugeklappt (180°), damit sich das Scharnier so setzen lässt, wie es im Entwurf steht.",
           "en": "The hinge has a new slider, the opening angle. It folds the second leaf up about the pin, from flat (0°) to closed (180°), so you can set the hinge as it stands in your design.",
-          "hu": "A csuklópántnak új csúszkája van, a nyitási szög. A második szárnyat a csap körül felhajtja, laposról (0°) zárt állásig (180°), így a csuklópánt úgy állítható be, ahogy a tervben áll."
+          "hu": "A csuklópántnak új csúszkája van, a nyitási szög. A második szárnyat a csap körül felhajtja, laposról (0°) zárt állásig (180°), így a csuklópánt úgy állítható be, ahogy a tervben áll.",
+          "ja": "ヒンジに「開く角度」のスライダーが加わりました。ピンを軸に片側を回転させ、平らに開いた0°から閉じた180°まで、デザインで使う姿勢にできます。"
         }
       },
       {
         "title": {
           "de": "Einfacher Modus für Kinder",
           "en": "A simple mode for children",
-          "hu": "Egyszerű mód gyerekeknek"
+          "hu": "Egyszerű mód gyerekeknek",
+          "ja": "子どもや初心者向けの簡易モード"
         },
         "body": {
           "de": "In den Einstellungen schaltest Du einen einfachen Modus ein: weniger Werkzeuge, eine kurze Formenliste, größere Knöpfe und eine Startseite ohne Verweise nach außen. Ausschalten geht nur mit zwei Sekunden Halten. Ein Link mit ?mode=simple schaltet ihn auf dem Gerät ein, ein Server kann ihn vorgeben.",
           "en": "Switch on a simple mode in the settings: fewer tools, a short list of shapes, larger buttons and a start page without links out of layerling. Leaving it takes a two-second press. A link with ?mode=simple switches it on for that device, and a server can set it.",
-          "hu": "A beállításokban bekapcsolhat egy egyszerű módot: kevesebb eszköz, rövid alakzatlista, nagyobb gombok és kifelé mutató hivatkozások nélküli kezdőoldal. Kikapcsolni csak kétmásodperces nyomva tartással lehet. A ?mode=simple hivatkozás bekapcsolja az eszközön, a szerver pedig előírhatja."
+          "hu": "A beállításokban bekapcsolhat egy egyszerű módot: kevesebb eszköz, rövid alakzatlista, nagyobb gombok és kifelé mutató hivatkozások nélküli kezdőoldal. Kikapcsolni csak kétmásodperces nyomva tartással lehet. A ?mode=simple hivatkozás bekapcsolja az eszközön, a szerver pedig előírhatja.",
+          "ja": "設定で簡易モードをオンにすると、ツールとシェイプの数を絞り、ボタンを大きくし、スタートページから外部リンクを隠します。解除には2秒間の長押しが必要です。?mode=simple付きのリンクやサーバー設定からも有効にできます。"
         }
       },
       {
         "title": {
           "de": "SVG aus CorelDRAW lässt sich importieren",
           "en": "SVG files from CorelDRAW import",
-          "hu": "A CorelDRAW-ból származó SVG-fájlok importálhatók"
+          "hu": "A CorelDRAW-ból származó SVG-fájlok importálhatók",
+          "ja": "UTF-16で保存したSVGの読み込みに対応"
         },
         "body": {
           "de": "Manche Programme, etwa CorelDRAW, speichern SVG-Dateien als UTF-16. Solche Dateien meldeten bisher \"SVG is not valid XML\". Jetzt werden sie gelesen.",
           "en": "Some programs, CorelDRAW for one, save SVG files as UTF-16. Such files used to fail with \"SVG is not valid XML\". Now they are read.",
-          "hu": "Egyes programok, például a CorelDRAW, UTF-16 kódolással mentik az SVG-fájlokat. Az ilyen fájlok eddig az „SVG is not valid XML” hibát adták. Most beolvashatók."
+          "hu": "Egyes programok, például a CorelDRAW, UTF-16 kódolással mentik az SVG-fájlokat. Az ilyen fájlok eddig az „SVG is not valid XML” hibát adták. Most beolvashatók.",
+          "ja": "CorelDRAWなどがUTF-16で保存したSVGは、「SVGは有効なXMLではありません」と表示され、読み込めませんでした。この形式のSVGも読み込めるようになりました。"
         }
       }
     ]
@@ -666,132 +728,154 @@
         "title": {
           "de": "Innen hohl mit einem Klick",
           "en": "Hollow inside in one click",
-          "hu": "Belül üreges egy kattintással"
+          "hu": "Belül üreges egy kattintással",
+          "ja": "ワンクリックで密閉した空洞を作る"
         },
         "body": {
           "de": "Beim Aushöhlen steht unter den Seiten jetzt „Geschlossen (Hohlraum innen)“: ein Klick schließt alle Seiten, und der Hohlraum bleibt rundum zu.",
           "en": "When hollowing, \"Closed (cavity inside)\" now sits below the sides: one click closes every side, and the cavity stays sealed all round.",
-          "hu": "Üregesítéskor az oldalak alatt most ott a „Zárt (belső üreg)”: egy kattintás minden oldalt bezár, és az üreg körben zárva marad."
+          "hu": "Üregesítéskor az oldalak alatt most ott a „Zárt (belső üreg)”: egy kattintás minden oldalt bezár, és az üreg körben zárva marad.",
+          "ja": "中空にする画面で、側面のボタンの下に「閉じる（内部に空洞）」が加わりました。1回押すだけですべての面を閉じ、外側に開口のない空洞を作れます。"
         }
       },
       {
         "title": {
           "de": "Dünne Böden bleiben beim Schneiden stehen",
           "en": "Thin floors stay when you cut",
-          "hu": "A vékony alj megmarad vágáskor"
+          "hu": "A vékony alj megmarad vágáskor",
+          "ja": "穴の下に薄い底板が残るように修正"
         },
         "body": {
           "de": "Liegt ein Loch knapp über dem Boden eines Körpers, bleibt genau so viel Boden stehen, wie darunter Platz ist. Bisher verschwand ein Boden bis 0,05 mm ganz, und ein dickerer wurde 0,05 mm zu dünn.",
           "en": "A hole a little above the bottom of a body now leaves just as much floor as there is below it. Before, a floor up to 0.05 mm vanished completely, and a thicker one came out 0.05 mm too thin.",
-          "hu": "Ha egy lyuk kicsivel egy test alja fölött van, most pontosan annyi alj marad meg, amennyi alatta van. Korábban a legfeljebb 0,05 mm-es alj teljesen eltűnt, a vastagabb pedig 0,05 mm-rel vékonyabb lett."
+          "hu": "Ha egy lyuk kicsivel egy test alja fölött van, most pontosan annyi alj marad meg, amennyi alatta van. Korábban a legfeljebb 0,05 mm-es alj teljesen eltűnt, a vastagabb pedig 0,05 mm-rel vékonyabb lett.",
+          "ja": "底面より少し上に穴を置くとき、穴の下の厚さを正しく残すようになりました。以前は0.05 mm以下の底板が消え、それより厚い底板も0.05 mm薄くなることがありました。"
         }
       },
       {
         "title": {
           "de": "Das Schlüsselring-Loch, wo du willst",
           "en": "The key ring hole wherever you want",
-          "hu": "Kulcstartólyuk oda, ahová szeretnéd"
+          "hu": "Kulcstartólyuk oda, ahová szeretnéd",
+          "ja": "ネームタグのキーリング穴を好きな場所に"
         },
         "body": {
           "de": "Beim Namensschild und beim Symbolschild gibt es neben Links, Rechts und Oben jetzt Frei: Daneben liegt eine eigene Lasche mit dem Loch, die du wie jede Form verschiebst und drehst. „Am Schild befestigen“ macht sie genau dort zum Teil des Schilds, das Loch geht durch jede Schicht. Frei holt sie wieder heraus.",
           "en": "On the name tag and the icon tag there is now Free beside Left, Right and Top: a tab of its own with the hole lies beside the tag, to move and turn like any shape. \"Fix to the tag\" makes it part of the tag just where it is, the hole through every layer. Free brings it out again.",
-          "hu": "A névcímkén és az ikoncímkén a Bal, Jobb és Felül mellett most már Szabad is van: a címke mellé kerül egy külön fül a lyukkal, amelyet úgy mozgatsz és forgatsz, mint bármelyik alakzatot. A „Rögzítés a címkéhez” pontosan ott a címke részévé teszi, a lyuk minden rétegen átmegy. A Szabad újra kiveszi."
+          "hu": "A névcímkén és az ikoncímkén a Bal, Jobb és Felül mellett most már Szabad is van: a címke mellé kerül egy külön fül a lyukkal, amelyet úgy mozgatsz és forgatsz, mint bármelyik alakzatot. A „Rögzítés a címkéhez” pontosan ott a címke részévé teszi, a lyuk minden rétegen átmegy. A Szabad újra kiveszi.",
+          "ja": "ネームタグとアイコンタグのキーリング穴に、左・右・上に加えて「自由」が加わりました。穴付きのタブを独立した部品として動かし、回転できます。「タグに固定」でその位置に結合し、すべてのレイヤーに穴を開けます。再び「自由」にすると取り出せます。"
         }
       },
       {
         "title": {
           "de": "Gelöschte Entwürfe bleiben gelöscht",
           "en": "Deleted designs stay deleted",
-          "hu": "A törölt tervek törölve maradnak"
+          "hu": "A törölt tervek törölve maradnak",
+          "ja": "削除したデザインが復活する問題を修正"
         },
         "body": {
           "de": "Wer nach dem Listenverlust eine Sicherung zurückgespielt hatte, sah gelöschte Entwürfe beim nächsten Start ohne Bild wiederkommen. Das Zurückholen läuft jetzt nur noch einmal, und beim Löschen gehen die versteckten Kopien mit.",
           "en": "If you had restored a backup after the list was lost, deleted designs came back without a picture at the next start. The rescue now runs only once, and deleting a design removes its hidden copies too.",
-          "hu": "Ha a lista elvesztése után visszaállítottál egy biztonsági mentést, a törölt tervek a következő indításkor kép nélkül visszatértek. A visszaállítás most csak egyszer fut le, és a törlés a rejtett másolatokat is eltávolítja."
+          "hu": "Ha a lista elvesztése után visszaállítottál egy biztonsági mentést, a törölt tervek a következő indításkor kép nélkül visszatértek. A visszaállítás most csak egyszer fut le, és a törlés a rejtett másolatokat is eltávolítja.",
+          "ja": "バックアップを戻したあと、削除したデザインが次の起動時に画像のない状態で復活することがありました。過去のデータを探す復旧処理は1回だけ実行し、デザインを削除するときは隠れた重複も削除するようになりました。"
         }
       },
       {
         "title": {
           "de": "Browser-Übersetzung wieder möglich",
           "en": "Browser translation works again",
-          "hu": "A böngésző fordítása újra működik"
+          "hu": "A böngésző fordítása újra működik",
+          "ja": "ブラウザーの翻訳を再び使えるように"
         },
         "body": {
           "de": "Spricht layerling deine Sprache noch nicht, darf der Browser die Seite wieder übersetzen. Deine eigenen Entwurfs-, Ordner- und Formnamen bleiben dabei, wie sie sind.",
           "en": "If layerling does not speak your language yet, the browser may translate the page again. Your own names for designs, folders and shapes stay as they are.",
-          "hu": "Ha a layerling még nem beszéli a nyelvedet, a böngésző újra lefordíthatja az oldalt. A tervek, mappák és alakzatok saját neveid változatlanok maradnak."
+          "hu": "Ha a layerling még nem beszéli a nyelvedet, a böngésző újra lefordíthatja az oldalt. A tervek, mappák és alakzatok saját neveid változatlanok maradnak.",
+          "ja": "Layerlingがまだ対応していない言語では、ブラウザーの翻訳を使えるようになりました。自分で付けたデザイン名、フォルダー名、シェイプ名は翻訳されず、そのまま表示します。"
         }
       },
       {
         "title": {
           "de": "Zahnräder mit bis zu 150 Zähnen",
           "en": "Gears with up to 150 teeth",
-          "hu": "Fogaskerekek legfeljebb 150 foggal"
+          "hu": "Fogaskerekek legfeljebb 150 foggal",
+          "ja": "歯車の上限を150歯に拡大"
         },
         "body": {
           "de": "Zahnräder, Hohlräder und Zahnstangen haben jetzt bis zu 150 statt 64 Zähne, etwa für große Räder mit kleinem Modul.",
           "en": "Gears, ring gears and racks now take up to 150 teeth instead of 64, for large wheels with a small module, say.",
-          "hu": "A fogaskerekek, belső fogazatú kerekek és fogaslécek most 64 helyett legfeljebb 150 fogat kaphatnak, például kis modulú nagy kerekekhez."
+          "hu": "A fogaskerekek, belső fogazatú kerekek és fogaslécek most 64 helyett legfeljebb 150 fogat kaphatnak, például kis modulú nagy kerekekhez.",
+          "ja": "このバージョンでは、歯車、内歯車、ラックの歯数の上限が64から150になりました。小さなモジュールで大きな歯車を作れます。なお、続くv1.99.0では上限が500歯へ拡大されています。"
         }
       },
       {
         "title": {
           "de": "Mit dem Mausrad durch den Verlauf",
           "en": "Through the history with the mouse wheel",
-          "hu": "Az egérgörgővel az előzményekben"
+          "hu": "Az egérgörgővel az előzményekben",
+          "ja": "マウスホイールで履歴を移動"
         },
         "body": {
           "de": "In der Verlaufsansicht geht das Mausrad über dem Schieber einen Stand je Raste weiter, nach oben zu einem früheren. Bild↑ und Bild↓ springen zehn Stände, Pos1 und Ende zum ältesten und zum aktuellen Stand.",
           "en": "In the history view the mouse wheel over the slider goes one state per notch, up to an earlier one. Page Up and Page Down jump ten states, Home and End go to the oldest and to the current state.",
-          "hu": "Az előzmények nézetben a csúszka fölötti egérgörgő kattanásonként egy állapotot lép, felfelé egy korábbira. A Page Up és a Page Down tíz állapotot ugrik, a Home és az End a legrégebbi és a jelenlegi állapotra visz."
+          "hu": "Az előzmények nézetben a csúszka fölötti egérgörgő kattanásonként egy állapotot lép, felfelé egy korábbira. A Page Up és a Page Down tíz állapotot ugrik, a Home és az End a legrégebbi és a jelenlegi állapotra visz.",
+          "ja": "履歴のスライダー上でホイールを回すと、1刻みずつ前後へ移動できます。上へ回すと前の状態になります。Page Up・Page Downは10刻み、Homeは最も古い状態、Endは現在の状態へ移動します。"
         }
       },
       {
         "title": {
           "de": "Verrundung mit wachsendem Radius",
           "en": "A fillet with a growing radius",
-          "hu": "Lekerekítés növekvő sugárral"
+          "hu": "Lekerekítés növekvő sugárral",
+          "ja": "エッジの両端で半径を変えるフィレット"
         },
         "body": {
           "de": "Beim Verrunden gibt es jetzt „Variabler Radius“: Eine Kante wird an einem Ende klein und am anderen groß verrundet, gleichmäßig dazwischen. „Enden tauschen“ dreht die Richtung um.",
           "en": "Filleting now has \"Variable radius\": one edge is rounded small at one end and large at the other, evenly in between. \"Swap ends\" turns it round.",
-          "hu": "A lekerekítésnél most van „Változó sugár”: egy él az egyik végén kicsit, a másikon nagyot kap, közte egyenletesen. A „Végek felcserélése” megfordítja."
+          "hu": "A lekerekítésnél most van „Változó sugár”: egy él az egyik végén kicsit, a másikon nagyot kap, közte egyenletesen. A „Végek felcserélése” megfordítja.",
+          "ja": "フィレットに「可変半径」が加わりました。1本のエッジの片端を小さく、もう片端を大きくして、その間を滑らかに変化させられます。「両端を入れ替え」で大小の向きを逆にできます。"
         }
       },
       {
         "title": {
           "de": "SVG nur mit der Aufstandsfläche",
           "en": "SVG with only the footprint",
-          "hu": "SVG csak a felfekvési felülettel"
+          "hu": "SVG csak a felfekvési felülettel",
+          "ja": "作業平面との接地面だけをSVGに出力"
         },
         "body": {
           "de": "Beim Export als SVG gibt es jetzt die Ansicht „Aufstandsfläche auf der Arbeitsebene“: Sie schreibt nur die Umrisse, mit denen die Objekte auf der Arbeitsebene stehen, als Linien in Millimetern. Die Silhouette von oben bleibt die Voreinstellung.",
           "en": "The SVG export now has the view \"Footprint on the workplane\": it writes only the outlines where the objects stand on the workplane, as lines in millimetres. The silhouette from above stays the default.",
-          "hu": "Az SVG exportban most van „Felfekvési felület a munkasíkon” nézet: csak azokat a körvonalakat írja ki, amelyekkel a tárgyak a munkasíkon állnak, vonalakként milliméterben. A felülnézeti sziluett marad az alapértelmezés."
+          "hu": "Az SVG exportban most van „Felfekvési felület a munkasíkon” nézet: csak azokat a körvonalakat írja ki, amelyekkel a tárgyak a munkasíkon állnak, vonalakként milliméterben. A felülnézeti sziluett marad az alapértelmezés.",
+          "ja": "SVGの表示方法に「作業平面への接地面」が加わりました。部品が作業平面に接する輪郭だけを、mm単位の線として出力します。これまでの「上から見たシルエット」も引き続き選べます。"
         }
       },
       {
         "title": {
           "de": "Umbenannt bleibt umbenannt",
           "en": "Renamed stays renamed",
-          "hu": "Az átnevezés megmarad"
+          "hu": "Az átnevezés megmarad",
+          "ja": "バックアップでも変更後の名前を維持"
         },
         "body": {
           "de": "Ein auf der Startseite umbenannter Entwurf behält seinen neuen Namen jetzt auch in einer Sicherung und beim Verschieben in den Serverordner.",
           "en": "A design renamed on the start page now keeps its new name in a backup and when it is moved to the server folder.",
-          "hu": "A kezdőlapon átnevezett terv mostantól a mentésben és a szervermappába áthelyezéskor is megtartja az új nevét."
+          "hu": "A kezdőlapon átnevezett terv mostantól a mentésben és a szervermappába áthelyezéskor is megtartja az új nevét.",
+          "ja": "スタートページでデザイン名を変えたあと、バックアップやサーバーフォルダーへの移動でも、その名前を維持するようになりました。"
         }
       },
       {
         "title": {
           "de": "Minuszeichen auf Handy und Tablet",
           "en": "A minus key on phone and tablet",
-          "hu": "Mínuszjel telefonon és táblagépen"
+          "hu": "Mínuszjel telefonon és táblagépen",
+          "ja": "スマートフォンやタブレットで負の数を入力しやすく"
         },
         "body": {
           "de": "Felder, die auch negative Werte nehmen, etwa Position, Drehung oder Verschieben, zeigen auf Handy und Tablet jetzt eine Tastatur mit Minuszeichen.",
           "en": "Fields that also take negative values, such as position, rotation or a move, now show a keyboard with a minus key on phones and tablets.",
-          "hu": "A negatív értéket is elfogadó mezők, például a pozíció, az elforgatás vagy az eltolás, telefonon és táblagépen mostantól mínuszjeles billentyűzetet mutatnak."
+          "hu": "A negatív értéket is elfogadó mezők, például a pozíció, az elforgatás vagy az eltolás, telefonon és táblagépen mostantól mínuszjeles billentyűzetet mutatnak.",
+          "ja": "位置、角度、移動量など、負の値を入力できる欄では、マイナス記号のあるキーボードを表示するようになりました。"
         }
       }
     ]
