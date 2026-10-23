@@ -345,6 +345,7 @@ export const MESSAGES_SL: Partial<Record<MessageKey, string>> = {
   "confirm.delete": "Izbriši",
   "sketch.revolvePreview": "3D predogled vrtenja",
   "sketch.revolvePreviewTitle": "3D predogled",
+  "sketch.revolvePreviewReset": "Ponastavi pogled (dvojklik)",
   "sketch.revolvePreviewEmpty": "Nariši sklenjen profil levo od osi",
   "sketch.revolveAxis": "OS VRTENJA",
   "sketch.shapeMoved": "Oblika skice premaknjena",

@@ -361,6 +361,7 @@ export const MESSAGES_DE: Record<MessageKey, string> = {
   "confirm.delete": "Löschen",
   "sketch.revolvePreview": "3D-Vorschau der Drehung",
   "sketch.revolvePreviewTitle": "3D-Vorschau",
+  "sketch.revolvePreviewReset": "Ansicht zurücksetzen (Doppelklick)",
   "sketch.revolvePreviewEmpty": "Zeichne links von der Achse einen geschlossenen Umriss",
   "sketch.revolveAxis": "DREHACHSE",
   "sketch.shapeMoved": "Skizzenform verschoben",

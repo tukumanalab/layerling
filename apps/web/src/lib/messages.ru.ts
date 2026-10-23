@@ -363,6 +363,7 @@ export const MESSAGES_RU: Partial<Record<MessageKey, string>> = {
   "confirm.delete": "Удалить",
   "sketch.revolvePreview": "3D-предпросмотр вращения",
   "sketch.revolvePreviewTitle": "3D-предпросмотр",
+  "sketch.revolvePreviewReset": "Сбросить вид (двойной щелчок)",
   "sketch.revolvePreviewEmpty": "Нарисуйте замкнутый профиль слева от оси",
   "sketch.revolveAxis": "ОСЬ ВРАЩЕНИЯ",
   "sketch.shapeMoved": "Фигура эскиза перемещена",

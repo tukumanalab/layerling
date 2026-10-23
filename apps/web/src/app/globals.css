@@ -6087,6 +6087,40 @@ html[data-theme="dark"] .visibility-hidden-badge {
   background: radial-gradient(circle at 50% 48%, rgba(255, 239, 221, 0.98), rgba(238, 208, 176, 0.96));
 }
 
+.sketch-revolve-preview-reset {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  color: #7a6249;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(204, 186, 166, 0.9);
+  border-radius: 8px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.sketch-revolve-preview-reset:hover,
+.sketch-revolve-preview-reset:focus-visible {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme="dark"] .sketch-revolve-preview-reset {
+  color: #dfc5aa;
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(108, 81, 53, 0.8);
+}
+
+html[data-theme="dark"] .sketch-revolve-preview-reset:hover,
+html[data-theme="dark"] .sketch-revolve-preview-reset:focus-visible {
+  background: rgba(0, 0, 0, 0.5);
+}
+
 .sketch-revolve-preview canvas:active {
   cursor: grabbing;
 }

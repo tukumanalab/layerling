@@ -448,6 +448,7 @@ export const MESSAGES_CS: Record<MessageKey, string> = {
   "confirm.delete": "Smazat",
   "sketch.revolvePreview": "3D náhled rotačního tělesa",
   "sketch.revolvePreviewTitle": "3D náhled",
+  "sketch.revolvePreviewReset": "Obnovit pohled (dvojklik)",
   "sketch.revolvePreviewEmpty": "Nakreslete uzavřený profil vlevo od osy",
   "sketch.revolveAxis": "OSA ROTACE",
   "sketch.shapeMoved": "Tvar v náčrtu byl přesunut",

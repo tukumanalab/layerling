@@ -1,5 +1,6 @@
 "use client";
 
+import { Scan } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { t } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
@@ -13,6 +14,8 @@ export function SketchRevolvePreview({ positions }: { positions: number[] | null
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // The viewing angle the person turned the preview to, so redrawing the sketch keeps it.
   const savedView = useRef<{ position: THREE.Vector3; target: THREE.Vector3 } | null>(null);
+  // Set while a shape is shown: puts the camera back to the first view of that shape.
+  const resetView = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -49,6 +52,8 @@ export function SketchRevolvePreview({ positions }: { positions: number[] | null
     camera.position.set(center.x + radius * 1.8, center.y + radius * 1.2, center.z + radius * 2.1);
     camera.near = Math.max(0.01, radius / 100);
     camera.far = radius * 20;
+    const startPosition = camera.position.clone();
+    const startTarget = center.clone();
     const controls = new OrbitControls(camera, canvas);
     controls.target.copy(center);
     // Left and right drag both turn the shape; the wheel button drags it sideways or up and down (as in Tinkercad).
@@ -88,9 +93,17 @@ export function SketchRevolvePreview({ positions }: { positions: number[] | null
     };
     render();
     controls.addEventListener("change", render);
+    resetView.current = () => {
+      savedView.current = null;
+      camera.position.copy(startPosition);
+      controls.target.copy(startTarget);
+      controls.update();
+      render();
+    };
     const observer = new ResizeObserver(render);
     observer.observe(canvas);
     return () => {
+      resetView.current = null;
       savedView.current = { position: camera.position.clone(), target: controls.target.clone() };
       canvas.removeEventListener("wheel", countWheel, { capture: true });
       canvas.removeEventListener("wheel", endWheel);
@@ -108,7 +121,14 @@ export function SketchRevolvePreview({ positions }: { positions: number[] | null
         {t("sketch.revolvePreviewTitle")}
         <GuideHelpLink section="sketchToBody" iconSize={15} />
       </div>
-      {positions?.length ? <canvas ref={canvasRef} /> : <div className="sketch-revolve-preview-empty">{t("sketch.revolvePreviewEmpty")}</div>}
+      {positions?.length ? (
+        <>
+          <canvas ref={canvasRef} onDoubleClick={() => resetView.current?.()} />
+          <button type="button" className="sketch-revolve-preview-reset" title={t("sketch.revolvePreviewReset")} aria-label={t("sketch.revolvePreviewReset")} onClick={() => resetView.current?.()}>
+            <Scan size={16} />
+          </button>
+        </>
+      ) : <div className="sketch-revolve-preview-empty">{t("sketch.revolvePreviewEmpty")}</div>}
     </aside>
   );
 }

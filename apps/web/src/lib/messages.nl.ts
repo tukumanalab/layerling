@@ -361,6 +361,7 @@ export const MESSAGES_NL: Record<MessageKey, string> = {
   "confirm.delete": "Verwijderen",
   "sketch.revolvePreview": "3D-voorbeeld van de omwenteling",
   "sketch.revolvePreviewTitle": "3D-voorbeeld",
+  "sketch.revolvePreviewReset": "Weergave herstellen (dubbelklik)",
   "sketch.revolvePreviewEmpty": "Teken een gesloten profiel links van de as",
   "sketch.revolveAxis": "OMWENTELINGSAS",
   "sketch.shapeMoved": "Schetsvorm verplaatst",

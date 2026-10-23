@@ -362,6 +362,7 @@ export const MESSAGES_EN = {
   "confirm.delete": "Delete",
   "sketch.revolvePreview": "Revolve 3D preview",
   "sketch.revolvePreviewTitle": "3D preview",
+  "sketch.revolvePreviewReset": "Reset view (double-click)",
   "sketch.revolvePreviewEmpty": "Draw a closed profile left of the axis",
   "sketch.revolveAxis": "REVOLVE AXIS",
   "sketch.shapeMoved": "Sketch shape moved",

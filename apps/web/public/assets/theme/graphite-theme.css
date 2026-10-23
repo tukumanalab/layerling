@@ -2346,6 +2346,28 @@ html[data-theme="dark"]:where([data-palette="graphite"]) .visibility-hidden-badg
   background: radial-gradient(circle at 50% 48%, rgba(238, 238, 238, 0.98), rgba(207, 207, 207, 0.96));
 }
 
+:where(html[data-theme="dark"][data-palette="graphite"]) .sketch-revolve-preview-reset {
+  color: #565656;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(185, 185, 185, 0.9);
+}
+
+:where(html[data-theme="dark"][data-palette="graphite"]) .sketch-revolve-preview-reset:hover,
+:where(html[data-theme="dark"][data-palette="graphite"]) .sketch-revolve-preview-reset:focus-visible {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme="dark"]:where([data-palette="graphite"]) .sketch-revolve-preview-reset {
+  color: #c4c4c4;
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(81, 81, 81, 0.8);
+}
+
+html[data-theme="dark"]:where([data-palette="graphite"]) .sketch-revolve-preview-reset:hover,
+html[data-theme="dark"]:where([data-palette="graphite"]) .sketch-revolve-preview-reset:focus-visible {
+  background: rgba(0, 0, 0, 0.5);
+}
+
 :where(html[data-theme="dark"][data-palette="graphite"]) .sketch-revolve-preview-empty {
   color: #747474;
 }

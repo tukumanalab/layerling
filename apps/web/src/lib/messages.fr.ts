@@ -354,6 +354,7 @@ export const MESSAGES_FR: Partial<Record<MessageKey, string>> = {
   "confirm.delete": "Supprimer",
   "sketch.revolvePreview": "Aperçu de la révolution 3D",
   "sketch.revolvePreviewTitle": "Aperçu 3D",
+  "sketch.revolvePreviewReset": "Réinitialiser la vue (double-clic)",
   "sketch.revolvePreviewEmpty": "Dessinez un profil fermé à gauche de l'axe",
   "sketch.revolveAxis": "AXE DE Révolution",
   "sketch.shapeMoved": "Forme d'esquisse déplacée",
