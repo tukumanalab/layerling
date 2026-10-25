@@ -90,7 +90,7 @@ export const MESSAGES_JA: Partial<Record<MessageKey, string>> = {
   "tabs.reload": "再読み込み",
   "dashboard.updateDismiss": "アップデート通知を閉じる",
   "dashboard.importGeometry": "デザインを開く、またはジオメトリを読み込む",
-  "dashboard.continueWorkplane": "作業平面を続ける",
+  "dashboard.continueWorkplane": "デザインを続ける",
   "dashboard.sharedProjects": "サーバー上",
   "dashboard.projects": "デザイン",
   "dashboard.projectsVisibleOne": "このブラウザーに1件",
