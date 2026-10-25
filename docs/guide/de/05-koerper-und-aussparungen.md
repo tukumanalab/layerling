@@ -28,6 +28,8 @@ So entstehen:
 
 Sind mehrere Körper in der Gruppe, werden sie verbunden. Zwei sich berührende Körper werden also ein einziges Teil.
 
+Bei großen Netzen, etwa einem importierten STL mit Hunderttausenden Dreiecken, dauert das Ausschneiden ein paar Sekunden. layerling rechnet dann im Hintergrund und zeigt „{{ui:status.computing}}“; die Ansicht lässt sich währenddessen drehen und die Oberfläche bedienen. Änderst du in der Zeit die Szene, wird das Ergebnis verworfen und layerling sagt es dir. Dasselbe gilt für {{ui:editor.tool.split}}.
+
 Eine Gruppe darfst du weiter behandeln wie eine Form: verschieben, drehen, einfärben, wieder gruppieren. Mit {{ui:editor.tool.ungroup}} ([[Strg]]+[[Umschalt]]+[[G]]) löst du sie auf, und die Einzelteile sind wieder da.
 
 ### Eine Gruppe zur Aussparung machen
@@ -50,6 +52,8 @@ Manchmal sollen Teile nur zusammenbleiben, ohne eins zu werden – etwa ein wei�
 ## Schnittmenge
 
 {{ui:editor.tool.intersect}} behält nur das, was zwei oder mehr Körper gemeinsam haben. Lege zwei überlappende Formen übereinander, markiere beide und klicke darauf. So entsteht zum Beispiel aus einem Zylinder und einem Quader ein Stück mit runder und gerader Seite. Eine Gruppe zählt dabei so, wie sie aussieht, also mit ihren Bohrungen. Ist eine Aussparung mit markiert, bleibt das, was alle Körper mit allen Aussparungen gemeinsam haben. Haben die Formen nichts gemeinsam, bleibt alles, wie es ist, und eine Meldung sagt es. Daneben zeigt {{ui:editor.tool.intersectPreview}} das gemeinsame Stück, bevor du es anwendest: Die markierten Formen werden durchsichtig, und was sie gemeinsam haben, ist grün gezeichnet. Markiere und verschiebe jede Form einzeln, und das grüne Stück folgt; {{ui:editor.tool.intersect}} wendet es an, [[Esc]] schließt die Vorschau.
+
+{{ui:editor.tool.hull}} hüllt die markierten Formen in einen einzigen konvexen Körper, als wären sie in Schrumpffolie gepackt: den kleinsten Körper ohne Dellen, der alle umfasst. Aus einer Halbkugel auf einem Zylinder wird eine Kuppel ohne Absatz, aus vier Zylindern an den Ecken ein Kasten mit runden Ecken, aus zwei Kugeln eine Kapsel. Aussparungen in der Auswahl werden danach aus der Hülle herausgeschnitten. Die Teile bleiben darin: {{ui:group.edit}} öffnet die Hülle wie eine Gruppe, und wer dort ein Teil verschiebt und abschließt, bekommt die Hülle neu berechnet. Die Hülle ist ein Dreiecksnetz, runde Formen zeigen also Facetten, und die Kantenwerkzeuge wirken darauf wie auf jedes Netz.
 
 ## Eine Gruppe bearbeiten
 
@@ -78,6 +82,8 @@ Ein Hinweis: Fasen und Verrundungen, die du auf die **ganze** Gruppe gelegt hatt
 {{ui:split.apply}} oder [[Enter]] schneidet, [[Esc]] bricht ab (beim Wählen einer Fläche beendet das erste [[Esc]] nur das Wählen). Jedes Objekt, durch das die Ebene geht, wird zu zwei geschlossenen Körpern, benannt nach ihrer Seite, zum Beispiel „Quader (Z+)“ und „Quader (Z-)“; Objekte, die sie verfehlt, bleiben, wie sie sind. Aus einer Aussparung werden zwei Aussparungen, und ein ausgehöhlter Körper behält seinen Hohlraum. Beide Hälften bleiben, wo sie waren – zum Drucken legst du jede mit {{ui:editor.tool.layFlat}} auf ihre Schnittfläche.
 
 Die Hälften sind einfache Netze: Einstellungen wie die Seitenzahl eines Zylinders oder die Buchstaben eines Textes gehen verloren, stelle sie also vorher ein. [[Strg]]+[[Z]] holt das Original in einem Schritt zurück. Gesperrte und ausgeblendete Objekte lassen sich nicht teilen.
+
+Ein importiertes Netz braucht eine geschlossene Oberfläche, damit es sich teilen, gruppieren oder ausschneiden lässt. Hat es Öffnungen, etwa offen gelassene Augen einer Figur oder einen Riss in einem Scan, schließt layerling sie zuerst mit einem flachen Deckel und sagt, wie viele es geschlossen hat. Es schließt kleine Öffnungen und ebene jeder Größe; eine große Öffnung mit gebogenem Rand bleibt dir überlassen, und die Meldung sagt es. Schließe sie im Programm, aus dem das Modell stammt, oder mit einem Reparaturwerkzeug für Netze, und importiere es neu.
 
 ## Teile trennen
 

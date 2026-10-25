@@ -7,6 +7,8 @@ Les raccourcis fonctionnent tant que le plan de travail a le focus. Pendant que 
 
 Sous l'éditeur, {{ui:editor.keyboardShortcuts}} dans la zone {{ui:editor.group.help}} ouvre la même liste sous forme de fenêtre. Le bouton d'imprimante de la fenêtre ({{ui:shortcuts.print}}) imprime la liste seule, en noir sur blanc et en gros caractères ; la boîte de dialogue d'impression du navigateur propose aussi de l'enregistrer en PDF.
 
+Le champ en haut de la fenêtre cherche dans la liste : il ne garde que les raccourcis dont la phrase, le groupe ou les touches contiennent chaque mot tapé, ainsi « ctrl+z » ne laisse que ces lignes. Les majuscules et les accents ne comptent pas, et une seule lettre ou un seul chiffre trouve cette touche et les mots qui commencent par elle. Le X au bout du champ le vide ; champ vide, toute la liste revient. Le bouton d'imprimante imprime ce que montre la fenêtre : après une recherche, il n'imprime que les raccourcis trouvés.
+
 ![La fenêtre des raccourcis clavier dans l'éditeur.](shot:shortcuts)
 
 ## Recherche de commandes

@@ -1,6 +1,7 @@
 
 import { Crosshair, Eye, EyeOff, Plus, Rows3, X } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type Dispatch, type MutableRefObject, type PointerEvent as ReactPointerEvent, type SetStateAction } from "react";
+import type { CameraTurn } from "@/lib/viewCubeTransition";
 import * as THREE from "three";
 import { disposeBoundsTree } from "three-mesh-bvh";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -10,12 +11,12 @@ import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeome
 import { type AppThemePalette, type ResolvedAppTheme } from "@/lib/appTheme";
 import { t } from "@/lib/i18n";
 import { displayToMillimeters, formatLengthMm, formatMeasurementNumber, lengthDisplayUnit, millimetersToDisplay, parseMeasurementInput } from "@/lib/measurementUnits";
-import { computeCornerRulerRelativeCoordinates, cornerRulerAxisModes, cornerRulerDimensionMatchesFromCorner, cornerRulerFlatRotation, cornerRulerTicks, pointAlongRuler, rulerDimensionMatch, worldAxisNameOfDirection, type CornerRulerAxis, type CornerRulerAxisModes, type CornerRulerFrame, type CornerRulerMode, type RulerDimensionField, type RulerDimensionMatch } from "@/lib/rulerDimensions";
+import { computeCornerRulerRelativeCoordinates, cornerRulerAxisModes, cornerRulerDimensionMatchesFromCorner, cornerRulerFlatRotation, cornerRulerTicks, pointAlongRuler, rulerDimensionMatch, rulerLiesFlat, spreadCornerRulerFields, worldAxisNameOfDirection, type CornerRulerAxis, type CornerRulerAxisModes, type CornerRulerFrame, type CornerRulerMode, type RulerDimensionField, type RulerDimensionMatch, type RulerPose } from "@/lib/rulerDimensions";
 import { type PlacementPoint, type PlacementWorkplane } from "@/lib/placementWorkplane";
 import { capturePointer } from "@/lib/pointerCapture";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
 import { displayY, insideZ } from "@/lib/displayAxes";
-import { isNonSolidShapeKind, preservesEdgeTreatmentSize, resizedImportedMeshPositions, shapeDepth, shapeExtrudeDeformAt, shapeHasExtrudeDeform, shapeHasTaper, shapeOverallFootprintDimensions, shapeTaperScaleAt, shapeWidth } from "@/lib/workplaneShapes";
+import { isNonSolidShape, preservesEdgeTreatmentSize, resizedImportedMeshPositions, shapeDepth, shapeExtrudeDeformAt, shapeHasExtrudeDeform, shapeHasTaper, shapeOverallFootprintDimensions, shapeTaperScaleAt, shapeWidth } from "@/lib/workplaneShapes";
 import { type RotationAxis } from "@/components/workplane/TransformOverlay";
 import { type AlignAxes, type FrameCuboid } from "@/lib/alignFrame";
 import type { MeasurementAccuracy, WorkplaneNote, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
@@ -91,6 +92,8 @@ export type ThreeState = {
   animationId: number;
   needsRender: boolean;
   wasCameraMoving: boolean;
+  /** The view cube turn under way: the camera eases to the clicked face instead of jumping. */
+  cameraTurn?: CameraTurn | null;
   lastOverlaySync: number;
   lastViewCubeSync: number;
   /** True while a handle of the align tool shows its preview: the drawn parts have moved then (#235). */
@@ -105,7 +108,7 @@ export type ThreeState = {
   /** The filled cut face of the section view (#516). */
   sectionCapGroup: THREE.Group | null;
   /** The scene's lights, so the settings can change how punchy the shading is. */
-  lights: { ambient: THREE.HemisphereLight; key: THREE.DirectionalLight; fill: THREE.DirectionalLight };
+  lights: { ambient: THREE.HemisphereLight; key: THREE.DirectionalLight; fill: THREE.DirectionalLight; head: THREE.DirectionalLight };
   disposeInteractionListeners: () => void;
   resize: () => void;
 };
@@ -121,7 +124,7 @@ export type MoveDimensionSession = {
 };
 
 /** Breite einer offenen Notizkarte samt Nadel und Abstand, in Bildpunkten. */
-const NOTE_CARD_REACH = 260;
+export const NOTE_CARD_REACH = 260;
 
 /** Weiter waechst das Textfeld nicht mit; darueber hinaus wird darin gerollt. */
 const NOTE_TEXT_MAX_HEIGHT = 168;
@@ -190,7 +193,8 @@ export type TapeModel = {
 
 export type TapeOverlayState = {
   points: Array<TapePoint & { screenX: number; screenY: number }>;
-  segments: Array<TapeSegment & { x1: number; y1: number; x2: number; y2: number; screenPoints?: string; labelX: number; labelY: number; label: string }>;
+  /** `editable`: a straight measurement with a body at one end at least, so typing a length can move that body (#823). */
+  segments: Array<TapeSegment & { x1: number; y1: number; x2: number; y2: number; screenPoints?: string; labelX: number; labelY: number; label: string; editable: boolean }>;
   hover: { screenX: number; screenY: number; edgeScreenPoints?: string } | null;
 };
 
@@ -498,6 +502,20 @@ export function tapeSegmentWorldPoints(state: ThreeState, model: TapeModel, segm
   return start && end ? [tapePointWorld(state, start), tapePointWorld(state, end)] : [];
 }
 
+/**
+ * The body a typed length moves: the one at the second point, as in Tinkercad, unless only the
+ * body at the first point is selected. A whole edge, or both ends on the same body, moves nothing (#823).
+ */
+export function tapeMovableShapeId(model: TapeModel, segmentId: string, selectedIds: readonly string[]) {
+  const segment = model.segments.find((candidate) => candidate.id === segmentId);
+  if (!segment || segment.edge) return null;
+  const startShapeId = model.points.find((point) => point.id === segment.startId)?.attachment?.shapeId ?? null;
+  const endShapeId = model.points.find((point) => point.id === segment.endId)?.attachment?.shapeId ?? null;
+  if (startShapeId === endShapeId) return null;
+  if (startShapeId && selectedIds.includes(startShapeId) && !(endShapeId && selectedIds.includes(endShapeId))) return startShapeId;
+  return endShapeId ?? startShapeId;
+}
+
 function tapePolylineLength(points: THREE.Vector3[]) {
   let length = 0;
   for (let index = 0; index + 1 < points.length; index += 1) length += points[index].distanceTo(points[index + 1]);
@@ -561,6 +579,7 @@ export function syncTapeOverlay(
         labelX: labelScreen.x,
         labelY: labelScreen.y - 18,
         label: formatMeasure(tapePolylineLength(worldPoints), accuracy),
+        editable: tapeMovableShapeId(model, segment.id, []) !== null,
       },
     ];
   });
@@ -862,7 +881,8 @@ export function NoteOverlay({
   onToggle: (noteId: string) => void;
   onTextChange: (noteId: string, text: string) => void;
   onTextCommit: (noteId: string) => void;
-  onDetach: (noteId: string) => void;
+  /** Left out where a note cannot be released from a body: in a sketch, every note is the sketch body's. */
+  onDetach?: (noteId: string) => void;
   onRemove: (noteId: string) => void;
   onEditingIdChange: (noteId: string | null) => void;
 }) {
@@ -953,7 +973,7 @@ export function NoteOverlay({
                   onChange={(text) => onTextChange(note.id, text)}
                 />
                 <div className="note-card-actions">
-                  {note.attached ? (
+                  {!onDetach ? <span /> : note.attached ? (
                     <button type="button" className="note-action" onClick={() => onDetach(note.id)}>{t("note.detach")}</button>
                   ) : <span className="note-hint">{t("note.free")}</span>}
                   <span className="note-card-end">
@@ -982,6 +1002,7 @@ export function TapeOverlay({
   onPointPointerUp,
   onSegmentPointerDown,
   onMarkMiddle,
+  onEditLength,
 }: {
   overlay: TapeOverlayState;
   startPointId: string | null;
@@ -995,6 +1016,8 @@ export function TapeOverlay({
   onSegmentPointerDown: (event: ReactPointerEvent<SVGElement>, segmentId: string) => void;
   /** Puts a reference point in the middle of a measurement (#323). */
   onMarkMiddle?: (segmentId: string) => void;
+  /** Opens the field to type a length, which moves the body at one end (#823). */
+  onEditLength?: (segmentId: string) => void;
 }) {
   return (
     <div className={`tape-overlay ${active ? "active" : ""} ${deleteMode ? "delete-mode" : ""} ${quickDelete ? "quick-delete" : ""} ${moveMode ? "move-mode" : ""}`} aria-label={t("aria.tapeMeasurements")}>
@@ -1037,7 +1060,19 @@ export function TapeOverlay({
         {active && overlay.hover?.edgeScreenPoints ? <polyline className="tape-hover-edge" points={overlay.hover.edgeScreenPoints} fill="none" /> : null}
         {active && overlay.hover ? <circle className="tape-hover-point" cx={overlay.hover.screenX} cy={overlay.hover.screenY} r="5" /> : null}
       </svg>
-      {overlay.segments.map((segment) => (
+      {overlay.segments.map((segment) => segment.editable && onEditLength && !deleteMode ? (
+        <button
+          key={`${segment.id}-label`}
+          type="button"
+          className="tape-label editable"
+          style={{ left: segment.labelX, top: segment.labelY }}
+          title={t("camera.tapeTypeLength")}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => onEditLength(segment.id)}
+        >
+          {segment.label}
+        </button>
+      ) : (
         <span key={`${segment.id}-label`} className="tape-label" style={{ left: segment.labelX, top: segment.labelY }}>
           {segment.label}
         </span>
@@ -1071,11 +1106,27 @@ export type RulerDimensionOverlayItem = {
   labelY: number;
   handleX: number;
   handleY: number;
+  /** The handle that places a copy along the ruler; only on a ruler lying flat, where the copy lands on the plate. */
+  hasHandle: boolean;
 };
 
 export type RulerDimensionOverlayState = {
   items: RulerDimensionOverlayItem[];
 };
+
+/** Where a ruler body stands and which way it points, tipped or turned (#799). */
+export function rulerPoseOfShape(ruler: WorkplaneShape): RulerPose {
+  return {
+    x: ruler.x,
+    y: shapeCenter(ruler).y,
+    z: ruler.z,
+    rotation: ruler.rotation,
+    rotationX: ruler.rotationX,
+    rotationZ: ruler.rotationZ,
+    length: shapeWidth(ruler),
+    crossWidth: shapeDepth(ruler),
+  };
+}
 
 /**
  * Wer neben einem Lineal steht, bekommt seine Ausdehnung entlang dessen Achse
@@ -1095,12 +1146,14 @@ export function syncRulerDimensionOverlay(
     const rulers = shapes.filter((shape) => shape.kind === "ruler" && !shape.hidden);
     const topY = shapes.reduce((max, shape) => Math.max(max, (shape.elevation ?? 0) + shape.height), 0);
     rulers.forEach((ruler) => {
-      const rulerPose = { x: ruler.x, z: ruler.z, rotation: ruler.rotation, length: shapeWidth(ruler), crossWidth: shapeDepth(ruler) };
+      const rulerPose = rulerPoseOfShape(ruler);
+      const flat = rulerLiesFlat(ruler);
       const axisAcross = new THREE.Vector3(0, 0, 1).applyQuaternion(quaternionForShape(ruler));
       shapes.forEach((candidate) => {
-        if (candidate.id === ruler.id || isNonSolidShapeKind(candidate.kind) || candidate.hidden) return;
+        if (candidate.id === ruler.id || isNonSolidShape(candidate) || candidate.hidden) return;
         const match = rulerDimensionMatch(rulerPose, {
           x: candidate.x,
+          y: shapeCenter(candidate).y,
           z: candidate.z,
           rotation: candidate.rotation,
           rotationX: candidate.rotationX,
@@ -1113,7 +1166,10 @@ export function syncRulerDimensionOverlay(
         const acrossSign = match.acrossOffset >= 0 ? 1 : -1;
         const labelAcross = acrossSign * (rulerPose.crossWidth / 2 + 16);
         const labelAlong = pointAlongRuler(rulerPose, match.alongOffset);
-        const labelWorld = new THREE.Vector3(labelAlong.x + axisAcross.x * labelAcross, topY + 6, labelAlong.z + axisAcross.z * labelAcross);
+        // Flat, the numbers hover above everything so no body hides them; a tipped ruler shows them beside itself.
+        const labelWorld = flat
+          ? new THREE.Vector3(labelAlong.x + axisAcross.x * labelAcross, topY + 6, labelAlong.z + axisAcross.z * labelAcross)
+          : new THREE.Vector3(labelAlong.x, labelAlong.y, labelAlong.z).addScaledVector(axisAcross, labelAcross);
         const handleAt = pointAlongRuler(rulerPose, match.alongOffset + match.extentAlong / 2);
         const handleWorld = new THREE.Vector3(handleAt.x, topY + 6, handleAt.z);
         const labelScreen = projectToScreen(labelWorld, state);
@@ -1129,6 +1185,7 @@ export function syncRulerDimensionOverlay(
           labelY: labelScreen.y,
           handleX: handleScreen.x,
           handleY: handleScreen.y,
+          hasHandle: flat,
         });
       });
     });
@@ -1177,19 +1234,21 @@ export function RulerDimensionOverlay({
               {item.label}
             </span>
           )}
-          <button
-            type="button"
-            className="ruler-duplicate-handle"
-            aria-label={t("camera.duplicateAlongRuler")}
-            title={t("camera.duplicateAlongRuler")}
-            style={{ left: item.handleX, top: item.handleY }}
-            onPointerDown={(event) => onHandlePointerDown(event, item)}
-            onPointerMove={onHandlePointerMove}
-            onPointerUp={onHandlePointerUp}
-            onPointerCancel={onHandlePointerUp}
-          >
-            <Plus size={12} strokeWidth={3} aria-hidden="true" />
-          </button>
+          {item.hasHandle ? (
+            <button
+              type="button"
+              className="ruler-duplicate-handle"
+              aria-label={t("camera.duplicateAlongRuler")}
+              title={t("camera.duplicateAlongRuler")}
+              style={{ left: item.handleX, top: item.handleY }}
+              onPointerDown={(event) => onHandlePointerDown(event, item)}
+              onPointerMove={onHandlePointerMove}
+              onPointerUp={onHandlePointerUp}
+              onPointerCancel={onHandlePointerUp}
+            >
+              <Plus size={12} strokeWidth={3} aria-hidden="true" />
+            </button>
+          ) : null}
         </span>
       ))}
     </div>
@@ -1289,7 +1348,7 @@ export function syncCornerRulerToolOverlay(
     // Mehrere markierte Koerper zaehlen zusammen wie einer: gemessen wird
     // ihre gemeinsame Umrissbox, wie beim Abstand zum Nullpunkt.
     const wanted = new Set(selectedIds);
-    const selectedShapes = shapes.filter((s) => wanted.has(s.id) && !s.hidden && !isNonSolidShapeKind(s.kind));
+    const selectedShapes = shapes.filter((s) => wanted.has(s.id) && !s.hidden && !isNonSolidShape(s));
 
     rulers.forEach((ruler) => {
       const armWidth = CORNER_RULER_ARM_WIDTH;
@@ -1379,14 +1438,20 @@ export function syncCornerRulerToolOverlay(
           y: (elevBaseScreen.y + elevTargetScreen.y) / 2,
         };
 
+        // A body at the corner leaves no distance: the three fields would sit on each other and on the ruler's
+        // buttons (#777), so they step aside. Where there is room they stay at the middle of their arrows.
+        const [xFieldPos, zFieldPos, elevationFieldPos] = spreadCornerRulerFields(
+          [xLabelPos, zLabelPos, elevationLabelPos],
+          [{ x: handleScreen.x, y: handleScreen.y + 2, halfWidth: 34, halfHeight: 30 }],
+        );
         selectedCoordinate = {
           shapeIds: selectedShapes.map((shape) => shape.id),
           xValue: coords.x,
           zValue: coords.z,
           elevationValue: coords.elevation,
-          xLabel: { x: xLabelPos.x, y: xLabelPos.y, text: formatMeasure(coords.x, accuracy) },
-          zLabel: { x: zLabelPos.x, y: zLabelPos.y, text: formatMeasure(coords.z, accuracy) },
-          elevationLabel: { x: elevationLabelPos.x, y: elevationLabelPos.y, text: formatMeasure(coords.elevation, accuracy) },
+          xLabel: { x: xFieldPos.x, y: xFieldPos.y, text: formatMeasure(coords.x, accuracy) },
+          zLabel: { x: zFieldPos.x, y: zFieldPos.y, text: formatMeasure(coords.z, accuracy) },
+          elevationLabel: { x: elevationFieldPos.x, y: elevationFieldPos.y, text: formatMeasure(coords.elevation, accuracy) },
         };
         // The numbers' arrows, and the guide lines along the floor to the body (not up in the air at its middle).
         pushSegment(lines.arrows, corner, xEndWorld);
@@ -1402,7 +1467,7 @@ export function syncCornerRulerToolOverlay(
       const flatRotation = cornerRulerFlatRotation(ruler.frame);
       shapes.forEach((candidate) => {
         if (flatRotation === null) return;
-        if (isNonSolidShapeKind(candidate.kind) || candidate.hidden) return;
+        if (isNonSolidShape(candidate) || candidate.hidden) return;
         if (wanted.has(candidate.id)) return;
         const { armX, armZ } = cornerRulerDimensionMatchesFromCorner(
           { x: ruler.corner.x, z: ruler.corner.z },
@@ -1640,6 +1705,7 @@ export function CornerRulerToolOverlay({
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={() => onCoordinateClick(item.id, selected.shapeIds, axis, value, label.x, label.y)}
                     >
+                      <span className="ruler-coordinate-axis" aria-hidden="true">{axisName.toLowerCase()}</span>
                       {label.text}
                     </button>
                   </span>

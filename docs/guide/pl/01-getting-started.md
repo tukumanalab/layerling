@@ -13,7 +13,7 @@ Otwórz [layerling.com](https://layerling.com/). Na stronie startowej kliknij {{
 
 Jeśli masz już plik, nad którym chcesz pracować dalej, użyj {{ui:dashboard.importGeometry}}. Działa to z projektami layerling (`.lyl`), a także z plikami STL, OBJ, 3MF, STEP i SVG.
 
-Wszystkie Twoje projekty pojawiają się potem na stronie startowej z obrazkiem podglądu. Są przechowywane w pamięci przeglądarki i zapisywane automatycznie po każdej zmianie, dlatego nie ma przycisku zapisu. **layerling nie ponosi odpowiedzialności za projekty przechowywane w przeglądarce.** Przeglądarka może zawieść, a jej aktualizacja może narobić kłopotów, więc co jakiś czas rób kopię zapasową projektów przyciskiem {{ui:dashboard.backupAll}} na stronie startowej albo zapisuj je jako pliki. Kopię przywraca {{ui:dashboard.restoreBackup}}. Jak spakować projekty do pliku i komuś je przekazać, opisuje rozdział [Pliki i zapis](chapter:files-and-saving).
+Wszystkie Twoje projekty pojawiają się potem na stronie startowej z obrazkiem podglądu. Są przechowywane w pamięci przeglądarki i zapisywane automatycznie po każdej zmianie, dlatego nie ma przycisku zapisu. **layerling nie ponosi odpowiedzialności za projekty przechowywane w przeglądarce.** Przeglądarka może zawieść, a jej aktualizacja może narobić kłopotów, więc co jakiś czas rób kopię zapasową projektów przyciskiem {{ui:dashboard.backupAll}} na stronie startowej albo zapisuj je jako pliki. Kopię przywraca {{ui:dashboard.restoreBackup}}. Jak spakować projekty do pliku i komuś je przekazać, opisuje rozdział [Pliki i zapis](chapter:files-and-saving). Jeśli chcesz mieć przypomnienie, włącz {{ui:workspace.confirmTabClose}} w ustawieniach (koło zębate na wstążce): przeglądarka zapyta wtedy przed zamknięciem lub odświeżeniem karty z otwartym projektem.
 
 ## Edytor w skrócie
 
@@ -111,4 +111,4 @@ W kopii layerling na Twoim własnym komputerze lub serwerze komunikat „Dostęp
 
 Gdy część jest gotowa, kliknij {{ui:editor.export}}, wybierz STL lub 3MF i pobierz plik. Otwórz go w slicerze, na przykład w Bambu Studio, PrusaSlicer, OrcaSlicer albo Cura. Jeśli wybierzesz swoją drukarkę w ustawieniach, już podczas budowania zobaczysz, czy część mieści się na stole drukarki. Więcej w rozdziale [Drukowanie](chapter:printing).
 
-> **Wskazówka:** Jeśli przychodzisz z Tinkercada, szybko się odnajdziesz: płyta, kształty, bryła i otwór, grupowanie, wyrównywanie i odbicie lustrzane działają prawie tak samo. Nowe są głównie fazowanie i zaokrąglanie, drążenie, gwinty i szkice.
+> **Wskazówka:** Jeśli przychodzisz z Tinkercada, szybko się odnajdziesz: płyta, kształty, bryła i otwór, grupowanie, wyrównywanie i odbicie lustrzane działają prawie tak samo. Nowe są głównie fazowanie i zaokrąglanie, drążenie, gwinty i szkice. Własne projekty z Tinkercada też możesz przenieść, zobacz [Pliki, zapis i udostępnianie](chapter:files-and-saving).

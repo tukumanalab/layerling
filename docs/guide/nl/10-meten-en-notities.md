@@ -17,6 +17,7 @@ Het meetlint zit aan de onderkant van de camerabalk aan de linkerrand ({{ui:came
 4. **{{ui:camera.tapeWholeEdges}}:** Een klik op een rand meet de hele rand, bij een cirkel bijvoorbeeld de omtrek. Staat dit uit, dan zet een klik in plaats daarvan een punt op de rand, en het tweede punt mag overal liggen, zodat je de diameter of een andere afstand kunt meten. [[Alt]] draait de schakelaar voor één klik om. Op een cirkel klikt het punt tegenover het eerste vast zodra de aanwijzer in de buurt komt, en de punten liggen op de echte cirkel, zodat de diameter precies klopt.
 5. **{{ui:camera.deleteAllMeasurements}}:** Verwijdert alle metingen in één keer. Omdat dit niet ongedaan kan worden gemaakt, vraagt layerling het eerst; zijn er geen metingen, dan is er niets te doen.
 6. **{{ui:camera.tapeMarkMiddle}}:** Onder het getal van elke meting zit een klein draadkruisknopje. Het zet een [referentiepunt](#referentiepunten) in het midden van de meting: na een klik op een ronde rand, zoals de rand van een gat, in het middelpunt van die cirkel - ook bij een geïmporteerd net, waar anders niets het midden van een gat markeert - en bij een diameter of elke rechte meting halverwege. Een vorm die je sleept snapt dan met zijn midden op het punt. Een punt dat er al is, wordt niet dubbel gemaakt. Het meetlint klikt vast aan een referentiepunt zoals aan een hoek: zo meet je vanaf het middelpunt van een cirkel of vanaf het midden van een lijn - punt zetten, dan aanklikken.
+7. **{{ui:camera.tapeTypeLength}}:** Ligt minstens één uiteinde van een rechte meting op een lichaam, dan is het getal aan te klikken. Typ een nieuwe lengte en druk op [[Enter]]: het lichaam bij het tweede punt schuift langs de gemeten lijn tot de afstand precies zo groot is, zoals met de liniaal in Tinkercad. Is alleen het lichaam bij het eerste punt geselecteerd, dan schuift dat. De meetpunten blijven op het lichaam, dus de meting gaat mee. Meet vanaf een hoek, een rand of een [referentiepunt](#referentiepunten), zoals het midden van een cirkel, om onderdelen op een exacte afstand te zetten.
 
 [[Esc]] verlaat de meetmodus.
 
@@ -41,7 +42,7 @@ Selecteer je een lichaam, dan toont de winkelhaak in het groen hoe ver het van d
 
 Met het middelpunt tellen de groene getallen tot het midden van het lichaam, ook in de hoogte. Zo plaats je een bol met zijn middelpunt precies 15 mm van een rand, zonder de straal ervan af te trekken. Op een wand plaats je een gat op 40 mm van links en 190 mm van boven zo: selecteer het gat, schakel naar middelpunt, typ 40 en 190. De hoogte telt daar vanaf de wand naar buiten.
 
-Zowel het meetlint als de winkelhaak blijven staan terwijl je schetst en terugkeert naar de 3D-weergave. Ze worden niet met het ontwerp opgeslagen en niet in de geschiedenis, en ze verdwijnen als je de pagina herlaadt.
+Zowel het meetlint als de winkelhaak blijven staan terwijl je schetst en terugkeert naar de 3D-weergave. Geen van beide komt in de geschiedenis. Het meetlint wordt niet met het ontwerp opgeslagen en verdwijnt als je de pagina herlaadt; de winkelhaak wordt met het ontwerp opgeslagen.
 
 ## Afstanden tot de oorsprong en tijdens het verplaatsen
 
@@ -61,10 +62,11 @@ Een notitie legt vast wat de geometrie niet zegt: "Deze schroef zit 0,3 mm te kr
 - {{ui:note.detach}} maakt een vastgemaakte notitie los van het lichaam.
 - {{ui:editor.tool.group}} neemt een vastgemaakte notitie mee in de groep; {{ui:editor.tool.ungroup}} geeft haar door aan het zichtbare onderdeel eronder, ook aan een groep daarbinnen. Zolang een groep met {{ui:group.edit}} open is, bewegen de notities van die groep mee met het onderdeel eronder en gaan ze met {{ui:group.done}} terug naar de groep; annuleren zet ze terug zoals ze waren.
 - Wordt haar lichaam verwijderd, of ligt er geen zichtbaar lichaam meer onder, dan blijft de notitie staan waar ze stond, op het werkvlak.
-- Slepen verplaatst de notitie, een klik opent haar om te bewerken.
+- Slepen aan de speld verplaatst de notitie. Een klik op de speld klapt de kaart in, alleen het kleine nummer blijft staan; nog een klik klapt hem weer open. Een klik in de tekst bewerkt hem.
 - Terwijl je schrijft, bewaart [[Enter]] de tekst en zet [[Esc]] hem terug zoals hij was voordat je begon; [[Shift]]+[[Enter]] begint een nieuwe regel.
+- **In een schets** zet {{ui:editor.tool.note}} (onder {{ui:editor.group.manage}}) of [[N]] ook een notitie, waar je maar wilt op de schets. Alle notities van een schets horen bij haar lichaam: in de 3D-weergave zitten ze erop, bovenop een lichaam gemaakt met {{ui:sketch.extrude}} of {{ui:sketch.sweep}} en op het getekende profiel van een lichaam gemaakt met {{ui:sketch.revolve}}, en ze bewegen mee. Open je de schets opnieuw, dan toont ze de notities van het lichaam, ook die in 3D zijn gezet. In de schets neemt {{ui:sketch.undo}} een notitie terug zoals een lijn, en {{ui:sketch.cancel}} verwerpt wat je aan de notities hebt veranderd. [[Shift]]+[[N]] toont of verbergt de notities ook hier.
 
-Notities worden in het ontwerp opgeslagen, komen in geen enkele export terecht en kun je tonen of verbergen met {{ui:visibility.notes}}.
+Notities worden in het ontwerp opgeslagen, komen in geen enkele export terecht en kun je tonen of verbergen met {{ui:visibility.notes}} (onder {{ui:editor.visibilityOptions}}, de pijl naast het oog-pictogram) of met [[Shift]]+[[N]].
 
 ## Referentiepunten
 
@@ -73,5 +75,17 @@ Een referentiepunt is een kaal merkteken in de ruimte, zoals een potloodstreep o
 - Sleep een punt om het te verplaatsen, of klik erop om de coördinaten te zien en nieuwe te typen; ze gebruiken de eenheid die je hebt ingesteld. Elke kaart kun je aan zijn titel wegslepen als die iets bedekt, en wel afzonderlijk: de andere blijven waar ze zijn, en een dubbelklik op de titel zet hem terug. De kaart die je het laatst hebt aangeraakt, ligt voor de andere. **Alles verwijderen** in een kaart, of in het rechtsklikmenu, verwijdert alle punten in één keer. {{ui:common.delete}} verwijdert het punt.
 - Het meetlint kan ook een punt zetten: {{ui:camera.tapeMarkMiddle}}, het draadkruisknopje onder een meting, zet er een in het midden, bijvoorbeeld in het middelpunt van een rond gat. En het meet vanaf een punt: het meetlint klikt vast aan referentiepunten zoals aan hoeken.
 - Sleep je een vorm, dan klikken zijn randen en zijn midden vast aan een punt, zoals ze aan andere vormen vastklikken ({{ui:workspace.objectSnap}}). Ook de winkelhaak klikt vast aan punten.
-- Punten worden in het ontwerp opgeslagen, komen in geen enkele export terecht en worden samen met de notities getoond of verborgen met {{ui:visibility.notes}}.
+- Punten worden in het ontwerp opgeslagen, komen in geen enkele export terecht en worden samen met de notities getoond of verborgen met {{ui:visibility.notes}} ([[Shift]]+[[N]]).
 - Een AI kan ze markeren, opsommen en verwijderen met `layerling_add_reference_points`, `layerling_list_reference_points` en `layerling_remove_reference_points`.
+
+## Referentieafbeeldingen
+
+Een referentieafbeelding is een afbeelding om onderdelen op uit te lijnen: leg een foto van een printplaat op de bodem van haar behuizing en zet de afstandhouders, gaten en uitsparingen voor de aansluitingen er precies op. Het is een hulpmiddel, geen lichaam: ze wordt nooit geprint, nooit geëxporteerd (STL, 3MF, OBJ, STEP, SVG), hoort nooit bij een groep, een bundel of een snede, en de printschatting laat haar weg.
+
+- Open {{ui:editor.import}} en kies {{ui:import.referenceImage}}, daarna een PNG-, JPG-, WebP-, GIF- of BMP-afbeelding. Ze komt op het werkvlak - op de plaat, of op het vlak waar je het werkvlak op hebt gelegd -, met de langste zijde 100 mm, half doorzichtig.
+- Verplaats, draai en schaal haar met haar grepen zoals elke vorm. Een lichaam ervoor wordt eerst gekozen, dus wie erop werkt, pakt niet per ongeluk de afbeelding.
+- {{ui:referenceImage.seeThrough}} in haar instellingen vervaagt haar van helemaal zichtbaar tot nauwelijks nog te zien.
+- {{ui:referenceImage.calibrate}} geeft haar haar echte grootte, zoals in de schets: klik op twee punten op de afbeelding waarvan je de werkelijke afstand kent - twee bevestigingsgaten van de printplaat bijvoorbeeld - en typ die afstand bij {{ui:referenceImage.distance}}. De afbeelding houdt haar verhoudingen en haar midden.
+- Vergrendel haar met het slot in de kop van haar instellingen, dan blijft ze liggen: klikken gaan er dan doorheen naar de plaat. Kies haar in de objectlijst om haar te ontgrendelen.
+- De afbeelding staat één keer in het ontwerpbestand, hoe vaak ze ook wordt gekopieerd of ongedaan gemaakt. Een grote afbeelding maakt het bestand zoveel groter; de melding bij het toevoegen noemt haar grootte.
+- Een AI voegt er een toe, verplaatst, kalibreert, vervaagt en vergrendelt haar met `layerling_reference_image`.

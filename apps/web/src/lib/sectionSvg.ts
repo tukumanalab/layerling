@@ -1,3 +1,4 @@
+import { weldOnGrid } from "@/lib/gridWeld";
 import { sectionAxisLetter, type SectionPlaneAxis } from "@/lib/sectionView";
 
 /**
@@ -52,16 +53,10 @@ const WELD_GRID = 1e-5;
 
 /** Gleiche Lagen zu einer Ecke zusammenfassen - Netze aus STL oder je Flaeche getrennten Ecken teilen sonst keine Kanten. */
 function weldMesh(mesh: SectionMesh) {
-  const index = new Map<string, number>();
-  const positions: Array<readonly [number, number, number]> = [];
-  const remap = mesh.vertices.map((vertex) => {
-    const key = vertex.map((value) => Math.round(value / WELD_GRID)).join(",");
-    const found = index.get(key);
-    if (found !== undefined) return found;
-    index.set(key, positions.length);
-    positions.push(vertex);
-    return positions.length - 1;
-  });
+  // Numbers, not a text key per corner (lib/gridWeld.ts): the same corners, in the same order.
+  const welded = weldOnGrid(mesh.vertices, WELD_GRID);
+  const remap = welded.ids;
+  const positions: Array<readonly [number, number, number]> = welded.first.map((index) => mesh.vertices[index]);
   const faces = mesh.faces
     .map(([a, b, c]) => [remap[a], remap[b], remap[c]] as const)
     .filter(([a, b, c]) => a !== b && b !== c && c !== a);
@@ -270,4 +265,25 @@ export function sectionSvgDocument(bodies: readonly SectionBody[], axis: Section
     "",
   ].join("\n");
   return { svg, loopCount, openCount, bodyCount: drawn.length, width, height };
+}
+
+/**
+ * Where the SVG export cuts for the footprint on the workplane (#692): a hair above the workplane, so a flat bottom
+ * standing on it is cut through rather than along, and a part reaching below it is cut where it passes through (#727).
+ * When no body reaches through the workplane (all above it, all below it), the cut is a hair above the lowest point
+ * instead. Null when there is nothing to cut.
+ */
+export const FOOTPRINT_CUT_HEIGHT = 0.01;
+
+export function footprintCutOffset(meshes: readonly SectionMesh[]): number | null {
+  let lowest = Number.POSITIVE_INFINITY;
+  let highest = Number.NEGATIVE_INFINITY;
+  meshes.forEach((mesh) => mesh.vertices.forEach((vertex) => {
+    if (vertex[1] < lowest) lowest = vertex[1];
+    if (vertex[1] > highest) highest = vertex[1];
+  }));
+  if (!Number.isFinite(lowest)) return null;
+  const aboveWorkplane = FOOTPRINT_CUT_HEIGHT;
+  const reachesThrough = lowest <= aboveWorkplane && highest > aboveWorkplane;
+  return reachesThrough ? aboveWorkplane : lowest + FOOTPRINT_CUT_HEIGHT;
 }

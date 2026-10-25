@@ -14,6 +14,7 @@ Egérrel:
 | húzás középső gombbal | a nézet mozgatása |
 | egérgörgő | nagyítás és kicsinyítés |
 | [[Ctrl]] / [[Cmd]] nyomva tartása és húzás bal gombbal | szintén a nézetet mozgatja |
+| dupla kattintás a munkasík egy üres pontjára vagy a tárgyasztal mellé | úgy mozgatja a nézetet, hogy az a pont középre kerüljön; a nézet ezután körülötte forog |
 
 Hogy a görgő milyen gyorsan nagyít, azt a beállításokban a {{ui:workspace.appearance}} alatt a {{ui:workspace.zoomSpeed}} adja meg: egy csúszka 1-től 14-ig, kezdetben 5-ön; 10 fölött csak a görgő gyorsul.
 
@@ -37,6 +38,7 @@ A bal szélen egy keskeny sáv van. Felülről lefelé:
 - A {{ui:camera.focusSelection}} a kijelölésre nagyít ([[F]] vagy [[Shift]]+[[F]]).
 - A {{ui:camera.zoomIn}} és a {{ui:camera.zoomOut}} lépésenként nagyít és kicsinyít, ahogy a [[+]] és a [[−]] billentyű is.
 - Az {{ui:camera.orthographic}} lapos nézetre vált, amelyben a párhuzamos élek párhuzamosak maradnak. Méréshez és élek egymáshoz igazításához ez gyakran kényelmesebb, mint a perspektivikus nézet. Az [[O]] oda-vissza vált, és egy második kattintás visszavált.
+- A {{ui:camera.secondView}} a terv második nézetét nyitja meg egy saját ablakban, lásd lent. Egy második kattintás bezárja.
 - A {{ui:camera.hideWorkplane}} (a rács fölötti szem) elrejti a tárgyasztalt a rácsával együtt, így alulról is megnézheted egy terv alját. Csak a nézet változik: az új alakzatok továbbra is a munkasíkra kerülnek. Egy második kattintás újra megmutatja.
 - A {{ui:camera.placeWorkplane}}, a mérőszalag és a derékszögvonalzó önálló eszközök, ezekről lentebb és a [Mérés és jegyzetek](chapter:measuring-and-notes) fejezetben olvashatsz.
 
@@ -45,6 +47,10 @@ A sáv legtetején lévő kis nyíl elrejti a sávot, ha útban van.
 Egy terv úgy nyílik meg, ahogy hagytad: a nézet szöge, nagyítása és helyzete ebben a böngészőben vele együtt megmarad, így ott folytatod, ahol abbahagytad, akkor is, ha közben a kezdőlapra mentél vagy bezártad az oldalt. Egy mentett fájl (.lyl) is magával viszi a nézetet, így máshol is abban nyílik meg. A nézet nem része a visszavonási előzményeknek.
 
 Minden tervben négy saját nézetet is megőrizhetsz. A [[Shift]]+[[7]], [[Shift]]+[[8]], [[Shift]]+[[9]] vagy [[Shift]]+[[0]] pontosan úgy menti a nézetet, ahogy van - szög, helyzet, nagyítás, valamint sík vagy perspektivikus nézet - az adott billentyűre, a billentyű magában ([[7]], [[8]], [[9]] vagy [[0]]) pedig visszahozza. Egy üzenet alul megerősíti a mentést; ha ugyanarra a billentyűre újra mentesz, az lecseréli a nézetet. A fenti nézethez hasonlóan a mentett nézetek is a tervvel maradnak ebben a böngészőben, és egy mentett fájl (.lyl) is magával viszi őket; nem részei a visszavonási előzményeknek.
+
+### Második nézet saját ablakban
+
+A {{ui:camera.secondView}} egy ablakot nyit, amely ugyanazt a tervet egy saját kamerán át mutatja, így egyszerre két oldalról láthatod - például elölről, miközben felülről dolgozol. Minden változtatás, amit a szerkesztőben végzel, ott azonnal megjelenik; magát a tervet csak a főablakban lehet módosítani, és a fogantyúk is ott maradnak. A második ablakban az egér és a nézetkocka ugyanúgy forgatja a nézetét, mint itt, és a billentyűk is: [[1]]–[[6]], [[F]], [[Home]], [[O]], [[+]] és [[−]], a nyilak a forgatáshoz, a [[Ctrl]] a nyilakkal az eltoláshoz. Az [[F]] ott arra nagyít, ami a szerkesztőben ki van jelölve. A terv négy mentett nézete is működik ott: a [[7]], [[8]], [[9]] és [[0]] visszahozza őket, a [[Shift]] pedig ezek egyikével az ablak nézetét menti el alá - mindkét ablak számára. Saját kamerasávjában ott van a {{ui:camera.home}}, a {{ui:camera.focusSelection}}, a {{ui:camera.zoomIn}}, a {{ui:camera.zoomOut}}, az {{ui:camera.orthographic}} és a {{ui:camera.hideWorkplane}}, és ezek csak arra az ablakra hatnak. Az ablak ott nyílik meg, ahol hagytad, ugyanakkora méretben, és a szerkesztővel együtt bezárul. Telefonon és táblagépen a gomb nem jelenik meg.
 
 ## Belelátni: a metszeti nézet
 
@@ -75,7 +81,7 @@ Ha ehelyett az üres tárgyasztalra kattintasz, a munkasík laposan oda kerül, 
 
 Egy lapon a munkasík origója egyébként a rácshoz illeszkedik. Ha a lap egyik sarka közelébe kattintasz, pontosan arra a sarokra kerül. Egy él közelében az élre fekszik, és a rács hozzá igazodik; így szándékosan választhatod meg a rács szögét. Sarok vagy él nélkül egy fekvő lapon a rács a testtel párhuzamosan fut, így egy elforgatott dobozon vele együtt el van forgatva.
 
-Egy kattintás a tárgyasztal mellé vagy az [[Esc]] visszateszi a munkasíkot az alaplapra. Még gyorsabb a {{ui:camera.resetWorkplane}}: a lefelé mutató nyilas gomb a kamerasávon a szem alatt van, amíg a munkasík egy lapon fekszik. A [[Shift]]+[[W]] közvetlenül az épp kijelölt lapra teszi. Ha kattintás közben a [[Shift]] billentyűt nyomva tartod, a sík a másik irányba néz.
+Egy kattintás a tárgyasztal mellé vagy az [[Esc]] visszateszi a munkasíkot az alaplapra. Még gyorsabb a {{ui:camera.resetWorkplane}}: a lefelé mutató nyilas gomb a kamerasávon a szem alatt van, amíg a munkasík egy lapon fekszik. A [[Shift]]+[[W]] közvetlenül az épp kijelölt lapra teszi. Az [[Alt]]+[[W]] bármikor visszateszi az alaplapra, akár van kijelölés, akár nincs. Ha kattintás közben a [[Shift]] billentyűt nyomva tartod, a sík a másik irányba néz.
 
 Amíg a munkasík egy lapon van, a {{ui:camera.placeWorkplane}} mellett megjelenik egy szem. Elrejti a munkasíkot anélkül, hogy eldobná, hogy tisztán lásd a tervet: az új alakzatok továbbra is arra a lapra kerülnek, és a forgatás is körülötte történik. A szemre kattintva újra megjelenik, és egy új munkasík megadása is megjeleníti.
 

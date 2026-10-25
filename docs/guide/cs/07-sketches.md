@@ -25,7 +25,8 @@ Pás nástrojů má tyto části:
 - **Výběr:** {{ui:sketch.select}} přesouvá body a čáry. Kliknutí dovnitř uzavřeného obrysu vybere celý tvar, uvnitř otvoru vybere otvor. Rámeček má osm úchytů. Rohy mění oba rozměry a se [[Shift]] zachovávají poměr, boční úchyty jen jeden rozměr. Kruhový úchyt nad rámečkem otáčí celý výběr kolem středu, zobrazuje úhel a se [[Shift]] přichytává po 15°. [[R]] otáčí uzavřený obrys po 45°. Kliknutím na rozměr zadáte číslo, výraz jako „60+12.5“ nebo procenta „150%“. [[Shift]]+klik přidává a odebírá body či čáry. Tažení rámečku na prázdné ploše vybere vše uvnitř. Čáru lze táhnout za oba konce, případně společně s celým výběrem. Šipky posouvají po kroku mřížky, se [[Shift]] po větším kroku. [[Shift]] při tažení omezuje směr na jednu osu. {{ui:sketch.refine}} přidá bod kliknutím na úsek a odstraní kliknutím na bod. Dále jsou dostupné {{ui:sketch.erase}} (klik na bod nebo úsečku ho odstraní, okno přetažené přes více prvků odstraní vše uvnitř a s výběrem tlačítko výběr smaže) a podkladový obrázek {{ui:sketch.addImage}}.
 - **Schránka:** {{ui:editor.tool.copy}}, {{ui:editor.tool.paste}}, {{ui:editor.tool.duplicate}} a {{ui:editor.tool.delete}} pracují s vybranými body, čarami a obrázky jako ve 3D. [[Ctrl]]+[[X]] vyjme výběr. Kopie se vloží na volné místo vedle originálu s mezerou 10 mm a bez dotyku s existujícími čarami, aby se automaticky nespojila. Zůstává vybraná pro okamžitý přesun.
 - **Historie:** {{ui:sketch.undo}} a {{ui:sketch.redo}}.
-- **Pohled:** posun prostředním tlačítkem nebo pravým s [[Shift]] či [[Ctrl]]. [[Home]] zobrazí celý náčrt, [[F]] výběr (bez výběru celý náčrt), [[+]] a [[−]] mění přiblížení. {{ui:camera.tapeTools}} měří mezi dvěma body. Po výběru čáry se zobrazí její délka, u bodu délky navazujících čar. {{ui:sketch.showMeasurements}} v boční liště kóty skryje či zobrazí; samostatné měření zůstává funkční. Délku přímé čáry změníte kliknutím na údaj a zadáním mm. [[Enter]] potvrdí, [[Esc]] zruší. Směr i počátek se zachovají, čáry připojené na druhém konci se přizpůsobí. Je-li vybrán koncový bod, pohybuje se právě on. [[Alt]]+[[Enter]] mění délku souměrně kolem středu. U křivek údaj pouze zobrazuje délku.
+- **Správa:** {{ui:editor.tool.note}} (nebo [[N]]) vloží do náčrtu poznámku jako ve 3D editoru: další kliknutí ji umístí, kamkoli, i na čáru. Tažením za špendlík ji přesunete, kliknutím na špendlík kartu sbalíte. Poznámky náčrtu patří k jeho tělesu: ve 3D zobrazení sedí nahoře na tělese vytvořeném přes {{ui:sketch.extrude}} nebo {{ui:sketch.sweep}} a na nakresleném profilu tělesa vytvořeného přes {{ui:sketch.revolve}} a pohybují se s ním. Po novém otevření náčrtu se zobrazí všechny poznámky tělesa, i ty vložené ve 3D. {{ui:sketch.undo}} vezme poznámku zpět stejně jako čáru a {{ui:sketch.cancel}} zahodí změny poznámek. Více v kapitole Měření a poznámky.
+- **Pohled:** posun prostředním tlačítkem nebo pravým s [[Shift]] či [[Ctrl]]. Když není nic vybráno, posouvá pohled i [[Ctrl]] se šipkami: o desetinu obrazu na stisknutí, se [[Shift]] navíc o polovinu; náčrt se posouvá ve směru šipky. [[Home]] zobrazí celý náčrt, [[F]] výběr (bez výběru celý náčrt), [[+]] a [[−]] mění přiblížení. {{ui:camera.tapeTools}} měří mezi dvěma body. Po výběru čáry se zobrazí její délka, u bodu délky navazujících čar. {{ui:sketch.showMeasurements}} v boční liště kóty skryje či zobrazí; samostatné měření zůstává funkční. Délku přímé čáry změníte kliknutím na údaj a zadáním mm. [[Enter]] potvrdí, [[Esc]] zruší. Směr i počátek se zachovají, čáry připojené na druhém konci se přizpůsobí. Je-li vybrán koncový bod, pohybuje se právě on. [[Alt]]+[[Enter]] mění délku souměrně kolem středu. U křivek údaj pouze zobrazuje délku.
 
 Těleso vzniká pouze z **uzavřeného** obrysu.
 
@@ -41,7 +42,7 @@ Po prvním bodu nástroje {{ui:sketch.line}} nebo {{ui:sketch.smooth}} začněte
 
 ## Prohnutí přímé strany
 
-Vyberte úsečku a v zobrazené liště zvolte {{ui:sketch.curveLine}}. Změní se na křivku se dvěma úchyty. Jejich tažením řídíte prohnutí; vzdálenější úchyt ohýbá více. {{ui:sketch.straightenLine}} obnoví přímku. Vybraný bod lze převést na plynulý pomocí {{ui:sketch.smooth}}; dostane úchyty a okolní úseky se stanou křivkami. Klikněte na úchyt a rozsvítí se: šipky ho pak posunou o krok mřížky, se [[Shift]] o větší krok, takže křivku nastavíte přesně.
+Vyberte úsečku a v zobrazené liště zvolte {{ui:sketch.curveLine}}. Změní se na křivku se dvěma úchyty. Jejich tažením řídíte prohnutí; vzdálenější úchyt ohýbá více. {{ui:sketch.straightenLine}} obnoví přímku. Vybraný bod lze převést na plynulý pomocí {{ui:sketch.smooth}}; dostane úchyty a okolní úseky se stanou křivkami. Když vyberete tři nebo více bodů, {{ui:sketch.curveThroughPoints}} v liště proloží jednu plynulou křivku od prvního z nich k poslednímu, přes všechny body mezi nimi, stejně jako ji kreslí nástroj {{ui:sketch.smooth}}; úseky za oběma konci zůstanou beze změny. V jiných programech se tato funkce jmenuje „Fit curve“ nebo „Fit point spline“. Rozdíl: {{ui:sketch.curveLine}} ohne každou vybranou úsečku zvlášť a rohy mezi nimi ponechá, hodí se tedy na oblouk na jedné straně; {{ui:sketch.curveThroughPoints}} vede body jednu křivku bez rohů, hodí se tedy k vyhlazení zubatého obkresleného okraje. Klikněte na úchyt a rozsvítí se: šipky ho pak posunou o krok mřížky, se [[Shift]] o větší krok, takže křivku nastavíte přesně.
 
 ![Spodní strana obrysu L je prohnutá a má úchyty u obou konců.](shot:sketch-curve)
 
@@ -154,7 +155,7 @@ Tyto volby mění pouze podklad, nikoli náčrt.
 
 | Klávesa | Význam |
 | --- | --- |
-| [[Esc]] | odložení nástroje (zpět na {{ui:sketch.select}}), pak zrušení výběru |
+| [[Esc]] | odložení nástroje pro poznámky; jinak odložení nástroje (zpět na {{ui:sketch.select}}), pak zrušení výběru |
 | [[Delete]] | odstranění vybraného prvku |
 | [[Ctrl]]+[[C]] | kopírování |
 | [[Ctrl]]+[[X]] | vyjmutí |
@@ -165,5 +166,7 @@ Tyto volby mění pouze podklad, nikoli náčrt.
 | číslice, [[<]], [[Tab]], [[Enter]] | zadání a potvrzení délky a úhlu další úsečky |
 | [[R]] | otočení uzavřeného náčrtu o 45° |
 | [[L]] | zamknutí nebo odemknutí podkladu |
+| [[N]] | vložení poznámky: další kliknutí ji umístí do náčrtu |
+| [[Shift]]+[[N]] | zobrazení nebo skrytí poznámek |
 
 > **Tip:** Používejte jen nezbytné body. Několik dobře umístěných bodů vytvoří hladší tvar než spletitý obrys s mnoha body.

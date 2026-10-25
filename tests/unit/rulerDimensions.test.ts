@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  CORNER_RULER_FIELD_SIZE,
+  spreadCornerRulerFields,
   computeCornerRulerRelativeCoordinates,
   cornerRulerAxisModes,
   computeCornerRulerShift,
@@ -15,6 +17,7 @@ import {
   rulerTicks,
   pointAlongRuler,
   rulerDimensionMatch,
+  rulerLiesFlat,
   type CornerRulerPose,
   type RulerCandidatePose,
   type RulerPose,
@@ -148,6 +151,28 @@ describe("cornerRulerDimensionMatchesFromCorner", () => {
     expect(viaCornerDirekt.armX?.extentAlong).toBeCloseTo(viaCenter.armX?.extentAlong ?? NaN, 6);
     expect(viaCornerDirekt.armZ).toBeNull();
     expect(viaCenter.armZ).toBeNull();
+  });
+});
+
+describe("a framing square shows the sizes of bodies at its arms only (#831)", () => {
+  // The corner at the origin, the first arm along +x (100 mm), the second along +z (80 mm), bands 12 mm wide.
+  const at = (x: number, z: number) => cornerRulerDimensionMatchesFromCorner({ x: 0, z: 0 }, 0, 100, 80, 12, candidate({ x, z }));
+
+  it("a body inside the square, beside an arm or across it, gets its size", () => {
+    expect(at(20, 8).armX?.extentAlong).toBeCloseTo(20, 6);
+    expect(at(20, 0).armX).not.toBeNull();
+    expect(at(8, 30).armZ?.extentAlong).toBeCloseTo(12, 6);
+  });
+
+  it("a body outside the square, behind the corner or beside an arm from outside, gets none", () => {
+    // Behind the corner on the first arm's extension.
+    expect(at(-15, 3).armX).toBeNull();
+    // Below the first arm, touching it from outside.
+    expect(at(20, -7).armX).toBeNull();
+    // Left of the second arm, touching it from outside.
+    expect(at(-10.5, 30).armZ).toBeNull();
+    // At the corner from outside, in reach of both bands, as in the report.
+    expect(at(-11, 7)).toEqual({ armX: null, armZ: null });
   });
 });
 
@@ -413,5 +438,72 @@ describe("the name of the axis a ruler arm runs along (#597)", () => {
     const turned = rotateCornerRulerFrame(frame);
     expect(worldAxisNameOfDirection(turned.xAxis)).toBe("X");
     expect(worldAxisNameOfDirection(turned.zAxis)).toBe("Y");
+  });
+});
+
+describe("spreadCornerRulerFields (#777)", () => {
+  const box = (p: { x: number; y: number }) => ({ x: p.x, y: p.y, halfWidth: CORNER_RULER_FIELD_SIZE.width / 2, halfHeight: CORNER_RULER_FIELD_SIZE.height / 2 });
+  const overlap = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+    const [first, second] = [box(a), box(b)];
+    return Math.abs(first.x - second.x) < first.halfWidth + second.halfWidth && Math.abs(first.y - second.y) < first.halfHeight + second.halfHeight;
+  };
+
+  it("leaves fields that are clear where they are", () => {
+    const fields = [{ x: 100, y: 100 }, { x: 300, y: 100 }, { x: 100, y: 300 }];
+    expect(spreadCornerRulerFields(fields)).toEqual(fields);
+  });
+
+  it("moves three fields that sit on each other so that none covers another", () => {
+    const spot = { x: 500, y: 400 };
+    const spread = spreadCornerRulerFields([spot, spot, spot]);
+    expect(spread[0]).toEqual(spot);
+    expect(overlap(spread[0], spread[1])).toBe(false);
+    expect(overlap(spread[0], spread[2])).toBe(false);
+    expect(overlap(spread[1], spread[2])).toBe(false);
+  });
+
+  it("keeps the fields off the ruler's buttons", () => {
+    const button = { x: 500, y: 400, halfWidth: 34, halfHeight: 30 };
+    const [field] = spreadCornerRulerFields([{ x: 500, y: 400 }], [button]);
+    const apart = Math.abs(field.x - button.x) >= button.halfWidth + CORNER_RULER_FIELD_SIZE.width / 2 || Math.abs(field.y - button.y) >= button.halfHeight + CORNER_RULER_FIELD_SIZE.height / 2;
+    expect(apart).toBe(true);
+  });
+});
+
+describe("tipped ruler (#799)", () => {
+  // The case from the video: a 40 x 20 x 20 box, the ruler turned by 3 degrees and then stood up.
+  const box = candidate({ width: 40, depth: 20, height: 20, y: 10 });
+
+  it("stood up, it reads the height of the body, not its width along the old direction", () => {
+    const upright = ruler({ rotation: 3, rotationZ: 90, y: 75 });
+    const match = rulerDimensionMatch(upright, box);
+
+    expect(match?.extentAlong).toBeCloseTo(20, 6);
+    expect(match?.alignedField).toBe("height");
+    // The body's middle sits 65 mm below the ruler's middle, along the ruler.
+    expect(match?.alongOffset).toBeCloseTo(-65, 6);
+  });
+
+  it("lying flat it keeps reading along the plate, however high the body stands", () => {
+    const flat = rulerDimensionMatch(ruler({ rotation: 3, y: 2 }), { ...box, y: 50 });
+
+    // 40.99 as in the video: the box stands 3 degrees off the ruler, so the number is not one of its fields.
+    expect(flat?.extentAlong).toBeCloseTo(40 * Math.cos(Math.PI / 60) + 20 * Math.sin(Math.PI / 60), 6);
+    expect(flat?.alignedField).toBeNull();
+  });
+
+  it("knows when it lies flat", () => {
+    expect(rulerLiesFlat({ rotation: 30 })).toBe(true);
+    expect(rulerLiesFlat({ rotation: 0, rotationX: 180 })).toBe(true);
+    expect(rulerLiesFlat({ rotation: 0, rotationZ: 90 })).toBe(false);
+    expect(rulerLiesFlat({ rotation: 0, rotationX: 90 })).toBe(false);
+  });
+
+  it("finds points along a standing ruler in height", () => {
+    const point = pointAlongRuler(ruler({ rotationZ: 90, y: 75 }), 10);
+
+    expect(point.x).toBeCloseTo(0, 6);
+    expect(point.y).toBeCloseTo(85, 6);
+    expect(point.z).toBeCloseTo(0, 6);
   });
 });

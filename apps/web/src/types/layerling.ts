@@ -78,6 +78,20 @@ export type ProjectAsset = {
 };
 
 /**
+ * A file kept with a design - its instructions, a parts list - and saved, shared and backed up
+ * with it (#820). Not part of the undo history. `mediaType` comes from the content check of
+ * `projectAttachments.ts`, never from the browser.
+ */
+export type ProjectAttachment = {
+  id: string;
+  name: string;
+  mediaType: string;
+  bytes: Uint8Array;
+  byteLength: number;
+  sha256: string;
+};
+
+/**
  * A snap step of the user's own: a measure with a name, such as the 19.05 mm
  * one key takes up on a keyboard. The snap menu offers it whole, halved and
  * quartered.
@@ -169,6 +183,8 @@ export type ShapeCustomization = {
   hingeClearance?: number;
   /** Hinge: no printed pin; the bore runs through every knuckle for a pin of one's own (filament, wire). */
   hingePinless?: boolean;
+  /** Hinge: the second leaf folded up about the pin, in degrees; 0 lies flat, 180 is closed. */
+  hingeAngle?: number;
   /** Gridfinity: a bin or the baseplate it stands in; the size counts grid units of 42 mm (height units of 7 mm). */
   gridfinityType?: GridfinityType;
   /** Gridfinity bin: the stacking lip on top of the wall; missing means on. */
@@ -225,6 +241,32 @@ export type ShapeCustomization = {
   gridfinityScoopRadius?: number;
   /** Gridfinity bin: the floor's height inside in mm, measured from the underside; missing is 5.95, and at the highest the bin is solid up to the lip's support, or to the top without the lip. */
   gridfinityFloorHeight?: number;
+  /** Gridfinity bin: no wall and no stacking lip along the back above the floor; the walls beside it run out to the outline (#682). Opened only partly with gridfinityOpenings (#455). */
+  gridfinityOpenBack?: boolean;
+  /** Gridfinity bin: no wall and no stacking lip along the front. */
+  gridfinityOpenFront?: boolean;
+  /** Gridfinity bin: no wall and no stacking lip along the left. */
+  gridfinityOpenLeft?: boolean;
+  /** Gridfinity bin: no wall and no stacking lip along the right. */
+  gridfinityOpenRight?: boolean;
+  /** Gridfinity bin with the lip: a chamfer on the lip's top in mm, down the outer wall and down the slope, as the edge tool's; missing is none, sharp as the specification draws it, at most 1 (#780). */
+  gridfinityLipChamfer?: number;
+  /** Gridfinity bin: the wall's thickness in mm, set in from an outline that never changes; missing is 0.95, at least 0.8, at most where the walls meet, which builds the bin solid (#455). */
+  gridfinityWallThickness?: number;
+  /** Gridfinity bin: the corners of its partly open sides' notches, seen from outside the wall, rounded or chamfered; missing is rounded (#455). */
+  gridfinityOpeningCorner?: GridfinityLabelCorner;
+  /** Gridfinity bin: the size of that rounding or chamfer in mm; missing, 0 or under 0.5 leaves them square. */
+  gridfinityOpeningCornerSize?: number;
+  /** Gridfinity baseplate: a solid border at the plate's height along the back, in mm, outside the grid and inside the box; missing is none, at most 41 (#455). */
+  gridfinityPaddingBack?: number;
+  /** Gridfinity baseplate: the border along the front. */
+  gridfinityPaddingFront?: number;
+  /** Gridfinity baseplate: the border along the left. */
+  gridfinityPaddingLeft?: number;
+  /** Gridfinity baseplate: the border along the right. */
+  gridfinityPaddingRight?: number;
+  /** Gridfinity baseplate: the radius of its four outer corners in mm; missing is the specification's 4, at least 0 (square), at most 4; the sockets keep theirs (#856). */
+  gridfinityCornerRadius?: number;
   /** Gridfinity bin: compartments across, a whole number; missing is 1, a bin without dividers (#554). */
   gridfinityCompartmentsX?: number;
   /** Gridfinity bin: compartments deep, a whole number; missing is 1. */
@@ -268,6 +310,8 @@ export type ShapeCustomization = {
   loftTwist?: number;
   /** Transition: 0 to 1, how much of an S-curve the sides take between the ends (#271). */
   loftSmooth?: number;
+  /** Transition: straight pieces of a full circle in the mesh, 96 if missing (#755). */
+  loftSegments?: number;
   /** Capsule: the small end's diameter as a share of the large one, 1 or missing for equal ends (#206). */
   slotEndRatio?: number;
   /** Transition: degrees the top end tilts about the x axis and about the z axis (#205). */
@@ -341,6 +385,8 @@ export type WorkplaneWorkspaceSettings = {
   fastMode: boolean;
   /** Lighting contrast, -100 (soft) to 100 (punchy); 0 is the original look. */
   shadeContrast: number;
+  /** Soft light (#812): most of the light comes from the viewer's eye and turns with the camera, so no face is left dark or burnt out. Off by default. */
+  softLighting: boolean;
   /** How dark the cast shadows are, 0 to 100 (100 = as before). */
   shadowStrength: number;
   /** How soft the shadow edges are, 0 (crisp, as before) to 100. */
@@ -362,11 +408,19 @@ export type WorkplaneWorkspaceSettings = {
   selectBeforeMove: boolean;
   /** The selection frame takes only what it encloses when dragged to the right, what it touches when dragged to the left (#430). */
   frameByDirection: boolean;
+  /** Pasted parts are set in the middle of the workplane and dropped onto it, instead of where they came from (#876). */
+  pasteCentered: boolean;
   /** A double click on a sketch body opens its sketch; on a group or bundle, opens it for editing (#150). */
   doubleClickOpensSketch: boolean;
   doubleClickOpensGroup: boolean;
+  /** A double click on empty workplane slides the view so that the spot comes to the middle. */
+  doubleClickCentersView: boolean;
   /** Moving a shape snaps its edges and centre to other shapes, with guide lines. */
   objectSnap: boolean;
+  /** An STL leaves as a plain download each time, which the browser numbers (name (1).stl), instead of writing into one linked file (#731). */
+  stlAsDownload: boolean;
+  /** The browser asks "Leave site?" when a design is open and the tab is closed or reloaded; off by default (#683 mail). */
+  confirmTabClose: boolean;
   dimensionsAlwaysVisible: boolean;
   /** A turned body shows its angles about X, Y and Z beside it while it is selected. */
   showRotationAngles: boolean;
@@ -451,19 +505,36 @@ export type TextKeyringSide = "left" | "right" | "top";
  * its outline - the bottom layer of a name tag; the layers above only get the hole where it
  * reaches them. The box grows by the ear on that side; the letters keep their size.
  */
-export type TextKeyring = { side: TextKeyringSide; diameter: number; offset: number; along?: number; ear?: boolean };
+export type TextKeyring = { side: TextKeyringSide; diameter: number; offset: number; along?: number; ear?: boolean; free?: FreeKeyring };
+
+/**
+ * A key ring hole placed freely (#598), where a key ring tab of its own was put and then fixed to
+ * the tag: the hole's middle `dx`/`dz` mm from the corner of the letters' or icon's box it is
+ * nearest to (`ax` -1 left, 1 right; `az` -1 top, 1 bottom, seen from above), so it keeps to that
+ * corner when the words or the size change. The ear runs from the hole `length` mm towards
+ * `angle` degrees (0 along +x, 90 along +z) and ends straight there. `side` and `along` are not used with it.
+ */
+export type FreeKeyring = { ax: -1 | 1; az: -1 | 1; dx: number; dz: number; angle: number; length: number };
 
 /**
  * A key ring hole in an extruded sketch (#391): its middle in the sketch's own mm, its size, the side it is on and whether the layer has the ear.
- * `along` is how far the card moved it off the middle of its side (#671), kept so the card reads it back.
+ * `along` is how far the card moved it off the middle of its side (#671), kept so the card reads it back; `free` (#598) when it was placed freely.
  */
-export type SketchKeyring = { side: TextKeyringSide; diameter: number; x: number; z: number; along?: number; ear?: boolean };
+export type SketchKeyring = { side: TextKeyringSide; diameter: number; x: number; z: number; along?: number; ear?: boolean; free?: FreeKeyring };
 /**
  * A sketch built set in from its outlines: every edge `distance` mm inward, every corner rounded to
  * `radius` mm. The face tool keeps the outline of the face it pushes out or in here and builds the
  * inset from it, as a stroked sketch keeps its line.
  */
 export type SketchInset = { distance: number; radius: number };
+
+/**
+ * A note on an open sketch, in the sketch's own mm. In the 3D view it is an ordinary note pinned to
+ * the sketch body; `offPlane` keeps where it stands off the sketch's plane when it came from there:
+ * a share of the height for an extrusion or a sweep (0.5, the top, when left out), an angle round
+ * the axis for a revolve (the middle of the turn when left out).
+ */
+export type SketchNote = { id: string; text: string; x: number; z: number; collapsed?: boolean; offPlane?: number };
 
 export type SketchProfile = {
   points: SketchPoint[];
@@ -476,7 +547,14 @@ export type SketchProfile = {
   keyring?: SketchKeyring;
   /** Built set in from its outlines by the face tool: the body keeps the face's outline and builds the inset from it. */
   inset?: SketchInset;
+  /** Which edge of a swept cross-section runs along the path: "center" (the default, left out) or "left"/"right" as seen along the path. */
+  sweepAnchor?: SweepAnchor;
+  /** The sketch body's notes, only while the sketch is open, so that undo takes them along; a body never keeps them here. */
+  notes?: SketchNote[];
 };
+
+/** Where the cross-section of a sweep sits on its path, across it. */
+export type SweepAnchor = "left" | "center" | "right";
 
 export type SketchOperation = "extrude" | "revolve" | "sweep";
 
@@ -502,6 +580,20 @@ export type GridfinityCompartmentLabel = {
   length?: number;
   align?: "start" | "middle" | "end";
   width?: number;
+};
+
+/**
+ * A Gridfinity bin's side switched open, opened only partly (#455): a notch from the lip's top down `depth` mm, `width`
+ * mm wide, at its place along the side's straight part: `align` start (towards -x on a back or front side, towards -z on
+ * a left or right one), middle or end, and `distance` mm from that end; a missing value is the full depth, the full
+ * wall, the middle or 0. At the full depth and the full wall the side is open as before.
+ */
+export type GridfinityOpening = {
+  side: "back" | "front" | "left" | "right";
+  depth?: number;
+  width?: number;
+  align?: "start" | "middle" | "end";
+  distance?: number;
 };
 
 /** Was aus dem Gewinde wird: Stange, Schraube, Mutter oder das Loch dafuer. */
@@ -552,6 +644,8 @@ export type EdgeTreatmentFeature = {
   /** The edges picked, as the tool numbered them on the body before this treatment: "Edit" picks them again (#227). */
   edgeIds?: number[];
   chamferAngle?: number;
+  /** Only for a fillet of one edge (#687): the radius at the edge's end, `amount` the one at its start. */
+  endAmount?: number;
   openings?: ShellOpenings;
   /** Only for "shell"; missing means "round". */
   shellEdges?: ShellEdges;
@@ -742,6 +836,8 @@ export type WorkplaneShape = {
   hingeClearance?: number;
   /** Hinge: no printed pin; the bore runs through every knuckle for a pin of one's own (filament, wire). */
   hingePinless?: boolean;
+  /** Hinge: the second leaf folded up about the pin, in degrees; 0 lies flat, 180 is closed. */
+  hingeAngle?: number;
   /** Gridfinity: a bin or the baseplate it stands in; the size counts grid units of 42 mm (height units of 7 mm). */
   gridfinityType?: GridfinityType;
   /** Gridfinity bin: the stacking lip on top of the wall; missing means on. */
@@ -798,6 +894,28 @@ export type WorkplaneShape = {
   gridfinityScoopRadius?: number;
   /** Gridfinity bin: the floor's height inside in mm, measured from the underside; missing is 5.95, and at the highest the bin is solid up to the lip's support, or to the top without the lip. */
   gridfinityFloorHeight?: number;
+  /** Gridfinity bin: no wall and no stacking lip along the back above the floor; the walls beside it run out to the outline (#682). Opened only partly with gridfinityOpenings (#455). */
+  gridfinityOpenBack?: boolean;
+  /** Gridfinity bin: no wall and no stacking lip along the front. */
+  gridfinityOpenFront?: boolean;
+  /** Gridfinity bin: no wall and no stacking lip along the left. */
+  gridfinityOpenLeft?: boolean;
+  /** Gridfinity bin: no wall and no stacking lip along the right. */
+  gridfinityOpenRight?: boolean;
+  /** Gridfinity bin with the lip: a chamfer on the lip's top in mm, down the outer wall and down the slope, as the edge tool's; missing is none, sharp as the specification draws it, at most 1 (#780). */
+  gridfinityLipChamfer?: number;
+  /** Gridfinity bin: the wall's thickness in mm, set in from an outline that never changes; missing is 0.95, at least 0.8, at most where the walls meet, which builds the bin solid (#455). */
+  gridfinityWallThickness?: number;
+  /** Gridfinity baseplate: a solid border at the plate's height along the back, in mm, outside the grid and inside the box; missing is none, at most 41 (#455). */
+  gridfinityPaddingBack?: number;
+  /** Gridfinity baseplate: the border along the front. */
+  gridfinityPaddingFront?: number;
+  /** Gridfinity baseplate: the border along the left. */
+  gridfinityPaddingLeft?: number;
+  /** Gridfinity baseplate: the border along the right. */
+  gridfinityPaddingRight?: number;
+  /** Gridfinity baseplate: the radius of its four outer corners in mm; missing is the specification's 4, at least 0 (square), at most 4; the sockets keep theirs (#856). */
+  gridfinityCornerRadius?: number;
   /** Gridfinity bin: compartments across, a whole number; missing is 1, a bin without dividers (#554). */
   gridfinityCompartmentsX?: number;
   /** Gridfinity bin: compartments deep, a whole number; missing is 1. */
@@ -810,6 +928,12 @@ export type WorkplaneShape = {
   gridfinityDividerPositionsZ?: number[];
   /** Gridfinity bin with dividers: the compartments' labels, one for each compartment that has one. */
   gridfinityCompartmentLabels?: GridfinityCompartmentLabel[];
+  /** Gridfinity bin: how far each side switched open is opened (#455), one entry a side; missing is the whole side. */
+  gridfinityOpenings?: GridfinityOpening[];
+  /** Gridfinity bin: the corners of its partly open sides' notches, seen from outside the wall, rounded or chamfered; missing is rounded (#455). */
+  gridfinityOpeningCorner?: GridfinityLabelCorner;
+  /** Gridfinity bin: the size of that rounding or chamfer in mm; missing, 0 or under 0.5 leaves them square. */
+  gridfinityOpeningCornerSize?: number;
   /** Knurling: grooves straight along the axis, or crossed into diamonds. */
   knurlPattern?: "straight" | "diamond" | "round";
   /** Knurling: number of grooves around the grip. */
@@ -847,6 +971,8 @@ export type WorkplaneShape = {
   loftTwist?: number;
   /** Transition: 0 to 1, how much of an S-curve the sides take between the ends (#271). */
   loftSmooth?: number;
+  /** Transition: straight pieces of a full circle in the mesh, 96 if missing (#755). */
+  loftSegments?: number;
   /** Capsule: the small end's diameter as a share of the large one, 1 or missing for equal ends (#206). */
   slotEndRatio?: number;
   /** Transition: degrees the top end tilts about the x axis and about the z axis (#205). */
@@ -919,6 +1045,11 @@ export type WorkplaneShape = {
    */
   layeredIcon?: boolean;
   /**
+   * A key ring tab of its own (#598), made by a name tag's or icon tag's "Free": its properties
+   * panel offers to fix it to the nearest tag in one click, where it was put.
+   */
+  keyringTab?: boolean;
+  /**
    * A QR code (#553): the text and the choices it was made with, so the properties panel can make
    * it again. On the code body itself, or on the plate group or bundle that holds it.
    */
@@ -936,6 +1067,9 @@ export type WorkplaneShape = {
     baseDepth: number;
     baseHeight: number;
     triangleCount: number;
+    // Only on the sketch's own copy of a body on a workplane set on a face: how many triangles of `positions` belong to
+    // each visible part in turn (one count for a single body); the sketch shows each part as seen from the plane (#778). Never saved.
+    partTriangleCounts?: number[];
     sourceFormat: "stl" | "obj" | "svg" | "json" | "step" | "3mf";
     // IndexedDB persistence uses this only in compact stored shape records.
     // Runtime editor shapes are hydrated with the full immutable mesh resource.
@@ -950,11 +1084,17 @@ export type WorkplaneShape = {
   };
   /** A shape that only shows what a preview would make (the common part of an intersection, #372): not picked, not saved. */
   previewOnly?: boolean;
+  /**
+   * A reference image (#680): a thin box with a picture on top, laid on the plate or a face to line
+   * parts up on. A guide, never exported, cut, grouped or printed; the picture is a project asset in the .lyl file.
+   */
   imagePlate?: {
     dataUrl: string;
     mimeType: string;
     pixelWidth: number;
     pixelHeight: number;
+    /** How opaque the picture is drawn, 0.1 to 1 (#680); left out, solid, as old picture plates were. */
+    opacity?: number;
   };
   parametricSource?: ParametricSource;
   sketchProfile?: SketchProfile;
@@ -983,7 +1123,7 @@ export type WorkplaneShape = {
    * them together: no cutting, every part keeps its colour and goes out as
    * its own body.
    */
-  groupOperation?: "group" | "intersection" | "bundle";
+  groupOperation?: "group" | "intersection" | "hull" | "bundle";
   /**
    * The point this body turns about, kept with the body: a fraction of its
    * width, height and depth from its centre, in its own frame, so it moves,

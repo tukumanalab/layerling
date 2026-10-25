@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { fitCameraDepthRange, syncViewCube, toggleCameraProjection, type CameraRig } from "@/components/workplane/cameraRig";
 import type { ThreeState } from "@/components/workplane/ViewportOverlays";
 import { readDesignView, readSavedViews, SAVED_VIEW_KEYS, writeDesignView, writeSavedViews, type DesignView } from "@/lib/designView";
 import { t } from "@/lib/i18n";
@@ -7,41 +8,8 @@ import { t } from "@/lib/i18n";
 /**
  * Where the camera of the 3D view looks, as a view that can be kept and brought back: the view a
  * design was left in (#220), the one it had before a sketch opened (#150), and the four views saved
- * under the keys 7, 8, 9 and 0.
+ * under the keys 7, 8, 9 and 0. The second view's window saves and brings back those four too.
  */
-
-/** How far the camera may back off from what it looks at, in mm. */
-export const CAMERA_MAX_DISTANCE = 9000;
-
-/**
- * Near and far planes that follow the distance: up close a near plane of
- * 0.1 mm would cut into a 3 mm view, far out a fixed one would leave the
- * depth buffer too coarse and faces would flicker into each other.
- *
- * The flat view draws the same picture wherever the camera stands on its line
- * of sight, but the camera stays where the standard view (F) or the switch
- * left it, often closer than the parts in front of the pivot: tilted towards
- * the front, everything nearer than the camera was cut off. Its depth range
- * reaches behind the camera as far as in front, so nothing in the picture is.
- */
-export function fitCameraDepthRange(camera: THREE.Camera, target: THREE.Vector3) {
-  if (camera instanceof THREE.OrthographicCamera) {
-    const far = camera.position.distanceTo(target) + CAMERA_MAX_DISTANCE;
-    if (camera.near === -CAMERA_MAX_DISTANCE && Math.abs(camera.far - far) <= camera.far * 0.05) return;
-    camera.near = -CAMERA_MAX_DISTANCE;
-    camera.far = far;
-    camera.updateProjectionMatrix();
-    return;
-  }
-  if (!(camera instanceof THREE.PerspectiveCamera)) return;
-  const distance = camera.position.distanceTo(target);
-  const near = Math.min(5, Math.max(0.01, distance / 2000));
-  const far = Math.max(6000, distance * 2 + 3000);
-  if (Math.abs(camera.near - near) <= camera.near * 0.05 && Math.abs(camera.far - far) <= camera.far * 0.05) return;
-  camera.near = near;
-  camera.far = far;
-  camera.updateProjectionMatrix();
-}
 
 /** Where the camera looked, per design, while the view was taken down for a sketch (#150). */
 const rememberedCameraViews = new Map<string, DesignView>();
@@ -51,7 +19,7 @@ export function rememberCameraView(projectId: string | null | undefined, state: 
   rememberedCameraViews.set(projectId ?? "", cameraViewOf(state));
 }
 
-function cameraViewOf(state: ThreeState): DesignView {
+function cameraViewOf(state: CameraRig): DesignView {
   return {
     orthographic: state.camera instanceof THREE.OrthographicCamera,
     position: state.camera.position.toArray() as [number, number, number],
@@ -61,7 +29,8 @@ function cameraViewOf(state: ThreeState): DesignView {
   };
 }
 
-function applyCameraView(state: ThreeState, view: DesignView) {
+function applyCameraView(state: CameraRig, view: DesignView) {
+  state.cameraTurn = null;
   state.camera.up.fromArray(view.up);
   state.camera.position.fromArray(view.position);
   state.controls.target.fromArray(view.target);
@@ -73,6 +42,34 @@ function applyCameraView(state: ThreeState, view: DesignView) {
   state.needsRender = true;
 }
 
+/** Turns a camera to a kept view, switching between the flat and the normal view where they differ. */
+function showCameraView(state: CameraRig, view: DesignView) {
+  if ((state.camera instanceof THREE.OrthographicCamera) !== view.orthographic) toggleCameraProjection(state);
+  applyCameraView(state, view);
+}
+
+/**
+ * Shift+7, 8, 9 or 0, in the 3D view or the second view: the view of that window's camera as it is
+ * now - turn, pan, zoom and projection - goes into the design's slot. Returns the message saying so.
+ */
+export function saveViewInSlot(projectId: string | null | undefined, state: CameraRig, slot: number) {
+  const views = readSavedViews(projectId);
+  views[slot] = cameraViewOf(state);
+  writeSavedViews(projectId, views);
+  return t("camera.viewSaved", { key: SAVED_VIEW_KEYS[slot] });
+}
+
+/**
+ * 7, 8, 9 or 0, in either window: that window's camera goes to the view saved there. Returns null when
+ * it did, or, for an empty slot, the message that says how to fill it.
+ */
+export function showViewInSlot(projectId: string | null | undefined, state: CameraRig, slot: number) {
+  const view = readSavedViews(projectId)[slot];
+  if (!view) return t("camera.savedViewEmpty", { key: SAVED_VIEW_KEYS[slot] });
+  showCameraView(state, view);
+  return null;
+}
+
 type DesignViewOptions = {
   threeRef: RefObject<ThreeState | null>;
   projectIdRef: RefObject<string | null | undefined>;
@@ -81,8 +78,6 @@ type DesignViewOptions = {
   designViewRestoredRef: RefObject<boolean>;
   orthographicView: boolean;
   setOrthographicView: (orthographic: boolean) => void;
-  toggleCameraProjection: (state: ThreeState) => void;
-  syncViewCube: (state: ThreeState, cube: HTMLDivElement | null) => void;
   onNotice?: (message: string) => void;
 };
 
@@ -97,9 +92,8 @@ export function useDesignViews(options: DesignViewOptions) {
   const readyRef = useRef(false);
 
   const showView = useCallback((state: ThreeState, view: DesignView) => {
-    const { toggleCameraProjection, syncViewCube, viewCubeRef, setOrthographicView } = optionsRef.current;
-    if ((state.camera instanceof THREE.OrthographicCamera) !== view.orthographic) toggleCameraProjection(state);
-    applyCameraView(state, view);
+    const { viewCubeRef, setOrthographicView } = optionsRef.current;
+    showCameraView(state, view);
     syncViewCube(state, viewCubeRef.current);
     setOrthographicView(state.camera instanceof THREE.OrthographicCamera);
   }, []);
@@ -157,10 +151,7 @@ export function useDesignViews(options: DesignViewOptions) {
     const { threeRef, projectIdRef, onNotice } = optionsRef.current;
     const state = threeRef.current;
     if (!state) return false;
-    const views = readSavedViews(projectIdRef.current);
-    views[slot] = cameraViewOf(state);
-    writeSavedViews(projectIdRef.current, views);
-    onNotice?.(t("camera.viewSaved", { key: SAVED_VIEW_KEYS[slot] }));
+    onNotice?.(saveViewInSlot(projectIdRef.current, state, slot));
     return true;
   }, []);
 

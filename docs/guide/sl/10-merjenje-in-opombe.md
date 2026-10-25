@@ -17,6 +17,7 @@ Merilni trak je na spodnjem koncu vrstice kamere ob levem robu ({{ui:camera.tape
 4. **{{ui:camera.tapeWholeEdges}}:** Klik na rob izmeri ves rob, na primer obseg kroga. Ko je to stikalo izklopljeno, klik namesto tega postavi točko na rob, druga točka pa je lahko kjer koli, tako da lahko izmeriš premer ali katero koli drugo razdaljo. [[Alt]] stikalo obrne za en klik. Pri krogu se točka čez, nasproti prve, pripne, ko se kazalec približa, točki pa ležita na pravem krogu, zato je premer natančen.
 5. **{{ui:camera.deleteAllMeasurements}}:** Odstrani vse mere naenkrat. Ker se tega ne da razveljaviti, layerling prej vpraša; če mer ni, se nič ne zgodi.
 6. **{{ui:camera.tapeMarkMiddle}}:** Pod številko vsake meritve je majhen gumb s križcem. Na sredino meritve postavi [referenčno točko](#referencne-tocke): po kliku na okrogli rob, na primer rob luknje, v središče tega kroga – tudi pri uvoženi mreži, kjer sicer nič ne označuje sredine luknje –, pri premeru ali kateri koli ravni meritvi pa na sredino poti. Oblika, ki jo potem vlečeš, se s sredino zaskoči na točko. Točke, ki že obstaja, ne naredi dvakrat. Merilni trak se zaskoči na referenčno točko kakor na oglišče, zato lahko meriš od središča kroga ali od sredine črte: označi jo, nato klikni točko.
+7. **{{ui:camera.tapeTypeLength}}:** Ko vsaj en konec ravne meritve leži na telesu, lahko kliknete njeno število. Vnesite novo dolžino in pritisnite [[Enter]]: telo pri drugi točki se premakne vzdolž izmerjene črte, dokler razdalja ni točno taka, kot pri ravnilu v Tinkercadu. Če je izbrano le telo pri prvi točki, se premakne to. Merilne točke ostanejo na telesu, zato meritev sledi. Merite od vogala, roba ali [referenčne točke](#referencne-tocke), na primer središča kroga, da dele postavite na točno razdaljo.
 
 S [[Esc]] zapustiš način merjenja.
 
@@ -41,7 +42,7 @@ Kotno ravnilo se položi na delovno ravnino. Če leži na strani telesa, torej l
 
 S središčem zelene številke štejejo do sredine telesa, tudi v višini. Tako na primer postaviš kroglo s sredino natanko 15 mm ob rob, ne da bi odštel polmer. Na steni tako postaviš luknjo 40 mm z leve in 190 mm od zgoraj: označi luknjo, vklopi središče, vpiši 40 in 190. Višina tam šteje od stene navzven.
 
-Merilni trak in kotno ravnilo ostaneta tam, kjer sta, ko skiciraš in se vrneš v 3D pogled. Z načrtom nista shranjena in ju ni v zgodovini; izgineta, ko stran naložiš znova.
+Merilni trak in kotno ravnilo ostaneta tam, kjer sta, ko skiciraš in se vrneš v 3D pogled. Nobenega ni v zgodovini. Merilni trak se z načrtom ne shrani in izgine, ko stran naložiš znova; kotno ravnilo se shrani z načrtom.
 
 ## Razdalje do ničle in pri premikanju
 
@@ -61,10 +62,11 @@ Opomba zabeleži, česar geometrija ne pove: »Tu je vijak 0,3 mm preozek«, »P
 - {{ui:note.detach}} prikovano opombo loči od telesa.
 - {{ui:editor.tool.group}} prikovano opombo vzame v skupino; {{ui:editor.tool.ungroup}} jo preda vidnemu delu pod njo, tudi skupini v njej. Dokler je skupina odprta z {{ui:group.edit}}, se njene opombe premikajo z delom pod njimi in se z {{ui:group.done}} vrnejo k skupini; preklic jih vrne, kakršne so bile.
 - Če je njeno telo izbrisano ali pod njo ni več vidnega telesa, opomba ostane, kjer je stala, na delovni ravnini.
-- Vlečenje opombo premakne, klik jo odpre za urejanje.
+- Vlečenje bucike premakne opombo. Klik na buciko kartico zloži, ostane le majhna številka; še en klik jo spet odpre. Klik v besedilo ga uredi.
 - Med pisanjem [[Enter]] obdrži besedilo, [[Esc]] ga vrne, kot je bilo pred začetkom, [[Shift]]+[[Enter]] pa začne novo vrstico.
+- **V skici** opombo postavi tudi {{ui:editor.tool.note}} (pod {{ui:editor.group.manage}}) ali tipka [[N]], kamor koli na skico. Vse opombe skice pripadajo njenemu telesu: v 3D pogledu sedijo na njem, na vrhu telesa, narejenega s funkcijo {{ui:sketch.extrude}} ali {{ui:sketch.sweep}}, in na narisanem profilu telesa, narejenega s funkcijo {{ui:sketch.revolve}}, in se premikajo z njim. Ko skico znova odpreš, pokaže opombe telesa, tudi tiste, postavljene v 3D. V skici {{ui:sketch.undo}} prekliče opombo tako kot črto, {{ui:sketch.cancel}} pa zavrže, kar si spremenil pri opombah. [[Shift]]+[[N]] tudi tukaj prikaže ali skrije opombe.
 
-Opombe se shranijo v načrtu, ne pojavijo se v nobenem izvozu in jih lahko prikažeš ali skriješ prek {{ui:visibility.notes}}.
+Opombe se shranijo v načrtu, ne pojavijo se v nobenem izvozu in jih lahko prikažeš ali skriješ prek {{ui:visibility.notes}} (v {{ui:editor.visibilityOptions}}, puščici poleg ikone očesa) ali s [[Shift]]+[[N]].
 
 ## Referenčne točke
 
@@ -73,5 +75,17 @@ Referenčna točka je zgolj oznaka v prostoru, kot svinčnikova črta ali točka
 - Povleci točko, da jo premakneš, ali jo klikni, da vidiš njene koordinate in vpišeš nove; veljajo v nastavljeni enoti. Vsako kartico lahko za naslov povlečeš stran, če kaj zakriva, samo zase: druge ostanejo, kjer so, dvoklik na naslov pa jo vrne nazaj. Kartica, katere si se nazadnje dotaknil, stoji pred drugimi. **Izbriši vse** v kartici ali v meniju z desnim klikom izbriše vse točke naenkrat. {{ui:common.delete}} jo odstrani.
 - Ko vlečeš obliko, se njeni robovi in sredina zaskočijo na točko, kot se zaskočijo na druge oblike ({{ui:workspace.objectSnap}}). Tudi kotno ravnilo se zaskoči na točke.
 - Tudi merilni trak lahko označi točko: {{ui:camera.tapeMarkMiddle}}, gumb s križcem pod meritvijo, jo postavi na njeno sredino, na primer v središče okrogle luknje. Od točke tudi meri: trak se zaskoči na referenčne točke kakor na oglišča.
-- Točke se shranijo v načrtu, ne pojavijo se v nobenem izvozu in se skupaj z opombami prikažejo ali skrijejo prek {{ui:visibility.notes}}.
+- Točke se shranijo v načrtu, ne pojavijo se v nobenem izvozu in se skupaj z opombami prikažejo ali skrijejo prek {{ui:visibility.notes}} ([[Shift]]+[[N]]).
 - Umetna inteligenca jih lahko postavi, našteje in odstrani z `layerling_add_reference_points`, `layerling_list_reference_points` in `layerling_remove_reference_points`.
+
+## Referenčne slike
+
+Referenčna slika je slika, po kateri poravnaš dele: položi fotografijo tiskanega vezja na dno njegovega ohišja in postavi distančnike, luknje in izreze za priključke natanko nanjo. Je pomoč, ne telo: nikoli se ne natisne, nikoli ne izvozi (STL, 3MF, OBJ, STEP, SVG), nikoli ni del skupine, svežnja ali reza, in ocena tiskanja jo izpusti.
+
+- Odpri {{ui:editor.import}} in izberi {{ui:import.referenceImage}}, nato sliko PNG, JPG, WebP, GIF ali BMP. Pristane na delovni ravnini - na plošči ali na ploskvi, na katero si položil delovno ravnino -, z daljšo stranico 100 mm in na pol prosojna.
+- Premikaj, vrti in spreminjaj jo z ročaji kot vsako obliko. Telo pred njo je izbrano prvo, zato pri delu na njej ne zgrabiš slike po nesreči.
+- {{ui:referenceImage.seeThrough}} v njenih nastavitvah jo zbledi od povsem vidne do komaj vidne.
+- {{ui:referenceImage.calibrate}} ji da pravo velikost kot v skici: klikni dve točki na sliki, katerih pravo razdaljo poznaš - na primer dve pritrdilni luknji vezja - in vpiši to razdaljo v {{ui:referenceImage.distance}}. Slika ohrani razmerja in sredino.
+- Zakleni jo s ključavnico v glavi njenih nastavitev in ostane na mestu: kliki gredo tedaj skozi njo na ploščo. Za odklepanje jo izberi v seznamu objektov.
+- Slika je v datoteki načrta shranjena enkrat, kolikorkrat jo kopiraš ali razveljaviš. Velika slika poveča datoteko za toliko; sporočilo ob dodajanju pove njeno velikost.
+- UI jo doda, premakne, umeri, zbledi in zaklene z `layerling_reference_image`.

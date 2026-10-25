@@ -1,6 +1,6 @@
 {
   "name": "layerling",
-  "version": "1.97.0",
+  "version": "1.111.0",
   "private": true,
   "description": "Easy 3D CAD for 3D printing. A local-first 3D editor that runs in your browser.",
   "author": {
@@ -13,7 +13,7 @@
   },
   "scripts": {
     "copy:occt": "node scripts/copy-occt-wasm.mjs",
-    "fonts:japanese": "node scripts/build-japanese-typeface.mjs",
+    "fonts:japanese": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-japanese-typeface.mjs",
     "clean:cache": "node scripts/clean-next-cache.mjs",
     "predev": "node scripts/check-node-version.mjs && npm run copy:occt && npm run fonts:japanese && npm run guide",
     "dev": "next dev apps/web",
@@ -30,8 +30,8 @@
     "icons:shapes": "vitest run --config tests/vitest.tools.config.ts tests/tools/renderShapeIcons.tool.ts",
     "icons:brand": "vitest run --config tests/vitest.tools.config.ts tests/tools/renderBrandIcons.tool.ts",
     "icons:social": "node scripts/render-social-card.mjs",
-    "guide": "node scripts/build-guide.mjs",
-    "i18n:status": "node scripts/i18n-status.mjs",
+    "guide": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-guide.mjs",
+    "i18n:status": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/i18n-status.mjs",
     "videos:sync": "node scripts/sync-videos.mjs",
     "guide:images": "node scripts/guide-screenshots.mjs",
     "theme:graphite": "node scripts/generate-graphite-theme.mjs",
@@ -42,13 +42,13 @@
   },
   "dependencies": {
     "@types/three": "^0.184.1",
-    "brepjs": "^18.118.0",
+    "brepjs": "^20.10.3",
     "fflate": "^0.8.3",
     "lucide-react": "^0.511.0",
     "manifold-3d": "^3.5.0",
     "meshoptimizer": "^1.3.0",
-    "next": "^15.5.26",
-    "occt-wasm": "^5.7.1",
+    "next": "^15.5.28",
+    "occt-wasm": "^5.8.0",
     "opentype.js": "^1.3.4",
     "qrcode-generator": "^2.0.4",
     "react": "^19.1.0",
@@ -56,7 +56,7 @@
     "react-dom": "^19.1.0",
     "three": "^0.184.0",
     "three-bvh-csg": "^0.0.18",
-    "three-mesh-bvh": "^0.9.13"
+    "three-mesh-bvh": "^0.9.16"
   },
   "devDependencies": {
     "@types/node": "^22.15.18",
@@ -65,12 +65,9 @@
     "jsdom": "^30.1.2",
     "jsqr": "^1.4.0",
     "typescript": "^5.8.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "overrides": {
-    "brepjs": {
-      "occt-wasm": "$occt-wasm"
-    },
     "postcss": "8.5.28"
   }
 }

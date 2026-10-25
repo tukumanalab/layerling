@@ -74,6 +74,8 @@ Pro přiložení dvou dílů vyberte pohyblivý díl, spusťte {{ui:editor.tool.
 
 ![Panel zarovnání ploch: volba pohyblivého dílu, plochy druhého, režimu proti sobě nebo do roviny a případné mezery.](shot:mate-faces)
 
+**Díry na jedné ose:** {{ui:mate.mode.concentric}} místo toho zarovná kulaté plochy: díru nad díru, čep do díry, šroub do jeho průchozí díry. Vyberte to dřív, než kliknete na plochy. Pak klikněte na kulatý vnitřek díry (nebo vnější stranu čepu) na dílu, který se pohne, a na kulatou plochu druhého dílu; celá kulatá plocha se pod ukazatelem rozsvítí. {{ui:mate.apply}} otočí díl nejkratší cestou, až jsou obě osy rovnoběžné, a posune ho napříč na druhou osu. Podél osy zůstane, kde byl, takže čep si drží výšku; zasuňte ho potom. Funguje to i u importovaných sítí, pokud je díra tvořena ploškami kolem jedné osy.
+
 **Přesný úhel mezi dvěma plochami:** {{ui:editor.tool.mateFaces}} plochy zarovná rovnoběžně. Samostatný nástroj pro úhel mezi nimi není, ale můžete postupovat takto: nejprve plochy spojte přes {{ui:editor.tool.mateFaces}}, pak nastavte střed otáčení na společnou hranu pomocí {{ui:editor.tool.rotationPivot}} a kliknutí na hranu nebo roh. V kartě {{ui:inspector.rotation}} zadejte požadovaný úhel, například 15° či 30°. Díl se otočí kolem tohoto středu. Osy karty odpovídají osám podložky, takže postup funguje pro hranu ve směru X, Y nebo Z.
 
 {{ui:editor.tool.dropToWorkplane}} ([[D]]) jednoduše položí výběr na pracovní rovinu, {{ui:editor.tool.centerOnWorkplane}} jej vystředí.
@@ -155,7 +157,7 @@ Změnu provede až {{ui:scalePercent.apply}} a jediný krok Zpět ji vrátí. Se
 
 ## Prohlížení historie
 
-{{ui:editor.tool.history}} vedle Zpět a Znovu umožní prohlížet starší stavy bez změny projektu. Pracovní plocha ukazuje minulou podobu a spodní posuvník prochází kroky. Současný stav je vpravo, předchozí vlevo; již vrácené kroky leží napravo od současného. Šipky procházejí stavy a [[Esc]] vrátí současnost. Pohled můžete otáčet a přibližovat a klepnutím vybírat objekty k vrácení (viz níže), ale nic nelze měnit. Lištu lze přetáhnout za záhlaví a dvojklikem vrátit.
+{{ui:editor.tool.history}} vedle Zpět a Znovu umožní prohlížet starší stavy bez změny projektu. Pracovní plocha ukazuje minulou podobu a spodní posuvník prochází kroky. Současný stav je vpravo, předchozí vlevo; již vrácené kroky leží napravo od současného. Šipky procházejí stavy a [[Esc]] vrátí současnost. Kolečko myši nad posuvníkem dělá totéž, jeden stav na zoubek, nahoru ke staršímu; [[Page Up]] a [[Page Down]] skáčou o deset stavů, [[Home]] jde na nejstarší stav a [[End]] zpět na aktuální. Pohled můžete otáčet a přibližovat a klepnutím vybírat objekty k vrácení (viz níže), ale nic nelze měnit. Lištu lze přetáhnout za záhlaví a dvojklikem vrátit.
 
 Ze staršího stavu můžete vytvořit {{ui:historyView.createProject}}. Nový projekt má původní název doplněný časem stavu; u starých dat bez času označení kopie. Obsahuje historii až do daného okamžiku, takže Zpět nadále funguje. {{ui:historyView.export}} otevře běžný export tohoto stavu jako STL, 3MF, STEP, obrázek nebo LYL včetně příslušné historie.
 

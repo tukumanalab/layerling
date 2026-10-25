@@ -15,6 +15,8 @@ Knihovna se zavře po každém vybraném tvaru. Záhlavím ji přesunete tam, kd
 
 Vybraný tvar sleduje myš a položí se kliknutím. Nad tělesem se orientuje podle plochy pod ukazatelem, i šikmé, podobně jako Cruise v Tinkercadu. Nad prázdnou podložkou dopadne na pracovní rovinu. [[Esc]] umísťování zruší. Nástroje čekající na kliknutí, například měření, úhelník, poznámka, {{ui:camera.placeWorkplane}}, {{ui:editor.tool.layFlat}} nebo úpravy hran, se při výběru tvaru vypnou. Kliknutí pak skutečně umístí tvar. Obráceně zapnutí takového nástroje ukončí umísťování tvaru. Chcete-li nové tvary rovnou uprostřed podložky, vypněte {{ui:workspace.cruise}} v části {{ui:workspace.appearance}}.
 
+Na ploše se tvar přichytí k jejímu středu, jakmile se ukazatel přiblíží, stejně jako k rohu nebo hraně; podržte [[Alt]] a položíte ho kamkoli. Přetažený z knihovny na plochu přistane vždy v jejím středu, s [[Alt]] tam, kde ho pustíte.
+
 Knihovna nabízí:
 
 - **Základní tvary:** {{ui:shape.box}}, {{ui:shape.roundedBox}}, {{ui:shape.cylinder}}, {{ui:shape.slot}}, {{ui:shape.ellipse}}, {{ui:shape.polygon}} se třemi až 24 stranami, {{ui:shape.sphere}}, {{ui:shape.cone}}, {{ui:shape.pyramid}} se třemi až 24 stranami, {{ui:shape.wedge}}, {{ui:shape.roundRoof}}, {{ui:shape.halfSphere}} a {{ui:shape.torus}}.
@@ -54,7 +56,7 @@ Zúžení a zkroucení podporuje většina tvarů. Výjimkami jsou ozubené kolo
 
 Zúžený či nakloněný kvádr, válec, elipsa, mnohoúhelník, trubka a prstenec zachovávají přesné těleso. Platí to i pro kapsli, hvězdu, srdce, srpek, rybinu a zaoblený kvádr bez zaoblení horní a spodní hrany. Lze upravovat jejich hrany a exportovat je do STEP. Stejně funguje zkroucení: průřez se po výšce přesně natáčí a boky přecházejí rovnoměrně odspodu nahoru.
 
-Číselné zadání je přesnější než tažení. Pole kromě milimetrů přijímají procenta: „50 %“ ze šířky 40 mm vytvoří 20 mm. Umějí i výpočty: „15*3“, „120-2*4“ a „(40+2)/2“ dávají 45, 112 a 21. Místo * lze psát x. Pole si výpočet pamatují v nastavení i v kótách u tělesa. Při dalším kliknutí uvidíte původní výraz a můžete jej upravit, dokud odpovídá současné hodnotě. Změna úchytem či škálováním vazbu přeruší a pole opět ukáže jen číslo.
+Číselné zadání je přesnější než tažení. Pole kromě milimetrů přijímají procenta: „50 %“ ze šířky 40 mm vytvoří 20 mm. Umějí i výpočty: „15*3“, „120-2*4“ a „(40+2)/2“ dávají 45, 112 a 21. Místo * lze psát x. Pole si výpočet pamatují v nastavení i v kótách u tělesa. Při dalším kliknutí uvidíte původní výraz a můžete jej upravit, dokud odpovídá současné hodnotě. Změna úchytem či škálováním vazbu přeruší a pole opět ukáže jen číslo. V číselném poli, na které jsi klikl, mění kolečko myši a klávesy [[↑]] a [[↓]] hodnotu o jeden krok, s [[Shift]] o větší a s [[Alt]] o jemnější. V poli velikosti nebo polohy krokuje [[Shift]] místo toho o krok mřížky, a když je mřížka vypnutá, o deset kroků.
 
 ### Výběr barev
 
@@ -98,7 +100,7 @@ Válec, kužel, trubka, elipsa a otvory mají {{ui:prop.sidesFollowSize}} a {{ui
 Vedle číselných polí jsou úchyty přímo na tvaru:
 
 - **Rohy a hrany** mění velikost. [[Shift]] při tažení rohu zachovává poměr šířky, hloubky a výšky, [[Alt]] mění velikost vůči středu místo protějšího rohu. Bez držení klávesy zapněte {{ui:inspector.keepProportions}}. Rohy pak zachovávají poměry vždy a zadání jednoho rozměru přepočítá zbývající. Volba se pamatuje.
-- **Horní šipka** mění výšku, **prostřední úchyt** zvedá nebo spouští celé těleso.
+- Černá **šipka nad** tvarem ho zvedá nebo spouští; s [[Alt]] drženým od začátku vznikne tam, kde pustíte, kopie, takže můžete skládat nad sebe. Bílý úchyt **na horní stěně** mění výšku.
 - **Obloukové šipky** otáčejí.
 - **Čísla** vedle tělesa umožňují přímé zadání. [[Enter]] mění rozměr od protějšího okraje jako tažení; [[Alt]]+[[Enter]] souměrně vůči středu, aby se zachovalo zarovnání. Platí pro délku a šířku. Výška roste vždy od spodní strany vzhůru. Pravý panel zachovává střed i bez klávesy. [[Tab]] převezme číslo a otevře další pole (šířka, hloubka, výška); [[Shift]]+[[Tab]] jde zpět. V poli vlastností, na které jste klikli, mění hodnotu i kolečko myši: jednotku na zub, desetinásobek s [[Shift]], desetinu s [[Ctrl]] a setinu s [[Alt]]. Pole, na které jste neklikli, nechává kolečko panelu, který se posouvá.
 - **Kliknutí na roh bez tažení** otevře šířku a hloubku společně. Zadejte první, [[Tab]] přejděte na druhou a [[Enter]] potvrďte obě. [[Esc]] zruší změnu.

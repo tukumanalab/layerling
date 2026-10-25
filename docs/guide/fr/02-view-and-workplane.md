@@ -14,6 +14,7 @@ Avec la souris :
 | faites glisser avec le bouton du milieu | déplacer la vue |
 | molette de la souris | zoomer et dézoomer |
 | maintenez [[Ctrl]] / [[Cmd]] et faites glisser avec le bouton gauche | déplace également la vue |
+| double-clic sur un endroit vide du plan de travail ou à côté de la plaque | déplace la vue pour amener cet endroit au milieu ; la vue tourne ensuite autour de lui |
 
 La vitesse de zoom de la molette se règle avec {{ui:workspace.zoomSpeed}} dans les paramètres, sous {{ui:workspace.appearance}} : un curseur de 1 à 14, réglé sur 5 au départ ; au-dessus de 10, seule la molette devient plus rapide.
 
@@ -35,6 +36,7 @@ Sur le bord gauche se trouve une barre étroite. Du haut :
 - {{ui:camera.focusSelection}} effectue un zoom sur la sélection ([[F]] ou [[Shift]]+[[F]]).
 - {{ui:camera.zoomIn}} et {{ui:camera.zoomOut}} zooment pas à pas, tout comme les touches [[+]] et [[−]].
 - {{ui:camera.orthographic}} passe à une vue plate dans laquelle les bords parallèles restent parallèles. Pour mesurer et aligner les bords, c'est souvent plus confortable que la vue en perspective. [[O]] bascule d'avant en arrière et un deuxième clic revient.
+- {{ui:camera.secondView}} ouvre une deuxième vue du design dans une fenêtre à part, décrite plus bas. Un second clic la ferme.
 - {{ui:camera.hideWorkplane}} (l'œil au-dessus d'une grille) cache la plaque avec sa grille, vous pouvez donc regarder le dessous d'un dessin par le bas. Seule la vue change : de nouvelles formes atterrissent toujours sur le plan de travail. Un deuxième clic l'affiche à nouveau.
 - {{ui:camera.placeWorkplane}}, le mètre ruban et l'équerre d'encadrement sont des outils à part entière, abordés ci-dessous et dans [Mesures et notes] (chapter:measuring-and-notes).
 
@@ -43,6 +45,10 @@ La petite flèche tout en haut de la barre la cache si elle gêne.
 Un design s'ouvre comme vous l'avez laissé : l'angle, le zoom et la position de la vue sont conservés avec lui dans ce navigateur, de sorte que vous continuez là où vous vous êtes arrêté, même après être retourné à Home ou avoir fermé la page. Un fichier enregistré (.lyl) emporte la vue, elle s'y ouvre donc également ailleurs. La vue ne fait pas partie de l'historique d'annulation.
 
 Vous pouvez aussi garder quatre vues à vous dans chaque design. [[Shift]]+[[7]], [[Shift]]+[[8]], [[Shift]]+[[9]] ou [[Shift]]+[[0]] enregistre la vue exactement telle qu'elle est - angle, position, zoom, et vue plate ou en perspective - sous cette touche, et la touche seule ([[7]], [[8]], [[9]] ou [[0]]) la ramène. Un message en bas confirme l'enregistrement ; enregistrer à nouveau sous la même touche remplace la vue. Comme la vue ci-dessus, les vues enregistrées restent avec le design dans ce navigateur et voyagent dans un fichier enregistré (.lyl) ; elles ne font pas partie de l'historique d'annulation.
+
+### Une deuxième vue dans sa propre fenêtre
+
+{{ui:camera.secondView}} ouvre une fenêtre qui montre le même design à travers sa propre caméra, pour le voir de deux côtés à la fois - de face, par exemple, pendant que vous travaillez par le dessus. Chaque modification faite dans l'éditeur y apparaît aussitôt ; le design ne se modifie que dans la fenêtre principale, et les poignées y restent aussi. Dans la deuxième fenêtre, la souris et le cube de vue tournent sa vue comme ici, de même que les touches : [[1]] à [[6]], [[F]], [[Home]], [[O]], [[+]] et [[−]], les flèches pour tourner et [[Ctrl]] avec les flèches pour faire glisser. [[F]] y cadre ce qui est sélectionné dans l'éditeur. Les quatre vues enregistrées du design y fonctionnent aussi : [[7]], [[8]], [[9]] et [[0]] les ramènent, et [[Shift]] avec l'une de ces touches y enregistre la vue de cette fenêtre - pour les deux fenêtres. Sa propre barre de caméra a {{ui:camera.home}}, {{ui:camera.focusSelection}}, {{ui:camera.zoomIn}}, {{ui:camera.zoomOut}}, {{ui:camera.orthographic}} et {{ui:camera.hideWorkplane}}, qui n'agissent que sur cette fenêtre. La fenêtre s'ouvre là où vous l'avez laissée, à la même taille, et se ferme avec l'éditeur. Sur les téléphones et les tablettes, le bouton n'apparaît pas.
 
 ## Regarder à l'intérieur : la vue en coupe
 
@@ -73,7 +79,7 @@ Cliquez plutôt sur la plaque vide et le plan de travail repose à plat à l'end
 
 Sur une face, l'origine du plan de travail s'accroche autrement à la grille. Cliquez près d’un coin du visage et il se place exactement sur ce coin. Près d'un bord, il repose sur le bord et la grille s'aligne avec lui ; c’est ainsi que l’on choisit volontairement l’angle de la grille. Sans coin ni bord, la grille sur une face couchée est parallèle au corps, donc sur une boîte tournée, elle est tournée avec lui.
 
-Un clic à côté de la plaque ou [[Esc]] ramène le plan de travail à la plaque de base. {{ui:camera.resetWorkplane}} est encore plus rapide : le bouton avec la flèche vers le bas se trouve dans la barre de la caméra sous l'œil tandis que le plan de travail se trouve sur un visage. [[Shift]]+[[W]] le place directement sur la face actuellement sélectionnée. Si vous maintenez [[Shift]] tout en cliquant, le plan pointe dans l'autre sens.
+Un clic à côté de la plaque ou [[Esc]] ramène le plan de travail à la plaque de base. {{ui:camera.resetWorkplane}} est encore plus rapide : le bouton avec la flèche vers le bas se trouve dans la barre de la caméra sous l'œil tandis que le plan de travail se trouve sur un visage. [[Shift]]+[[W]] le place directement sur la face actuellement sélectionnée. [[Alt]]+[[W]] le ramène sur la plaque de base à tout moment, qu'il y ait une sélection ou non. Si vous maintenez [[Shift]] tout en cliquant, le plan pointe dans l'autre sens.
 
 Lorsqu'un plan de travail repose sur une face, un œil apparaît à côté de {{ui:camera.placeWorkplane}}. Il masque le plan de travail sans le faire tomber, pour une vision claire du design : de nouvelles formes se posent toujours sur cette face, et la rotation tourne toujours autour d'elle. Un clic sur l'œil le montre à nouveau, tout comme la définition d'un nouveau plan de travail.
 

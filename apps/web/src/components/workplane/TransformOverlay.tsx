@@ -40,6 +40,7 @@ export {
   type TransformOverlayState,
 } from "@/components/workplane/transformOverlayTypes";
 import { selectWholeValue } from "@/lib/numberField";
+import { useTouchSecondTap } from "@/lib/touchSecondTap";
 import { visibleWorkArea, type VisibleWorkArea } from "@/lib/visibleWorkArea";
 
 /** Below this many screen pixels across, the handles of a touch screen lose their wide catch zone (#574). */
@@ -97,6 +98,7 @@ export function TransformOverlay({
   // in alwaysVisibleDimensionKeys. That list is filled when "Dimensions always
   // visible" is on, so the marks appear as soon as the shape is selected.
   const rootRef = useRef<HTMLDivElement>(null);
+  const { armed, accept } = useTouchSecondTap();
   const keepVisible = visibleWorkArea(rootRef.current, box.width, box.height);
   const marks = measureKey
     ? (box.dimensions[measureKey] ?? [])
@@ -216,12 +218,12 @@ export function TransformOverlay({
       {visibleMarks.map((mark) => (
         <button
           key={`${mark.key}-label`}
-          className="dimension-label"
+          className={armed === mark.key ? "dimension-label armed" : "dimension-label"}
           type="button"
           style={overlayPoint(keepVisible, mark.labelX, mark.labelY)}
           disabled={locked}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => onBeginDimensionEdit(mark)}
+          onClick={() => { if (accept(mark.key)) onBeginDimensionEdit(mark); }}
         >
           {mark.label}
         </button>

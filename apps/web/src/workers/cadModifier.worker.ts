@@ -1,7 +1,8 @@
 /// <reference lib="webworker" />
 
 import { cadHasSolidBody } from "@/lib/cadSolidBody";
-import { OcctKernel, type ShapeHandle } from "occt-wasm";
+import { cadFaultyEdgeIds } from "@/lib/cadFaultyEdges";
+import { OcctKernel, type OcctModuleFactory, type ShapeHandle } from "occt-wasm";
 import { assertCadKernelRunnable } from "@/lib/wasmSupport";
 import { orientedFaceNormal, shellSolid } from "@/lib/cadShell";
 import { chamfilletSolid } from "@/lib/cadChamfillet";
@@ -16,8 +17,9 @@ import { fuzzyCut } from "@/lib/cadFuzzyCut";
 import { helicalGearPartSolid } from "@/lib/gearSolid";
 import { meshTreatedBody } from "@/lib/cadMeshAccuracy";
 import { planarMeshFaces } from "@/lib/cadPlanarMesh";
+import { cadFlatFaceMeshStraysFromOutline } from "@/lib/cadFaceOutline";
 import { buildMessage } from "@/lib/buildStamp";
-import { CAD_MODIFIER_KERNEL_RESTART_MESSAGE, CAD_MODIFIER_RUNTIME_BASE, cadModifierCappedDeflection, cadModifierTessellationDeflection, cadModifierTopologyEdgeIsSelectable, cadTransformRequiresGeneralTransform, isCadModifierKernelExhausted, isCadModifierWasmMemoryFault } from "@/lib/cadModifierRuntime";
+import { CAD_MODIFIER_KERNEL_RESTART_MESSAGE, CAD_MODIFIER_RUNTIME_BASE, VARIABLE_FILLET_ONE_EDGE_MESSAGE, cadModifierCappedDeflection, cadModifierTessellationDeflection, cadModifierTopologyEdgeIsSelectable, cadTransformRequiresGeneralTransform, isCadModifierKernelExhausted, isCadModifierWasmMemoryFault } from "@/lib/cadModifierRuntime";
 
 const HASH_UPPER_BOUND = 2_147_483_647;
 const CAD_EDGE_WIREFRAME_DEFLECTION = 0.035;
@@ -53,12 +55,10 @@ function kernel() {
   // fetching the 22 MB wasm) can be retried on the next call instead of
   // poisoning edge treatment for the rest of the session - same fix as
   // brepKernel.ts's loadBrepWithOcct.
-  kernelPromise ??= import(/* webpackIgnore: true */ moduleUrl).then((imported: { default: (options?: { locateFile?: (path: string) => string }) => Promise<unknown> }) => imported.default({
-    locateFile: (path) => path.endsWith(".wasm") ? `${CAD_MODIFIER_RUNTIME_BASE}/occt-wasm.wasm` : path,
-  })).then((module) => {
-    const KernelConstructor = OcctKernel as unknown as new (rawModule: unknown) => OcctKernel;
-    return new KernelConstructor(module);
-  }).catch((error) => {
+  kernelPromise ??= import(/* webpackIgnore: true */ moduleUrl).then((imported: { default: OcctModuleFactory }) => OcctKernel.init({
+    createModule: imported.default,
+    wasm: `${CAD_MODIFIER_RUNTIME_BASE}/occt-wasm.wasm`,
+  })).catch((error) => {
     kernelPromise = null;
     throw error;
   });
@@ -795,6 +795,10 @@ class EdgeTreatmentError extends Error {
 }
 
 function treatEdges(cad: OcctKernel, solid: ShapeHandle, edges: ShapeHandle[], request: Extract<CadModifierWorkerRequest, { type: "preview" }>) {
+  // A variable fillet (#687) runs from `amount` at the edge's start to `endAmount` at its end; the kernel takes one edge.
+  if (request.kind === "fillet" && request.endAmount !== undefined) {
+    return cad.filletVariable(solid, edges[0], request.amount, request.endAmount);
+  }
   if (request.kind === "fillet") return cad.fillet(solid, edges, request.amount);
   if (request.kind === "chamfillet") return chamfilletSolid(cad, solid, edges, request.amount, request.chamferAngle);
   return Math.abs(request.chamferAngle - 45) < 0.001
@@ -802,24 +806,38 @@ function treatEdges(cad: OcctKernel, solid: ShapeHandle, edges: ShapeHandle[], r
     : cad.chamferDistAngle(solid, edges, request.amount, request.chamferAngle);
 }
 
-// The kernel only says that the set failed. The edges that fail on their own
-// are the ones to blame; when every edge works alone, it is the combination.
-function culpritEdgeIds(cad: OcctKernel, solid: ShapeHandle, entries: { id: number; edge: ShapeHandle }[], request: Extract<CadModifierWorkerRequest, { type: "preview" }>) {
+function failsAlone(cad: OcctKernel, solid: ShapeHandle, edge: ShapeHandle, request: Extract<CadModifierWorkerRequest, { type: "preview" }>) {
+  try {
+    const single = treatEdges(cad, solid, [edge], request);
+    const solidLeft = cadHasSolidBody(cad, single);
+    releaseHandles(cad, [single]);
+    return !solidLeft;
+  } catch (error) {
+    if (isFatalKernelFault(error)) throw error;
+    return true;
+  }
+}
+
+// The edges that fail on their own are the ones to blame; when every edge works
+// alone, it is the combination. The kernel may name the edges whose contour
+// failed: when each of those fails alone, they are the answer and the other
+// edges need no test. When one of them works alone, every edge is tried.
+function culpritEdgeIds(cad: OcctKernel, solid: ShapeHandle, entries: { id: number; edge: ShapeHandle }[], request: Extract<CadModifierWorkerRequest, { type: "preview" }>, error: unknown) {
   const all = entries.map((entry) => entry.id);
   if (entries.length <= 1 || request.addedEdgeIds?.length) return all;
   const deadline = performance.now() + CULPRIT_SEARCH_BUDGET_MS;
+  const named = new Set(cadFaultyEdgeIds(error, entries));
+  const tried = new Map<number, boolean>();
+  for (const entry of entries) {
+    if (!named.has(entry.id)) continue;
+    if (performance.now() > deadline) return all;
+    tried.set(entry.id, failsAlone(cad, solid, entry.edge, request));
+  }
+  if (tried.size && [...tried.values()].every(Boolean)) return [...tried.keys()];
   const failing: number[] = [];
   for (const entry of entries) {
     if (performance.now() > deadline) return all;
-    try {
-      const single = treatEdges(cad, solid, [entry.edge], request);
-      const solidLeft = cadHasSolidBody(cad, single);
-      releaseHandles(cad, [single]);
-      if (!solidLeft) failing.push(entry.id);
-    } catch (error) {
-      if (isFatalKernelFault(error)) throw error;
-      failing.push(entry.id);
-    }
+    if (tried.get(entry.id) ?? failsAlone(cad, solid, entry.edge, request)) failing.push(entry.id);
   }
   return failing.length ? failing : all;
 }
@@ -892,6 +910,7 @@ async function bearbeiteAnfrage(request: CadModifierWorkerRequest, halter: { cad
     : [];
   if (request.kind === "deleteFace" && selectedFaces.length === 0) throw new Error("Select at least one face");
   if (selected.length === 0 && request.kind !== "shell" && request.kind !== "deleteFace") throw new Error("Select at least one highlighted edge");
+  if (request.kind === "fillet" && request.endAmount !== undefined && selected.length !== 1) throw new Error(VARIABLE_FILLET_ONE_EDGE_MESSAGE);
   const componentResults: ShapeHandle[] = [];
   let result: ShapeHandle | null = null;
   try {
@@ -913,7 +932,7 @@ async function bearbeiteAnfrage(request: CadModifierWorkerRequest, halter: { cad
         } catch (error) {
           if (isFatalKernelFault(error)) throw error;
           const rawMessage = error instanceof Error ? error.message : String(error ?? "");
-          throw new EdgeTreatmentError(rawMessage, culpritEdgeIds(activeCad, solid, componentEntries, request));
+          throw new EdgeTreatmentError(rawMessage, culpritEdgeIds(activeCad, solid, componentEntries, request, error));
         }
       }
       if (request.kind !== "shell" && componentEdges.length > 0 && !cadHasSolidBody(activeCad, component)) {
@@ -926,7 +945,12 @@ async function bearbeiteAnfrage(request: CadModifierWorkerRequest, halter: { cad
     }
     result = componentResults.length === 1 ? componentResults[0] : activeCad.makeCompound(componentResults);
     if (!cadShapeIsValid(activeCad, result)) throw new Error(request.kind === "deleteFace" ? DELETE_FACES_UNCHANGED_MESSAGE : "The chosen size creates invalid or overlapping edge geometry");
-    const baseLoose = cadModifierTessellationDeflection(request.quality, request.amount, request.minDeflection);
+    // A fillet round a part of the outline thinner than the size can leave a "valid" body whose flat face is meshed over
+    // a bay outside its outline, a strip nobody drew (#740): that size is refused like one that crosses adjacent faces.
+    if ((request.kind === "fillet" || request.kind === "chamfer") && cadFlatFaceMeshStraysFromOutline(activeCad, result)) {
+      throw new Error("The chosen size creates invalid or overlapping edge geometry");
+    }
+    const baseLoose = cadModifierTessellationDeflection(request.quality, Math.min(request.amount, request.endAmount ?? request.amount), request.minDeflection);
     const baseCapped = cadModifierCappedDeflection(request.quality, baseLoose);
     const loose = request.kind === "chamfillet"
       ? { linear: Math.min(baseLoose.linear * 0.25, 0.0025), angular: Math.min(baseCapped.angular * 0.2, 0.028) }

@@ -5,7 +5,7 @@ summary: Start layerling som et almindeligt program, også uden netværk, og hvo
 
 ## Installér som app
 
-layerling kan installeres som et almindeligt program. Det får så et ikon og sit eget vindue, uden en adresselinje. Efter det første besøg starter det også **uden internet**. Dine designs bliver på din computer. Det er værd at installere: Appen starter hurtigere, fordi den ikke skal hentes igen hver gang, den virker uden internet og aflaster serveren. Du mister ingenting, for layerling fortæller dig stadig, når der kommer en ny version.
+layerling kan installeres som et almindeligt program. Det får så et ikon og sit eget vindue, uden en adresselinje. Efter det første besøg starter det også **uden internet**. Dine designs bliver på din computer. Det er værd at installere: Appen starter hurtigere, fordi den ikke skal hentes igen hver gang, den virker uden internet og aflaster serveren. Du mister ingenting, for layerling fortæller dig stadig, når der kommer en ny version. Det beskytter også dine designs: Safari på Mac, iPhone og iPad sletter de gemte data fra et websted, der ikke har været besøgt i syv dage, men ikke fra en installeret app.
 
 På startsiden vises et tip med {{ui:installHint.install}} hvis din browser kan gøre det. Ellers:
 
@@ -15,6 +15,8 @@ På startsiden vises et tip med {{ui:installHint.install}} hvis din browser kan 
 - **Firefox:** kan ikke installere apps. layerling starter stadig offline i en fane der.
 
 Du kan lukke tippet på startsiden med {{ui:installHint.dismiss}}. At starte den installerede app en anden gang i Chrome eller Edge bringer det åbne vindue foran i stedet for at åbne et nyt.
+
+På en computer registrerer en installeret layerling i Chrome eller Edge også sig som et program for `.lyl`-filer: et dobbeltklik på et design i filhåndteringen åbner det i layerling, og [[Ctrl]]+[[S]] gemmer tilbage i den fil. På Android virker det ikke, der tilbyder browseren ingen filtilknytning for installerede webapps; åbn et design med {{ui:dashboard.importGeometry}} på startsiden.
 
 ## Opdateringer
 
@@ -33,7 +35,7 @@ Du sætter sproget øverst til højre, tysk eller engelsk. Farveskemaet ved side
 layerling er fri software (AGPL-3.0) og kan køres på din egen computer eller server, for eksempel i et værksted, en klub eller en skole. Der er flere måder, beskrevet i [README på GitHub](https://github.com/henmedia/layerling/blob/main/README.md#getting-started):
 
 - **Hurtig start på Windows:** En enkelt linje i PowerShell installerer alt og lægger en genvej på skrivebordet. Når layerling allerede kører, starter endnu et dobbeltklik ikke en anden server og åbner kun siden.
-- **Docker:** Til NAS-enheder og hjemmeservere, uden at Node.js behøver at være installeret. Hver udgivelse kommer som et færdigt image `henmedia/layerling` på Docker Hub (også `ghcr.io/henmedia/layerling`) til amd64 og arm64; `docker run -d -p 3000:3000 -v layerling-thumbnails:/app/.codex/project-thumbnails henmedia/layerling:latest` starter den, og på en NAS søger du efter den i container-managerens register.
+- **Docker:** Til NAS-enheder og hjemmeservere, uden at Node.js behøver at være installeret. Hver udgivelse kommer som et færdigt image `henmedia/layerling` på Docker Hub (også `ghcr.io/henmedia/layerling`) til amd64 og arm64; `docker run -d -p 3000:3000 -v layerling-thumbnails:/app/.codex/project-thumbnails henmedia/layerling:latest` starter den, og på en NAS søger du efter den i container-managerens register. Volumen `layerling-thumbnails` bevarer forhåndsbillederne på startsiden gennem en opdatering; uden den mangler de, hver gang containeren oprettes igen, indtil du åbner designet.
 - **Statisk eksport:** Resultatet er almindelige filer som enhver webserver kan servere. De hører hjemme ved roden af en adresse (`https://layerling.eksempel.dk/` eller `http://192.168.0.5:8080/`), ikke i en undermappe og ikke åbnet fra disk; README har trinnene. Med en skrivbar mappe `store` ved siden af `index.html` og PHP på serveren bliver det også den delte lagring for designs.
 
 MCP-broen for AI-assistenter findes kun i udviklingsserveren, se [Byg med en AI](chapter:ai-with-mcp).

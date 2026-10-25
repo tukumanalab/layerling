@@ -128,6 +128,8 @@ async function callTool(name, args) {
       return bridgeCommand("group_objects", args, 30000);
     case "layerling_intersect_objects":
       return bridgeCommand("intersect_objects", args, 30000);
+    case "layerling_hull_objects":
+      return bridgeCommand("hull_objects", args, 30000);
     case "layerling_ungroup_objects":
       return bridgeCommand("ungroup_objects", args);
     case "layerling_boolean_cut":
@@ -170,6 +172,8 @@ async function callTool(name, args) {
       return bridgeCommand("clear_history", args);
     case "layerling_layer_icon":
       return bridgeCommand("layer_icon", args, 60000);
+    case "layerling_reference_image":
+      return bridgeCommand("reference_image", args, 60000);
     case "layerling_create_qr_code":
       return bridgeCommand("create_qr_code", args, 60000);
     case "layerling_measure_section":
@@ -230,6 +234,16 @@ async function callTool(name, args) {
       }
       return { ...summary, path: target, overwritten: exists };
     }
+    case "layerling_list_attachments":
+      return bridgeCommand("list_attachments", args);
+    case "layerling_get_attachment":
+      return bridgeCommand("get_attachment", args, 30000);
+    case "layerling_add_attachment":
+      return bridgeCommand("add_attachment", args, 30000);
+    case "layerling_rename_attachment":
+      return bridgeCommand("rename_attachment", args);
+    case "layerling_remove_attachment":
+      return bridgeCommand("remove_attachment", args);
     case "layerling_import_file":
       return bridgeCommand("import_file", args);
     case "layerling_add_font":

@@ -1,9 +1,9 @@
 ---
 title: Mit einer KI bauen (MCP)
-summary: Wie ein KI-Assistent wie Claude oder Codex in deinem geöffneten Editor Formen anlegt, ändert, gruppiert und Bilder der Ansicht aufnimmt.
+summary: Wie ein KI-Assistent wie Gemini, Claude oder Codex in deinem geöffneten Editor Formen anlegt, ändert, gruppiert und Bilder der Ansicht aufnimmt.
 ---
 
-layerling bringt einen MCP-Server mit. MCP ist ein Standard, über den ein KI-Assistent Werkzeuge in anderen Programmen benutzen kann. Damit sieht ein KI-Client wie Claude oder Codex einen offenen Editor-Tab und arbeitet darin: Er legt Formen an, ändert Maße, gruppiert, schneidet, rundet Kanten, liest die Szene aus und nimmt Bilder der Ansicht auf. Du beschreibst das Teil, die KI baut es, du siehst zu und greifst jederzeit ein.
+layerling bringt einen MCP-Server mit. MCP ist ein Standard, über den ein KI-Assistent Werkzeuge in anderen Programmen benutzen kann. Damit sieht ein KI-Client wie Gemini, Claude oder Codex einen offenen Editor-Tab und arbeitet darin: Er legt Formen an, ändert Maße, gruppiert, schneidet, rundet Kanten, liest die Szene aus und nimmt Bilder der Ansicht auf. Du beschreibst das Teil, die KI baut es, du siehst zu und greifst jederzeit ein.
 
 Die Brücke zwischen KI-Client und Editor läuft **lokal auf deinem Rechner**. Bedenke aber: Was die KI liest, also die Szene und die Bilder der Ansicht, geht an den Anbieter deines KI-Clients, so wie jede andere Eingabe dort auch.
 
@@ -27,7 +27,11 @@ Claude Desktop liest keine Projektdateien. Trage den Server in seiner eigenen Ko
 
 Kopiere den Skill aus `docs/skills/layerling-mcp-skill` in deinen Codex-Skill-Ordner, trage den Server anhand von `docs/mcp/codex-config.example.toml` in deine Codex-Konfiguration ein und starte Codex neu.
 
-Die ausführliche Anleitung für alle drei steht in der [README auf GitHub](https://github.com/henmedia/layerling/blob/main/README.de.md#layerling-mcp-skill).
+### Gemini & Antigravity
+
+Antigravity findet den Skill im Arbeitsordner unter `.agents/skills/layerling-mcp-skill` von selbst. Für die Gemini CLI kopierst du den Skill aus `docs/skills/layerling-mcp-skill` in deinen globalen Skill-Ordner (`~/.gemini/skills/`), trägst den Server anhand von `docs/mcp/gemini-config.example.json` in deine Einstellungen ein und startest den Client neu.
+
+Die ausführliche Anleitung für jeden Client steht in der [README auf GitHub](https://github.com/henmedia/layerling/blob/main/README.de.md#layerling-mcp-skill).
 
 ## Eine Kopie auf NAS oder Server
 
@@ -59,14 +63,15 @@ Die KI arbeitet mit denselben Funktionen wie du, sie läuft über denselben Weg 
 | `layerling_place_on_face` | setzt Objekte auf eine Fläche eines anderen, auch schräg, wie die Taste C |
 | `layerling_perforate_face` | schneidet ein Lochmuster in eine ebene Fläche, die Löcher bleiben als Aussparungen mit dem Körper gruppiert |
 | `layerling_sweep_sketch` | zieht einen rechteckigen oder runden Querschnitt entlang eines Pfades aus Punkten als einen exakten Körper; ein geschlossener Pfad ergibt einen Ring |
-| `layerling_push_face` | zieht eine ebene Fläche heraus oder schneidet eine Tasche hinein, mit Rand zur Kante und Eckenradius; das neue Teil ist ein Skizzenkörper, mit dem Körper gruppiert |
-| `layerling_mate_faces` | legt eine Fläche eines Objekts an die Fläche eines anderen, gegeneinander oder bündig |
+| `layerling_push_face` | zieht eine ebene Fläche heraus oder schneidet eine Tasche hinein, mit Rand zur Kante und Eckenradius; das neue Teil ist ein Skizzenkörper, mit dem Körper gruppiert, oder mit `separate` ein freier eigener Körper |
+| `layerling_mate_faces` | legt eine Fläche eines Objekts an die Fläche eines anderen, gegeneinander oder bündig, oder bringt zwei runde Flächen auf eine Achse |
 | `layerling_open_group` | öffnet eine Gruppe, damit ihre Teile einzeln änderbar sind, auch eine Gruppe in einer geöffneten |
 | `layerling_close_group` | schließt sie wieder („Fertig“) oder bricht ab |
 | `layerling_group_objects` | gruppiert Objekte |
 | `layerling_ungroup_objects` | löst Gruppen auf |
 | `layerling_boolean_cut` | schneidet Körper mit Aussparungen |
 | `layerling_intersect_objects` | behält nur, was die Objekte gemeinsam haben (Schnittmenge) |
+| `layerling_hull_objects` | hüllt die Objekte in einen konvexen Körper, wie in Schrumpffolie (Hülle) |
 | `layerling_separate_parts` | zerlegt eine Form mit losen Teilen, einen Skizzenkörper in einen Körper je Umriss |
 | `layerling_split_objects` | teilt Körper oder Aussparungen mit einer Ebene in zwei |
 | `layerling_list_edges` | listet die echten CAD-Kanten eines Objekts |
@@ -79,6 +84,7 @@ Die KI arbeitet mit denselben Funktionen wie du, sie läuft über denselben Weg 
 | `layerling_layer_text` | macht aus einem Text einen Stapel aus Schichten für den Mehrfarbdruck (Buchstaben, breitere Ränder, Platte ohne Löcher) oder baut einen Stapel neu, mit Loch für den Schlüsselring, Ecken je Schicht und gerundeter oder abgeschrägter Buchstabenkante; mit einer Namensliste ein Schild je Name |
 | `layerling_layer_icon` | macht aus einem SVG-Symbol (dem Text der Datei oder einem extrudierten Skizzenkörper) ein Symbolschild in Schichten für den Mehrfarbdruck - Symbol, breitere Ränder, Platte ohne Löcher - oder baut eines mit neuer Breite oder neuen Schichten neu; mit einer Anzahl füllt es die Platte mit Kopien |
 | `layerling_create_qr_code` | erzeugt aus einem Text oder einer Webadresse einen QR-Code wie {{ui:shape.qrCode}} in der Formenbibliothek - den Code allein, erhaben auf einer Platte oder graviert, mit Fehlerkorrektur, Breite, Höhe, Ruhezone und auf Wunsch als Aussparung; warnt, wenn ein Modul unter 0,8 mm kommt |
+| `layerling_reference_image` | legt ein Referenzbild aus einem Bild an wie {{ui:import.referenceImage}} oder verschiebt, dreht, kalibriert (zwei Punkte des Bildes und ihr wirklicher Abstand), blendet oder sperrt eines - eine Hilfe, die nie exportiert oder gedruckt wird |
 | `layerling_measure_section` | misst auf einer Schnittebene zwischen zwei Punkten, die am Umriss einrasten – Wandstärken, Spalte, Passungen |
 | `layerling_show_overhangs` | schaltet die Überhang-Schraffur ein oder aus, setzt den Winkel und nennt je Körper die Fläche, die Stützen bräuchte |
 | `layerling_estimate_print` | schätzt Volumen, Gewicht und Filament für die Auswahl oder den ganzen Entwurf: für einen massiven Körper und als grobe Schätzung mit Wänden und Füllung wie im Exportfenster |
@@ -94,14 +100,19 @@ Die KI arbeitet mit denselben Funktionen wie du, sie läuft über denselben Weg 
 | `layerling_delete_custom_shape` | entfernt eine eigene Form; eingesetzte Körper bleiben |
 | `layerling_show_workplane` | blendet die Platte mit ihrem Gitter aus und wieder ein, etwa für ein Bild der Unterseite (nur die Ansicht) |
 | `layerling_set_section_view` | schneidet die Ansicht entlang einer Ebene auf, um ins Innere zu sehen (nur die Ansicht, nichts wird zerteilt) |
-| `layerling_saved_view` | speichert die aktuelle Ansicht unter der Taste 7, 8, 9 oder 0 und holt sie zurück, wie Umschalt+Taste und die Taste (nur die Ansicht) |
+| `layerling_saved_view` | speichert die aktuelle Ansicht unter der Taste 7, 8, 9 oder 0 und holt sie zurück, wie Umschalt+Taste und die Taste (nur die Ansicht); setzt auch die Startansicht neuer Entwürfe |
 | `layerling_clear_history` | löscht jeden Rückgängig-Schritt endgültig, wie der Knopf „Verlauf löschen“ im Verlaufsblick; verlangt `confirm: true` |
 | `layerling_set_history_view` | schaut auf einen früheren Stand des Projekts zurück, wie die Verlaufsansicht (der echte Entwurf bleibt unberührt; ändernde Werkzeuge warten, bis sie geschlossen ist) |
 | `layerling_restore_from_history` | holt Objekte (auch Teile in Gruppen) aus einem früheren Stand als Kopien in den Entwurf zurück, wie „In den Entwurf holen“ in der Verlaufsansicht - ein Schritt, den Rückgängig zurücknimmt |
 | `layerling_export_section_svg` | liefert die Umrisse auf einer Schnittebene als SVG im Maßstab 1:1, aus denselben Körpern wie der Export |
 | `layerling_export_drawing` | macht die Werkstattzeichnung des Exports „2D“: drei Ansichten im Maßstab 1:1 auf einem ISO-Blatt mit Gesamtmaßen und einer Tabelle der runden Bohrungen, als SVG-Text oder PDF |
-| `layerling_export_mesh` | schreibt die Datei des Exportfensters als STL, 3MF oder OBJ, aus denselben Körpern; an einen Pfad auf diesem Rechner oder als Base64 |
+| `layerling_export_mesh` | schreibt die Datei des Exportfensters als STL, 3MF, OBJ, SVG (Draufsicht, Aufstandsfläche oder sichtbare Kanten) oder DXF für den Laserschnitt, aus denselben Körpern; an einen Pfad auf diesem Rechner oder als Base64 |
 | `layerling_save_project` | speichert den ganzen bearbeitbaren Entwurf als .lyl-Datei an einem Pfad auf dem Rechner, auf dem der MCP-Server läuft, ohne Dialog; eine vorhandene Datei wird nur mit `overwrite` ersetzt, geschrieben wird über eine temporäre Datei, und das Ziel von Strg+S im Editor bleibt, wie es war |
+| `layerling_list_attachments` | listet die an den Entwurf angehängten Dateien (Name, Art, Größe), wie das Fenster Anhänge sie zeigt |
+| `layerling_get_attachment` | liest eine angehängte Datei, ihre Bytes als base64, wie Herunterladen im Fenster |
+| `layerling_add_attachment` | hängt eine als base64 übergebene Datei an, mit den Prüfungen des Fensters; ein schon vorhandener Name wird nur mit `replace` überschrieben |
+| `layerling_rename_attachment` | gibt einer angehängten Datei einen anderen Namen; der Inhalt bleibt |
+| `layerling_remove_attachment` | entfernt eine angehängte Datei endgültig; braucht `confirm: true` |
 | `layerling_set_workplane` | legt die Arbeitsebene auf eine Seite eines Körpers, setzt sie auf die Grundplatte zurück oder blendet sie aus und ein |
 | `layerling_capture_image` | nimmt ein Bild der Ansicht auf, von vorn, oben, seitlich, schräg von einer Ecke und mehr |
 

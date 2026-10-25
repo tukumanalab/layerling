@@ -13,7 +13,7 @@ Open [layerling.com](https://layerling.com/). Klik op de startpagina op {{ui:das
 
 Heb je al een bestand waarmee je verder wilt, gebruik dan {{ui:dashboard.importGeometry}}. Dat werkt voor layerling-ontwerpen (`.lyl`) en ook voor STL-, OBJ-, 3MF-, STEP- en SVG-bestanden.
 
-Al je ontwerpen verschijnen later op de startpagina met een voorbeeldafbeelding. Ze worden bewaard in de opslag van je browser en na elke wijziging automatisch opgeslagen, dus er is geen knop om op te slaan. Hoe je ontwerpen in een bestand verpakt en doorgeeft, lees je in [Bestanden en opslaan](chapter:bestanden-en-opslaan).
+Al je ontwerpen verschijnen later op de startpagina met een voorbeeldafbeelding. Ze worden bewaard in de opslag van je browser en na elke wijziging automatisch opgeslagen, dus er is geen knop om op te slaan. Hoe je ontwerpen in een bestand verpakt en doorgeeft, lees je in [Bestanden en opslaan](chapter:bestanden-en-opslaan). Wil je een herinnering, zet dan {{ui:workspace.confirmTabClose}} aan in de instellingen (het tandwiel in het lint): de browser vraagt dan om bevestiging voordat een tabblad met een open ontwerp wordt gesloten of herladen.
 
 ## De editor in één oogopslag
 
@@ -111,4 +111,4 @@ Op een kopie van layerling op je eigen computer of server heeft de melding "Upda
 
 Is je onderdeel klaar, klik dan op {{ui:editor.export}}, kies STL of 3MF en download het bestand. Open het in je slicer, bijvoorbeeld Bambu Studio, PrusaSlicer, OrcaSlicer of Cura. Kies je in de instellingen je printer, dan zie je al tijdens het bouwen of het onderdeel op het printbed past. Meer in [Printen](chapter:printen).
 
-> **Tip:** Kom je van Tinkercad, dan vind je snel je weg: plaat, vormen, lichaam en gat, groeperen, uitlijnen en spiegelen werken bijna hetzelfde. Nieuw zijn vooral afschuinen en afronden, uithollen, schroefdraad en schetsen.
+> **Tip:** Kom je van Tinkercad, dan vind je snel je weg: plaat, vormen, lichaam en gat, groeperen, uitlijnen en spiegelen werken bijna hetzelfde. Nieuw zijn vooral afschuinen en afronden, uithollen, schroefdraad en schetsen. Ook je eigen Tinkercad-ontwerpen kunnen mee, zie [Bestanden, opslaan en delen](chapter:bestanden-en-opslaan).

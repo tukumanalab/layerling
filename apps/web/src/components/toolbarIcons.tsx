@@ -125,6 +125,18 @@ export function ToolbarNoteIcon(props: IconProps) {
 }
 
 /**
+ * The attachments: a paperclip, the mark everyone knows for a file that travels with something else.
+ * It is a line without a body, so it carries no faint fill; the note's sheet stays the note's.
+ */
+export function ToolbarAttachmentsIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M37.5 19.3l-16.1 16.1a10.5 10.5 0 0 1 -14.9 -14.9l15 -15A7 7 0 1 1 31.5 15.5l-15 15a3.5 3.5 0 0 1 -5 -5l14.9 -14.8" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/**
  * Importieren und Exportieren sind zwei Würfel mit einem Pfeil, der schräg darauf
  * zeigt oder davon weg zeigt. Ein Pfeil nach unten oder oben las sich bei beiden
  * als "herunterladen" und war leicht zu verwechseln; hier sagt die Richtung zum

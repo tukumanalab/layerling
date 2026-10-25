@@ -27,6 +27,10 @@ Claude Desktop læser ikke projektfiler. Indtast serveren i dens egen konfigurat
 
 Kopiér skillen fra `docs/skills/layerling-mcp-skill` ind i din Codex skills-mappe, indtast serveren i din Codex-konfiguration ved hjælp af `docs/mcp/codex-config.example.toml`, og genstart Codex.
 
+### Gemini & Antigravity
+
+Antigravity finder automatisk skillen i arbejdsområdet, som ligger i `.agents/skills/layerling-mcp-skill`. Til Gemini CLI kopierer du skillen fra `docs/skills/layerling-mcp-skill` ind i din globale skills-mappe (`~/.gemini/skills/`), tilføjer serveren til dine indstillinger med `docs/mcp/gemini-config.example.json`, og genstarter klienten.
+
 De detaljerede instruktioner for alle tre er i [README på GitHub](https://github.com/henmedia/layerling/blob/main/README.md#layerling-mcp-skill).
 
 ## En kopi på en NAS eller server
@@ -67,6 +71,7 @@ AI'en arbejder med de samme funktioner som dig, gennem den samme vej som din han
 | `layerling_ungroup_objects` | opløser grupper |
 | `layerling_boolean_cut` | skærer solider med huller |
 | `layerling_intersect_objects` | beholder kun hvad objekterne har til fælles (Fælles) |
+| `layerling_hull_objects` | pakker objekterne ind i ét konvekst legeme, som var de krympefolieret (Hylster) |
 | `layerling_separate_parts` | adskiller en form i dens løse dele, et skitselegeme i ét legeme pr. omrids |
 | `layerling_split_objects` | skærer solider eller huller over med et plan |
 | `layerling_list_edges` | lister objektets rigtige CAD-kanter |
@@ -79,6 +84,7 @@ AI'en arbejder med de samme funktioner som dig, gennem den samme vej som din han
 | `layerling_layer_text` | laver en tekst om til en stak lag til et flerfarvet print (bogstaver, bredere kanter, en plade uden huller) eller bygger en stak igen, med et nøgleringshul, hjørnerne pr. lag og en rundet eller faset bogstavkant; med en navneliste, ét tag pr. navn |
 | `layerling_layer_icon` | laver et SVG-ikon (filens tekst, eller en ekstraheret skitseform) til et lagdelt ikon-tag til et flerfarvet print - ikonet, bredere kanter, en plade uden huller - eller bygger et igen med en ny bredde eller lag; med et antal fylder den pladen med kopier |
 | `layerling_create_qr_code` | laver en QR-kode af en tekst eller webadresse som {{ui:shape.qrCode}} i formbiblioteket - koden alene, hævet på en plade eller graveret, med fejlkorrektion, bredde, højde, stillezone og som hul, hvis du vil; advarer, når et modul kommer under 0,8 mm |
+| `layerling_reference_image` | tilføjer et referencebillede fra et billede som {{ui:import.referenceImage}}, eller flytter, drejer, kalibrerer (to punkter på billedet og deres virkelige afstand), toner eller låser et - en hjælp, der aldrig eksporteres eller printes |
 | `layerling_measure_section` | måler på et skæreplan mellem to punkter der snapper til omridset - vægtykkelse, mellemrum, pasninger |
 | `layerling_show_overhangs` | slår overhængsskraveringen til eller fra, sætter vinklen og rapporterer for hver form det areal der ville have brug for støtte |
 | `layerling_estimate_print` | estimerer volumen, vægt og filament for markeringen eller hele designet: for en solid form, og som et groft gæt med vægge og fyldning som eksportvinduet |
@@ -94,14 +100,19 @@ AI'en arbejder med de samme funktioner som dig, gennem den samme vej som din han
 | `layerling_delete_custom_shape` | fjerner en egne form; indsatte former bevares |
 | `layerling_show_workplane` | skjuler og viser pladen med sit gitter, for et billede af undersiden for eksempel (kun visningen) |
 | `layerling_set_section_view` | skærer visningen op langs et plan for at kigge indeni (kun visningen, intet skæres fra hinanden) |
-| `layerling_saved_view` | gemmer den aktuelle visning under tasten 7, 8, 9 eller 0 og går tilbage til den, som Shift+tast og tasten (kun visningen) |
+| `layerling_saved_view` | gemmer den aktuelle visning under tasten 7, 8, 9 eller 0 og går tilbage til den, som Shift+tast og tasten (kun visningen); sætter også startvisningen for nye designs |
 | `layerling_clear_history` | sletter hvert fortryd-trin for evigt, som historikvisningens "Slet historik"-knap; kræver `confirm: true` |
 | `layerling_set_history_view` | ser tilbage på en tidligere tilstand af projektet, som historikvisningen (det rigtige design forbliver urørt; ændringsværktøjer venter indtil den er lukket) |
 | `layerling_restore_from_history` | henter objekter (også dele i grupper) fra en tidligere tilstand tilbage i designet som kopier, som historikvisningens knap til at hente ind i designet - ét trin, som fortryd tager tilbage |
 | `layerling_export_section_svg` | returnerer omridsene på et skæreplan som en SVG i 1:1, fra de samme former som eksporten |
 | `layerling_export_drawing` | laver værkstedstegningen fra "2D"-eksporten: tre visninger i 1:1 på et ISO-ark med samlede størrelser og en tabel over de runde boringer, som SVG-tekst eller PDF |
-| `layerling_export_mesh` | skriver eksportvinduets fil som STL, 3MF eller OBJ af de samme legemer; til en sti på denne computer eller som base64 |
+| `layerling_export_mesh` | skriver eksportvinduets fil som STL, 3MF, OBJ, SVG (topvisning, fodaftryk eller synlige kanter) eller DXF til laserskæring af de samme legemer; til en sti på denne computer eller som base64 |
 | `layerling_save_project` | gemmer hele det redigerbare design som en .lyl-fil på en sti på den computer, hvor MCP-serveren kører, uden dialog; en eksisterende fil erstattes kun med `overwrite`, der skrives via en midlertidig fil, og målet for Ctrl+S i editoren bliver, som det var |
+| `layerling_list_attachments` | viser filerne, der er vedhæftet designet (navn, type, størrelse), som panelet {{ui:panel.attachments}} viser dem |
+| `layerling_get_attachment` | læser én vedhæftet fil, dens bytes som base64, som Download i panelet |
+| `layerling_add_attachment` | vedhæfter en fil givet som base64, med panelets kontroller; et navn, der allerede er vedhæftet, overskrives kun med `replace` |
+| `layerling_rename_attachment` | giver en vedhæftet fil et andet navn; indholdet bliver |
+| `layerling_remove_attachment` | fjerner en vedhæftet fil for altid; kræver `confirm: true` |
 | `layerling_set_workplane` | lægger arbejdsplanet på en side af en form eller tilbage på grundpladen, og skjuler eller viser det |
 | `layerling_capture_image` | tager et billede af visningen: forfra, oppefra, fra siden, diagonalt fra et hjørne og mere |
 
