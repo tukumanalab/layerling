@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { shapeMeshFootprint } from "@/components/SketchWorkspace";
+import { importedMeshFootprint, shapeMeshFootprint } from "@/components/SketchWorkspace";
+import { sketchReferenceShapeOnWorkplane } from "@/lib/editorSketchCad";
+import { meshForShape } from "@/lib/editorMeshCore";
 import type { WorkplaneShape } from "@/types/layerling";
 
 // #596: a body under a sketch is drawn with its real outline, not as the rectangle of its width and depth.
@@ -39,6 +41,72 @@ describe("the outline of a body under a sketch (#596)", () => {
     // Turned by 30 degrees a hexagon's corners move: the two outlines are not the same set of points.
     expect(new Set(plain.map(([x, z]) => `${x.toFixed(1)},${z.toFixed(1)}`)).size).toBeGreaterThan(0);
     expect(plain.map(([x, z]) => `${x.toFixed(1)},${z.toFixed(1)}`).sort().join("|")).not.toBe(turned.map(([x, z]) => `${x.toFixed(1)},${z.toFixed(1)}`).sort().join("|"));
+  });
+
+  it("shows a group by the outlines of its parts, not as a box (#778)", () => {
+    // A thin round plate under a smaller hexagon, grouped: the box of the group would be 40 x 40.
+    const group = shape({
+      kind: "mesh", x: 0, z: 0, width: 40, depth: 40, height: 14,
+      groupedShapes: [
+        shape({ id: "plate", kind: "cylinder", x: 0, z: 0, width: 40, depth: 40, height: 4 }),
+        shape({ id: "hex", kind: "polygon", sides: 6, x: 0, z: 0, elevation: 4, width: 12, depth: 12, height: 10 }),
+      ],
+    });
+    const footprint = shapeMeshFootprint(group);
+    expect(footprint?.world).toBe(true);
+    const points = corners(footprint?.outlineD ?? null);
+    // The plate is round: far more than four corners, and none of them on the box's corner (20, 20).
+    expect(points.length).toBeGreaterThan(40);
+    expect(points.some(([x, z]) => Math.abs(x - 20) < 0.5 && Math.abs(z - 20) < 0.5)).toBe(false);
+    // Both parts are in it: the plate reaches 20 from the middle, the hexagon's corners stay within 6.5.
+    expect(Math.max(...points.map(([x]) => Math.abs(x)))).toBeGreaterThan(19);
+    expect(points.some(([x, z]) => Math.hypot(x, z) < 6.5)).toBe(true);
+  });
+
+  it("counts the triangle limit per part of a group, so fine parts keep their outline (#834)", () => {
+    // Two bolts side by side in one group, as a knurl with a bolt in the report: each is under the limit, both together over it.
+    // A group's parts stand relative to the group.
+    const bolt = (id: string, x: number) => shape({ id, kind: "thread", x, z: 0, width: 10, depth: 10, height: 25 });
+    const parts = [bolt("left", -8), bolt("right", 8)];
+    const triangles = parts.map((part) => meshForShape(part).faces.length);
+    expect(Math.max(...triangles)).toBeLessThanOrEqual(20000);
+    expect(triangles[0] + triangles[1]).toBeGreaterThan(20000);
+    const group = shape({ kind: "mesh", x: 25, z: 0, width: 26, depth: 10, height: 25, groupedShapes: parts });
+    const points = corners(shapeMeshFootprint(group)?.outlineD ?? null);
+    // Two round outlines, not the group's box with its corners at (25 ± 13, ± 5).
+    expect(points.length).toBeGreaterThan(40);
+    expect(points.some(([x, z]) => Math.abs(Math.abs(x - 25) - 13) < 0.3 && Math.abs(Math.abs(z) - 5) < 0.3)).toBe(false);
+    expect(points.some(([x]) => x < 25)).toBe(true);
+    expect(points.some(([x]) => x > 25)).toBe(true);
+  });
+
+  it("shows each part of a group on a side face, also the part behind the plane (#778)", () => {
+    // A bar of 40 x 10 x 10 and a thin post of 6 mm on top of it, grouped; the workplane lies on the bar's front face (z = 5).
+    const group = shape({
+      kind: "mesh", x: 0, z: 0, width: 40, depth: 10, height: 30,
+      groupedShapes: [
+        shape({ id: "bar", kind: "box", x: 0, z: 0, width: 40, depth: 10, height: 10 }),
+        shape({ id: "post", kind: "cylinder", x: 0, z: 0, elevation: 10, width: 6, depth: 6, height: 20 }),
+      ],
+    });
+    const front = { origin: { x: 0, y: 0, z: 5 }, normal: { x: 0, y: 0, z: 1 }, xAxis: { x: 1, y: 0, z: 0 }, zAxis: { x: 0, y: -1, z: 0 } };
+    const reference = sketchReferenceShapeOnWorkplane(group, front, true);
+    expect(reference.importedMesh?.partTriangleCounts?.length).toBe(2);
+    const points = corners(importedMeshFootprint(reference)?.outlineD ?? null);
+    // The bar's face runs 40 wide and 10 high; the post stands 20 above it and only 6 wide. As one body only the bar's face showed.
+    const heights = points.map(([, z]) => -z);
+    expect(Math.max(...heights) - Math.min(...heights)).toBeGreaterThan(29);
+    const top = Math.max(...heights);
+    expect(points.filter(([, z]) => Math.abs(-z - top) < 0.5).every(([x]) => Math.abs(x) < 3.5)).toBe(true);
+  });
+
+  it("shows a body that has no face on the plane as it is seen, not as the hull round it (#778)", () => {
+    // A ring seen from above: its hole is part of the outline, where the hull was one round patch.
+    const torus = shape({ kind: "torus", x: 0, z: 0, width: 40, depth: 40, height: 10 });
+    const above = { origin: { x: 0, y: 20, z: 0 }, normal: { x: 0, y: 1, z: 0 }, xAxis: { x: 1, y: 0, z: 0 }, zAxis: { x: 0, y: 0, z: 1 } };
+    const points = corners(importedMeshFootprint(sketchReferenceShapeOnWorkplane(torus, above, true))?.outlineD ?? null);
+    expect(Math.max(...points.map(([x, z]) => Math.hypot(x, z)))).toBeGreaterThan(19);
+    expect(points.some(([x, z]) => Math.hypot(x, z) < 11)).toBe(true);
   });
 
   it("leaves boxes and round shapes to the cheaper drawing", () => {

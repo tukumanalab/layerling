@@ -21,7 +21,7 @@
     <a href="#layerling-mcp-skill"><img alt="Drivable by AI" src="https://img.shields.io/badge/AI--drivable-MCP%20server-16c0d4"></a>
   </p>
 
-  <p><strong>English</strong> · <a href="README.de.md">Deutsch</a> · <a href="README.nl.md">Nederlands</a></p>
+  <p><strong>English</strong> · <a href="README.de.md">Deutsch</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.ar.md">العربية</a> · <a href="README.zh-cn.md">简体中文</a> · <a href="README.zh-tw.md">繁體中文</a></p>
 </div>
 
 <p align="center">
@@ -36,7 +36,7 @@
 
 You own a 3D printer. You want a part that fits something, not a career in CAD.
 
-layerling works the way you already think: put a shape on the plate, drag it to size, turn a second shape into a hole, group the two, export, print. There is nothing to learn before you start and **nothing to sign up for** – open the page and build. Your designs stay in your own browser: no account, no cloud, nothing uploaded anywhere.
+layerling works the way you already think: put a shape on the plate, drag it to size, turn a second shape into a hole, group the two, export, print. There is nothing to learn before you start and **nothing to sign up for** – open the page and build. Your designs stay in your own browser by default: no account, no cloud, nothing uploaded anywhere. If you run your own copy, they can live in a folder on your server instead, so every device in the house sees the same ones.
 
 ### Coming From Tinkercad?
 
@@ -67,7 +67,7 @@ It is not a full CAD package: there is no parametric timeline and no assemblies.
 - **Pivot that stays** – set a pivot for one body and it stays with that body: it moves, turns and scales with it, is saved, and can be typed as X, Y and Z or dragged with the mouse, snapping to corners and edge midpoints - for hinges and joints.
 - **Light and shadows to taste** – shading contrast, shadow strength and softness, and the direction and height of the light, up to straight above as in Tinkercad, all in the settings. A "Tinkercad look" button sets colours, grid and light like there in one go, and the darker grid lines can come every centimetre in a colour of their own.
 - **Fast mode** – for slower computers: one switch in the settings turns off shadows, edge lines and the camera's inertia and draws the view at screen resolution; the camera's inertia can also be switched off on its own, so the view stops the moment you let go.
-- **Align faces and see the angles** – the Align faces tool brings a face of one part against a face of another, touching or flush, with an optional gap; a turned body shows its angles about X, Y and Z under the selection, and the Rotation card in its settings takes them as numbers.
+- **Align faces and see the angles** – the Align faces tool brings a face of one part against a face of another, touching or flush, with an optional gap, or puts a hole or pin on the axis of another hole; a turned body shows its angles about X, Y and Z under the selection, and the Rotation card in its settings takes them as numbers.
 - **Snap to other shapes** – while moving, a shape locks its edges or centre onto the edges and centres of the shapes around it, with a guide line, so parts sit flush without typing numbers. Alt during the drag pauses it; Shift keeps the move on one axis, and Alt held from the start drags a copy, as in Tinkercad.
 - **Set down on faces** – like Cruise in Tinkercad: a new shape lies down on the face under the pointer, sloped ones too, and C picks the selection up and sets it down on another face the same way.
 - **Reference points** – right-click a body to mark its centre, corners or edge middles with points that nothing prints and that dragged shapes snap to; drag a point or type its coordinates, and the marks are saved with the design. The tape measure can mark the middle of a measurement - the centre of a round hole, for one.
@@ -84,12 +84,13 @@ It is not a full CAD package: there is no parametric timeline and no assemblies.
 - **Multicolor groups** – a group can show every part in its own colour, also after holes were cut into it, and a 3MF or OBJ export keeps those colours, so the slicer can map the parts onto filaments.
 - **Bundle** – Ctrl+B holds parts together like Tinkercad's bundle: they move, turn and scale as one, but keep their colours and stay separate bodies in the export – handy for multicolour prints.
 - **Intersection** – keep only what two or more selected solids have in common, or where solids and holes overlap.
+- **Hull** – wrap the selected shapes in their convex hull, the smallest body without dents round all of them: a half sphere on a cylinder becomes a dome, four posts a box with round corners. Holes in the selection are cut out afterwards.
 - **Split** – cut solids or holes in two with a plane; a hollowed body keeps its cavity. Turn the plane for an angled cut, drag its arrow, or lay it on any face with "Pick face".
 
 ### Refining
 
 - **Chamfer and fillet** – break or round any edge of a solid, and remove or change the treatment again later.
-- **Sketches** – draw outlines with lines, curves and ready-made shapes, set lines by length and angle as you draw ("50<30", Shift snaps in 15° steps), type lengths, angles and sizes (sums like "60+12.5" work in every number field), round or chamfer corners, snap to the outlines of other bodies, draw construction lines to snap to, and extrude or revolve them into exact bodies. A revolve with a pitch winds the outline up as one continuous helical strand instead of rings, like filament on a spool. A sketch can also be built as a stroke: a closed outline becomes a frame, inside, outside or centred on the line, and an open line a stripe with flat, square or round ends.
+- **Sketches** – draw outlines with lines, curves and ready-made shapes, set lines by length and angle as you draw ("50<30", Shift snaps in 15° steps), type lengths, angles and sizes (sums like "60+12.5" work in every number field), round or chamfer corners, snap to the outlines of other bodies, draw construction lines to snap to, and extrude, revolve or sweep them along a path into exact bodies. A revolve with a pitch winds the outline up as one continuous helical strand instead of rings, like filament on a spool. A sketch can also be built as a stroke: a closed outline becomes a frame, inside, outside or centred on the line, and an open line a stripe with flat, square or round ends.
 - **Hollowing** – turn a body into walls of one thickness, open on any sides you choose (top, bottom, front, back, left, right, in any combination) or closed – for boxes, cups and cases.
 - **Delete face** – click the faces of a fillet, a hole or a boss and delete them: the faces around them grow to close the gap, and the body stays exact for more fillets and the STEP export.
 - **Custom shapes** – keep bodies you need again and again at the top of the shape library and insert them into any design with a click or by dragging; in the browser, or with the shared store on the server for every device. "Back up all" takes them along.
@@ -100,14 +101,16 @@ It is not a full CAD package: there is no parametric timeline and no assemblies.
 ### Files
 
 - **Fonts of your own** – use any TrueType, OpenType or WOFF font for text, or in Chrome and Edge a font installed on the computer. A design keeps only the outlines of the letters it uses, so it opens anywhere. Arabic and Hebrew run right to left, Arabic letters join up.
-- **Bring your own models** – import STL, OBJ, 3MF, STEP or SVG and build around it. An SVG comes in as a sketch body: an area, a stroke outside or inside its lines, a silhouette without its holes, or the drawing widened all round - together a cookie cutter from one file, or the layers of a multicolour logo. The Text shape has the same fill modes, and the shape library has a name tag: a text in coloured layers for a multicolour print, with an optional key ring hole and a rounded or chamfered edge on the letters, and an icon tag: an SVG icon in the same coloured layers, with a count and "as many as fit" to fill a plate. A coloured OBJ – from layerling, or from Tinkercad as a ZIP with its `.mtl` – or a coloured 3MF, slicer projects included, comes in as one body per colour, and a 3MF with several objects as one body per object.
-- **Export what your slicer wants** – STL, 3MF with names and colours, or OBJ with colours, for the selection or the whole scene (hidden parts stay out), plus STEP if the design should travel on into a full CAD program. PNG saves a clean picture of the view, at twice the resolution and with a transparent background if you like.
+- **Bring your own models** – import STL, OBJ, 3MF, STEP, SVG or DXF and build around it. A DXF part outline, as a laser cutting shop or a supplier sends it, comes in as a body with its holes as holes of their own, arcs and circles kept true. An SVG comes in as a sketch body: an area, a stroke outside or inside its lines, a silhouette without its holes, or the drawing widened all round - together a cookie cutter from one file, or the layers of a multicolour logo. The Text shape has the same fill modes, and the shape library has a name tag: a text in coloured layers for a multicolour print, with an optional key ring hole and a rounded or chamfered edge on the letters, and an icon tag: an SVG icon in the same coloured layers, with a count and "as many as fit" to fill a plate. A coloured OBJ – from layerling, or from Tinkercad as a ZIP with its `.mtl` – or a coloured 3MF, slicer projects included, comes in as one body per colour, and a 3MF with several objects as one body per object.
+- **Export what your slicer wants** – STL, 3MF with names and colours, or OBJ with colours, for the selection or the whole scene (hidden parts stay out), plus STEP if the design should travel on into a full CAD program, and the top view as SVG or as DXF with true arcs and circles for a laser cutter. PNG saves a clean picture of the view, at twice the resolution and with a transparent background if you like.
 - **Drawing export** – select a part, or clear the selection for the whole visible design, then choose **Export → Drawing → PDF or SVG**. Generates front, top and right-side views in first-angle layout on a bordered engineering sheet with zone numbers and a lower-right title block, with overall dimensions, hidden edges, and diameter/position tables for axis-aligned circular bores. Views are 1:1 in millimetres; the sheet uses the smallest fitting ISO landscape size (or a larger custom size). Print at **100% / actual size**. Positions are measured from each view's lower-left overall corner. Hole tables use nominal mesh geometry and do not automatically dimension angled/non-circular holes, threads, depths or tolerances. The projection engine is adapted from [Cadverix-3D](https://github.com/WC3D/Cadverix-3D)'s drawing work.
 - **Update notice** – on the published program an open page notices a new version by itself and offers to save and reload, listing what is new.
+- **Delete several designs at once** – **Select** on the start page chooses designs by a click on their cards (or all of them), and one question deletes the whole choice; it works in the server folder too.
 - **Folders for your designs** – sort the designs on the start page into folders (and folders into folders) by dragging them or with "Move to …"; the search looks through all of them, and "Back up all" keeps them.
 - **Projects as files** – save a whole project, history, sketches and groups included, as a `.lyl` file and carry on elsewhere. In Chrome and Edge you choose the folder yourself and Ctrl+S saves into that same file again; other browsers download it. Older `.skf` files from earlier versions still open; saving then writes a `.lyl` beside them.
 - **Bug report** – one link in the footer saves a ZIP with the design as a `.lyl` and a text with the version, browser and last messages, ready to attach in the forum or on GitHub, which refuse a bare `.lyl`.
-- **Designs you recognise** – everything lives in your own browser, each design with a thumbnail.
+- **Designs you recognise** – each design with a thumbnail, in your own browser or in the server folder.
+- **Attachments** – keep notes, a photo of the printed part or a datasheet inside the design: `.md` and `.txt` files, `.png`, `.jpg` and `.webp` pictures and PDF files travel with the `.lyl` file. The eye opens a text or a picture in a window; a PDF is downloaded. SVG is not accepted, since it can carry scripts.
 
 ### Viewing
 
@@ -115,7 +118,9 @@ It is not a full CAD package: there is no parametric timeline and no assemblies.
 - **Turn the view at the cube** – dragging the view cube turns the view like the right mouse button, with one finger on a tablet; a click still jumps to that side, and a click on a corner or an edge looks from there. Keys **1**–**6** jump too, and **Shift+1**–**6** also zoom to the selection.
 - **Four saved views per design** – **Shift+7**, **8**, **9** or **0** saves the view exactly as it is (angle, pan, zoom), and the key alone brings it back. Each design keeps its own, and a saved `.lyl` file carries them along.
 - **The view cube in any corner** – Settings > Appearance > **View cube position** puts the cube in the top left, top right, bottom left or bottom right; in any corner but the top left, the camera controls move up into its place.
+- **In your language** – the program and its user guide come in English, German and 17 more languages; the language list is at the very top right.
 - **Look from below** – the eye over a grid in the camera bar hides the plate, so the underside of a design can be seen without it in the way.
+- **A second view in its own window** – a button in the camera bar opens a second window that shows the same design through a camera of its own, with its own view cube and camera bar, and follows every change. It opens where you last left it.
 - **Panels where you want them** – the object list, the settings, the section view, the tape measure and the tool panels for edges, hollowing and patterns move by their title bar and open there again; a double-click docks them.
 - **Right-click menu** – a short right click on a body brings up the most used commands: duplicate, hole or solid, group, chamfer, fillet and hollow for one body, mirror and scale by percent, hide, lock, drop to the workplane, delete. Dragging with the right button still turns the view.
 - **Section view** – cut the view open along a plane across X, Y or Z to look at walls, cavities and parts that fit into each other, with a coarse and a fine slider. Only the view is cut: the design and every export stay whole. "Section as SVG" saves the cut itself at 1:1, for a laser or a template, and "Measure" reads wall thickness and gaps right on the cut, snapping square to the wall.
@@ -127,12 +132,12 @@ It is not a full CAD package: there is no parametric timeline and no assemblies.
 Made by others, not by this project:
 
 <!-- videos:start -->
-- [I'm 100% In on Layerling - The Next Big Free CAD](https://youtu.be/IO7S-7bxS5o) – Printology (English). A first test by a Tinkercad user: what layerling does better than Tinkercad, what still needs work, and whether to switch now.
-- [10 Things Layerling Can Do That Tinkercad Can't!](https://youtu.be/cx0OVHgUsJM) – Print N Repeat (English). A second video by this channel: ten things layerling can do that Tinkercad cannot.
+- [I Tried Layerling After Tinkercad… Is It REALLY Better?](https://youtu.be/5DpOxdoNwqs) – Maker Mates Studio 3D Printing (English). Someone coming from Tinkercad tries layerling and compares the two.
+- [Layerling CAD Videos](https://www.youtube.com/playlist?list=PLc09BHr_6nn8) – Printology (English). A playlist about layerling, so far with “I'm 100% In on Layerling - The Next Big Free CAD” and “Layerling Features That Blow Tinkercad Out Of The Water”.
+- [Print by Layer](https://www.youtube.com/playlist?list=PLejZBz4L7CGQ) – Print N Repeat (English). A playlist about layerling, so far with “The EASIEST Way to Design Hinges in Layerling” and “The EASIEST Way to 3D Model Threads!”.
 - [Layerling la nueva herramienta gratuita de modelado 3D, más completo que Tinkercad](https://youtu.be/-EEt0RSINoY) – Fulcro 1900 (Spanish). A video about layerling as a new free 3D modelling tool that is more complete than Tinkercad.
-- [Layerling - Tussen Tinkercad en Fusion 360 in, en Helemaal Gratis!](https://youtu.be/X-UuvsfDI-s) – Werkplaats Marc (Dutch). A first look at layerling for Tinkercad users: hollowing, fillets, the hole pattern, threads with clearance, custom fonts and printer profiles, with a bolt printed with and without clearance to show the difference.
+- [Layerling](https://www.youtube.com/playlist?list=PLQuXPoMXTnRQ) – Werkplaats Marc (Dutch). A playlist about layerling, so far with a first look for Tinkercad users (“Layerling - De Gratis Tussenstap van Tinkercad naar Fusion 360”) and a tutorial on sketches: tracing a photo, revolve and sweep along a path (“Schetsen Uitgelegd”).
 - [Layerling](https://www.youtube.com/playlist?list=PLYqVFeqYBrPE) – TECHNOBENTO (English). A playlist about layerling, so far with “A new way to sketch in Layerling”.
-- [The PERFECT FREE CAD Program Between Tinkercad and Fusion 360!](https://youtu.be/GIoG-IHPXyg) – Print N Repeat (English). A video about layerling as a free CAD program between Tinkercad and Fusion 360.
 - [Layerling Tutorials](https://www.youtube.com/playlist?list=PLZ-ZWS0D1JIk) – HL ModTech (English). A playlist by a Tinkercad user, so far with a look at layerling of about 23 minutes (free, browser-based CAD that extends Tinkercad), a deeper dive into its features and a short update on printed threads.
 - [Layerling – Playlist](https://www.youtube.com/playlist?list=PLCsBmX2kOGWs) – Making Layers (English). A series about layerling, so far with "Tinkercad alternative / upgrade? Introducing Layerling!", an overview for people coming from Tinkercad, and "Layerling Sketch Tools!" on the sketch tools.
 - [Tinkercad Too Basic? Fusion 360 Too Much? Meet Layerling for 3D Printing](https://youtu.be/kzV7fQ3rXhw) – 3D Jesus | 3D Printing & Design (English). A first test of layerling without any manual: fillets and chamfers, hollowing, threads, sketches, revolved bodies, patterns, import and printer profiles.
@@ -144,7 +149,7 @@ The shortest way is the hosted version. Nothing to install, nothing to sign up f
 
 **https://layerling.com/**
 
-The rest of this section is about running your own copy: on your computer, or on a machine in the workshop that everyone opens in their browser. Wherever the app is served from, the designs never leave the browser they were made in, and exports download straight to the person's own computer.
+The rest of this section is about running your own copy: on your computer, or on a machine in the workshop that everyone opens in their browser. Wherever the app is served from, nothing is sent to anyone else: designs stay in the browser they were made in (or in the server folder you set up yourself), and exports download straight to the person's own computer.
 
 ### Windows Quickstart
 
@@ -198,7 +203,7 @@ The quickest way is a single command:
 docker run -d --name layerling -p 3000:3000 -v layerling-thumbnails:/app/.codex/project-thumbnails --restart unless-stopped ghcr.io/henmedia/layerling:latest
 ```
 
-The `-v` option keeps the preview pictures of the start page in a Docker volume named `layerling-thumbnails`, so they survive an update; without it they are inside the container and gone each time it is created again (the designs themselves live in the browser and are not affected). On a NAS with a container manager (Synology Container Manager, Unraid, Portainer), search for `henmedia/layerling` in its registry (Docker Hub) or enter `henmedia/layerling:latest`, map port 3000, and add a volume for `/app/.codex/project-thumbnails`. To update, pull the image again and recreate the container (or let Watchtower do it).
+The `-v` option keeps the preview pictures of the start page in a Docker volume named `layerling-thumbnails`, so they survive an update; without it they are inside the container and gone each time it is created again (the designs themselves are not affected: they live in the browser or in the server folder). On a NAS with a container manager (Synology Container Manager, Unraid, Portainer), search for `henmedia/layerling` in its registry (Docker Hub) or enter `henmedia/layerling:latest`, map port 3000, and add a volume for `/app/.codex/project-thumbnails`. To update, pull the image again and recreate the container (or let Watchtower do it).
 
 The image tags are plain version numbers **without a "v"**: `ghcr.io/henmedia/layerling:1.42.0`, while the GitHub release is called `v1.42.0`. A pull only fetches the new image; a container that already exists keeps running the old one until it is removed and created again:
 
@@ -236,7 +241,11 @@ Everyday commands:
 
 The image runs `next start` in production mode, so the MCP bridge is off there unless you switch it on (see [Letting an AI client reach a copy on a NAS or server](#letting-an-ai-client-reach-a-copy-on-a-nas-or-server)). To offer a shared project folder, bind a writable directory and set `LAYERLING_SHARED_PROJECTS_DIR` in `compose.yml` to the path inside the container where it is mounted, for example `./shared-projects:/shared-projects` with `LAYERLING_SHARED_PROJECTS_DIR: "/shared-projects"` (see [Shared Designs on a Network](#shared-designs-on-a-network)). The container runs as the user with the number 999, so that user must be allowed to write to the folder: `sudo chown 999:999 ./shared-projects`, or add `user: "1000:1000"` to the service (your own user and group numbers, `id -u` and `id -g` show them) so that the container runs as you. Without it the folder shows up on the start page but nothing can be saved there. After changing it, run `docker compose up -d`: `docker compose restart` keeps the old setting. `docker exec <container> printenv LAYERLING_SHARED_PROJECTS_DIR` shows the one in use.
 
+To keep every design in that folder and none in the browser, there is a complete guide in English and German with its own compose file and an update script that checks the configuration, backs up the folder and rolls back a failed update: [docs/docker](docs/docker/README.md), written by Jürgen Keller. With `LAYERLING_NEW_DESIGNS_ON_SERVER: "always"`, everything that makes a design goes to the server folder: the tile, opening or importing a file, restoring a backup (with its folders), duplicating and a state taken from the history, and New folder on the start page makes a server folder.
+
 To choose the colour theme people get on their first visit, set `LAYERLING_DEFAULT_THEME` to `system`, `light`, `dark` or `graphite` (the same way, in `compose.yml` or in the environment of `npm run start`). Anyone who has opened layerling before keeps the theme their browser already has, and anyone can still change it with the theme switch. Without the setting the theme follows the system. A copy served as plain files has no server to read it, so it does not apply there.
+
+For a class or a workshop with children, `LAYERLING_SIMPLE_MODE` starts layerling in its simple mode: the ribbon keeps the tools a workshop uses, the shape library a short list, the buttons are larger, and the start page shows the designs and no news, no welcome text and no links out of layerling. `true` is the start for people who have not chosen (the settings have a switch, and leaving the mode there takes a press held for two seconds), `always` holds for everyone and takes the switch away. A link ending in `?mode=simple` switches it on for the device that opens it, and `?mode=full` off again. It is set the same way as the others, and a copy served as plain files has no server to read it (the link and the setting still work there).
 
 With the shared folder on, `LAYERLING_NEW_DESIGNS_ON_SERVER` makes new designs start on the server: `true` is the start for people who have not chosen (they can untick **New designs on the server** on the start page), `always` holds for everyone and locks the tick. It is set the same way, and a copy served as plain files has no server to read it.
 
@@ -310,6 +319,13 @@ and the short guide in the editor explains how to switch it on. The web server n
 
 The folder has **no login**: whoever can reach the page can read, write and delete what is in it. On a home network or in
 a workshop that is the point; on a publicly reachable site, protect it or leave it out.
+
+Nothing in the folder is meant to be opened by its address: layerling reads and writes it only through `store.php`.
+On Apache, `store.php` writes a `.htaccess` into the folder that refuses every direct request. Apache reads it only where
+`AllowOverride` lets it (Debian's default for `/var/www` is `None`, which ignores it), and nginx and other servers never
+do, so deny access to `store/` there yourself (in Apache: `<Directory /var/www/html/store> Require all denied </Directory>`,
+in nginx: `location /store/ { deny all; }`). `store.php` also checks every export it saves, so a file that could run in a
+browser is refused either way.
 
 One thing to remember when deploying: if you mirror the export with an option that removes anything extra – `rsync
 --delete`, `robocopy /MIR`, WinSCP `-delete` – exclude `store` explicitly, or every update will wipe the projects.
@@ -391,7 +407,7 @@ server switches it on with an access token ([see below](#letting-an-ai-client-re
 
 The main tool names are `layerling_list_editors`, `layerling_read_scene`, `layerling_list_objects`,
 `layerling_create_shape`, `layerling_update_object`, `layerling_list_edges`, `layerling_apply_edge_treatment`,
-`layerling_hollow_object`, `layerling_array_objects`, `layerling_set_section_view` and `layerling_capture_image`.
+`layerling_hollow_object`, `layerling_offset_object`, `layerling_cut_out`, `layerling_array_objects`, `layerling_set_section_view` and `layerling_capture_image`.
 
 ### Claude Code
 
@@ -494,7 +510,7 @@ counts. Good places to start:
 
 - editor bug fixes
 - geometry and boolean test cases
-- import and export edge cases (STL, OBJ, 3MF, STEP, SVG)
+- import and export edge cases (STL, OBJ, 3MF, STEP, SVG, DXF)
 - UI polish
 - documentation screenshots and videos
 - accessibility and performance improvements

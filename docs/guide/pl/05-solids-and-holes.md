@@ -45,11 +45,15 @@ Czasem części mają tylko trzymać się razem, nie stając się jednym, na prz
 - Otwory niczego nie wycinają.
 - W eksporcie STL, 3MF lub OBJ każda część jest osobną bryłą, a w 3MF i OBJ ze swoim kolorem.
 
-{{ui:editor.tool.ungroup}} ([[Ctrl]]+[[Shift]]+[[G]]) rozkłada zestaw z powrotem, a [[E]] otwiera go do edycji jak grupę. Fazowanie, zaokrąglenie i drążenie nie działają na zestawie, bo nie jest on jedną bryłą: w tym celu go zgrupuj albo pracuj na jego częściach po kolei. Jeśli otwór w zestawie ma jednak wycinać, zgrupuj zestaw (Ctrl+G).
+{{ui:editor.tool.ungroup}} ([[Ctrl]]+[[Shift]]+[[G]]) rozkłada zestaw z powrotem, a [[E]] otwiera go do edycji jak grupę. Fazowanie, zaokrąglenie i drążenie nie działają na zestawie, bo nie jest on jedną bryłą: w tym celu go zgrupuj albo pracuj na jego częściach po kolei. Gdy zgrupujesz zestaw z innymi częściami, jego otwory wycinają te części, ale nadal nie własne bryły zestawu, jak w Tinkercadzie. Dlatego na przykład kołek z otworem obok niego można jako zestaw używać raz po raz. Jeśli otwór w zestawie ma wycinać także własne bryły zestawu, rozłóż zestaw i zgrupuj jego części ([[Ctrl]]+[[G]]).
 
 ## Część wspólna
 
 {{ui:editor.tool.intersect}} zostawia tylko to, co dwie lub więcej brył mają wspólnego. Połóż na sobie dwa nachodzące na siebie kształty, zaznacz oba i kliknij ten przycisk. Tak z walca i prostopadłościanu powstaje element z jednym bokiem okrągłym, a drugim prostym. Grupa liczy się tak, jak wygląda, razem z otworami. Jeśli zaznaczony jest też otwór, zostaje to, co wszystkie bryły mają wspólnego ze wszystkimi otworami. Jeśli kształty nie mają nic wspólnego, nic się nie zmienia, a komunikat o tym informuje. Obok {{ui:editor.tool.intersectPreview}} pokazuje część wspólną, zanim ją zastosujesz: zaznaczone kształty stają się przezroczyste, a to, co mają wspólnego, jest rysowane na zielono. Zaznaczaj i przesuwaj każdy kształt osobno, a zielona część za nim podąża. {{ui:editor.tool.intersect}} ją stosuje, [[Esc]] zamyka podgląd.
+
+## Wycinanie jednej bryły z drugiej
+
+Przy częściach, które mają do siebie pasować, wał w tulei albo śruba w obudowie, robisz jedną część i wycinasz ją z drugiej. Zaznacz obie bryły i kliknij {{ui:editor.tool.cutOut}} w obszarze {{ui:editor.group.combine}} albo kliknij prawym przyciskiem i wybierz to tam. Panel podaje część, która zostaje, i bryłę, która dostaje wnękę; layerling bierze mniejszą za część, a {{ui:cutOut.swap}} to odwraca. {{ui:cutOut.clearance}} powiększa wnękę wokół części o tyle: 0 pasuje dokładnie, 0,2 mm to zwykły luz dla wydrukowanego pasowania. {{ui:cutOut.apply}} wycina kopię części z drugiej bryły i zostawia samą część tam, gdzie jest. Wynikiem jest grupa: {{ui:editor.tool.ungroup}} znów rozdziela wycięcie. Luz wymaga, żeby część była dokładną bryłą, jak przy narzędziu {{ui:editor.tool.offset}}, którego to używa.
 
 ## Edycja grupy
 
@@ -67,9 +71,9 @@ Uwaga: zaokrąglenia i fazki nałożone na **całą** grupę przepadają przy od
 
 ## Dzielenie
 
-{{ui:editor.tool.split}} w sekcji {{ui:editor.group.modify}} przecina zaznaczenie na dwie części płaszczyzną, na przykład część za dużą na stół drukarki albo taką, do której wnętrza chcesz zajrzeć. Zaznacz jedną lub więcej brył albo otworów i kliknij ten przycisk. Półprzezroczysta płaszczyzna pokazuje dokładnie, gdzie pójdzie cięcie. Nic się nie zmienia, dopóki go nie zastosujesz.
+{{ui:editor.tool.split}} w sekcji {{ui:editor.group.modify}} przecina zaznaczenie na dwie części płaszczyzną, na przykład część za dużą na stół drukarki albo taką, do której wnętrza chcesz zajrzeć. Zaznacz jedną lub więcej brył albo otworów i kliknij ten przycisk. Półprzezroczysta płaszczyzna pokazuje dokładnie, gdzie pójdzie cięcie, a biała linia zaznacza je na samych bryłach, tam, gdzie spotyka je płaszczyzna. Nic się nie zmienia, dopóki go nie zastosujesz.
 
-- {{ui:split.orientation}}: **X** robi pionowe cięcie między lewą a prawą stroną, **Y** między przodem a tyłem, **Z** poziome cięcie między górą a dołem. Osie są nazwane tak jak na karcie Pozycja, z Z w górę. Płaszczyzna zaczyna od Z.
+- {{ui:split.orientation}}: **X** robi pionowe cięcie między lewą a prawą stroną, **Y** między przodem a tyłem, **Z** poziome cięcie między górą a dołem. Osie są nazwane tak jak na karcie Pozycja, z Z w górę. Płaszczyzna zaczyna równolegle do płaszczyzny roboczej, więc na płycie bazowej od Z.
 - {{ui:split.workplane}}: {{ui:split.workplaneParallel}} kładzie płaszczyznę równolegle do płaszczyzny roboczej, {{ui:split.workplaneAcrossX}} i {{ui:split.workplaneAcrossY}} ustawiają ją prostopadle, w poprzek jej kierunku X lub Y. Jeśli początek płaszczyzny roboczej przecina zaznaczenie, płaszczyzna przechodzi przez niego, w przeciwnym razie przez środek. Tak kładziesz płaszczyznę roboczą klawiszem [[W]] na pochyłej ścianie i tniesz dokładnie tam, bez kręcenia suwakami obrotu.
 - {{ui:split.position}}: miejsce, w którym przecina płaszczyzna, ustawiane suwakiem albo wpisywane. Zaczyna na środku. Możesz też przeciągnąć grot strzałki na płaszczyźnie, a płaszczyzna przesuwa się wzdłuż strzałki co 0,1 mm.
 - {{ui:split.pickFace}}, przycisk obok położenia, kładzie płaszczyznę na ścianie: kliknij go, potem kliknij ścianę. Orientacja, oba obroty i położenie ustawiają się odpowiednio. Podczas wybierania niebieska płaszczyzna pod wskaźnikiem pokazuje, którą ścianę weźmie. Działa też ściana bryły, która nie jest zaznaczona, żeby wyrównać do niej cięcie, ale płaszczyzna zostaje w obrębie zaznaczenia. [[Esc]] przerywa wybieranie i zostawia płaszczyznę tam, gdzie była.

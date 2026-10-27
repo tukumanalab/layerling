@@ -10,6 +10,7 @@ import {
   inspectLylProjectPackage,
   LYL_FORMAT_VERSION,
   LYL_LIMITS,
+  LYL_NEWEST_READABLE_FORMAT_VERSION,
   LYL_SCHEMA_ID,
   type LylProjectDocumentV1,
   type LylProjectExportInput,
@@ -236,6 +237,29 @@ describe("layerling .lyl project packages", () => {
     expect(restored.shapes[0].sketchProfile?.inset).toEqual({ distance: 3, radius: 1.5 });
     const broken = { ...pad, sketchProfile: { ...pad.sketchProfile!, inset: { distance: -1, radius: 0 } } };
     await expect(importLylProject(await exportLylProject(input([broken])))).rejects.toThrow(/inset/);
+  });
+
+  it("keeps the side of a swept section that runs along the path, and refuses another word (#732)", async () => {
+    const sweep = shape("mesh", "rail", {
+      name: "Sketch sweep",
+      sketchOperation: "sweep",
+      sketchProfile: {
+        points: [{ id: "p1", x: 0, z: 0 }, { id: "p2", x: 10, z: 0 }, { id: "p3", x: 10, z: 6 }],
+        segments: [
+          { id: "s1", startId: "p1", endId: "p2", kind: "line" },
+          { id: "s2", startId: "p2", endId: "p3", kind: "line" },
+          { id: "s3", startId: "p3", endId: "p1", kind: "line" },
+        ],
+        sweepAnchor: "left",
+      },
+      importedMesh: { positions: [0, 0, 0, 1, 0, 0, 0, 1, 0], baseWidth: 10, baseDepth: 6, baseHeight: 3, triangleCount: 1, sourceFormat: "json" },
+    });
+    const restored = await importLylProject(await exportLylProject(input([sweep])));
+    expect(restored.shapes[0].sketchProfile?.sweepAnchor).toBe("left");
+    const middle = { ...sweep, sketchProfile: { ...sweep.sketchProfile!, sweepAnchor: "center" as const } };
+    expect((await importLylProject(await exportLylProject(input([middle])))).shapes[0].sketchProfile?.sweepAnchor).toBeUndefined();
+    const broken = { ...sweep, sketchProfile: { ...sweep.sketchProfile!, sweepAnchor: "top" as never } };
+    await expect(importLylProject(await exportLylProject(input([broken])))).rejects.toThrow(/sweepAnchor/);
   });
 
   it("preserves nested groups, holes, intersection metadata, edge history, B-Rep, and undo/redo", async () => {
@@ -609,7 +633,7 @@ describe("layerling .lyl project packages", () => {
   it("rejects unsupported future versions before restoring any state", async () => {
     const exported = await exportLylProject(input([shape("box")]));
     const future = mutateProject(exported, (document) => {
-      (document as { formatVersion: number }).formatVersion = LYL_FORMAT_VERSION + 1;
+      (document as { formatVersion: number }).formatVersion = LYL_NEWEST_READABLE_FORMAT_VERSION + 1;
     });
 
     await expect(importLylProject(future)).rejects.toThrow("requires a newer layerling version");

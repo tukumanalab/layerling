@@ -143,10 +143,11 @@ import {
   DEFAULT_HINGE_WIDTH,
   normalizeHingeClearance,
   normalizeHingeKnuckles,
+  normalizeHingeKnuckleWidth,
   normalizeHingeLeafThickness,
   normalizeHingePinDiameter,
 } from "@/lib/hingeGeometry";
-import { DEFAULT_GRIDFINITY_LIP, DEFAULT_GRIDFINITY_MAGNETS, DEFAULT_GRIDFINITY_TYPE, DEFAULT_GRIDFINITY_UNITS, gridfinityFootprintPatch, gridfinitySize, normalizeGridfinityType } from "@/lib/gridfinityGeometry";
+import { DEFAULT_GRIDFINITY_LIP, DEFAULT_GRIDFINITY_MAGNETS, DEFAULT_GRIDFINITY_TRAY_SIZE, DEFAULT_GRIDFINITY_TYPE, DEFAULT_GRIDFINITY_UNITS, gridfinityFootprintPatch, gridfinityPadding, gridfinitySize, normalizeGridfinityType } from "@/lib/gridfinityGeometry";
 import {
   DEFAULT_KNURL_ANGLE,
   DEFAULT_KNURL_CHAMFER,
@@ -211,6 +212,7 @@ const SHAPE_LABEL_KEYS: Record<string, MessageKey> = {
   qrCode: "shape.qrCode",
   "round-roof": "shape.roundRoof",
   "half-sphere": "shape.halfSphere",
+  paraboloid: "shape.paraboloid",
   torus: "shape.torus",
   tube: "shape.tube",
   bentTube: "shape.bentTube",
@@ -249,6 +251,7 @@ export const toolbarShapeAssets: ToolbarShapeAsset[] = [
   { id: "wedge", name: "Wedge", src: "assets/editor/shape-icons-gray/wedge.png", menuIcon: "assets/editor/shape-icons-gray/wedge.png", kind: "wedge", color: "#33983d" },
   { id: "round-roof", name: "Round Roof", src: "assets/editor/shape-icons-gray/round-roof.png", menuIcon: "assets/editor/shape-icons-gray/round-roof.png", kind: "roundRoof", color: "#67c4ce" },
   { id: "half-sphere", name: "Half Sphere", src: "assets/editor/shape-icons-gray/half-sphere.png", menuIcon: "assets/editor/shape-icons-gray/half-sphere.png", kind: "halfSphere", color: "#c9009a" },
+  { id: "paraboloid", name: "Paraboloid", src: "assets/editor/shape-icons-gray/paraboloid.png", menuIcon: "assets/editor/shape-icons-gray/paraboloid.png", kind: "paraboloid", color: "#8fdc5a" },
   { id: "torus", name: "Torus", src: "assets/editor/shape-icons-gray/torus.png", menuIcon: "assets/editor/shape-icons-gray/torus.png", kind: "torus", color: "#0098c7" },
   { id: "loft", name: "Loft", src: "assets/editor/shape-icons-gray/loft.png", menuIcon: "assets/editor/shape-icons-gray/loft.png", kind: "loft", color: "#c0703a" },
   { id: "tube", name: "Tube", src: "assets/editor/shape-icons-gray/tube.png", menuIcon: "assets/editor/shape-icons-gray/tube.png", kind: "tube", color: "#ce7013" },
@@ -316,6 +319,15 @@ export const qrCodeAsset: ToolbarShapeAsset = {
  * kind stays in the catalogue, so bodies that already are one, and the MCP, keep working.
  */
 export const libraryShapeAssets: ToolbarShapeAsset[] = toolbarShapeAssets.flatMap((asset) => (asset.id === "text" ? [asset, nameTagAsset, iconTagAsset, qrCodeAsset] : asset.id === "doubleCountersink" ? [] : [asset]));
+
+/**
+ * The colour a new shape of this asset starts with: the asset's own, unless the shape
+ * defaults saved for its kind name another. The library shows the same colour beside each
+ * entry, so the list tells what will land on the workplane.
+ */
+export function shapeAssetColor(asset: ShapeAsset, customization: ShapeCustomization = {}): string {
+  return customization.color ?? asset.color;
+}
 
 /**
  * Kinds a shape dragged from the library may have. Taken from the library
@@ -426,14 +438,14 @@ export function shapeAssetDefaultDimensions(kind: ShapeKind) {
     // vom kreisrunden Zylinder unterscheidet.
     return { width: 26, depth: 16, height: 20 };
   }
-  const roundProfile = kind === "sphere" || kind === "torus" || kind === "ring" || kind === "halfSphere";
+  const roundProfile = kind === "sphere" || kind === "torus" || kind === "ring" || kind === "halfSphere" || kind === "paraboloid";
   const flatProfile = kind === "torus" || kind === "ring" || kind === "text" || kind === "gear";
   // A gear starts as 12 involute teeth of module 2 (#201).
   const size = kind === "gear" ? involuteGearDiameter(DEFAULT_GEAR_MODULE, DEFAULT_GEAR_TEETH) : roundProfile ? 22 : 20;
   return {
     width: kind === "text" ? 86 : size,
     depth: kind === "text" ? 28 : size,
-    height: kind === "sphere" ? size : kind === "gear" ? 6 : kind === "text" ? 10 : kind === "roundRoof" ? 10 : kind === "halfSphere" ? 11 : flatProfile ? 5 : 20,
+    height: kind === "sphere" ? size : kind === "gear" ? 6 : kind === "text" ? 10 : kind === "roundRoof" ? 10 : kind === "halfSphere" ? 11 : kind === "paraboloid" ? 20 : flatProfile ? 5 : 20,
   };
 }
 
@@ -457,7 +469,7 @@ export function shapeAssetSpecialDefaults(kind: ShapeKind, dimensions = shapeAss
     };
   }
   if (kind === "sphere") return { steps: 24 };
-  if (kind === "halfSphere") return { steps: 32 };
+  if (kind === "halfSphere" || kind === "paraboloid") return { steps: 32 };
   if (kind === "cone") return { topRadius: 0, baseRadius: dimensions.width / 2 };
   if (kind === "pyramid") return { sides: 4, topWidth: 0, topDepth: 0 };
   if (kind === "polygon") return { sides: 6 };
@@ -648,10 +660,14 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     honeycombWallThickness: shape.honeycombWallThickness,
     honeycombFrameWidth: shape.honeycombFrameWidth,
     hingeKnuckles: shape.hingeKnuckles,
+    hingeKnuckleWidth: shape.hingeKnuckleWidth,
+    hingeConeSize: shape.hingeConeSize,
+    hingeStyle: shape.hingeStyle,
     hingePinDiameter: shape.hingePinDiameter,
     hingeLeafThickness: shape.hingeLeafThickness,
     hingeClearance: shape.hingeClearance,
     hingePinless: shape.hingePinless,
+    hingeAngle: shape.hingeAngle,
     gridfinityType: shape.gridfinityType,
     gridfinityLip: shape.gridfinityLip,
     gridfinityMagnets: shape.gridfinityMagnets,
@@ -680,12 +696,26 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     gridfinityScoopRight: shape.gridfinityScoopRight,
     gridfinityScoopRadius: shape.gridfinityScoopRadius,
     gridfinityFloorHeight: shape.gridfinityFloorHeight,
+    gridfinityOpenBack: shape.gridfinityOpenBack,
+    gridfinityOpenFront: shape.gridfinityOpenFront,
+    gridfinityOpenLeft: shape.gridfinityOpenLeft,
+    gridfinityOpenRight: shape.gridfinityOpenRight,
+    gridfinityLipChamfer: shape.gridfinityLipChamfer,
+    gridfinityWallThickness: shape.gridfinityWallThickness,
+    gridfinityPaddingBack: shape.gridfinityPaddingBack,
+    gridfinityPaddingFront: shape.gridfinityPaddingFront,
+    gridfinityPaddingLeft: shape.gridfinityPaddingLeft,
+    gridfinityPaddingRight: shape.gridfinityPaddingRight,
+    gridfinityCornerRadius: shape.gridfinityCornerRadius,
     gridfinityCompartmentsX: shape.gridfinityCompartmentsX,
     gridfinityCompartmentsZ: shape.gridfinityCompartmentsZ,
     gridfinityDividerThickness: shape.gridfinityDividerThickness,
     gridfinityDividerPositionsX: shape.gridfinityDividerPositionsX,
     gridfinityDividerPositionsZ: shape.gridfinityDividerPositionsZ,
     gridfinityCompartmentLabels: shape.gridfinityCompartmentLabels,
+    gridfinityOpenings: shape.gridfinityOpenings,
+    gridfinityOpeningCorner: shape.gridfinityOpeningCorner,
+    gridfinityOpeningCornerSize: shape.gridfinityOpeningCornerSize,
     knurlPattern: shape.knurlPattern,
     knurlCount: shape.knurlCount,
     knurlDepth: shape.knurlDepth,
@@ -708,6 +738,7 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     loftWall: shape.loftWall,
     loftTwist: shape.loftTwist,
     loftSmooth: shape.loftSmooth,
+    loftSegments: shape.loftSegments,
     slotEndRatio: shape.slotEndRatio,
     loftTiltX: shape.loftTiltX,
     loftTiltZ: shape.loftTiltZ,
@@ -820,18 +851,30 @@ export function makeShapeFromAsset(
     wall: customization.loftWall,
     twist: customization.loftTwist,
     smooth: customization.loftSmooth,
+    segments: customization.loftSegments,
     tiltX: customization.loftTiltX,
     tiltZ: customization.loftTiltZ,
   }) : null;
   const loftFootprint = loftMeasures ? loftFrameSize(loftMeasures) : null;
   // A Gridfinity bin or baseplate is whole grid units: an asked-for size is rounded to them.
-  const gridfinityFootprint = asset.kind === "gridfinity" ? gridfinityFootprintPatch({
-    width: customization.width ?? defaults.width,
-    depth: customization.depth ?? defaults.depth,
-    height: customization.height ?? defaults.height,
+  // A baseplate's padding without an asked-for size is added to the default one, so it keeps its units (#455).
+  const gridfinityPaddingFields = {
     gridfinityType: customization.gridfinityType,
+    gridfinityPaddingBack: customization.gridfinityPaddingBack,
+    gridfinityPaddingFront: customization.gridfinityPaddingFront,
+    gridfinityPaddingLeft: customization.gridfinityPaddingLeft,
+    gridfinityPaddingRight: customization.gridfinityPaddingRight,
+  };
+  const gridfinityPaddingSize = gridfinityPadding(gridfinityPaddingFields);
+  // A new tray (#837) has a tray's size, not the bin's.
+  const gridfinityDefaults = normalizeGridfinityType(customization.gridfinityType) === "tray" ? DEFAULT_GRIDFINITY_TRAY_SIZE : defaults;
+  const gridfinityFootprint = asset.kind === "gridfinity" ? gridfinityFootprintPatch({
+    width: customization.width ?? gridfinityDefaults.width + gridfinityPaddingSize.left + gridfinityPaddingSize.right,
+    depth: customization.depth ?? gridfinityDefaults.depth + gridfinityPaddingSize.back + gridfinityPaddingSize.front,
+    height: customization.height ?? gridfinityDefaults.height,
     gridfinityLip: customization.gridfinityLip,
     gridfinityHalfGrid: customization.gridfinityHalfGrid,
+    ...gridfinityPaddingFields,
   }) : null;
   // New gears get involute teeth (#201); their size follows the module, so other teeth keep module 2.
   const gearType = asset.kind === "gear" ? normalizeGearType(customization.gearType ?? DEFAULT_GEAR_TYPE) : undefined;
@@ -864,7 +907,7 @@ export function makeShapeFromAsset(
     id: createLocalId(asset.id),
     name: asset.name,
     kind: asset.kind,
-    color: customization.color ?? asset.color,
+    color: shapeAssetColor(asset, customization),
     hole: asset.hole,
     x: point?.x ?? 0,
     z: point?.z ?? 0,
@@ -886,7 +929,7 @@ export function makeShapeFromAsset(
     textSize: asset.kind === "text" ? customization.textSize : undefined,
     textInward: asset.kind === "text" ? customization.textInward : undefined,
     textFlipped: asset.kind === "text" ? customization.textFlipped : undefined,
-    steps: asset.kind === "box" ? 10 : asset.kind === "sphere" ? customization.steps ?? 24 : asset.kind === "halfSphere" ? customization.steps ?? 32 : asset.kind === "torus" ? customization.steps : undefined,
+    steps: asset.kind === "box" ? 10 : asset.kind === "sphere" ? customization.steps ?? 24 : asset.kind === "halfSphere" || asset.kind === "paraboloid" ? customization.steps ?? 32 : asset.kind === "torus" ? customization.steps : undefined,
     sides: asset.kind === "cylinder" || asset.kind === "ellipse" || asset.kind === "slot" || asset.kind === "cone" || asset.kind === "tube" || asset.kind === "ring" || asset.kind === "counterbore" || asset.kind === "countersink" || asset.kind === "teardrop" || asset.kind === "torus" ? customization.sides : asset.kind === "roundRoof" ? customization.sides ?? 64 : asset.kind === "pyramid" ? customization.sides ?? 4 : asset.kind === "polygon" ? customization.sides ?? 6 : undefined,
     bevel: asset.kind === "cylinder" || asset.kind === "ellipse" || asset.kind === "slot" ? 0 : asset.kind === "tube" || asset.kind === "ring" ? customization.bevel ?? 4 : asset.kind === "text" ? customization.bevel : undefined,
     segments: asset.kind === "cylinder" || asset.kind === "ellipse" || asset.kind === "slot" ? 1 : asset.kind === "text" ? customization.segments : undefined,
@@ -968,11 +1011,27 @@ export function makeShapeFromAsset(
     gridfinityScoopRight: asset.kind === "gridfinity" ? customization.gridfinityScoopRight : undefined,
     gridfinityScoopRadius: asset.kind === "gridfinity" ? customization.gridfinityScoopRadius : undefined,
     gridfinityFloorHeight: asset.kind === "gridfinity" ? customization.gridfinityFloorHeight : undefined,
+    gridfinityOpenBack: asset.kind === "gridfinity" ? customization.gridfinityOpenBack : undefined,
+    gridfinityOpenFront: asset.kind === "gridfinity" ? customization.gridfinityOpenFront : undefined,
+    gridfinityOpenLeft: asset.kind === "gridfinity" ? customization.gridfinityOpenLeft : undefined,
+    gridfinityOpenRight: asset.kind === "gridfinity" ? customization.gridfinityOpenRight : undefined,
+    gridfinityLipChamfer: asset.kind === "gridfinity" ? customization.gridfinityLipChamfer : undefined,
+    gridfinityWallThickness: asset.kind === "gridfinity" ? customization.gridfinityWallThickness : undefined,
+    gridfinityOpeningCorner: asset.kind === "gridfinity" ? customization.gridfinityOpeningCorner : undefined,
+    gridfinityOpeningCornerSize: asset.kind === "gridfinity" ? customization.gridfinityOpeningCornerSize : undefined,
+    gridfinityPaddingBack: asset.kind === "gridfinity" ? customization.gridfinityPaddingBack : undefined,
+    gridfinityPaddingFront: asset.kind === "gridfinity" ? customization.gridfinityPaddingFront : undefined,
+    gridfinityPaddingLeft: asset.kind === "gridfinity" ? customization.gridfinityPaddingLeft : undefined,
+    gridfinityPaddingRight: asset.kind === "gridfinity" ? customization.gridfinityPaddingRight : undefined,
+    gridfinityCornerRadius: asset.kind === "gridfinity" ? customization.gridfinityCornerRadius : undefined,
     gridfinityCompartmentsX: asset.kind === "gridfinity" ? customization.gridfinityCompartmentsX : undefined,
     gridfinityCompartmentsZ: asset.kind === "gridfinity" ? customization.gridfinityCompartmentsZ : undefined,
     gridfinityDividerThickness: asset.kind === "gridfinity" ? customization.gridfinityDividerThickness : undefined,
     hingeClearance: asset.kind === "hinge" ? normalizeHingeClearance(customization.hingeClearance ?? DEFAULT_HINGE_CLEARANCE) : undefined,
     hingePinless: asset.kind === "hinge" ? customization.hingePinless === true : undefined,
+    hingeKnuckleWidth: asset.kind === "hinge" ? normalizeHingeKnuckleWidth(customization.hingeKnuckleWidth) : undefined,
+    hingeStyle: asset.kind === "hinge" && (customization.hingeStyle === "cone" || customization.hingeStyle === "pinless") ? customization.hingeStyle : undefined,
+    hingeConeSize: asset.kind === "hinge" && customization.hingeStyle === "cone" && Number.isFinite(customization.hingeConeSize) ? customization.hingeConeSize : undefined,
     hingeKnuckles: asset.kind === "hinge" ? normalizeHingeKnuckles(customization.hingeKnuckles ?? DEFAULT_HINGE_KNUCKLES, width, normalizeHingeClearance(customization.hingeClearance)) : undefined,
     hingePinDiameter: asset.kind === "hinge" ? normalizeHingePinDiameter(customization.hingePinDiameter ?? DEFAULT_HINGE_PIN_DIAMETER, height, normalizeHingeClearance(customization.hingeClearance)) : undefined,
     hingeLeafThickness: asset.kind === "hinge"
@@ -981,6 +1040,7 @@ export function makeShapeFromAsset(
           height,
           normalizeHingePinDiameter(customization.hingePinDiameter ?? DEFAULT_HINGE_PIN_DIAMETER, height, normalizeHingeClearance(customization.hingeClearance)),
           normalizeHingeClearance(customization.hingeClearance),
+          customization.hingeStyle === "cone" ? "cone" : "pin",
         )
       : undefined,
     knurlPattern: asset.kind === "knurl" ? normalizeKnurlPattern(customization.knurlPattern ?? DEFAULT_KNURL_PATTERN) : undefined,
@@ -1018,6 +1078,7 @@ const GENERATED_NAME_KEYS: Record<string, MessageKey> = {
   Group: "shape.group",
   Bundle: "shape.bundle",
   Intersection: "shape.intersection",
+  Hull: "editor.tool.hull",
   "Sketch extrusion": "shape.sketchExtrusion",
   "Sketch revolve": "shape.sketchRevolve",
   Cube: "shape.box",
@@ -1039,6 +1100,13 @@ export function displayShapeName(shape: Pick<WorkplaneShape, "name" | "kind">): 
   const asset = toolbarShapeAssets.find((entry) => entry.kind === shape.kind && entry.name === name);
   if (asset) return shapeAssetLabel(asset);
   return name || shapeAssetLabel({ id: shape.kind, name: shape.kind });
+}
+
+/** Whether the shape carries a name somebody gave it, not one the editor handed out ("Box", "Group"). */
+export function hasOwnShapeName(shape: Pick<WorkplaneShape, "name" | "kind">): boolean {
+  const name = shape.name?.trim() ?? "";
+  if (!name || GENERATED_NAME_KEYS[name]) return false;
+  return !toolbarShapeAssets.some((entry) => entry.kind === shape.kind && (entry.name === name || shapeAssetLabel(entry) === name));
 }
 
 /**

@@ -15,6 +15,8 @@ Knjižnica se zapre po vsaki izbrani obliki. Z naslovno vrstico jo premakneš tj
 
 Izberi obliko. Zdaj visi na kazalcu miške in pristane tja, kamor klikneš. Če pri tem zapelješ čez telo, se položi na ploskev pod kazalcem, tudi na poševno, kot pri Cruiseu v Tinkercadu; nad prazno ploščo pristane na delovni ravnini. Če pritisneš [[Esc]], se odlaganje prekine. Orodje, ki čaka na klik, na primer merilni trak, kotomer, opomba, {{ui:camera.placeWorkplane}}, {{ui:editor.tool.layFlat}} ali robna orodja, se ob izbiri oblike izklopi, da klik odloži obliko. Obratno vklop enega teh orodij obliko spet odloži. Kdor želi obliko raje kar na sredino plošče, lahko odlaganje s klikom izklopi v nastavitvah (področje {{ui:workspace.appearance}}, stikalo {{ui:workspace.cruise}}).
 
+Na ploskvi se oblika pripne na njeno sredino, ko se ji kazalec približa, tako kot na vogal ali rob; držite [[Alt]], da jo odložite kamor koli. Če jo iz knjižnice povlečete na ploskev, vedno pristane na sredini, z [[Alt]] tam, kjer jo spustite.
+
 Kaj ponuja knjižnica:
 
 - **Osnovne oblike:** {{ui:shape.box}}, {{ui:shape.roundedBox}}, {{ui:shape.cylinder}}, {{ui:shape.slot}}, {{ui:shape.ellipse}}, {{ui:shape.polygon}} (od treh do štiriindvajset stranic), {{ui:shape.sphere}}, {{ui:shape.cone}}, {{ui:shape.pyramid}} (s tremi do štiriindvajset stranicami, torej tudi tristrana), {{ui:shape.wedge}}, {{ui:shape.roundRoof}}, {{ui:shape.halfSphere}} in {{ui:shape.torus}}.
@@ -55,7 +57,7 @@ Zožanje in zasuk imajo skoraj vse oblike. Samo zobnik, navoj, vzmet, Gridfinity
 
 Zožan ali nagnjen kvader, valj, elipsa, večkotnik, cev ali obroč obdrži svojo natančno obliko, prav tako kapsula, zvezda, srce, polmesec, lastovičji rep in zaobljen kvader brez zaobljenega zgornjega in spodnjega roba: posnetja in zaokrožitve gredo nanje kot na nespremenjeno obliko, izvoz STEP pa jih zapiše. To velja tudi za zasukano obliko: njen presek se natančno vrti z njo, stranice pa se enakomerno vijejo od spodaj navzgor.
 
-Vpisovanje je natančnejše od vlečenja. Vsa številska polja sprejemajo milimetre, pa tudi odstotke: kdor pri širini 40 mm vpiše »50 %«, dobi 20 mm. Znajo tudi računati: »15*3«, »120-2*4« ali »(40+2)/2« dajo 45, 112 in 21; namesto * gre tudi x. Račun si polje zapomni, v lastnostih kot v poljih za mere okoli označenega telesa: ko pozneje spet klikneš vanj, stoji namesto številke formula, dokler vrednost še ustreza, in jo spremeniš kar na mestu, iz »(140+2)/2« postane »(40+6)/2«. Če telo povlečeš za ročico ali ga spremeniš v velikosti, formula ne ustreza več in polje spet kaže samo številko.
+Vpisovanje je natančnejše od vlečenja. Vsa številska polja sprejemajo milimetre, pa tudi odstotke: kdor pri širini 40 mm vpiše »50 %«, dobi 20 mm. Znajo tudi računati: »15*3«, »120-2*4« ali »(40+2)/2« dajo 45, 112 in 21; namesto * gre tudi x. Račun si polje zapomni, v lastnostih kot v poljih za mere okoli označenega telesa: ko pozneje spet klikneš vanj, stoji namesto številke formula, dokler vrednost še ustreza, in jo spremeniš kar na mestu, iz »(140+2)/2« postane »(40+6)/2«. Če telo povlečeš za ročico ali ga spremeniš v velikosti, formula ne ustreza več in polje spet kaže samo številko. V številskem polju, v katerega si kliknil, miškino kolesce in tipki [[↑]] in [[↓]] spremenita vrednost za en korak, s [[Shift]] za večjega in z [[Alt]] za finejšega. V polju za velikost ali položaj [[Shift]] namesto tega skoči za korak mreže, pri izklopljeni mreži pa za deset korakov.
 
 ## Kako okroglo je okroglo? Število stranic
 
@@ -89,7 +91,7 @@ Okrogle oblike, kot so valj, stožec, cev, elipsa ali izvrtine, imajo v lastnost
 Poleg nastavitev so na sami obliki ročice:
 
 - **Vogali in robovi** povlečejo obliko večjo ali manjšo. Če pri vlečenju vogala držiš [[Shift]], rasteta širina, globina in višina skupaj in razmerja se ohranijo; z [[Alt]] oblika raste od sredine namesto od nasprotnega vogala. Brez tipkovnice ali če nočeš držati tipke, zgoraj v lastnostih vklopiš {{ui:inspector.keepProportions}}: potem vogali vedno ohranijo razmerja, in če vpišeš širino, globino ali višino, se drugi dve spremenita za isti faktor. Nastavitev se zapomni.
-- **Puščica zgoraj** spremeni višino, ročica **na sredini** obliko dvigne ali spusti.
+- Črna **puščica nad** obliko jo dvigne ali spusti; če od začetka držiš [[Alt]], nastane kopija tam, kjer spustiš, tako lahko zlagaš. Bela ročica **na zgornji ploskvi** spremeni višino.
 - **Zakrivljene puščice** jo vrtijo.
 - Na **številkah** ob obliki vidiš mere. Klik nanje odpre polje, v katero vpišeš želeno številko. Z [[Enter]] oblika raste od roba, ki je nasproten številki, kot pri vlečenju; z [[Alt]]+[[Enter]] raste okoli svoje sredine, zato oblika, ki je bila poravnana z drugo, ostane poravnana. To velja za širino in dolžino; višina vedno raste navzgor od spodnje ploskve. Polja v lastnostih na desni ohranijo sredino brez tipke. [[Tab]] obdrži številko in odpre naslednje polje (širina, globina, višina); [[Shift]]+[[Tab]] gre nazaj. V polju lastnosti, na katero si kliknil, vrednost spreminja tudi kolesce miške: eno enoto na stopnjo, desetkrat toliko s [[Shift]], desetino s [[Ctrl]] in stotino s [[Alt]]. Polje, na katero nisi kliknil, prepusti kolesce plošči, ki se pomika.
 - **Klik na vogal** (brez vlečenja) odpre širino in globino skupaj. Vpiši prvo številko, s [[Tab]] preskoči na drugo in obe sprejmi z [[Enter]]. [[Esc]] prekine.

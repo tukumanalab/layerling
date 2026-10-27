@@ -13,7 +13,8 @@ layerling er et designprogram til 3D-print der kører direkte i din browser. Du 
 
 Har du allerede en fil du vil fortsætte med, så brug {{ui:dashboard.importGeometry}}. Det virker for layerling-designs (`.lyl`) samt STL-, OBJ-, 3MF-, STEP- eller SVG-filer.
 
-Alle dine designs vises senere på startsiden med et forhåndsbillede. De gemmes i din browsers lager og gemmes automatisk efter hver ændring, så der er ingen gem-knap. Hvordan du pakker designs i en fil og giver dem videre er dækket i [Filer og lagring](chapter:files-and-saving).
+Alle dine designs vises senere på startsiden med et forhåndsbillede. De gemmes i din browsers lager og gemmes automatisk efter hver ændring, så der er ingen gem-knap. Hvordan du pakker designs i en fil og giver dem videre er dækket i [Filer og lagring](chapter:files-and-saving). Hvis du ønsker en påmindelse, så slå {{ui:workspace.confirmTabClose}} til i indstillingerne (tandhjulet i båndet): Browseren spørger så, før en fane med et åbent design lukkes eller genindlæses.
+Men sikkerhedskopiér dine designs ind imellem: en browser kan fejle, og en browseropdatering kan give problemer, og **layerling påtager sig intet ansvar for designs, der opbevares i browseren.** Det gør du fra startsiden med {{ui:dashboard.backupAll}}, eller du gemmer designs som filer. En sikkerhedskopi hentes tilbage med {{ui:dashboard.restoreBackup}}.
 
 ## Editoren overblik
 
@@ -31,7 +32,7 @@ Hold musen over en knap for at se dens navn. Er du i tvivl om, hvad en knap gør
 
 ### Indsæt
 
-{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) sætter det ind i designet, du kopierede med {{ui:editor.tool.copy}}. {{ui:common.duplicate}} kopierer og sætter ind i ét trin.
+{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) sætter det ind i designet, du kopierede med {{ui:editor.tool.copy}}. {{ui:common.duplicate}} kopierer og sætter ind i ét trin. Når du indsætter, lægger hver del sig lidt ved siden af, hvor den var. Dele der kommer fra et andet program kan lande langt fra pladen, og til dem er der {{ui:workspace.pasteCentered}} i indstillingerne, under {{ui:workspace.appearance}}: så indsættes delene sammen midt på arbejdsplanet og lægges ned på det.
 
 ### Slet
 
@@ -111,4 +112,4 @@ På en kopi af layerling på din egen computer eller server har meddelelsen "Opd
 
 Når din del er færdig, klik på {{ui:editor.export}}, vælg STL eller 3MF og download filen. Åbn den i din slicer, for eksempel Bambu Studio, PrusaSlicer, OrcaSlicer eller Cura. Hvis du vælger din printer i indstillingerne, kan du mens du bygger se om delen passer på printlejet. Mere i [Printning](chapter:printing).
 
-> **Tip:** Hvis du kommer fra Tinkercad finder du hurtigt rundt: plade, former, solid og hul, gruppér, justér og spejl virker næsten ens. Det nye er mest fas og rund, udhuling, gevind og skitser.
+> **Tip:** Hvis du kommer fra Tinkercad finder du hurtigt rundt: plade, former, solid og hul, gruppér, justér og spejl virker næsten ens. Det nye er mest fas og rund, udhuling, gevind og skitser. Dine egne Tinkercad-designs kan også komme med, se [Filer, lagring og deling](chapter:files-and-saving).

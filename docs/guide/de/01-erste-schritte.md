@@ -13,7 +13,7 @@ layerling ist ein Konstruktionsprogramm für den 3D-Druck, das direkt im Browser
 
 Hast du schon eine Datei, die du weiterbearbeiten willst, nimmst du {{ui:dashboard.importGeometry}}. Das geht mit layerling-Entwürfen (`.lyl`) genauso wie mit STL-, OBJ-, 3MF-, STEP- oder SVG-Dateien.
 
-Alle deine Entwürfe erscheinen später auf der Startseite mit einem Vorschaubild. Sie liegen im Speicher deines Browsers und werden bei jeder Änderung automatisch gesichert. Ein Knopf zum Speichern gibt es deshalb nicht. **layerling übernimmt keine Verantwortung für Entwürfe, die im Browser gespeichert sind.** Ein Browser kann Fehler machen, und ein Update kann Probleme bereiten. Sichere deine Entwürfe deshalb von Zeit zu Zeit mit {{ui:dashboard.backupAll}} auf der Startseite oder speichere sie als Dateien. Eine Sicherung holst du mit {{ui:dashboard.restoreBackup}} zurück. Wie du Entwürfe in eine Datei packst und weitergibst, steht im Kapitel [Dateien und Speichern](chapter:dateien-und-speichern).
+Alle deine Entwürfe erscheinen später auf der Startseite mit einem Vorschaubild. Sie liegen im Speicher deines Browsers und werden bei jeder Änderung automatisch gesichert. Ein Knopf zum Speichern gibt es deshalb nicht. **layerling übernimmt keine Verantwortung für Entwürfe, die im Browser gespeichert sind.** Ein Browser kann Fehler machen, und ein Update kann Probleme bereiten. Sichere deine Entwürfe deshalb von Zeit zu Zeit mit {{ui:dashboard.backupAll}} auf der Startseite oder speichere sie als Dateien. Eine Sicherung holst du mit {{ui:dashboard.restoreBackup}} zurück. Wie du Entwürfe in eine Datei packst und weitergibst, steht im Kapitel [Dateien und Speichern](chapter:dateien-und-speichern). Wenn du eine Gedächtnisstütze möchtest, schalte in den Einstellungen (Zahnrad im Band) {{ui:workspace.confirmTabClose}} ein: Der Browser fragt dann, bevor ein Tab mit offenem Entwurf geschlossen oder neu geladen wird.
 
 ## Der Editor im Überblick
 
@@ -31,7 +31,7 @@ Fahre mit der Maus über einen Knopf, dann siehst du seinen Namen. Wenn du nicht
 
 ### Einfügen
 
-{{ui:editor.tool.paste}} ([[Strg]]+[[V]]) fügt in den Entwurf ein, was du mit {{ui:editor.tool.copy}} kopiert hast. {{ui:common.duplicate}} kopiert und fügt in einem Schritt ein.
+{{ui:editor.tool.paste}} ([[Strg]]+[[V]]) fügt in den Entwurf ein, was du mit {{ui:editor.tool.copy}} kopiert hast. {{ui:common.duplicate}} kopiert und fügt in einem Schritt ein. Beim Einfügen liegt jedes Teil ein Stück neben seiner alten Stelle. Teile aus einem anderen Programm können weit weg von der Platte landen, dafür gibt es in den Einstellungen unter {{ui:workspace.appearance}} {{ui:workspace.pasteCentered}}: Beim Einfügen kommen die Teile dann zusammen in die Mitte der Arbeitsebene und werden darauf abgesetzt.
 
 ### Löschen
 
@@ -111,4 +111,4 @@ Bei einer Kopie von layerling auf deinem eigenen Rechner oder Server hat der Hin
 
 Wenn dein Teil fertig ist, klickst du auf {{ui:editor.export}}, wählst STL oder 3MF und lädst die Datei herunter. Die öffnest du in deinem Slicer, zum Beispiel in Bambu Studio, PrusaSlicer, OrcaSlicer oder Cura. Wer seinen Drucker in den Einstellungen wählt, sieht schon beim Bauen, ob das Teil auf die Druckplatte passt. Mehr dazu im Kapitel [Drucken](chapter:drucken).
 
-> **Tipp:** Wenn du von Tinkercad kommst, wirst du dich schnell zurechtfinden: Platte, Formen, Körper und Aussparung, Gruppieren, Ausrichten und Spiegeln funktionieren fast genauso. Neu sind vor allem Fase und Verrundung, Aushöhlen, Gewinde und Skizzen.
+> **Tipp:** Wenn du von Tinkercad kommst, wirst du dich schnell zurechtfinden: Platte, Formen, Körper und Aussparung, Gruppieren, Ausrichten und Spiegeln funktionieren fast genauso. Neu sind vor allem Fase und Verrundung, Aushöhlen, Gewinde und Skizzen. Auch deine eigenen Tinkercad-Designs kannst du mitnehmen, siehe [Dateien, Speichern und Weitergeben](chapter:dateien-und-speichern).

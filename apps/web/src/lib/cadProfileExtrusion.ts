@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { taperedSlotOutline } from "@/lib/slotGeometry";
+import { weldOnGrid } from "@/lib/gridWeld";
 import type { WorkplaneShape } from "@/types/layerling";
 import type { CadModifierProfileLoop, CadModifierProfilePart, CadModifierProfileSegment, CadModifierGridfinityPart, CadModifierHelicalGearPart, CadModifierSpringPart, CadModifierSweepPiece, CadModifierThreadPart } from "@/lib/cadModifierTypes";
 import { profileArcPoint, profileLoopBounds, TWIST_SECTION_STEP, validateCadProfile } from "@/lib/cadProfileSolid";
@@ -1389,7 +1390,7 @@ export function cadModifierGridfinityForShape(shape: WorkplaneShape): CadModifie
   const width = shapeWidth(shape);
   const depth = shapeDepth(shape);
   if (![width, depth, shape.height].every((value) => Number.isFinite(value) && value > 0)) return null;
-  const plan = gridfinityPlan({ width, depth, height: shape.height, gridfinityType: shape.gridfinityType, gridfinityLip: shape.gridfinityLip, gridfinityMagnets: shape.gridfinityMagnets, gridfinityHalfGrid: shape.gridfinityHalfGrid });
+  const plan = gridfinityPlan({ width, depth, height: shape.height, gridfinityType: shape.gridfinityType, gridfinityLip: shape.gridfinityLip, gridfinityMagnets: shape.gridfinityMagnets, gridfinityHalfGrid: shape.gridfinityHalfGrid, gridfinityPaddingBack: shape.gridfinityPaddingBack, gridfinityPaddingFront: shape.gridfinityPaddingFront, gridfinityPaddingLeft: shape.gridfinityPaddingLeft, gridfinityPaddingRight: shape.gridfinityPaddingRight });
   // Label shelves, finger scoops and dividers are in the display mesh only once Manifold has loaded; until then the body would not match it (#455, #554).
   if (!loadedManifoldRuntime() && gridfinityHasPieces({ ...shape, width, depth })) return null;
   return {
@@ -1424,12 +1425,26 @@ export function cadModifierGridfinityForShape(shape: WorkplaneShape): CadModifie
     gridfinityScoopRight: shape.gridfinityScoopRight,
     gridfinityScoopRadius: shape.gridfinityScoopRadius,
     gridfinityFloorHeight: shape.gridfinityFloorHeight,
+    gridfinityOpenBack: shape.gridfinityOpenBack,
+    gridfinityOpenFront: shape.gridfinityOpenFront,
+    gridfinityOpenLeft: shape.gridfinityOpenLeft,
+    gridfinityOpenRight: shape.gridfinityOpenRight,
+    gridfinityLipChamfer: shape.gridfinityLipChamfer,
+    gridfinityWallThickness: shape.gridfinityWallThickness,
+    gridfinityPaddingBack: shape.gridfinityPaddingBack,
+    gridfinityPaddingFront: shape.gridfinityPaddingFront,
+    gridfinityPaddingLeft: shape.gridfinityPaddingLeft,
+    gridfinityPaddingRight: shape.gridfinityPaddingRight,
+    gridfinityCornerRadius: shape.gridfinityCornerRadius,
     gridfinityCompartmentsX: shape.gridfinityCompartmentsX,
     gridfinityCompartmentsZ: shape.gridfinityCompartmentsZ,
     gridfinityDividerThickness: shape.gridfinityDividerThickness,
     gridfinityDividerPositionsX: shape.gridfinityDividerPositionsX,
     gridfinityDividerPositionsZ: shape.gridfinityDividerPositionsZ,
     gridfinityCompartmentLabels: shape.gridfinityCompartmentLabels,
+    gridfinityOpenings: shape.gridfinityOpenings,
+    gridfinityOpeningCorner: shape.gridfinityOpeningCorner,
+    gridfinityOpeningCornerSize: shape.gridfinityOpeningCornerSize,
     // Mesh and body are built at the size of the grid units, which canonicalizeShape
     // keeps the shape's box at; a box that differs anyway stretches the body to it.
     transform: profileTransformForShape(shape, new THREE.Matrix4().makeScale(width / plan.size.width, shape.height / plan.size.height, depth / plan.size.depth)),
@@ -1546,18 +1561,11 @@ export function closedMeshFaceOrientation(vertices: ReadonlyArray<readonly [numb
     extent = Math.max(extent, Math.abs(x), Math.abs(y), Math.abs(z));
   });
   const quantum = Math.max(1e-9, extent * 1e-7);
-  const welded = new Map<string, number>();
-  const ids = vertices.map(([x, y, z]) => {
-    const key = `${Math.round(x / quantum)},${Math.round(y / quantum)},${Math.round(z / quantum)}`;
-    let id = welded.get(key);
-    if (id === undefined) {
-      id = welded.size;
-      welded.set(key, id);
-    }
-    return id;
-  });
-  const edgeFaces = new Map<string, number[]>();
-  const edgeKey = (a: number, b: number) => (a < b ? `${a}:${b}` : `${b}:${a}`);
+  // Numbers, not text keys: the print estimate of a 300,000-triangle import spent over a second on them.
+  const { ids, count } = weldOnGrid(vertices, quantum);
+  const weldedCount = Math.max(1, count);
+  const edgeFaces = new Map<number, number[]>();
+  const edgeKey = (a: number, b: number) => (a < b ? a * weldedCount + b : b * weldedCount + a);
   faces.forEach((face, index) => {
     for (let corner = 0; corner < 3; corner += 1) {
       const key = edgeKey(ids[face[corner]], ids[face[(corner + 1) % 3]]);

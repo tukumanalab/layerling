@@ -57,7 +57,7 @@ Boîtes, tasses, étuis et couvercles ont un point commun : ils sont vides à l'
 
 1. Sélectionnez le corps et cliquez sur {{ui:editor.tool.hollow}}, ou cliquez avec le bouton droit sur le corps et sélectionnez-le dans le menu.
 2. Définissez {{ui:shell.wall}}.
-3. Sous {{ui:shell.openings}}, activez les côtés qui restent ouverts : {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} ou {{ui:shell.side.right}}, autant que vous le souhaitez - {{ui:shell.side.front}} fait à lui seul un emplacement pour un tiroir, {{ui:shell.side.left}} et {{ui:shell.side.right}} un tunnel. Sans aucun côté allumé, le corps reste fermé sur tout son pourtour, avec une cavité au milieu. {{ui:shell.side.top}} est déjà activé à l'ouverture du panneau ; un clic dessus referme le dessus. Un corps fermé de tous côtés semble inchangé de l'extérieur : la vue en coupe montre la cavité.
+3. Sous {{ui:shell.openings}}, activez les côtés qui restent ouverts : {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} ou {{ui:shell.side.right}}, autant que vous le souhaitez - {{ui:shell.side.front}} fait à lui seul un emplacement pour un tiroir, {{ui:shell.side.left}} et {{ui:shell.side.right}} un tunnel. Sans aucun côté allumé, le corps reste fermé sur tout son pourtour, avec une cavité au milieu. {{ui:shell.side.closed}} désactive tous les côtés en un clic. {{ui:shell.side.top}} est déjà activé à l'ouverture du panneau ; un clic dessus referme le dessus. Un corps fermé de tous côtés semble inchangé de l'extérieur : la vue en coupe montre la cavité.
 4. Décidez si {{ui:shell.edges}} doit être {{ui:shell.edges.round}} ou {{ui:shell.edges.sharp}}.
 5. Cliquez sur {{ui:shell.apply}}.
 
@@ -80,6 +80,18 @@ Un corps avec une poche - un bloc avec un trou qui ne traverse pas complètement
 Si vous redimensionnez un corps évidé ultérieurement, layerling le creuse immédiatement à nouveau à la nouvelle taille. Le mur reste aussi épais que vous l'avez choisi, corps ronds inclus. Un cylindre que vous tirez plus loin dans un sens que dans l’autre devient une ellipse.
 
 > **Astuce :** Avec une buse de 0,4 mm, 1,2 à 2 mm de paroi est un bon début : suffisamment fin pour économiser de la matière, suffisamment épais pour une pièce solide.
+
+## Décaler des corps
+
+Chaque face d'un corps peut être déplacée de la même distance, vers l'extérieur ou l'intérieur. C'est ce qu'il faut pour un ajustement, un couvercle ou un assemblage à clip : un jeu de 0,1 à 0,3 mm tout autour, les éléments restant à leur place, ce que la mise à l'échelle ne donne pas.
+
+1. Sélectionne un corps et clique sur {{ui:editor.tool.offset}}, ou fais un clic droit sur le corps et choisis-le là.
+2. Choisis {{ui:offset.grow}} ou {{ui:offset.shrink}} et règle la {{ui:offset.distance}}.
+3. Les {{ui:offset.edges}} décident des coins extérieurs : arrondi garde la surface décalée ronde, vif laisse les faces se prolonger jusqu'à ce qu'elles se rencontrent.
+4. Coche {{ui:offset.copy}} pour garder la pièce telle quelle et obtenir le corps agrandi comme copie qui est déjà un trou. Groupe ce trou avec la pièce complémentaire, il coupe exactement le jeu choisi.
+5. Clique sur {{ui:offset.apply}}.
+
+Sans la coche, le corps lui-même est décalé. Il devient un corps exact fixe, comme après un chanfrein : la liste en haut du panneau annule le décalage, et {{ui:edge.editAction}} rouvre l'outil avec l'ancienne distance. Seuls les corps CAD exacts peuvent être décalés - boîtes, cylindres et les autres formes, leurs groupes, pièces STEP importées. Un corps qui n'est qu'un maillage de triangles, comme beaucoup d'imports STL, ne le peut souvent pas. Une distance trop grande pour le corps, par exemple une réduction au-delà de sa paroi la plus fine, est refusée.
 
 ## Supprimer des faces
 

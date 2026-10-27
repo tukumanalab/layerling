@@ -1,6 +1,7 @@
 import { checkedTypefaceData, customFontName, isCustomFontId, textCharacters, typefaceSubset } from "@/lib/customFonts";
 import { customFontEntry, registerCustomFont } from "@/lib/textFonts";
-import { strFromU8, strToU8, unzip, zip, type AsyncZippable } from "fflate";
+import { strFromU8, strToU8, unzip } from "fflate";
+import { boundedProjectZip } from "@/lib/boundedProjectZip";
 import { editorHistoryEntry, hydrateEditorHistoryState, type EditorHistoryEntry } from "@/lib/editorHistory";
 import { normalizePlacementWorkplane, placementWorkplaneIsBase, type PlacementWorkplane } from "@/lib/placementWorkplane";
 import { importedShapeFromObj } from "@/lib/objImport";
@@ -10,15 +11,25 @@ import { normalizeSketchStroke, SKETCH_STROKE_JOINS } from "@/lib/sketchStroke";
 import { normalizeTextEdge } from "@/lib/textEdge";
 import { isTextKeyring } from "@/lib/textGeometry";
 import { normalizeNotes } from "@/lib/workplaneNotes";
+import {
+  attachmentListProblem,
+  attachmentProblemText,
+  attachmentTypeForFileName,
+  attachmentTypeForMediaType,
+  attachmentsFormatVersion,
+} from "@/lib/projectAttachments";
 import { normalizeQrSettings } from "@/lib/qrCode";
 import { importedShapeFromStl } from "@/lib/stlImport";
 import { importedShapeFromSvg } from "@/lib/svgImport";
 import { importedShapeFrom3mf } from "@/lib/threemfImport";
 import { normalizeDesignView, normalizeSavedViews, readDesignView, readSavedViews, type DesignView, type SavedDesignViews } from "@/lib/designView";
+import { normalizeSavedCornerRulers, readCornerRulers, type SavedCornerRuler } from "@/lib/cornerRulerStore";
+import { normalizeSavedTape, readTape, type SavedTape } from "@/lib/tapeStore";
 import { isSketchKeyring } from "@/lib/sketchKeyring";
+import { isReferenceImageOpacity } from "@/lib/referenceImage";
 import { isThreadProfile } from "@/lib/threadProfiles";
 import { normalizeSnapGrid, normalizeWorkspaceSettings } from "@/lib/workplaneSettings";
-import type { CadDisplayEdge, GridSize, ProjectAsset, ProjectAssetSourceFormat, SketchOperation, SketchRevolveSettings, WorkplaneNote, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
+import type { CadDisplayEdge, GridSize, ProjectAsset, ProjectAssetSourceFormat, ProjectAttachment, SketchOperation, SketchRevolveSettings, WorkplaneNote, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
 
 export const LYL_SCHEMA_ID = "com.layerling.project";
 /** Written before the rename. Such a package is still opened - and saved back
@@ -30,10 +41,23 @@ function knownSchema(schema: unknown) {
 }
 // Version 2 stores display edges as deduplicated archive assets instead of repeating
 // them inside every undo state. Version 1 packages are still read and migrated.
+// This is the version a design is written with, unless it has attachments.
 export const LYL_FORMAT_VERSION = 2;
 export const LYL_MINIMUM_READER_VERSION = 2;
+// Version 3 adds the files a design carries (#820). It is written only for a design that has
+// some, so every other design stays a version 2 file, and a layerling that knows version 2 only
+// refuses a version 3 package instead of opening it and dropping the files at its next save.
+export const LYL_ATTACHMENTS_FORMAT_VERSION = 3;
+// Version 4 adds attachment types beyond text (pictures and PDF, #820). A layerling that reads
+// version 3 refuses a package with a type it does not know, so a design with such a file is written
+// as version 4 and an older layerling says the design needs a newer one. A design whose attachments
+// are all text stays a version 3 file. Which version each type needs is the `formatVersion` column
+// of ATTACHMENT_TYPES in projectAttachments.ts.
+export const LYL_FILE_TYPES_FORMAT_VERSION = 4;
+/** The newest format this layerling reads. */
+export const LYL_NEWEST_READABLE_FORMAT_VERSION = LYL_FILE_TYPES_FORMAT_VERSION;
 export const LYL_OLDEST_READABLE_FORMAT_VERSION = 1;
-export const LYL_CREATED_WITH_VERSION = "1.97.0";
+export const LYL_CREATED_WITH_VERSION = "1.113.0";
 export const LYL_MEDIA_TYPE = "application/vnd.layerling.project+zip";
 
 export const LYL_LIMITS = {
@@ -51,14 +75,19 @@ export const LYL_LIMITS = {
 
 const SHAPE_KINDS = new Set([
   "box", "roundedBox", "cylinder", "slot", "ellipse", "sphere", "sketch", "scribble", "cone", "pyramid", "roof", "text", "roundRoof",
-  "halfSphere", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "honeycomb", "hinge", "knurl", "dovetail", "counterbore", "countersink", "doubleCountersink", "teardrop", "loft", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
+  "halfSphere", "paraboloid", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "honeycomb", "hinge", "knurl", "dovetail", "counterbore", "countersink", "doubleCountersink", "teardrop", "loft", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
 ]);
 
 const FEATURE_TYPES = new Set([
-  "group", "boolean-subtraction", "boolean-intersection", "mirror", "sketch-extrusion", "sketch-revolve", "sketch-sweep", "fillet", "chamfer", "chamfillet", "shell", "delete-face",
+  "group", "boolean-subtraction", "boolean-intersection", "mirror", "sketch-extrusion", "sketch-revolve", "sketch-sweep", "fillet", "chamfer", "chamfillet", "shell", "delete-face", "offset",
 ]);
 
-type LylAssetKind = "source" | "derived-mesh" | "brep" | "image" | "display-edges";
+type LylAssetKind = "source" | "derived-mesh" | "brep" | "image" | "display-edges" | "attachment";
+
+const LYL_ASSET_KINDS: readonly LylAssetKind[] = ["source", "derived-mesh", "brep", "image", "display-edges", "attachment"];
+
+/** A file the design carries: its name, and the asset that holds its bytes (two names may share one asset). */
+export type LylAttachmentV3 = { id: string; fileName: string; assetId: string };
 
 export type LylAssetRecordV1 = {
   id: string;
@@ -167,7 +196,7 @@ function validateFonts(fonts: unknown) {
 
 export type LylProjectDocumentV1 = {
   schema: typeof LYL_SCHEMA_ID | typeof LEGACY_LYL_SCHEMA_ID;
-  formatVersion: 1 | 2;
+  formatVersion: 1 | 2 | 3 | 4;
   minimumReaderVersion: number;
   createdWithVersion: string;
   metadata: {
@@ -195,6 +224,8 @@ export type LylProjectDocumentV1 = {
   groups: Array<{ id: string; nodeId: string; objectId: string; memberNodeIds: string[]; operation: string }>;
   workplanes: Array<{ id: string; kind: "base" | "offset"; elevation: number }>;
   exactCad: Array<{ nodeId: string; objectId: string; brepAssetId?: string; importedStepAssetId?: string }>;
+  /** The files kept with the design (#820), in the order they are listed; a version 3 package only. */
+  attachments?: LylAttachmentV3[];
   /**
    * Fonts of one's own the texts use (#customFonts): only the letters they use, as outlines in the
    * three.js typeface format - never the font file. Older readers pass over them and draw those
@@ -212,6 +243,10 @@ export type LylProjectDocumentV1 = {
     view?: DesignView;
     /** The views saved under 7, 8, 9 and 0, null where a slot is empty; older readers pass over them. */
     savedViews?: SavedDesignViews;
+    /** The framing square where it was set (#829); older readers pass over it. */
+    cornerRulers?: SavedCornerRuler[];
+    /** The tape measure's measurements and whether they are shown (#881); older readers pass over it. */
+    tapeMeasurements?: SavedTape;
   };
 };
 
@@ -225,6 +260,8 @@ export type LylProjectExportInput = {
   history: EditorHistoryEntry[];
   historyIndex: number;
   assets: ProjectAsset[];
+  /** The files kept with the design (#820). A design with any is written as a version 3 package. */
+  attachments?: ProjectAttachment[];
   workspace: WorkplaneWorkspaceSettings;
   snapGrid: GridSize;
   placementElevation: number;
@@ -234,6 +271,10 @@ export type LylProjectExportInput = {
   view?: DesignView | null;
   /** The views saved under 7 to 0; when left out, the ones the browser keeps for this design go in. */
   savedViews?: SavedDesignViews | null;
+  /** The framing square; when left out, the one the browser keeps for this design goes in (#829). */
+  cornerRulers?: SavedCornerRuler[] | null;
+  /** The tape measure's measurements; when left out, the ones the browser keeps for this design go in (#881). */
+  tapeMeasurements?: SavedTape | null;
   compressionLevel?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   /** Weitere Dateien im Paket, etwa der Fehlerbericht; ein Leser uebergeht sie. */
   extraFiles?: Record<string, Uint8Array>;
@@ -249,6 +290,8 @@ export type LylRestoredProject = {
   history: EditorHistoryEntry[];
   historyIndex: number;
   assets: ProjectAsset[];
+  /** The files the design carried, when the file has any. */
+  attachments?: ProjectAttachment[];
   workspace: WorkplaneWorkspaceSettings;
   snapGrid: GridSize;
   placementElevation: number;
@@ -258,6 +301,10 @@ export type LylRestoredProject = {
   view?: DesignView;
   /** The views saved under 7 to 0, when the file has any. */
   savedViews?: SavedDesignViews;
+  /** The framing square, when the file has one (#829). */
+  cornerRulers?: SavedCornerRuler[];
+  /** The tape measure's measurements, when the file has them (#881). */
+  tapeMeasurements?: SavedTape;
   migratedFromVersion?: number;
   /** Set when a newer layerling saved the design: its version, for a hint that an update helps. */
   savedWithNewerVersion?: string;
@@ -320,6 +367,7 @@ function extensionForAsset(kind: LylAssetKind, mediaType: string, sourceFormat?:
   if (kind === "derived-mesh") return "lylmesh";
   if (kind === "display-edges") return "lyledges";
   if (kind === "brep") return "brep";
+  if (kind === "attachment") return attachmentTypeForMediaType(mediaType)?.extension ?? "bin";
   if (mediaType.includes("png")) return "png";
   if (mediaType.includes("jpeg")) return "jpg";
   if (mediaType.includes("webp")) return "webp";
@@ -619,6 +667,19 @@ class LylArchiveBuilder {
     }
   }
 
+  /**
+   * Registers the files a design carries and lists each under its own name. Bytes that are the same
+   * are stored once, and hashed once however often the design is saved, as the sources are.
+   */
+  async addAttachments(attachments: readonly ProjectAttachment[]) {
+    const records: LylAttachmentV3[] = [];
+    for (const attachment of attachments) {
+      const asset = await this.addCachedAsset(attachment.bytes, "attachment", () => attachment.bytes, attachment.mediaType);
+      records.push({ id: attachment.id, fileName: attachment.name, assetId: asset.id });
+    }
+    return records;
+  }
+
   addDerivedMesh(mesh: NonNullable<WorkplaneShape["importedMesh"]>) {
     return this.addCachedAsset(mesh, "derived-mesh", () => encodeMeshCache(mesh), "application/vnd.layerling.mesh");
   }
@@ -740,6 +801,7 @@ async function serializeShapeNode(
       ...(sketchProfile.silhouette ? { silhouette: true } : {}),
       ...(sketchProfile.keyring ? { keyring: sketchProfile.keyring } : {}),
       ...(sketchProfile.inset ? { inset: sketchProfile.inset } : {}),
+      ...(sketchProfile.sweepAnchor && sketchProfile.sweepAnchor !== "center" ? { sweepAnchor: sketchProfile.sweepAnchor } : {}),
     };
   }
 
@@ -841,6 +903,8 @@ async function serializeState(
 function nodeGroupOperation(node: LylShapeNodeV1, nodeById: Map<string, LylShapeNodeV1>) {
   if (node.definition.groupOperation === "intersection") return "boolean-intersection";
   if (node.definition.groupOperation === "bundle") return "group";
+  // A hull keeps its parts as a group does; the operation itself travels in the definition (#863).
+  if (node.definition.groupOperation === "hull") return "group";
   const children = (node.groupedShapeNodeIds ?? []).map((id) => nodeById.get(id)).filter(Boolean) as LylShapeNodeV1[];
   const hasHole = children.some((child) => child.definition.hole === true);
   const hasSolid = children.some((child) => child.definition.hole !== true);
@@ -914,7 +978,7 @@ function activeProjectIndexes(state: LylStateV1) {
     }
     const treatments = Array.isArray(node.definition.edgeTreatments) ? node.definition.edgeTreatments as Array<Record<string, unknown>> : [];
     treatments.forEach((treatment, index) => {
-      const type = treatment.kind === "fillet" || treatment.kind === "chamfillet" || treatment.kind === "shell" ? treatment.kind : treatment.kind === "deleteFace" ? "delete-face" : "chamfer";
+      const type = treatment.kind === "fillet" || treatment.kind === "chamfillet" || treatment.kind === "shell" || treatment.kind === "offset" ? treatment.kind : treatment.kind === "deleteFace" ? "delete-face" : "chamfer";
       const featureId = `feature/${safeNodeToken(node.nodeId)}/${type}/${index}`;
       features.push({
         id: featureId,
@@ -952,17 +1016,8 @@ function activeProjectIndexes(state: LylStateV1) {
   return { features, groups, sketches, exactCad };
 }
 
-function zipAsync(files: AsyncZippable, level: NonNullable<LylProjectExportInput["compressionLevel"]> = 6) {
-  return new Promise<Uint8Array>((resolve, reject) => {
-    // fflate encodes the ZIP entry mtime as a DOS date using local-time getters and
-    // rejects years outside 1980-2099. A UTC-pinned "1980-01-01T00:00:00Z" rolls back
-    // to 1979 in any timezone west of UTC, so build the epoch from local components to
-    // keep the year at exactly 1980 everywhere.
-    zip(files, { level, mtime: new Date(1980, 0, 1) }, (error, data) => {
-      if (error) reject(error);
-      else resolve(data);
-    });
-  });
+function zipAsync(files: ArchiveFiles, level: NonNullable<LylProjectExportInput["compressionLevel"]> = 6, stored?: ReadonlySet<string>) {
+  return boundedProjectZip(files, level, stored);
 }
 
 function unzipAsync(bytes: Uint8Array) {
@@ -990,6 +1045,13 @@ export async function exportLylProject(input: LylProjectExportInput) {
   const stateShapes = exportEntries.map((entry) => entry.shapes);
   const designFonts = embeddedFonts(stateShapes);
   await builder.addSources(input.assets, referencedSourceAssetIds(stateShapes));
+  // The files of the design (#820) become assets of the kind "attachment", and the document lists them
+  // below under their own names. The list is checked first with what a reader would check, so a
+  // package that would not open again is never written.
+  const attachments = input.attachments ?? [];
+  const attachmentProblem = attachmentListProblem(attachments);
+  if (attachmentProblem) throw new Error(attachmentProblemText(attachmentProblem.problem, attachmentProblem.fileName));
+  const attachmentRecords = await builder.addAttachments(attachments);
   const sourceAssetsByArchiveId = new Map(builder.assets.filter((asset) => asset.kind === "source").map((asset) => [asset.id, asset]));
   // A state is serialized once and its text remembered on its history entry: the
   // states of an unchanged history come out the same on every save, and a long
@@ -1037,11 +1099,17 @@ export async function exportLylProject(input: LylProjectExportInput) {
   const sketchPlacementWorkplane = normalizePlacementWorkplane(input.sketchPlacementWorkplane);
   const view = input.view === undefined ? readDesignView(input.projectId) : normalizeDesignView(input.view);
   const savedViews = normalizeSavedViews(input.savedViews === undefined ? readSavedViews(input.projectId) : input.savedViews);
+  const cornerRulers = normalizeSavedCornerRulers(input.cornerRulers === undefined ? readCornerRulers(input.projectId) : input.cornerRulers);
+  const tapeMeasurements = normalizeSavedTape(input.tapeMeasurements === undefined ? readTape(input.projectId) : input.tapeMeasurements);
   const selectedWorkplaneId = placementWorkplaneIsBase(placementWorkplane) ? "workplane-base" : "workplane-active";
   const document: Omit<LylProjectDocumentV1, "states"> & { states: typeof STATES_PLACEHOLDER } = {
     schema: LYL_SCHEMA_ID,
-    formatVersion: LYL_FORMAT_VERSION,
-    minimumReaderVersion: LYL_MINIMUM_READER_VERSION,
+    // Only a design that has attachments is a version 3 package, or version 4 when one of them is of a
+    // type that came with version 4: a layerling that does not know them refuses it (see
+    // LYL_ATTACHMENTS_FORMAT_VERSION and LYL_FILE_TYPES_FORMAT_VERSION) instead of dropping the files
+    // at its next save. Every other design is written exactly as before.
+    formatVersion: attachmentsFormatVersion(attachments) ?? LYL_FORMAT_VERSION,
+    minimumReaderVersion: attachmentsFormatVersion(attachments) ?? LYL_MINIMUM_READER_VERSION,
     createdWithVersion: LYL_CREATED_WITH_VERSION,
     metadata: {
       ...(input.projectId ? { projectId: input.projectId } : {}),
@@ -1062,6 +1130,7 @@ export async function exportLylProject(input: LylProjectExportInput) {
       ...(selectedWorkplaneId === "workplane-active" ? [{ id: "workplane-active" as const, kind: "offset" as const, elevation: placementElevation }] : []),
     ],
     exactCad: indexes.exactCad,
+    ...(attachmentRecords.length > 0 ? { attachments: attachmentRecords } : {}),
     ...(designFonts.length ? { fonts: designFonts } : {}),
     editor: {
       workspace: normalizeWorkspaceSettings(input.workspace),
@@ -1072,6 +1141,8 @@ export async function exportLylProject(input: LylProjectExportInput) {
       sketchPlacementWorkplane,
       ...(view ? { view } : {}),
       ...(savedViews ? { savedViews } : {}),
+      ...(cornerRulers ? { cornerRulers } : {}),
+      ...(tapeMeasurements ? { tapeMeasurements } : {}),
     },
   };
   // The states are already text; put them in where the placeholder stands. The
@@ -1088,7 +1159,9 @@ export async function exportLylProject(input: LylProjectExportInput) {
   if (Object.keys(builder.files).length > LYL_LIMITS.entries) {
     throw new Error("Project has too many stored assets for the project format. Export with fewer history steps.");
   }
-  return zipAsync(Object.fromEntries(Object.entries(builder.files).sort(([a], [b]) => a.localeCompare(b))), input.compressionLevel);
+  // Attached pictures and PDF files are compressed already: they go in as they are (see `compressed`).
+  const stored = new Set(builder.assets.filter((asset) => asset.kind === "attachment" && attachmentTypeForMediaType(asset.mediaType)?.compressed).map((asset) => asset.path));
+  return zipAsync(Object.fromEntries(Object.entries(builder.files).sort(([a], [b]) => a.localeCompare(b))), input.compressionLevel, stored);
 }
 
 function inspectZipBeforeExpansion(bytes: Uint8Array) {
@@ -1190,7 +1263,8 @@ function validateSketchProfile(value: unknown, label: string) {
     if (segment.construction !== undefined && typeof segment.construction !== "boolean") throw new Error(`${label}.segments[${index}].construction must be true or false`);
   });
   if (profile.silhouette !== undefined && typeof profile.silhouette !== "boolean") throw new Error(`${label}.silhouette must be true or false`);
-  if (profile.keyring !== undefined && !isSketchKeyring(profile.keyring)) throw new Error(`${label}.keyring must be { side, diameter, x, z }`);
+  if (profile.keyring !== undefined && !isSketchKeyring(profile.keyring)) throw new Error(`${label}.keyring must be { side, diameter, x, z } and a free place (#598) with corners of -1 or 1 if it has one`);
+  if (profile.sweepAnchor !== undefined && profile.sweepAnchor !== "left" && profile.sweepAnchor !== "center" && profile.sweepAnchor !== "right") throw new Error(`${label}.sweepAnchor must be left, center or right`);
   if (profile.inset !== undefined) {
     const inset = objectRecord(profile.inset, `${label}.inset`);
     const distance = finiteNumber(inset.distance, `${label}.inset.distance`);
@@ -1292,6 +1366,13 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   if (definition.layeredIcon !== undefined && typeof definition.layeredIcon !== "boolean") {
     throw new Error(`${label}.layeredIcon must be true or false`);
   }
+  if (definition.keyringTab !== undefined && typeof definition.keyringTab !== "boolean") {
+    throw new Error(`${label}.keyringTab must be true or false`);
+  }
+  // A reference image's see-through (#680): 0.1 to 1, or none on an old picture plate.
+  if (definition.imagePlate !== undefined && !isReferenceImageOpacity((definition.imagePlate as { opacity?: unknown } | null)?.opacity)) {
+    throw new Error(`${label}.imagePlate.opacity must be a number from 0.1 to 1`);
+  }
   // A QR code's settings (#553): a text and known choices. Old projects have none.
   if (definition.qrCode !== undefined && !normalizeQrSettings(definition.qrCode)) {
     throw new Error(`${label}.qrCode must hold the code's text`);
@@ -1302,9 +1383,9 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   if (textJoin !== undefined && !SKETCH_STROKE_JOINS.includes(textJoin as never)) {
     throw new Error(`${label}.textStroke.join must be miter, round or bevel`);
   }
-  // A name tag's key ring hole (#215): a known side, a diameter within range, how far beyond the letters it sits.
+  // A name tag's key ring hole (#215): a known side, a diameter within range, how far beyond the letters it sits; where it was put freely (#598).
   if (definition.textKeyring !== undefined && !isTextKeyring(definition.textKeyring)) {
-    throw new Error(`${label}.textKeyring must be a side (left, right or top), a diameter of 1 to 20 mm and an offset`);
+    throw new Error(`${label}.textKeyring must be a side (left, right or top), a diameter of 1 to 20 mm and an offset, and a free place (#598) with corners of -1 or 1 if it has one`);
   }
   if (definition.parametricSource !== undefined) {
     // Was der Koerper vor dem Drehen war. Fehlt oder stimmt hier etwas nicht,
@@ -1428,7 +1509,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "gear") {
     const teeth = finiteNumber(definition.teeth, `${label}.teeth`);
-    if (!Number.isInteger(teeth) || teeth < 6 || teeth > 64) throw new Error(`${label}.teeth is outside the supported range`);
+    if (!Number.isInteger(teeth) || teeth < 6 || teeth > 150) throw new Error(`${label}.teeth is outside the supported range`);
     const toothSize = finiteNumber(definition.toothSize, `${label}.toothSize`);
     if (toothSize <= 0) throw new Error(`${label}.toothSize must be positive`);
     if (definition.toothWidth !== undefined) {
@@ -1538,14 +1619,14 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     }
   }
   if (kind === "gridfinity") {
-    // The size is rounded to whole grid units on loading, and the geometry clamps the label shelf's, the finger scoop's, the floor's and the dividers' values; only nonsense is refused.
-    if (definition.gridfinityType !== undefined && definition.gridfinityType !== "bin" && definition.gridfinityType !== "baseplate") {
+    // The size is rounded to whole grid units on loading (a tray's is kept to its limits), and the geometry clamps the label shelf's, the finger scoop's, the floor's, the lip chamfer's, the wall's, the corners' and the dividers' values; only nonsense is refused.
+    if (definition.gridfinityType !== undefined && definition.gridfinityType !== "bin" && definition.gridfinityType !== "baseplate" && definition.gridfinityType !== "tray") {
       throw new Error(`${label}.gridfinityType is invalid`);
     }
-    for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "hingePinless"] as const) {
+    for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityOpenBack", "gridfinityOpenFront", "gridfinityOpenLeft", "gridfinityOpenRight", "hingePinless"] as const) {
       if (definition[key] !== undefined && typeof definition[key] !== "boolean") throw new Error(`${label}.${key} must be true or false`);
     }
-    for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
+    for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityOpeningCornerSize", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       // Only an offset runs both ways along a wall.
@@ -1553,6 +1634,9 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     }
     if (definition.gridfinityLabelCorner !== undefined && definition.gridfinityLabelCorner !== "round" && definition.gridfinityLabelCorner !== "chamfer") {
       throw new Error(`${label}.gridfinityLabelCorner is invalid`);
+    }
+    if (definition.gridfinityOpeningCorner !== undefined && definition.gridfinityOpeningCorner !== "round" && definition.gridfinityOpeningCorner !== "chamfer") {
+      throw new Error(`${label}.gridfinityOpeningCorner is invalid`);
     }
     for (const key of ["gridfinityDividerPositionsX", "gridfinityDividerPositionsZ"] as const) {
       if (definition[key] === undefined) continue;
@@ -1584,10 +1668,29 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
         if (entry.align !== undefined && entry.align !== "start" && entry.align !== "middle" && entry.align !== "end") throw new Error(`${entryLabel}.align is invalid`);
       });
     }
+    if (definition.gridfinityOpenings !== undefined) {
+      if (!Array.isArray(definition.gridfinityOpenings)) throw new Error(`${label}.gridfinityOpenings must be an array`);
+      const openings = definition.gridfinityOpenings as unknown[];
+      if (openings.length > 4) throw new Error(`${label}.gridfinityOpenings has an unsupported number of openings`);
+      const sides = new Set<unknown>();
+      openings.forEach((raw, index) => {
+        const entryLabel = `${label}.gridfinityOpenings[${index}]`;
+        const entry = objectRecord(raw, entryLabel);
+        if (entry.side !== "back" && entry.side !== "front" && entry.side !== "left" && entry.side !== "right") throw new Error(`${entryLabel}.side is invalid`);
+        if (sides.has(entry.side)) throw new Error(`${entryLabel}.side is given twice`);
+        sides.add(entry.side);
+        for (const key of ["depth", "width", "distance"] as const) {
+          if (entry[key] === undefined) continue;
+          const value = finiteNumber(entry[key], `${entryLabel}.${key}`);
+          if (value < 0 || value > 1e6) throw new Error(`${entryLabel}.${key} is outside the supported range`);
+        }
+        if (entry.align !== undefined && entry.align !== "start" && entry.align !== "middle" && entry.align !== "end") throw new Error(`${entryLabel}.align is invalid`);
+      });
+    }
   }
   if (kind === "hinge") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["hingeKnuckles", "hingePinDiameter", "hingeLeafThickness", "hingeClearance"] as const) {
+    for (const key of ["hingeKnuckles", "hingeKnuckleWidth", "hingeConeSize", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeAngle"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       if (value < 0 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
@@ -1599,7 +1702,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "loft") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftBottomSides", "loftTopSides", "loftOffsetX", "loftOffsetZ", "loftWall", "loftTwist", "loftTiltX", "loftTiltZ", "loftSmooth"] as const) {
+    for (const key of ["loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftBottomSides", "loftTopSides", "loftOffsetX", "loftOffsetZ", "loftWall", "loftTwist", "loftTiltX", "loftTiltZ", "loftSmooth", "loftSegments"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       if (Math.abs(value) > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
@@ -1699,13 +1802,13 @@ async function validateDocumentAndAssets(raw: unknown, files: ArchiveFiles) {
   const document = objectRecord(raw, "project.json") as unknown as LylProjectDocumentV1;
   if (!knownSchema(document.schema)) throw new Error("This file is not a layerling project");
   if (!Number.isInteger(document.formatVersion)) throw new Error("layerling formatVersion is missing");
-  if (document.formatVersion > LYL_FORMAT_VERSION) {
+  if (document.formatVersion > LYL_NEWEST_READABLE_FORMAT_VERSION) {
     throw new Error(`This project uses project format ${document.formatVersion}, which requires a newer layerling version`);
   }
   if (document.formatVersion < LYL_OLDEST_READABLE_FORMAT_VERSION) {
     throw new Error(`Packaged project format ${document.formatVersion} requires migration support that is not available`);
   }
-  if (!Number.isInteger(document.minimumReaderVersion) || document.minimumReaderVersion > LYL_FORMAT_VERSION) {
+  if (!Number.isInteger(document.minimumReaderVersion) || document.minimumReaderVersion > LYL_NEWEST_READABLE_FORMAT_VERSION) {
     throw new Error("This project requires a newer layerling reader and was not opened");
   }
   const metadata = objectRecord(document.metadata, "metadata");
@@ -1724,7 +1827,7 @@ async function validateDocumentAndAssets(raw: unknown, files: ArchiveFiles) {
     const asset = document.assets[index];
     const id = stringValue(asset?.id, `assets[${index}].id`);
     if (assetById.has(id)) throw new Error(`Duplicate asset ID '${id}'`);
-    if (!asset || !["source", "derived-mesh", "brep", "image", "display-edges"].includes(asset.kind)) throw new Error(`Asset '${id}' has an unknown type`);
+    if (!asset || !LYL_ASSET_KINDS.includes(asset.kind)) throw new Error(`Asset '${id}' has an unknown type`);
     if (!safeArchivePath(asset.path) || assetPaths.has(asset.path)) throw new Error(`Asset '${id}' has an unsafe or duplicate path`);
     assetPaths.add(asset.path);
     const bytes = files[asset.path];
@@ -1735,8 +1838,19 @@ async function validateDocumentAndAssets(raw: unknown, files: ArchiveFiles) {
     if (asset.kind === "source" && !["stl", "obj", "svg", "step", "3mf"].includes(asset.sourceFormat ?? "")) {
       throw new Error(`Source asset '${id}' has an unknown source format`);
     }
+    // An attachment's bytes are checked again here, whatever the package says about them: its type has to
+    // be one that may be attached and its content has to be what that type is (see projectAttachments.ts).
+    if (asset.kind === "attachment") {
+      const type = attachmentTypeForMediaType(asset.mediaType);
+      if (!type) throw new Error(`Attachment asset '${id}' has a file type that cannot be attached`);
+      if (bytes.byteLength > type.maxBytes) throw new Error(`Attachment asset '${id}' is larger than ${type.maxBytes / (1024 * 1024)} MB`);
+      const problem = bytes.byteLength === 0 ? "empty" : type.check(bytes);
+      if (problem) throw new Error(`Attachment asset '${id}': ${attachmentProblemText(problem)}`);
+    }
     assetById.set(id, asset);
   }
+  // The list of files comes after the assets: it is checked against them.
+  const attachments = validateAttachments(document, assetById);
 
   const stateById = new Map<string, LylStateV1>();
   const activeObjectIds = new Set<string>();
@@ -1814,7 +1928,36 @@ async function validateDocumentAndAssets(raw: unknown, files: ArchiveFiles) {
       finiteNumber(coordinates.z, `editor.${fieldName}.${field}.z`);
     }
   }
-  return { document, assetById, stateById };
+  return { document, assetById, stateById, attachments };
+}
+
+/** The list of files a package carries, checked: each has its file, a name that suits its type, and the whole is within the limits. */
+function validateAttachments(document: LylProjectDocumentV1, assetById: Map<string, LylAssetRecordV1>) {
+  if (document.attachments === undefined) return [];
+  if (document.formatVersion < LYL_ATTACHMENTS_FORMAT_VERSION) throw new Error(`Project format ${document.formatVersion} does not carry attachments`);
+  if (!Array.isArray(document.attachments)) throw new Error("project.json attachments must be a list");
+  const ids = new Set<string>();
+  const records = document.attachments.map((entry, index): LylAttachmentV3 => {
+    const record = objectRecord(entry, `attachments[${index}]`);
+    const id = stringValue(record.id, `attachments[${index}].id`);
+    const fileName = stringValue(record.fileName, `attachments[${index}].fileName`);
+    const assetId = stringValue(record.assetId, `attachments[${index}].assetId`);
+    if (ids.has(id)) throw new Error(`Duplicate attachment ID '${id}'`);
+    ids.add(id);
+    const asset = assetById.get(assetId);
+    if (!asset || asset.kind !== "attachment") throw new Error(`Attachment '${fileName}' is missing its file`);
+    const type = attachmentTypeForFileName(fileName);
+    if (type?.mediaType !== asset.mediaType) throw new Error(`Attachment '${fileName}' does not match the type of its file`);
+    // A package that says it is older than its files: a hand-made one, or one changed by hand.
+    if (type.formatVersion > document.formatVersion) throw new Error(`Project format ${document.formatVersion} does not carry ${type.label} attachments`);
+    return { id, fileName, assetId };
+  });
+  const problem = attachmentListProblem(records.map((record) => ({ name: record.fileName, byteLength: assetById.get(record.assetId)?.byteLength ?? 0 })));
+  if (problem) throw new Error(attachmentProblemText(problem.problem, problem.fileName));
+  // More files, or more bytes, than version 3 allowed: such a list is written as version 4 only.
+  const needed = attachmentsFormatVersion(records.map((record) => assetById.get(record.assetId)!));
+  if (needed !== undefined && needed > document.formatVersion) throw new Error(`Project format ${document.formatVersion} does not carry this many attachments`);
+  return records;
 }
 
 type ImportedMesh = NonNullable<WorkplaneShape["importedMesh"]>;
@@ -1840,7 +1983,14 @@ function sharedImportedMesh(decoded: object, reference: string, create: () => Im
 }
 
 async function defaultSourceImporter(asset: ProjectAsset) {
-  if (asset.sourceFormat === "stl") return importedShapeFromStl(asset.name, exactArrayBuffer(asset.bytes)).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
+  if (asset.sourceFormat === "stl") {
+    // In the browser the file is read off the page (lib/geometryWorker.ts); the server reads it here.
+    if (typeof window !== "undefined") {
+      const { importedShapeFromStlOffThread } = await import("@/lib/geometryWorker");
+      return (await importedShapeFromStlOffThread(asset.name, exactArrayBuffer(asset.bytes))).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
+    }
+    return importedShapeFromStl(asset.name, exactArrayBuffer(asset.bytes)).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
+  }
   if (asset.sourceFormat === "obj") return importedShapeFromObj(asset.name, strFromU8(asset.bytes), true).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
   if (asset.sourceFormat === "svg") return importedShapeFromSvg(asset.name, strFromU8(asset.bytes)).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
   if (asset.sourceFormat === "3mf") return importedShapeFrom3mf(asset.name, exactArrayBuffer(asset.bytes)).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
@@ -2006,6 +2156,14 @@ async function restoreV1(document: LylProjectDocumentV1, assetById: Map<string, 
   const hydrated = hydrateEditorHistoryState(shapes, history, document.history.index, "unlimited", notes, placementWorkplane);
   const restoredView = normalizeDesignView(document.editor.view);
   const restoredSavedViews = normalizeSavedViews(document.editor.savedViews);
+  const restoredCornerRulers = normalizeSavedCornerRulers(document.editor.cornerRulers);
+  const restoredTape = normalizeSavedTape(document.editor.tapeMeasurements);
+  // The files were checked with the document; each is copied out of the archive.
+  const attachments = (document.attachments ?? []).map((record): ProjectAttachment => {
+    const asset = assetById.get(record.assetId) as LylAssetRecordV1;
+    const bytes = new Uint8Array(files[asset.path]);
+    return { id: record.id, name: record.fileName, mediaType: asset.mediaType, bytes, byteLength: bytes.byteLength, sha256: asset.sha256 };
+  });
   if (hydrated.entries.length !== history.length || hydrated.index !== document.history.index) throw new Error("Undo history could not be restored without data loss");
   return {
     sourceProjectId: document.metadata.projectId,
@@ -2017,6 +2175,7 @@ async function restoreV1(document: LylProjectDocumentV1, assetById: Map<string, 
     history: hydrated.entries,
     historyIndex: hydrated.index,
     assets: [...runtimeAssetByArchiveId.values()],
+    ...(attachments.length > 0 ? { attachments } : {}),
     workspace: normalizeWorkspaceSettings(document.editor.workspace),
     snapGrid: normalizeSnapGrid(document.editor.snapGrid),
     placementElevation: document.editor.placementElevation,
@@ -2024,6 +2183,8 @@ async function restoreV1(document: LylProjectDocumentV1, assetById: Map<string, 
     sketchPlacementWorkplane: normalizePlacementWorkplane(document.editor.sketchPlacementWorkplane),
     ...(restoredView ? { view: restoredView } : {}),
     ...(restoredSavedViews ? { savedViews: restoredSavedViews } : {}),
+    ...(restoredCornerRulers ? { cornerRulers: restoredCornerRulers } : {}),
+    ...(restoredTape ? { tapeMeasurements: restoredTape } : {}),
     ...(document.formatVersion < LYL_FORMAT_VERSION ? { migratedFromVersion: document.formatVersion } : {}),
   } satisfies LylRestoredProject;
 }
@@ -2145,6 +2306,24 @@ export async function inspectLylProjectPackage(input: ArrayBuffer | Uint8Array):
     modifiedAt: Date.parse(validated.document.metadata.modifiedAt),
     formatVersion: validated.document.formatVersion,
   };
+}
+
+/**
+ * The package with another design name inside. Renaming a design on the start page changes its card only; the
+ * saved package keeps the old name until the design is changed again, so whatever hands the package on writes the
+ * card's name in first (#689). Everything else stays as it was; a package that already has the name comes back as is.
+ */
+export async function withLylProjectName(input: ArrayBuffer | Uint8Array, projectName: string): Promise<Uint8Array> {
+  const bytes = projectInputBytes(input);
+  const name = projectName.trim();
+  const prefix = strFromU8(bytes.subarray(0, Math.min(bytes.length, 64))).trimStart();
+  if (!name || prefix.startsWith("{")) return bytes;
+  const { files, validated } = await readPackagedLyl(bytes);
+  if (validated.document.metadata.projectName === name) return bytes;
+  const raw = JSON.parse(strFromU8(files["project.json"])) as { metadata: { projectName: string } };
+  raw.metadata.projectName = name;
+  files["project.json"] = strToU8(JSON.stringify(raw));
+  return zipAsync(Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))), 1);
 }
 
 export async function importLylProject(input: ArrayBuffer | Uint8Array, options: ImportLylOptions = {}): Promise<LylRestoredProject> {

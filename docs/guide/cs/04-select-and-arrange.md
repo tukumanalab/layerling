@@ -58,7 +58,7 @@ Zkratka je [[L]], [[Esc]] nástroj ukončí.
 
 ## Otáčení a střed otáčení
 
-Otáčejte obloukovými šipkami, čísly v nastavení nebo [[R]] po 45°. Tažení po kružnici přichytává po ryskách 22,5°, se [[Shift]] přidá jemnější rysky po 11,25°. Tažení mimo kružnici umožní kroky 1°, se [[Shift]] 45°. Výběr se běžně otáčí kolem svého středu. Pro jiný bod, například konec nakloněné trubky, použijte {{ui:editor.tool.rotationPivot}} a klikněte na plochu. Rovinná plocha poskytne svůj střed, například osu konce trubky. Další použití nástroje vlastní střed zruší.
+Otáčejte obloukovými šipkami, čísly v nastavení nebo [[R]] po 45°. Tažení po kružnici přichytává po ryskách 22,5°, se [[Shift]] přidá jemnější rysky po 11,25°. Tažení mimo kružnici umožní kroky 1°, se [[Shift]] 45°. Výběr se běžně otáčí kolem svého středu. Pro jiný bod, například konec nakloněné trubky, použijte {{ui:editor.tool.rotationPivot}} a klikněte na plochu. Rovinná plocha poskytne svůj střed, například osu konce trubky. U sloučeného celku nebo skupiny se plocha táhne přes díly, které se stýkají, jako u jednoho tělesa, a střed otáčení se po jejich spojení posune doprostřed celé plochy, kromě sloučeného celku nebo skupiny s textem a skupiny s výřezem. Další použití nástroje vlastní střed zruší.
 
 Úhly se uchovávají s tělesem. {{ui:inspector.rotation}} uvádí {{ui:prop.rotateX}}, {{ui:prop.rotateY}} a {{ui:prop.rotateZ}} podle stejné soustavy jako poloha, s Y po podložce a Z vzhůru. Zadání úhlu otočí těleso kolem středu či vlastního uloženého bodu. Úhly vybraného tělesa jsou vidět i pod ním; vypnete je přes {{ui:workspace.showRotationAngles}}.
 
@@ -73,6 +73,8 @@ Vyberte díl, zapněte {{ui:editor.tool.layFlat}} a klikněte na plochu, která 
 Pro přiložení dvou dílů vyberte pohyblivý díl, spusťte {{ui:editor.tool.mateFaces}}, klikněte na jeho plochu a pak na plochu druhého. {{ui:mate.mode.against}} přiloží plochy proti sobě, {{ui:mate.mode.flush}} je srovná do jedné roviny. {{ui:mate.gap}} ponechá mezeru, například pro vůli. {{ui:mate.apply}} otočí první díl nejkratší cestou do rovnoběžné orientace a přesune jej pouze kolmo k druhé ploše. Boční poloha se zachová. Pokud jsou plochy rovnoběžné, neotáčí se. Druhý díl zůstane na místě a jediný krok Zpět operaci vrátí.
 
 ![Panel zarovnání ploch: volba pohyblivého dílu, plochy druhého, režimu proti sobě nebo do roviny a případné mezery.](shot:mate-faces)
+
+**Díry na jedné ose:** {{ui:mate.mode.concentric}} místo toho zarovná kulaté plochy: díru nad díru, čep do díry, šroub do jeho průchozí díry. Vyberte to dřív, než kliknete na plochy. Pak klikněte na kulatý vnitřek díry (nebo vnější stranu čepu) na dílu, který se pohne, a na kulatou plochu druhého dílu; celá kulatá plocha se pod ukazatelem rozsvítí. {{ui:mate.apply}} otočí díl nejkratší cestou, až jsou obě osy rovnoběžné, a posune ho napříč na druhou osu. Podél osy zůstane, kde byl, takže čep si drží výšku; zasuňte ho potom. Funguje to i u importovaných sítí, pokud je díra tvořena ploškami kolem jedné osy.
 
 **Přesný úhel mezi dvěma plochami:** {{ui:editor.tool.mateFaces}} plochy zarovná rovnoběžně. Samostatný nástroj pro úhel mezi nimi není, ale můžete postupovat takto: nejprve plochy spojte přes {{ui:editor.tool.mateFaces}}, pak nastavte střed otáčení na společnou hranu pomocí {{ui:editor.tool.rotationPivot}} a kliknutí na hranu nebo roh. V kartě {{ui:inspector.rotation}} zadejte požadovaný úhel, například 15° či 30°. Díl se otočí kolem tohoto středu. Osy karty odpovídají osám podložky, takže postup funguje pro hranu ve směru X, Y nebo Z.
 
@@ -99,7 +101,7 @@ Kopie jsou nejprve pouze náhled. Vytvoří je až {{ui:array.apply}}. Výřezy 
 
 {{ui:holePattern.title}} rozmístí otvory po rovinné ploše krytu, mřížky reproduktoru, košíku nebo ventilace. Nemusíte vytvářet a opakovat jednotlivý výřez. Vyberte právě jedno těleso a spusťte {{ui:holePattern.title}} v {{ui:editor.group.modify}} vedle opakování, pravým tlačítkem nebo vyhledáváním [[Ctrl]]+[[K]].
 
-1. Klikněte na rovinnou plochu. Použije se celá souvislá rovinná oblast, nikoli jen trojúhelník pod ukazatelem. Oblá plocha není podporovaná a nástroj vás vyzve k jinému výběru.
+1. Klikněte na rovinnou plochu. Použije se celá souvislá rovinná oblast, nikoli jen trojúhelník pod ukazatelem. Oblá plocha není podporovaná a nástroj vás vyzve k jinému výběru. U sloučeného celku nebo skupiny se plocha táhne přes díly, které se stýkají, jako u jednoho tělesa, u skupiny ale jen tehdy, když mezi díly není výřez. Díly se spojí krátce po otevření nástroje; do té doby se pod ukazatelem rozsvítí jen plocha jednoho dílu a kliknutí počká, až se díly spojí. U sloučeného celku nebo skupiny s textem se rozsvítí jen plocha jednoho dílu a díly spojí až kliknutí.
 2. Nastavte otvory:
    - **{{ui:holePattern.form}}:** {{ui:holePattern.form.round}}, {{ui:holePattern.form.square}}, {{ui:holePattern.form.rectangle}}, {{ui:holePattern.form.hexagon}} nebo {{ui:holePattern.form.slot}}.
    - **Rozměry:** {{ui:holePattern.size.diameter}} kruhu, {{ui:holePattern.size.side}} čtverce, {{ui:holePattern.size.width}} a {{ui:holePattern.size.height}} obdélníku či podlouhlého otvoru. Šestiúhelník používá {{ui:holePattern.size.corners}}.
@@ -119,7 +121,7 @@ AI může provést totéž přes `layerling_perforate_face`, viz [Modelování s
 
 Pro zesílení stěny, vyvýšenou plošku nebo vyříznutou kapsu pracuje nástroj {{ui:faceTool.title}} s jednou rovinnou plochou. Funguje i u importovaného STL, které nemá náčrt ke změně. Vyberte právě jedno těleso a spusťte {{ui:faceTool.title}} v {{ui:editor.group.modify}} vedle rastru otvorů, pravým tlačítkem nebo vyhledáváním [[Ctrl]]+[[K]].
 
-1. Klikněte na rovinnou plochu tělesa. Stejně jako u rastru otvorů se použije celá souvislá rovinná oblast; oblá plocha není podporovaná.
+1. Klikněte na rovinnou plochu tělesa. Stejně jako u rastru otvorů se použije celá souvislá rovinná oblast; oblá plocha není podporovaná. U sloučeného celku nebo skupiny se plocha jako u rastru otvorů táhne přes díly, které se stýkají.
 2. V okně nastavte:
    - **{{ui:faceTool.direction}}:** {{ui:faceTool.direction.out}} pro materiál na ploše, nebo {{ui:faceTool.direction.in}} pro kapsu vyříznutou do ní. Kapsa nejde hlouběji než těleso za plochou; u dutého tělesa může přesto dosáhnout do dutiny.
    - **{{ui:faceTool.inset}}:** jak daleko zůstane nový obrys uvnitř okraje plochy. Směrem ven se při 0 vezme celá plocha, tak se stěna zesílí. Otvory v ploše se zvětší o stejnou hodnotu.
@@ -155,7 +157,7 @@ Změnu provede až {{ui:scalePercent.apply}} a jediný krok Zpět ji vrátí. Se
 
 ## Prohlížení historie
 
-{{ui:editor.tool.history}} vedle Zpět a Znovu umožní prohlížet starší stavy bez změny projektu. Pracovní plocha ukazuje minulou podobu a spodní posuvník prochází kroky. Současný stav je vpravo, předchozí vlevo; již vrácené kroky leží napravo od současného. Šipky procházejí stavy a [[Esc]] vrátí současnost. Pohled můžete otáčet a přibližovat a klepnutím vybírat objekty k vrácení (viz níže), ale nic nelze měnit. Lištu lze přetáhnout za záhlaví a dvojklikem vrátit.
+{{ui:editor.tool.history}} vedle Zpět a Znovu umožní prohlížet starší stavy bez změny projektu. Pracovní plocha ukazuje minulou podobu a spodní posuvník prochází kroky. Současný stav je vpravo, předchozí vlevo; již vrácené kroky leží napravo od současného. Šipky procházejí stavy a [[Esc]] vrátí současnost. Kolečko myši nad posuvníkem dělá totéž, jeden stav na zoubek, nahoru ke staršímu; [[Page Up]] a [[Page Down]] skáčou o deset stavů, [[Home]] jde na nejstarší stav a [[End]] zpět na aktuální. Pohled můžete otáčet a přibližovat a klepnutím vybírat objekty k vrácení (viz níže), ale nic nelze měnit. Lištu lze přetáhnout za záhlaví a dvojklikem vrátit.
 
 Ze staršího stavu můžete vytvořit {{ui:historyView.createProject}}. Nový projekt má původní název doplněný časem stavu; u starých dat bez času označení kopie. Obsahuje historii až do daného okamžiku, takže Zpět nadále funguje. {{ui:historyView.export}} otevře běžný export tohoto stavu jako STL, 3MF, STEP, obrázek nebo LYL včetně příslušné historie.
 

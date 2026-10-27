@@ -1,12 +1,13 @@
 import manifoldModule, { type ManifoldToplevel } from "manifold-3d";
 import { beforeAll, describe, expect, it } from "vitest";
+import { shapeGeometrySignature, tapeShapeTopologyKey } from "@/components/workplane/viewportShapeObjects";
 import { cadModifierGridfinityForShape } from "@/lib/cadProfileExtrusion";
 import { editorHistoryEntry } from "@/lib/editorHistory";
 import { meshForShape } from "@/lib/editorMeshCore";
 import { mcpShapeSummary } from "@/lib/editorMcpSummary";
 import { exportLylProject, importLylProject } from "@/lib/lylProject";
 import { rememberManifoldRuntime } from "@/lib/manifoldHandle";
-import { mcpGridfinityListParams } from "@/lib/mcpShapeSettings";
+import { mcpGridfinityListParams, mcpGridfinityPaddingPatch } from "@/lib/mcpShapeSettings";
 import { makeShapeFromAsset, sceneShape, toolbarShapeAssets } from "@/lib/shapeCatalog";
 import { DEFAULT_SNAP_GRID, DEFAULT_WORKPLANE_WORKSPACE, normalizeShapeCustomizations } from "@/lib/workplaneSettings";
 import { shapeDefaultsFromShape } from "@/lib/shapeDefaults";
@@ -15,7 +16,9 @@ import type { WorkplaneShape } from "@/types/layerling";
 import {
   GRIDFINITY_LABEL_WALL_KEYS,
   GRIDFINITY_LIP_HEIGHT,
+  GRIDFINITY_OPEN_WALL_KEYS,
   GRIDFINITY_SCOOP_WALL_KEYS,
+  MAX_GRIDFINITY_LIP_CHAMFER,
   type GridfinityLabelCornerShape,
   type GridfinityLabelProfile,
   createGridfinityGeometry,
@@ -25,29 +28,51 @@ import {
   gridfinityCompartmentCutBound,
   gridfinityCompartmentFloorBound,
   gridfinityCompartmentLabel,
+  gridfinityCompartmentLabelLeftOut,
   gridfinityCompartmentLabelMaxWidth,
   gridfinityCompartmentMax,
   gridfinityCompartmentPieces,
   gridfinityCompartments,
+  gridfinityCornerRadius,
   gridfinityDividerBound,
   gridfinityDividerFits,
   gridfinityDividerLimits,
   gridfinityDividerPositionPatch,
   gridfinityDividerPositions,
   gridfinityDividerThickness,
+  gridfinityDrawerPatch,
+  gridfinityDrawerSize,
   gridfinityFloorFits,
   gridfinityFloorHeight,
   gridfinityFloorMaxHeight,
+  gridfinityFloorMinHeight,
   gridfinityFootprintPatch,
   gridfinityLabelCornerSize,
   gridfinityLabelFits,
   gridfinityLabelLength,
   gridfinityLabelLimits,
+  gridfinityLabelMaxWidth,
   gridfinityLabelledTriangles,
   gridfinityLabelPieces,
+  gridfinityHasPieces,
+  gridfinityLipChamfer,
   gridfinityListPatch,
+  gridfinityOpenFits,
+  gridfinityOpening,
+  gridfinityOpeningCornerSize,
+  gridfinityOpeningCorners,
+  gridfinityOpeningFits,
+  gridfinityOpeningInside,
+  gridfinityOpeningLimits,
+  gridfinityOpeningMaxCornerSize,
+  gridfinityOpeningOutline,
+  gridfinityOpeningPatch,
+  gridfinityOpeningSection,
+  gridfinityPadding,
+  gridfinityPaddingPatch,
   gridfinityPlan,
   gridfinityScoopFits,
+  gridfinityScoopMaxRadius,
   gridfinityScoopPieces,
   gridfinityScoopRadius,
   gridfinityScoopsLeftOut,
@@ -55,8 +80,14 @@ import {
   gridfinityTriangles,
   gridfinityUnitCompartments,
   gridfinityUnits,
+  gridfinityWallMaxThickness,
+  gridfinityWallProfile,
+  gridfinityWallSolid,
+  gridfinityWallThickness,
   normalizeGridfinityCompartmentLabels,
+  normalizeGridfinityOpenings,
   normalizeGridfinityDividerPositions,
+  normalizeGridfinityType,
 } from "@/lib/gridfinityGeometry";
 
 type V = [number, number, number];
@@ -1292,11 +1323,58 @@ describe("gridfinity bins without compartments, unchanged by them", () => {
       expect(labelled.length, context).toBe(labelledTriangles);
       expect(signedVolume(labelled), context).toBeCloseTo(labelledVolume, 3);
       expect(shelvesOf(fields), context).toEqual(shelves);
+      // Every side's open switch stored as off builds the same (#682).
+      const closed = { ...fields, gridfinityOpenBack: false, gridfinityOpenFront: false, gridfinityOpenLeft: false, gridfinityOpenRight: false };
+      expect(gridfinityTriangles(bin(closed)), context).toEqual(plain);
+      expect(gridfinityLabelledTriangles(runtime, bin(closed)), context).toEqual(labelled);
+      expect(shelvesOf(closed), context).toEqual(shelves);
     }
     const baseplate = gridfinityTriangles(plate());
     expect(baseplate.length).toBe(812);
     expect(signedVolume(baseplate)).toBeCloseTo(2826.9698, 3);
     expect(gridfinityLabelledTriangles(runtime, plate())).toEqual(baseplate);
+  });
+});
+
+describe("gridfinity bins with every side closed, unchanged by open sides", { timeout: 30_000 }, () => {
+  let runtime: ManifoldToplevel;
+
+  beforeAll(async () => {
+    runtime = await manifoldModule();
+    runtime.setup();
+  });
+
+  const closed = { gridfinityOpenBack: false, gridfinityOpenFront: false, gridfinityOpenLeft: false, gridfinityOpenRight: false };
+
+  it("builds the same compartments, dividers and bounds as before open sides came in, also with every side switched off", () => {
+    // Taken before open sides came in (#682): triangles and volume of the display mesh, the dividers' and the floors'
+    // bounds, and each compartment's middle and half sizes.
+    const even = [[-27.6, -10.2, 13.2, 9.6], [0, -10.2, 13.2, 9.6], [27.6, -10.2, 13.2, 9.6], [-27.6, 10.2, 13.2, 9.6], [0, 10.2, 13.2, 9.6], [27.6, 10.2, 13.2, 9.6]];
+    for (const [fields, triangles, volume, dividers, floors, cells] of [
+      [{ gridfinityScoopFront: true }, 5052, 28365.4391, 3156.200072676, 1791.343643112, even],
+      [{ gridfinityScoopFront: true, gridfinityCompartmentLabels: [{ column: 1, row: 1, side: "back" }] }, 5170, 29894.8093, 3156.200072676, 1791.343643112, even],
+      [
+        { gridfinityDividerPositionsX: [10, 60.3], gridfinityDividerPositionsZ: [25.5] }, 3640, 27274.3485, 3156.200072676, 832.455566956,
+        [[-36.1, -7.35, 4.7, 12.45], [-5.65, -7.35, 24.55, 12.45], [30.45, -7.35, 10.35, 12.45], [-36.1, 13.05, 4.7, 6.75], [-5.65, 13.05, 24.55, 6.75], [30.45, 13.05, 10.35, 6.75]],
+      ],
+      [{ gridfinityLip: false, height: 21 }, 3446, 25348.1282, 3176.959865306, 832.455566956, even],
+    ] as const) {
+      for (const shape of [bin({ gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, ...fields }), bin({ gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, ...fields, ...closed })]) {
+        const context = JSON.stringify(shape);
+        const mesh = gridfinityLabelledTriangles(runtime, shape) as V[][];
+        expect(mesh.length, context).toBe(triangles);
+        expect(signedVolume(mesh), context).toBeCloseTo(volume, 3);
+        const pieces = gridfinityCompartmentPieces(shape)!;
+        expect(pieces.cells.map((cell) => [cell.centre.x, cell.centre.z, cell.inside.hx, cell.inside.hz].map((n) => Number(n.toFixed(9)) + 0)), context).toEqual(cells);
+        expect(gridfinityDividerBound(gridfinityPlan(shape), pieces), context).toBeCloseTo(dividers, 8);
+        expect(gridfinityCompartmentFloorBound(gridfinityPlan(shape), pieces), context).toBeCloseTo(floors, 8);
+      }
+    }
+  });
+
+  it("leaves a solid block as it was with a side switched on: it has no sides to open", () => {
+    const block = { gridfinityLip: false, height: 21, gridfinityFloorHeight: 21 };
+    expect(gridfinityTriangles(bin({ ...block, gridfinityOpenFront: true }))).toStrictEqual(gridfinityTriangles(bin(block)));
   });
 });
 
@@ -1911,5 +1989,1458 @@ describe("gridfinity dividers", { timeout: 30_000 }, () => {
     const { settings } = mcpShapeSummary(shape);
     expect(settings).toMatchObject({ gridfinityCompartmentsX: 3, gridfinityDividerThickness: 1.6, gridfinityDividerPositionsX: "[25,55]", gridfinityCompartmentLabels: '[{"column":0,"row":0,"side":"back"}]' });
     expect(normalizeGridfinityDividerPositions(JSON.parse(String(settings!.gridfinityDividerPositionsX)))).toEqual([25, 55]);
+  });
+});
+
+describe("gridfinity open sides", { timeout: 60_000 }, () => {
+  let runtime: ManifoldToplevel;
+
+  beforeAll(async () => {
+    runtime = await manifoldModule();
+    runtime.setup();
+  });
+
+  /** Every one of the 15 ways to open one side or more, each as the switches it sets. */
+  const openings = Array.from({ length: 15 }, (_, k) => Object.fromEntries(Object.values(GRIDFINITY_OPEN_WALL_KEYS).filter((_, i) => (k + 1) & (1 << i)).map((key) => [key, true])));
+  const all = { gridfinityOpenBack: true, gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenRight: true };
+
+  /** The mesh is closed, wound outwards, one piece and inside the bin's outline; the outline itself is reached, and the top unless every side is open. */
+  const expectOpen = (fields: Record<string, unknown>) => {
+    const shape = bin(fields);
+    const mesh = gridfinityLabelledTriangles(runtime, shape) as V[][];
+    const context = JSON.stringify(fields);
+    expect(edgeProblems(mesh), context).toBe(0);
+    expect(components(mesh), context).toBe(1);
+    expect(signedVolume(mesh), context).toBeGreaterThan(0);
+    const { size } = gridfinityPlan(shape);
+    const { min, max } = bounds(mesh);
+    [min[0] + size.width / 2, max[0] - size.width / 2, min[2] + size.depth / 2, max[2] - size.depth / 2, min[1]].forEach((d) => expect(Math.abs(d), context).toBeLessThan(1e-6));
+    expect(max[1], context).toBeLessThan(size.height + 1e-5);
+    if (!Object.values(gridfinityPlan(shape).open).every(Boolean)) expect(max[1], context).toBeGreaterThan(size.height - 2e-3);
+    return mesh;
+  };
+
+  it("tells every open side apart and keeps them all through a saved project", async () => {
+    const settings: Record<string, unknown> = {};
+    Object.values(GRIDFINITY_OPEN_WALL_KEYS).forEach((key) => Object.assign(settings, { [key]: true }));
+    const open = canonicalizeShape(binShape(settings));
+    Object.keys(settings).forEach((key) => {
+      expect(workplaneShapesEqual(open, { ...open, [key]: false })).toBe(false);
+    });
+    const save = (shapes: WorkplaneShape[]) => exportLylProject({
+      projectId: "open",
+      projectName: "Open",
+      createdAt: 1_700_000_000_000,
+      modifiedAt: 1_700_000_100_000,
+      shapes,
+      history: [editorHistoryEntry(shapes, [])],
+      historyIndex: 0,
+      assets: [],
+      workspace: DEFAULT_WORKPLANE_WORKSPACE,
+      snapGrid: DEFAULT_SNAP_GRID,
+      placementElevation: 0,
+    });
+    const [loaded] = (await importLylProject(await save([open]))).shapes;
+    expect(workplaneShapesEqual(loaded, open)).toBe(true);
+    expect(loaded).toMatchObject(settings);
+    expect(sceneShape(open)).toMatchObject(settings);
+    expect(cadModifierGridfinityForShape(open)).toMatchObject(settings);
+    expect(normalizeShapeCustomizations({ gridfinity: settings }, {})).toMatchObject({ gridfinity: settings });
+    expect(shapeDefaultsFromShape(open)).toMatchObject(settings);
+    const asset = toolbarShapeAssets.find((entry) => entry.kind === "gridfinity")!;
+    expect(makeShapeFromAsset(asset, { x: 0, z: 0 }, settings)).toMatchObject(settings);
+    for (const key of Object.keys(settings)) {
+      await expect(importLylProject(await save([{ ...open, [key]: "yes" } as WorkplaneShape])), key).rejects.toThrow(`${key} must be true or false`);
+      // The mesh that booleans and exports use leaves that side open, as calculated by hand in "takes the wall and the lip off".
+      const { vertices, faces } = meshForShape(canonicalizeShape(binShape({ [key]: true })));
+      const volume = signedVolume(faces.map((face) => face.map((i) => vertices[i]) as V[]));
+      expect(volume, key).toBeCloseTo(key === "gridfinityOpenBack" || key === "gridfinityOpenFront" ? 21497.68 : 22440.95, 1);
+    }
+  });
+
+  it("opens a bin's sides at any floor with the lip, and without it until the floor reaches the top, and never a baseplate's", () => {
+    const none = { back: false, front: false, left: false, right: false };
+    expect(gridfinityPlan(bin({ gridfinityOpenFront: true, gridfinityOpenLeft: true })).open).toEqual({ ...none, front: true, left: true });
+    // false and unset are the same.
+    expect(gridfinityPlan(bin({ gridfinityOpenFront: false })).open).toEqual(none);
+    // With the lip the floor stops at the support's foot, 19.35, and the lip is left on the other sides.
+    for (const floor of [undefined, 12.5, 19.35]) expect(gridfinityOpenFits(bin({ gridfinityFloorHeight: floor })), `${floor}`).toBe(true);
+    // Without the lip a floor of 20.9 leaves 0.1 mm of wall; 20.95 is raised onto the top, a solid block.
+    expect(gridfinityOpenFits(bin({ gridfinityLip: false, height: 21, gridfinityFloorHeight: 20.9 }))).toBe(true);
+    expect(gridfinityOpenFits(bin({ gridfinityLip: false, height: 21, gridfinityFloorHeight: 20.95 }))).toBe(false);
+    expect(gridfinityPlan(bin({ gridfinityLip: false, height: 21, gridfinityFloorHeight: 20.95, ...all })).open).toEqual(none);
+    expect(gridfinityOpenFits(plate())).toBe(false);
+    expect(gridfinityPlan(plate(all)).open).toEqual(none);
+  });
+
+  it("builds no scoop or shelf on an open side, and keeps their settings for when it is closed again", () => {
+    const scooped = { gridfinityScoopFront: true };
+    expect(gridfinityScoopPieces(bin({ ...scooped, gridfinityOpenFront: true }))).toBeNull();
+    // Nor the floor's rounding, which only a built scoop brings.
+    expect(gridfinityPlan(bin({ ...scooped, gridfinityOpenFront: true })).floorRounding).toBe(0);
+    expect(gridfinityScoopPieces(bin({ ...scooped, gridfinityOpenFront: false }))).toStrictEqual(gridfinityScoopPieces(bin(scooped)));
+    const shelves = { gridfinityLabelFront: true, gridfinityLabelLeft: true };
+    const open = piecesOf({ ...shelves, gridfinityOpenFront: true });
+    // The left shelf runs out past the front, 1 mm past the inside as into a wall, with no corner piece at that end.
+    expect(open.shelves.map(({ profile }) => [profile.wall, profile.width, profile.from, profile.to])).toEqual([["left", 14, -20.8, 20.8]]);
+    expect(cornersAt(open)).toEqual([[-26.8, -19.8]]);
+    expect(piecesOf({ ...shelves, gridfinityOpenFront: false })).toStrictEqual(piecesOf(shelves));
+  });
+
+  it("leaves a shelf or a scoop the room it has with no shelf or scoop facing it, when that side is open", () => {
+    expect(gridfinityLabelMaxWidth(bin({ gridfinityLabelBack: true, gridfinityLabelFront: true, gridfinityOpenFront: true }), "back")).toBe(gridfinityLabelMaxWidth(bin({ gridfinityLabelBack: true }), "back"));
+    expect(gridfinityLabelMaxWidth(bin({ gridfinityLabelBack: true }), "back")).toBeGreaterThan(gridfinityLabelMaxWidth(bin({ gridfinityLabelBack: true, gridfinityLabelFront: true }), "back"));
+    // 6 height units, so the 2 mm of floor between two facing scoops is what limits them: 18.8 mm, alone 33.9.
+    const tall = { height: 42 + GRIDFINITY_LIP_HEIGHT, gridfinityScoopBack: true };
+    expect(gridfinityScoopMaxRadius(bin({ ...tall, gridfinityScoopFront: true }))).toBeCloseTo(18.8, 9);
+    expect(gridfinityScoopMaxRadius(bin({ ...tall, gridfinityScoopFront: true, gridfinityOpenFront: true }))).toBeCloseTo(33.9, 9);
+  });
+
+  it("runs the scoops beside an open side out past the bin's outline, to be cut off there", () => {
+    // The left wall's scoop from 1 mm past the outline at the front, 19.8 + 0.95 + 1, to 1 mm into the back wall.
+    const ends = ({ scoops }: { scoops: Array<{ wall: string; from: number; to: number }> }) => scoops.map(({ wall, from, to }) => [wall, Number(from.toFixed(9)), Number(to.toFixed(9))]);
+    expect(ends(gridfinityScoopPieces(bin({ gridfinityScoopLeft: true, gridfinityOpenFront: true }))!)).toEqual([["left", -21.75, 20.8]]);
+    // So does a compartment's against the open side: 9.6 + 0.95 + 1.
+    const cells = gridfinityCompartmentPieces(bin({ gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, gridfinityScoopLeft: true, gridfinityOpenFront: true }))!.cells;
+    const front = cells.find((cell) => cell.column === 0 && cell.row === 1)!;
+    expect(front.open).toEqual({ back: false, front: true, left: false, right: false });
+    expect(ends(front.scoops!)).toEqual([["left", -11.55, 10.6]]);
+    expect(ends(cells.find((cell) => cell.column === 0 && cell.row === 0)!.scoops!)).toEqual([["left", -10.6, 10.6]]);
+  });
+
+  it("offers a compartment no label on an open side, and keeps one facing a divider", () => {
+    const shape = bin({ gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, gridfinityOpenFront: true, gridfinityCompartmentLabels: [{ column: 1, row: 1, side: "front" }, { column: 1, row: 0, side: "front" }] });
+    expect(gridfinityCompartmentLabel(shape, 1, 1)).toBeNull();
+    expect(gridfinityCompartmentLabel(shape, 1, 0)).not.toBeNull();
+    const cells = gridfinityCompartments(shape)!.cells;
+    expect(gridfinityCompartmentLabelMaxWidth(shape, cells.find((cell) => cell.column === 1 && cell.row === 1)!, "front")).toBe(0);
+    expect(gridfinityCompartmentLabelMaxWidth(shape, cells.find((cell) => cell.column === 1 && cell.row === 0)!, "front")).toBeGreaterThan(4);
+  });
+
+  it("draws every open bin closed, in one piece and within its outline, with the lip and without, and one unit high", () => {
+    for (const lip of [{}, { gridfinityLip: false, height: 21 }]) {
+      const low = { height: "gridfinityLip" in lip ? 7 : 7 + GRIDFINITY_LIP_HEIGHT };
+      for (const opening of openings) {
+        for (const extra of [{}, { gridfinityMagnets: true }, { gridfinityHalfGrid: true, width: 20.5, depth: 41.5 }, { gridfinityFloorHeight: 12.5 }, low]) expectOpen({ ...lip, ...opening, ...extra });
+      }
+    }
+  });
+
+  it("draws an open bin closed where the pieces beside an open side are cut off at the outline", () => {
+    // Cut off exactly at the outline, a piece's end lay in the plane of the bin's open end, with a sliver between them.
+    for (const [x, scoops] of [[3, { gridfinityScoopRight: true }], [3, { gridfinityScoopFront: true, gridfinityScoopLeft: true, gridfinityScoopRight: true }], [2, { gridfinityScoopRight: true }]] as const) {
+      expectOpen({ width: 83.5, depth: 41.5, height: 21 + GRIDFINITY_LIP_HEIGHT, gridfinityCompartmentsX: x, ...scoops, gridfinityOpenFront: true, gridfinityOpenLeft: true });
+    }
+  });
+
+  it("draws every open bin with scoops on every wall and with label shelves on every wall", () => {
+    // The shelves in a bin of 4 height units.
+    for (const [lip, tall] of [[{}, 28 + GRIDFINITY_LIP_HEIGHT], [{ gridfinityLip: false, height: 21 }, 28]] as const) {
+      for (const opening of openings) {
+        expectOpen({ ...lip, ...opening, gridfinityScoopBack: true, gridfinityScoopFront: true, gridfinityScoopLeft: true, gridfinityScoopRight: true });
+        expectOpen({ ...lip, ...opening, height: tall, gridfinityLabelBack: true, gridfinityLabelFront: true, gridfinityLabelLeft: true, gridfinityLabelRight: true });
+      }
+    }
+  });
+
+  it("draws every open bin of 3 x 2 compartments with a front scoop and labels, holding its dividers", () => {
+    const labels = [{ column: 0, row: 0, side: "left" }, { column: 1, row: 1, side: "back" }, { column: 2, row: 1, side: "right" }, { column: 1, row: 0, side: "back" }];
+    for (const lip of [{}, { gridfinityLip: false, height: 21 }]) {
+      for (const opening of openings) {
+        const fields = { ...lip, ...opening, gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, gridfinityScoopFront: true, gridfinityCompartmentLabels: labels };
+        const mesh = expectOpen(fields);
+        const shape = bin(fields);
+        expect(signedVolume(mesh), JSON.stringify(fields)).toBeGreaterThan(signedVolume(gridfinityTriangles(shape) as V[][]) + gridfinityDividerBound(gridfinityPlan(shape), gridfinityCompartmentPieces(shape)!));
+      }
+    }
+  });
+
+  it("draws the shelves, scoops and dividers beside an open side out to its outline", () => {
+    // Across the bin 0.15 mm in from the open front's outline, z = 20.6, past where its wall would stand at 19.8.
+    const near = (xs: number[], expected: number[]) => {
+      expect(xs.length).toBe(expected.length);
+      xs.forEach((x, i) => expect(Math.abs(x - expected[i]), `${xs}`).toBeLessThan(2e-3));
+    };
+    // The left shelf's strip under its top at 20.15, out to its front 14 mm from the wall; the right wall there is the lip's
+    // support, 0.15 mm up its 45 degrees from 19.35.
+    near(crossings(gridfinityLabelledTriangles(runtime, bin({ gridfinityLabelLeft: true, gridfinityOpenFront: true })) as V[][], 19.5, 20.6), [-41.75, -26.8, 40.65, 41.75]);
+    // The left scoop's quarter circle (r 6.7, centre 6.68 out and 12.63 up) at 7 mm: 3.048 mm out from the wall. (The right
+    // wall there stands on the floor's rounding, which the scoop brings.)
+    near(crossings(gridfinityLabelledTriangles(runtime, bin({ gridfinityScoopLeft: true, gridfinityOpenFront: true })) as V[][], 7, 20.6).slice(0, 2), [-41.75, -40.8 + 6.68 - Math.sqrt(6.7 ** 2 - 5.63 ** 2)]);
+    // The dividers of 1.2 mm at x = -13.8 and 13.8.
+    near(crossings(gridfinityLabelledTriangles(runtime, bin({ gridfinityCompartmentsX: 3, gridfinityOpenFront: true })) as V[][], 12, 20.6), [-41.75, -40.8, -14.4, -13.2, 13.2, 14.4, 40.8, 41.75]);
+    // A compartment's label against the right wall runs out the same, its strip 14 mm from the wall; the left wall is the lip's support.
+    const labelled = bin({ gridfinityCompartmentsX: 3, gridfinityOpenFront: true, gridfinityCompartmentLabels: [{ column: 2, row: 0, side: "right" }] });
+    near(crossings(gridfinityLabelledTriangles(runtime, labelled) as V[][], 19.5, 20.6), [-41.75, -40.65, -14.4, -13.2, 13.2, 14.4, 26.8, 41.75]);
+    // Low down, where a label's underside meets the wall beside an open side, it reaches the wall as it does mid-bin.
+    const low = bin({ gridfinityCompartmentsX: 3, gridfinityOpenBack: true, gridfinityCompartmentLabels: [{ column: 0, row: 0, side: "left" }] });
+    near(crossings(gridfinityLabelledTriangles(runtime, low) as V[][], 9.05, -20.6), [-41.75, -40.423, -14.4, -13.2, 13.2, 14.4, 40.8, 41.75]);
+  });
+
+  it("takes the wall and the lip off an open side, as calculated by hand", () => {
+    // A bin of 2 x 1 x 3 with the lip, 83.5 x 41.5, corners 3.75 (k = 1 - 4 sin(pi / 16) for the mesh's 8 segments), floor
+    // 5.95, top 21, wall top 25.4. The wall's inset i above the floor, 0.95 up to 19.35, the support out to 2.6 at 21, the lip
+    // 1.9 from 21.7 to 23.5 and out to 0 at 25.4, holds A = 22.45875 mm² for each mm of straight wall, and its square 30.02304.
+    // Open at the front: the front wall between the side walls' inner faces, 83.5 A - 2 x 30.02304 = 1815.2595 mm³, and the
+    // two inner corners' rounding, 2 k (3.75 - i)² up the wall = 59.3455, go; the two outer corners, square from the feet up,
+    // gain 2 k 3.75² x 20.65 = 127.5620. 23244.7224 - 1747.0430 = 21497.6794. Open on the left the same with 41.5 for 83.5.
+    // All four open: the feet, 13728.2601, and the floor on them, 83.5 x 41.5 x 1.2.
+    for (const [fields, volume] of [
+      [{}, 23244.7224],
+      [{ gridfinityOpenFront: true }, 21497.6794],
+      [{ gridfinityOpenLeft: true }, 22440.9469],
+      [{ gridfinityOpenFront: true, gridfinityOpenBack: true }, 19750.6363],
+      [{ gridfinityOpenFront: true, gridfinityOpenLeft: true }, 20629.7725],
+      [all, 13728.2601 + 83.5 * 41.5 * 1.2],
+    ] as const) {
+      expect(signedVolume(gridfinityTriangles(bin(fields)) as V[][]), JSON.stringify(fields)).toBeCloseTo(volume, 3);
+    }
+  });
+
+  it("bounds the cut, the dividers and the floors of a bin with a side open without the material it no longer has", () => {
+    const c = (4 - Math.PI) * 2.8 ** 2;
+    // A front-open 3 x 2: the front row's cutters run 5.75 mm out through the open side, so their section over the top is
+    // 26.4 x (19.2 + 5.75), all four corners still rounded at its far end.
+    const divided = gridfinityCompartmentPieces(bin({ gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, gridfinityOpenFront: true }))!;
+    expect(gridfinityCompartmentCutBound(divided, { box: 1000, cutters: [100, 100, 100, 100, 100, 100] })).toBeCloseTo(1600 - 0.3 * (3 * (26.4 * 19.2 - c) + 3 * (26.4 * 24.95 - c)), 9);
+    // One row of three across, open at the front, without the lip: the inside of 81.6 x 39.6 with its two back corners
+    // rounded, less three compartments of 26.4 x 39.6 with their two back corners rounded and square at the front, 14.2 high.
+    const row = bin({ gridfinityCompartmentsX: 3, gridfinityOpenFront: true, gridfinityLip: false, height: 21 });
+    expect(gridfinityDividerBound(gridfinityPlan(row), gridfinityCompartmentPieces(row)!)).toBeCloseTo((81.6 * 39.6 - c / 2 - 3 * (26.4 * 39.6 - c / 2)) * 14.2, 6);
+    // Each compartment's floor rounding: no fillet along the open side and none in its two corners there; 20.8 mm of
+    // fillet at the back, 34 along each side, and the two back corners of pi r³ / 12.
+    const fillet = 2.8 ** 2 * (1 - Math.PI / 4);
+    expect(gridfinityCompartmentFloorBound(gridfinityPlan(row), gridfinityCompartmentPieces(row)!)).toBeCloseTo(3 * (88.8 * fillet + (Math.PI * 2.8 ** 3) / 6), 6);
+  });
+});
+
+describe("gridfinity baseplate padding", { timeout: 60_000 }, () => {
+  /** Each side's padding, as the field it sets. */
+  const pad = (back: number, front: number, left: number, right: number) => ({ gridfinityPaddingBack: back, gridfinityPaddingFront: front, gridfinityPaddingLeft: left, gridfinityPaddingRight: right });
+  /** A baseplate of x by z units with these paddings, its box the grid and the padding together. */
+  const padded = (x: number, z: number, back: number, front: number, left: number, right: number) => plate({ width: x * 42 + left + right, depth: z * 42 + back + front, ...pad(back, front, left, right) });
+
+  it("is the baseplate it was with no padding on any side", () => {
+    expect(gridfinityTriangles(plate(pad(0, 0, 0, 0)))).toStrictEqual(gridfinityTriangles(plate()));
+    expect(gridfinityPlan(plate(pad(0, 0, 0, 0)))).toStrictEqual(gridfinityPlan(plate()));
+  });
+
+  it("reads the units from the size less the padding, and keeps the padding through a drag", () => {
+    expect(gridfinityUnits(padded(2, 1, 0, 16.2, 0, 14.2))).toEqual({ x: 2, z: 1, y: 1 });
+    expect(gridfinityUnits(padded(6, 6, 41, 0, 0, 41))).toEqual({ x: 6, z: 6, y: 1 });
+    // A drag to 130 mm across reads (130 - 14.2) / 42 = 2.76, three units, and the box takes the padding back on.
+    expect(gridfinityFootprintPatch(plate({ width: 130, depth: 58.2, ...pad(0, 16.2, 0, 14.2) }))).toEqual({ width: 140.2, depth: 58.2, height: 5 });
+  });
+
+  it("keeps a padded size to hundredths, as the padding is stored", () => {
+    expect(gridfinityFootprintPatch(plate({ width: 297.95, depth: 42, gridfinityPaddingLeft: 22.98, gridfinityPaddingRight: 22.97 }))).toEqual({ width: 297.95, depth: 42, height: 5 });
+  });
+
+  it("keeps the units when only the padding changes, also by a side's whole 41 mm", () => {
+    const six = plate({ width: 252, depth: 42 });
+    expect(gridfinityPaddingPatch(six, { right: 41 })).toEqual({ gridfinityPaddingRight: 41, width: 293, depth: 42 });
+    expect(gridfinityPaddingPatch(six, { front: 41, back: 3.5 })).toEqual({ gridfinityPaddingFront: 41, gridfinityPaddingBack: 3.5, width: 252, depth: 86.5 });
+    expect(gridfinityPaddingPatch(padded(6, 1, 0, 0, 0, 41), { right: 0 })).toEqual({ gridfinityPaddingRight: 0, width: 252, depth: 42 });
+    // Less than nothing is none, more than 41 mm is 41: 42 mm would be room for another unit of grid. It is kept to 0.01 mm.
+    expect(gridfinityPaddingPatch(six, { left: -3, right: 50 })).toEqual({ gridfinityPaddingLeft: 0, gridfinityPaddingRight: 41, width: 293, depth: 42 });
+    expect(gridfinityPaddingPatch(six, { left: 0.004, right: 14.237 })).toEqual({ gridfinityPaddingLeft: 0, gridfinityPaddingRight: 14.24, width: 266.24, depth: 42 });
+  });
+
+  it("pads a baseplate only: a bin keeps its settings and is built as before", () => {
+    const fields = pad(5, 5, 5, 5);
+    expect(gridfinityPadding(bin(fields))).toEqual({ back: 0, front: 0, left: 0, right: 0 });
+    expect(gridfinityPadding(plate(fields))).toEqual({ back: 5, front: 5, left: 5, right: 5 });
+    expect(gridfinityTriangles(bin(fields))).toStrictEqual(gridfinityTriangles(bin()));
+    expect(gridfinityFootprintPatch(bin(fields))).toEqual(gridfinityFootprintPatch(bin()));
+    // Turned into a baseplate, the padding it kept comes back with it.
+    expect(gridfinityShapePatch(bin(fields), { type: "baseplate" })).toMatchObject({ gridfinityType: "baseplate", width: 94, depth: 52, height: 5 });
+    expect(gridfinityShapePatch(padded(2, 1, 5, 5, 5, 5), { x: 3 })).toMatchObject({ width: 136, depth: 52 });
+    // A baseplate keeping a half-size grid setting is read on the 21 mm grid as a bin less its padding: 2 units stay 4 cells.
+    expect(gridfinityShapePatch(padded(2, 1, 0, 0, 41, 0), { type: "bin", halfGrid: true })).toMatchObject({ width: 83.5, depth: 41.5 });
+  });
+
+  it("moves the grid away from the padded sides: right is +x, front is +z", () => {
+    const { cells, size } = gridfinityPlan(padded(2, 1, 0, 16.2, 0, 14.2));
+    expect(size).toEqual({ width: 98.2, depth: 58.2, height: 5 });
+    expect(cells.map(({ x, z }) => [Number(x.toFixed(9)), Number(z.toFixed(9))])).toEqual([[-28.1, -8.1], [13.9, -8.1]]);
+    // The ridge between the two sockets, 2.15 mm either side of the grid line at the plate's middle height, moves with it.
+    const ridge = crossings(gridfinityTriangles(padded(2, 1, 0, 16.2, 0, 14.2)), 2, -7.6).filter((x) => Math.abs(x + 7.1) < 5);
+    expect(ridge.map((x) => Number(x.toFixed(6)))).toEqual([-9.25, -4.95]);
+  });
+
+  it("is closed, wound outwards and one piece with any sides padded, its padding a solid 5 mm border with the outer corners rounded as before", () => {
+    const area = (w: number, d: number) => w * d - (4 - Math.PI) * 16;
+    for (const [x, z] of [[1, 1], [2, 1], [3, 2]]) {
+      const base = signedVolume(gridfinityTriangles(padded(x, z, 0, 0, 0, 0)));
+      for (let k = 1; k < 16; k += 1) {
+        for (const amount of [0.01, 2, 4, 14.2, 41]) {
+          const p = [0, 1, 2, 3].map((i) => (k & (1 << i) ? amount : 0)) as [number, number, number, number];
+          const shape = padded(x, z, ...p);
+          const triangles = gridfinityTriangles(shape);
+          const context = JSON.stringify({ x, z, p });
+          expect(edgeProblems(triangles), context).toBe(0);
+          expect(components(triangles), context).toBe(1);
+          const w = x * 42 + p[2] + p[3];
+          const d = z * 42 + p[0] + p[1];
+          // The border adds the plate's 5 mm over the area the padding adds; the corners keep their 4 mm rounding.
+          expect(signedVolume(triangles), context).toBeCloseTo(base + 5 * (area(w, d) - area(x * 42, z * 42)), 4);
+          const { min, max } = bounds(triangles);
+          [min[0] + w / 2, max[0] - w / 2, min[2] + d / 2, max[2] - d / 2, min[1], max[1] - 5].forEach((v) => expect(Math.abs(v), context).toBeLessThan(1e-9));
+        }
+      }
+    }
+  });
+
+  it("keeps the padding through a saved project and everywhere a shape's settings go", async () => {
+    const settings = pad(3, 16.2, 7.5, 14.2);
+    const shape = canonicalizeShape({ ...binShape({ gridfinityType: "baseplate", width: 84 + 7.5 + 14.2, depth: 42 + 3 + 16.2, height: 5 }), ...settings });
+    expect(shape).toMatchObject({ ...settings, width: 105.7, depth: 61.2 });
+    Object.keys(settings).forEach((key) => expect(workplaneShapesEqual(shape, { ...shape, [key]: 1 }), key).toBe(false));
+    const save = (shapes: WorkplaneShape[]) => exportLylProject({
+      projectId: "padded",
+      projectName: "Padded",
+      createdAt: 1_700_000_000_000,
+      modifiedAt: 1_700_000_100_000,
+      shapes,
+      history: [editorHistoryEntry(shapes, [])],
+      historyIndex: 0,
+      assets: [],
+      workspace: DEFAULT_WORKPLANE_WORKSPACE,
+      snapGrid: DEFAULT_SNAP_GRID,
+      placementElevation: 0,
+    });
+    const [loaded] = (await importLylProject(await save([shape]))).shapes;
+    expect(workplaneShapesEqual(loaded, shape)).toBe(true);
+    expect(sceneShape(shape)).toMatchObject(settings);
+    // The exact body is built at the padded size, as the mesh is.
+    expect(cadModifierGridfinityForShape(shape)).toMatchObject({ ...settings, width: 105.7, depth: 61.2 });
+    expect(normalizeShapeCustomizations({ gridfinity: settings }, {})).toMatchObject({ gridfinity: settings });
+    expect(shapeDefaultsFromShape(shape)).toMatchObject(settings);
+    const asset = toolbarShapeAssets.find((entry) => entry.kind === "gridfinity")!;
+    expect(makeShapeFromAsset(asset, { x: 0, z: 0 }, { ...settings, gridfinityType: "baseplate", width: 105.7, depth: 61.2 })).toMatchObject({ ...settings, width: 105.7, depth: 61.2 });
+    for (const key of Object.keys(settings)) {
+      await expect(importLylProject(await save([{ ...shape, [key]: "wide" } as unknown as WorkplaneShape])), key).rejects.toThrow(`${key} must be a finite number`);
+    }
+    // The mesh that booleans and exports use has the border: 5 mm over the area it adds.
+    const mesh = (fields: WorkplaneShape) => {
+      const { vertices, faces } = meshForShape(fields);
+      return signedVolume(faces.map((face) => face.map((i) => vertices[i]) as V[]));
+    };
+    const plain = canonicalizeShape(binShape({ gridfinityType: "baseplate", width: 84, depth: 42, height: 5 }));
+    expect(mesh(shape) - mesh(plain)).toBeCloseTo(5 * (105.7 * 61.2 - 84 * 42), 2);
+  });
+
+  it("keeps a padding the MCP gives within what a saved project takes", () => {
+    const shape = canonicalizeShape({ ...binShape({ gridfinityType: "baseplate", width: 84, depth: 42, height: 5 }), gridfinityPaddingLeft: -4, gridfinityPaddingRight: 99 });
+    expect(shape).toMatchObject({ gridfinityPaddingLeft: 0, gridfinityPaddingRight: 41 });
+  });
+
+  it("keeps the units through an MCP update with padding and no size, and the height and lip given with a change to a bin", () => {
+    const six = canonicalizeShape(binShape({ gridfinityType: "baseplate", width: 252, depth: 42, height: 5 }));
+    const update = (target: WorkplaneShape, params: Record<string, unknown>) => canonicalizeShape({ ...target, ...params, ...mcpGridfinityPaddingPatch(target, params as Partial<WorkplaneShape>, params) });
+    expect(update(six, { gridfinityPaddingRight: 41 })).toMatchObject({ width: 293, depth: 42 });
+    // A size given with it is read as the whole plate, on its own axis only: the other keeps its units.
+    expect(update(six, { gridfinityPaddingRight: 41, width: 252 })).toMatchObject({ width: 251 });
+    const deep = canonicalizeShape(binShape({ gridfinityType: "baseplate", width: 84, depth: 126, height: 5 }));
+    expect(update(deep, { gridfinityPaddingFront: 30, width: 126 })).toMatchObject({ width: 126, depth: 156 });
+    // A size that is no number is not given, as the update leaves it out.
+    expect(mcpGridfinityPaddingPatch(six, {}, { gridfinityPaddingRight: 41, width: null })).toMatchObject({ width: 293 });
+    // A padding that is no number is left as it was, and a move writes no size.
+    expect(mcpGridfinityPaddingPatch(update(deep, { gridfinityPaddingFront: 30 }), {}, { gridfinityPaddingFront: "wide" })).toEqual({});
+    expect(mcpGridfinityPaddingPatch(update(deep, { gridfinityPaddingFront: 30 }), {}, { x: 10 })).toEqual({});
+    const padded = update(six, { gridfinityPaddingRight: 41 });
+    // Turned into a bin it keeps its six units across, and the height and lip it is given, also with the padding set back to 0.
+    for (const target of [padded, update(padded, { gridfinityPaddingRight: 0 })]) {
+      expect(update(target, { gridfinityType: "bin", height: 46.4 })).toMatchObject({ width: 251.5, height: 46.4 });
+      expect(update(target, { gridfinityType: "bin", gridfinityLip: false, height: 42 })).toMatchObject({ width: 251.5, height: 42, gridfinityLip: false });
+    }
+    // A bin with padding stored turned into a baseplate takes it back, six units and 41 mm.
+    const bin = update(padded, { gridfinityType: "bin", height: 25.4 });
+    expect(update(bin, { gridfinityType: "baseplate" })).toMatchObject({ width: 293, height: 5 });
+  });
+
+  it("makes a new baseplate with padding and no size of the default units, the padding added on", () => {
+    const asset = toolbarShapeAssets.find((entry) => entry.kind === "gridfinity")!;
+    // The default is 2 x 1 units: 84 x 42, and 30 mm on the right makes it 114 across, not 1 unit and 30 mm.
+    expect(makeShapeFromAsset(asset, { x: 0, z: 0 }, { gridfinityType: "baseplate", gridfinityPaddingRight: 30, gridfinityPaddingFront: 41 })).toMatchObject({ width: 114, depth: 83 });
+    expect(makeShapeFromAsset(asset, { x: 0, z: 0 }, { gridfinityType: "baseplate", gridfinityPaddingRight: 30, width: 114 })).toMatchObject({ width: 114 });
+  });
+});
+
+describe("gridfinity baseplate corner radius", { timeout: 60_000 }, () => {
+  /** What the mesh's rounding of radius r takes off a square corner: the square less the fan of its eight steps. */
+  const cornerOff = (r: number) => r * r * (1 - 4 * Math.sin(Math.PI / 16));
+  const pad = (back: number, front: number, left: number, right: number) => ({ gridfinityPaddingBack: back, gridfinityPaddingFront: front, gridfinityPaddingLeft: left, gridfinityPaddingRight: right });
+
+  it("is the baseplate it was at 4 mm or unset, and a bin is built as before with it set", () => {
+    expect(gridfinityCornerRadius(plate())).toBe(4);
+    expect(gridfinityTriangles(plate({ gridfinityCornerRadius: 4 }))).toStrictEqual(gridfinityTriangles(plate()));
+    expect(gridfinityTriangles(bin({ gridfinityCornerRadius: 0 }))).toStrictEqual(gridfinityTriangles(bin()));
+    expect(gridfinityPlan(bin({ gridfinityCornerRadius: 0 }))).toStrictEqual(gridfinityPlan(bin()));
+  });
+
+  it("keeps the radius from 0 to 4 mm, to 0.01 mm, and builds one within 0.05 mm under the sockets' 4 mm as 4", () => {
+    for (const [value, built] of [[2.346, 2.35], [0, 0], [0.004, 0], [-1, 0], [7, 4], [Number.NaN, 4], ["wide", 4], [3.94, 3.94], [3.95, 4], [3.96, 4], [3.99, 4]] as const) {
+      expect(gridfinityCornerRadius(plate({ gridfinityCornerRadius: value })), `${value}`).toBe(built);
+    }
+  });
+
+  it("is closed, wound outwards and one piece at any radius, padded or not, the corners filled out to it and the box and sockets as before", () => {
+    for (const [x, z, p] of [[1, 1, [0, 0, 0, 0]], [2, 1, [0, 0, 0, 0]], [3, 2, [0, 0, 0, 0]], [2, 1, [0, 16.2, 0, 14.2]], [1, 1, [5, 5, 5, 5]], [2, 2, [0, 3, 0, 0]]] as const) {
+      const w = x * 42 + p[2] + p[3];
+      const d = z * 42 + p[0] + p[1];
+      const shape = (r: number) => plate({ width: w, depth: d, ...pad(...p), gridfinityCornerRadius: r });
+      const base = signedVolume(gridfinityTriangles(shape(4)));
+      for (const r of [0, 0.5, 2, 3.9, 4]) {
+        const triangles = gridfinityTriangles(shape(r));
+        const context = JSON.stringify({ x, z, p, r });
+        expect(edgeProblems(triangles), context).toBe(0);
+        expect(components(triangles), context).toBe(1);
+        // Each of the four corners gains the plate's 5 mm over what the smaller rounding no longer takes off.
+        expect(signedVolume(triangles), context).toBeCloseTo(base + 4 * 5 * (cornerOff(4) - cornerOff(r)), 6);
+        const { min, max } = bounds(triangles);
+        [min[0] + w / 2, max[0] - w / 2, min[2] + d / 2, max[2] - d / 2, min[1], max[1] - 5].forEach((v) => expect(Math.abs(v), context).toBeLessThan(1e-9));
+      }
+      // Square, the plate reaches its box's corners at the top and the bottom.
+      const square = gridfinityTriangles(shape(0)).flat();
+      for (const [cx, cz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        for (const y of [0, 5]) expect(square.some((v) => Math.abs(v[0] - (cx * w) / 2) < 1e-9 && Math.abs(v[1] - y) < 1e-9 && Math.abs(v[2] - (cz * d) / 2) < 1e-9), `${cx} ${y} ${cz}`).toBe(true);
+      }
+    }
+  });
+
+  it("keeps the radius through a saved project, the settings and the exact body, and refuses nonsense", async () => {
+    const settings = { gridfinityCornerRadius: 1.5 };
+    const shape = canonicalizeShape({ ...binShape({ gridfinityType: "baseplate", width: 84, depth: 42, height: 5 }), ...settings });
+    expect(shape).toMatchObject(settings);
+    expect(workplaneShapesEqual(shape, { ...shape, gridfinityCornerRadius: 2 })).toBe(false);
+    const save = (shapes: WorkplaneShape[]) => exportLylProject({
+      projectId: "corner",
+      projectName: "Corner",
+      createdAt: 1_700_000_000_000,
+      modifiedAt: 1_700_000_100_000,
+      shapes,
+      history: [editorHistoryEntry(shapes, [])],
+      historyIndex: 0,
+      assets: [],
+      workspace: DEFAULT_WORKPLANE_WORKSPACE,
+      snapGrid: DEFAULT_SNAP_GRID,
+      placementElevation: 0,
+    });
+    const [loaded] = (await importLylProject(await save([shape]))).shapes;
+    expect(workplaneShapesEqual(loaded, shape)).toBe(true);
+    expect(loaded).toMatchObject(settings);
+    expect(sceneShape(shape)).toMatchObject(settings);
+    expect(cadModifierGridfinityForShape(shape)).toMatchObject(settings);
+    expect(normalizeShapeCustomizations({ gridfinity: settings }, {})).toMatchObject({ gridfinity: settings });
+    expect(shapeDefaultsFromShape(shape)).toMatchObject(settings);
+    expect(mcpShapeSummary(shape).settings).toMatchObject(settings);
+    const asset = toolbarShapeAssets.find((entry) => entry.kind === "gridfinity")!;
+    expect(makeShapeFromAsset(asset, { x: 0, z: 0 }, { ...settings, gridfinityType: "baseplate" })).toMatchObject(settings);
+    await expect(importLylProject(await save([{ ...shape, gridfinityCornerRadius: "round" } as unknown as WorkplaneShape]))).rejects.toThrow("gridfinityCornerRadius must be a finite number");
+    await expect(importLylProject(await save([{ ...shape, gridfinityCornerRadius: -1 }]))).rejects.toThrow("gridfinityCornerRadius is outside the supported range");
+    // The mesh that booleans and exports use has the smaller corners: 5 mm over the area they add.
+    const meshVolume = (s: WorkplaneShape) => { const { vertices, faces } = meshForShape(s); return signedVolume(faces.map((face) => face.map((i) => vertices[i]) as V[])); };
+    const plain = canonicalizeShape(binShape({ gridfinityType: "baseplate", width: 84, depth: 42, height: 5 }));
+    expect(meshVolume(shape) - meshVolume(plain)).toBeCloseTo(4 * 5 * (cornerOff(4) - cornerOff(1.5)), 4);
+  });
+});
+
+describe("gridfinity baseplate fitted to a drawer", () => {
+  const plate = (fields: Record<string, unknown> = {}) => ({ width: 252, depth: 252, height: 5, gridfinityType: "baseplate" as const, ...fields });
+
+  it("shows the drawer a baseplate fills: its size and 0.5 mm", () => {
+    expect(gridfinityDrawerSize(plate())).toEqual({ width: 252.5, depth: 252.5 });
+    expect(gridfinityDrawerSize(plate({ width: 291.6, gridfinityPaddingLeft: 19.8, gridfinityPaddingRight: 19.8 }))).toEqual({ width: 292.1, depth: 252.5 });
+  });
+
+  it("takes as many units as fit and splits the rest evenly, 0.5 mm smaller than the drawer", () => {
+    // 292.1 mm: 6 units and 39.6 mm, 19.8 each side.
+    expect(gridfinityDrawerPatch(plate(), "x", 292.1)).toEqual({ gridfinityPaddingLeft: 19.8, gridfinityPaddingRight: 19.8, width: 291.6, depth: 252 });
+    // 230 mm: 5 units and 19.5 mm, 9.75 each side.
+    expect(gridfinityDrawerPatch(plate(), "z", 230)).toEqual({ gridfinityPaddingBack: 9.75, gridfinityPaddingFront: 9.75, width: 252, depth: 229.5 });
+    // 250 mm: 5.94 units fit, so 5 and 39.5 mm, never 6 and a plate wider than the drawer.
+    expect(gridfinityDrawerPatch(plate(), "x", 250)).toEqual({ gridfinityPaddingLeft: 19.75, gridfinityPaddingRight: 19.75, width: 249.5, depth: 252 });
+    // An odd hundredth goes to the first side.
+    expect(gridfinityDrawerPatch(plate(), "x", 230.05)).toEqual({ gridfinityPaddingLeft: 9.78, gridfinityPaddingRight: 9.77, width: 229.55, depth: 252 });
+    // 298.45 mm: the size is whole hundredths, not 297.95000000000005.
+    expect(gridfinityDrawerPatch(plate(), "x", 298.45)).toEqual({ gridfinityPaddingLeft: 22.98, gridfinityPaddingRight: 22.97, width: 297.95, depth: 252 });
+    // A drawer of whole units and 0.5 mm takes no padding, also typed to a thousandth below that.
+    expect(gridfinityDrawerPatch(plate(), "z", 84.497)).toEqual({ gridfinityPaddingBack: 0, gridfinityPaddingFront: 0, width: 252, depth: 84 });
+    expect(gridfinityDrawerPatch(plate(), "x", 168.5)).toEqual({ gridfinityPaddingLeft: 0, gridfinityPaddingRight: 0, width: 168, depth: 252 });
+  });
+
+  it("splits the rest evenly whatever padding the plate had before", () => {
+    expect(gridfinityDrawerPatch(plate({ width: 259.1, gridfinityPaddingRight: 7.1 }), "x", 260)).toEqual({ gridfinityPaddingLeft: 3.75, gridfinityPaddingRight: 3.75, width: 259.5, depth: 252 });
+    expect(gridfinityDrawerPatch(plate({ width: 272, gridfinityPaddingLeft: 5, gridfinityPaddingRight: 15 }), "x", 292.5)).toEqual({ gridfinityPaddingLeft: 20, gridfinityPaddingRight: 20, width: 292, depth: 252 });
+    // 298.45 mm: 6 units and 45.95 mm, 22.98 and 22.97.
+    expect(gridfinityDrawerPatch(plate({ width: 259.1, gridfinityPaddingRight: 7.1 }), "x", 298.45)).toEqual({ gridfinityPaddingLeft: 22.98, gridfinityPaddingRight: 22.97, width: 297.95, depth: 252 });
+  });
+
+  it("fills what one baseplate can of a larger drawer, 6 units and 41 mm each side, and gives a smaller one 1 unit", () => {
+    expect(gridfinityDrawerPatch(plate(), "x", 500)).toEqual({ gridfinityPaddingLeft: 41, gridfinityPaddingRight: 41, width: 334, depth: 252 });
+    expect(gridfinityDrawerPatch(plate(), "z", 30)).toEqual({ gridfinityPaddingBack: 0, gridfinityPaddingFront: 0, width: 252, depth: 42 });
+  });
+
+  it("changes only the axis given, and the plate built from it fills the drawer", () => {
+    const section = plate({ depth: 260.1, gridfinityPaddingBack: 8.1 });
+    const fitted = { ...section, ...gridfinityDrawerPatch(section, "x", 292.1) };
+    expect(fitted).toMatchObject({ depth: 260.1, gridfinityPaddingBack: 8.1, width: 291.6 });
+    expect(gridfinityUnits(fitted)).toEqual({ x: 6, z: 6, y: 1 });
+    expect(gridfinityDrawerSize(fitted)).toEqual({ width: 292.1, depth: 260.6 });
+  });
+});
+
+describe("gridfinity wall thickness", { timeout: 60_000 }, () => {
+  let runtime: ManifoldToplevel;
+  beforeAll(async () => {
+    runtime = await manifoldModule();
+    runtime.setup();
+  });
+  const top = 21;
+  const ledge = top - 0.85;
+
+  it("builds every bin as before with no wall set or 0.95 mm", () => {
+    for (const fields of [{}, { gridfinityLip: false, height: 21 }, { gridfinityOpenFront: true }, { gridfinityScoopFront: true, gridfinityLabelBack: true }, { gridfinityCompartmentsX: 3, gridfinityScoopFront: true }, { gridfinityHalfGrid: true, width: 20.5, depth: 41.5 }]) {
+      expect(gridfinityTriangles(bin({ ...fields, gridfinityWallThickness: 0.95 })), JSON.stringify(fields)).toEqual(gridfinityTriangles(bin(fields)));
+    }
+    expect(gridfinityWallThickness(bin())).toBe(0.95);
+  });
+
+  it("ends a low bin's support on the floor exactly as before at the 0.95 mm wall", () => {
+    // 2 height units with the lip at its highest floor: the support's foot is 2.6 - (14 - floor), 0.9499999999999997, as before the wall could be set.
+    for (const floor of [12.3, 12.33, 99]) {
+      for (const halfGrid of [false, true]) {
+        const fields = { width: 41.5, depth: 41.5, height: 14 + GRIDFINITY_LIP_HEIGHT, gridfinityFloorHeight: floor, gridfinityHalfGrid: halfGrid };
+        const plan = gridfinityPlan(bin(fields));
+        const [inset] = gridfinityWallProfile(plan).at(-1)!;
+        expect(inset, `${floor} ${halfGrid}`).toBe(2.6 - (14 - plan.floor));
+        expect(gridfinityTriangles(bin({ ...fields, gridfinityWallThickness: 0.95 })), `${floor} ${halfGrid}`).toEqual(gridfinityTriangles(bin(fields)));
+      }
+    }
+  });
+
+  it("takes a wall from 0.8 mm up to where the walls meet, on a bin only", () => {
+    expect(gridfinityWallThickness(bin({ gridfinityWallThickness: 0.5 }))).toBe(0.8);
+    expect(gridfinityWallThickness(bin({ gridfinityWallThickness: 2.5 }))).toBe(2.5);
+    expect(gridfinityWallMaxThickness(bin())).toBe(20.75);
+    expect(gridfinityWallThickness(bin({ gridfinityWallThickness: 99 }))).toBe(20.75);
+    expect(gridfinityWallThickness(plate({ gridfinityWallThickness: 3 }))).toBe(0.95);
+    expect(gridfinityTriangles(plate({ gridfinityWallThickness: 3 }))).toEqual(gridfinityTriangles(plate()));
+  });
+
+  it("runs the support down to a thin wall and stops a wall over 1.75 mm at a ledge 0.85 mm under the top", () => {
+    const profile = (w: number, fields = {}) => gridfinityWallProfile(gridfinityPlan(bin({ ...fields, gridfinityWallThickness: w })));
+    expect(profile(1).slice(5)).toEqual([[1, top - 1.6], [1, 5.95]]);
+    expect(profile(1.75)[5][0]).toBe(1.75);
+    expect(profile(1.75)[5][1]).toBeCloseTo(ledge, 9);
+    for (const w of [2.5, 5]) expect(profile(w).slice(5), `${w}`).toEqual([[1.75, ledge], [w, ledge], [w, 5.95]]);
+    // A floor at the ledge ends the support there.
+    expect(profile(2.5, { gridfinityFloorHeight: 30 }).slice(5)).toEqual([[1.75, ledge]]);
+    expect(gridfinityWallProfile(gridfinityPlan(bin({ gridfinityLip: false, height: 21, gridfinityWallThickness: 4 }))).slice(2)).toEqual([[4, 21], [4, 5.95]]);
+  });
+
+  it("raises the highest floor with the wall up to the ledge, and leaves a 1-unit bin's floor alone until it can be raised", () => {
+    const max = (w: number, fields = {}) => gridfinityFloorMaxHeight(bin({ ...fields, gridfinityWallThickness: w }));
+    expect(max(0.95)).toBeCloseTo(19.35, 9);
+    expect(max(1.75)).toBeCloseTo(ledge, 9);
+    expect(max(2.5)).toBeCloseTo(ledge, 9);
+    expect(max(2.5, { gridfinityLip: false, height: 21 })).toBe(21);
+    const unit = { height: 7 + GRIDFINITY_LIP_HEIGHT };
+    expect(max(1, unit)).toBe(5.95);
+    // Within 0.05 mm of the floor there is nothing to raise: up to a wall of 1.6 mm, and from just over it there is.
+    expect(max(1.6, unit)).toBe(5.95);
+    expect(gridfinityFloorFits(bin({ ...unit, gridfinityWallThickness: 1.6 }))).toBe(false);
+    expect(max(1.62, unit)).toBeCloseTo(6.02, 9);
+    expect(gridfinityFloorFits(bin({ ...unit, gridfinityWallThickness: 1.62 }))).toBe(true);
+    // Where the support runs down to the floor, it never leaves the wall thinner than set.
+    expect(gridfinityWallProfile(gridfinityPlan(bin({ ...unit, gridfinityWallThickness: 1.58 }))).at(-1)).toEqual([1.58, 5.95]);
+    expect(max(1.7, unit)).toBeCloseTo(6.1, 9);
+    expect(max(2.5, unit)).toBeCloseTo(6.15, 9);
+    // At 1.55 mm or less the wall of a 1-unit bin with the lip is all support, as before.
+    expect(gridfinityTriangles(bin({ ...unit, gridfinityWallThickness: 1.2 }))).toEqual(gridfinityTriangles(bin(unit)));
+  });
+
+  it("runs a shelf's end into the wall where the lip's support leans past it, less as the wall grows and not at all from 1.75 mm", () => {
+    // The end snaps within 1 mm of the wall's face plus the support's lean at the shelf's top, 1.75 mm less the wall.
+    const offset = (w: number, length: number) => gridfinityLabelLimits(bin({ gridfinityWallThickness: w, gridfinityLabelBack: true, gridfinityLabelBackLength: length }), "back").offset;
+    // At 2 mm (no lean) a shelf of 77 mm leaves 1.25 mm at each end of the 79.5 mm inside and can move.
+    expect(offset(2, 77)).toBe(1);
+    // At 0.8 mm (a lean of 0.95) a shelf of 78.1 mm leaves 1.9 mm, within 1.95: it runs from wall to wall.
+    expect(offset(0.8, 78.1)).toBe(0);
+    // A compartment's label against the bin's wall snaps the same way: 94 % of a 39.15 mm compartment stops short at 2 mm.
+    const label = gridfinityCompartmentPieces(bin({ gridfinityWallThickness: 2, gridfinityCompartmentsX: 2, gridfinityCompartmentLabels: [{ column: 0, row: 0, side: "back", length: 94, align: "start" }] }))!
+      .cells.find((cell) => cell.column === 0 && cell.row === 0)!.labels!;
+    const [{ profile }] = label.shelves;
+    expect(profile.to - profile.from).toBeLessThan(39.15 - 1);
+  });
+
+  it("never makes a bin open on every side solid, as it has no walls left to meet", () => {
+    const open = { gridfinityOpenBack: true, gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenRight: true };
+    expect(gridfinityWallSolid(bin({ gridfinityWallThickness: 20.5 }))).toBe(true);
+    expect(gridfinityWallSolid(bin({ ...open, gridfinityWallThickness: 20.5 }))).toBe(false);
+    expect(gridfinityFloorHeight(bin({ ...open, gridfinityWallThickness: 20.5 }))).toBe(5.95);
+  });
+
+  it("leaves a bin open on every side as it is whatever wall is set, as it has no wall to set", () => {
+    const open = { gridfinityOpenBack: true, gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenRight: true, gridfinityCompartmentsX: 3, gridfinityScoopFront: true };
+    expect(gridfinityPlan(bin({ ...open, gridfinityWallThickness: 10 })).wallThickness).toBe(0.95);
+    expect(gridfinityTriangles(bin({ ...open, gridfinityWallThickness: 10 }))).toEqual(gridfinityTriangles(bin(open)));
+    expect(gridfinityCompartmentPieces(bin({ ...open, gridfinityWallThickness: 10 }))).toEqual(gridfinityCompartmentPieces(bin(open)));
+  });
+
+  it("cuts the shelves, scoops, compartments and their labels to the bin's own inside", () => {
+    for (const w of [0.8, 2.5, 4]) {
+      const fields = { gridfinityWallThickness: w };
+      const radius = Math.max(0, 3.75 - w);
+      const shelves = gridfinityLabelPieces(bin({ ...fields, gridfinityLabelBack: true }))!;
+      expect([shelves.inside.hx, shelves.inside.hz, shelves.inside.radius], `${w}`).toEqual([41.75 - w, 20.75 - w, radius]);
+      const scoops = gridfinityScoopPieces(bin({ ...fields, gridfinityScoopFront: true }))!;
+      expect([scoops.inside.hx, scoops.inside.hz, scoops.inside.radius], `${w}`).toEqual([41.75 - w, 20.75 - w, radius]);
+      const compartments = gridfinityCompartmentPieces(bin({ ...fields, gridfinityCompartmentsX: 2, gridfinityScoopFront: true, gridfinityCompartmentLabels: [{ column: 0, row: 0, side: "back" }] }))!;
+      expect(compartments.floorRounding, `${w}`).toBe(radius);
+      compartments.cells.forEach((cell) => {
+        expect(cell.inside.radius, `${w}`).toBe(radius);
+        expect(cell.scoops?.inside, `${w}`).toEqual(cell.inside);
+      });
+      expect(compartments.cells[0].labels!.inside.radius, `${w}`).toBe(radius);
+      // An open side's pieces run out the wall's thickness to the outline.
+      expect(gridfinityLabelPieces(bin({ ...fields, gridfinityLabelBack: true, gridfinityOpenLeft: true }))!.inside.wallThickness, `${w}`).toBe(w);
+    }
+    expect(gridfinityPlan(bin({ gridfinityWallThickness: 6 })).reach).toBe(8);
+    expect(gridfinityPlan(bin()).reach).toBe(5.75);
+  });
+
+  it("draws every wall closed and in one piece, up to a solid bin", () => {
+    const setups: Array<Record<string, unknown>> = [
+      {},
+      { gridfinityLip: false, height: 21 },
+      { gridfinityOpenFront: true },
+      { gridfinityOpenBack: true, gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenRight: true },
+      { gridfinityHalfGrid: true, width: 20.5, depth: 41.5 },
+      { gridfinityScoopFront: true, gridfinityScoopLeft: true },
+      { gridfinityLabelBack: true, gridfinityLabelLeft: true },
+      { gridfinityCompartmentsX: 3, gridfinityScoopFront: true },
+      { height: 7 + GRIDFINITY_LIP_HEIGHT },
+    ];
+    // Pairwise: each setup at two or three walls, every wall over several setups.
+    const walls = [0.8, 1.75, 2.5, 3.75, 6, 99];
+    setups.forEach((fields, i) => {
+      for (const w of [walls[i % walls.length], walls[(i + 2) % walls.length], walls[(i + 4) % walls.length]]) {
+        const label = `${JSON.stringify(fields)} ${w}`;
+        const triangles = gridfinityLabelledTriangles(runtime, bin({ ...fields, gridfinityWallThickness: w }));
+        expect(edgeProblems(triangles), label).toBe(0);
+        expect(components(triangles), label).toBe(1);
+      }
+    });
+  });
+
+  it("leaves out what a narrow inside has no room for, and builds a bin solid where the walls leave less than 1 mm", () => {
+    const half = { gridfinityHalfGrid: true, width: 20.5, depth: 41.5 };
+    // A half-size cell 20.5 mm wide with a 6 mm wall is 8.5 mm inside: no shelves, no scoops across, fewer compartments.
+    expect(gridfinityLabelFits(bin({ ...half, gridfinityWallThickness: 6 }))).toBe(false);
+    expect(gridfinityLabelFits(bin({ ...half, gridfinityWallThickness: 5 }))).toBe(true);
+    expect(gridfinityScoopPieces(bin({ ...half, gridfinityWallThickness: 7, gridfinityScoopLeft: true, gridfinityScoopRight: true }))).toBeNull();
+    // 12 mm walls leave 17.5 mm: room for two 6 mm compartments beside a 1.2 mm divider, not three.
+    expect(gridfinityCompartmentCount(bin({ width: 41.5, depth: 41.5, gridfinityWallThickness: 12, gridfinityCompartmentsX: 4 }), "x")).toBe(2);
+    expect(gridfinityCompartmentCount(bin({ width: 41.5, depth: 41.5, gridfinityCompartmentsX: 4 }), "x")).toBe(4);
+    // 41.5 wide: walls of 20.3 leave 0.9 mm, solid; the floor goes up to the ledge, or the top without the lip.
+    expect(gridfinityWallSolid(bin({ width: 41.5, depth: 41.5, gridfinityWallThickness: 20.3 }))).toBe(true);
+    expect(gridfinityWallSolid(bin({ width: 41.5, depth: 41.5, gridfinityWallThickness: 20.2 }))).toBe(false);
+    expect(gridfinityPlan(bin({ width: 41.5, depth: 41.5, gridfinityWallThickness: 20.3 })).floor).toBeCloseTo(ledge, 9);
+    expect(gridfinityPlan(bin({ width: 41.5, depth: 41.5, gridfinityLip: false, height: 21, gridfinityWallThickness: 99 })).floor).toBe(21);
+    // Without the lip a solid bin is the block, its top a ring ending 0.5 mm from the middle.
+    const block = gridfinityTriangles(bin({ width: 41.5, depth: 41.5, gridfinityLip: false, height: 21, gridfinityWallThickness: 99 }));
+    expect(edgeProblems(block)).toBe(0);
+    expect(signedVolume(block)).toBeCloseTo(signedVolume(gridfinityTriangles(bin({ width: 41.5, depth: 41.5, gridfinityLip: false, height: 21, gridfinityFloorHeight: 21 }))), 3);
+  });
+
+  it("keeps the wall through a saved project, the settings and the exact body, and refuses nonsense", async () => {
+    const settings = { gridfinityWallThickness: 2.5 };
+    const shape = canonicalizeShape(binShape(settings));
+    expect(workplaneShapesEqual(shape, { ...shape, gridfinityWallThickness: 2.4 })).toBe(false);
+    const save = (shapes: WorkplaneShape[]) => exportLylProject({
+      projectId: "wall",
+      projectName: "Wall",
+      createdAt: 1_700_000_000_000,
+      modifiedAt: 1_700_000_100_000,
+      shapes,
+      history: [editorHistoryEntry(shapes, [])],
+      historyIndex: 0,
+      assets: [],
+      workspace: DEFAULT_WORKPLANE_WORKSPACE,
+      snapGrid: DEFAULT_SNAP_GRID,
+      placementElevation: 0,
+    });
+    const [loaded] = (await importLylProject(await save([shape]))).shapes;
+    expect(workplaneShapesEqual(loaded, shape)).toBe(true);
+    expect(loaded).toMatchObject(settings);
+    expect(sceneShape(shape)).toMatchObject(settings);
+    expect(cadModifierGridfinityForShape(shape)).toMatchObject(settings);
+    expect(normalizeShapeCustomizations({ gridfinity: settings }, {})).toMatchObject({ gridfinity: settings });
+    expect(shapeDefaultsFromShape(shape)).toMatchObject(settings);
+    const asset = toolbarShapeAssets.find((entry) => entry.kind === "gridfinity")!;
+    expect(makeShapeFromAsset(asset, { x: 0, z: 0 }, settings)).toMatchObject(settings);
+    await expect(importLylProject(await save([{ ...shape, gridfinityWallThickness: "thick" } as unknown as WorkplaneShape]))).rejects.toThrow("gridfinityWallThickness must be a finite number");
+    await expect(importLylProject(await save([{ ...shape, gridfinityWallThickness: -1 }]))).rejects.toThrow("gridfinityWallThickness is outside the supported range");
+    // The mesh that booleans and exports use has the thicker wall.
+    const meshVolume = (s: WorkplaneShape) => { const { vertices, faces } = meshForShape(s); return signedVolume(faces.map((face) => face.map((i) => vertices[i]) as V[])); };
+    expect(meshVolume(shape)).toBeGreaterThan(meshVolume(canonicalizeShape(binShape({}))) + 100);
+  });
+});
+
+describe("gridfinity lip chamfer", () => {
+  // The edge tool's chamfer of c on the lip's top: c down the outer wall, c / sqrt 2 in and down the slope (0.1768 at 0.25).
+  const chamfered = (c: number) => [[0, 21 + GRIDFINITY_LIP_HEIGHT - c], [c * Math.SQRT1_2, 21 + GRIDFINITY_LIP_HEIGHT - c * Math.SQRT1_2]];
+
+  it("leaves the lip sharp unless a chamfer is set", () => {
+    const sharp = gridfinityTriangles(bin());
+    for (const value of [0, -0.3, Number.NaN, undefined]) expect(gridfinityTriangles(bin({ gridfinityLipChamfer: value })), `${value}`).toEqual(sharp);
+    expect(gridfinityWallProfile(gridfinityPlan(bin()))[1]).toEqual([0, 21 + GRIDFINITY_LIP_HEIGHT]);
+  });
+
+  it("takes a chamfer of up to 1 mm, on a bin with the lip only", () => {
+    expect(gridfinityLipChamfer(bin({ gridfinityLipChamfer: 0.25 }))).toBe(0.25);
+    expect(gridfinityLipChamfer(bin({ gridfinityLipChamfer: 2 }))).toBe(MAX_GRIDFINITY_LIP_CHAMFER);
+    expect(gridfinityLipChamfer(bin({ gridfinityLipChamfer: -1 }))).toBe(0);
+    expect(gridfinityLipChamfer(bin())).toBe(0);
+    expect(gridfinityLipChamfer(bin({ gridfinityLipChamfer: 0.123 }))).toBe(0.12);
+    expect(gridfinityLipChamfer(bin({ gridfinityLipChamfer: 1e-6 }))).toBe(0);
+    expect(gridfinityTriangles(bin({ gridfinityLipChamfer: 0.004 }))).toEqual(gridfinityTriangles(bin()));
+    expect(gridfinityLipChamfer(bin({ gridfinityLip: false, height: 21, gridfinityLipChamfer: 0.5 }))).toBe(0);
+    expect(gridfinityLipChamfer(plate({ gridfinityLipChamfer: 0.5 }))).toBe(0);
+    expect(gridfinityTriangles(plate({ gridfinityLipChamfer: 0.5 }))).toEqual(gridfinityTriangles(plate()));
+    expect(gridfinityTriangles(bin({ gridfinityLip: false, height: 21, gridfinityLipChamfer: 0.5 }))).toEqual(gridfinityTriangles(bin({ gridfinityLip: false, height: 21 })));
+  });
+
+  it("chamfers the lip's top as the edge tool does, and leaves the rest of the wall as it is", () => {
+    for (const c of [0.25, 1]) {
+      const sharp = gridfinityWallProfile(gridfinityPlan(bin()));
+      const wall = gridfinityWallProfile(gridfinityPlan(bin({ gridfinityLipChamfer: c })));
+      expect(wall.length).toBe(sharp.length + 1);
+      expect(wall[0]).toEqual(sharp[0]);
+      [0, 1].forEach((k) => wall[1 + k].forEach((n, i) => expect(n, `${c} ${k} ${i}`).toBeCloseTo(chamfered(c)[k][i], 9)));
+      expect(wall.slice(3)).toEqual(sharp.slice(2));
+    }
+    expect(chamfered(0.25)[1][0]).toBeCloseTo(0.1768, 4);
+    // The exact body is built from the sharp wall and has the chamfer cut afterwards.
+    expect(gridfinityWallProfile(gridfinityPlan(bin({ gridfinityLipChamfer: 0.5 })), 0, 0)).toEqual(gridfinityWallProfile(gridfinityPlan(bin()), 0));
+  });
+
+  it("takes off the ring under the chamfer, as calculated by hand", () => {
+    const plain = signedVolume(gridfinityTriangles(bin()));
+    for (const c of [0.25, 1]) {
+      // A triangle of c along the wall and c along the slope, c * c / (2 * sqrt 2), swept round the outline at its centroid, c / (3 * sqrt 2) in.
+      const inset = c / (3 * Math.SQRT2);
+      const length = 2 * (83.5 - 2 * inset + 41.5 - 2 * inset) - (8 - 2 * Math.PI) * (3.75 - inset);
+      const removed = (c * c) / (2 * Math.SQRT2) * length;
+      expect((plain - signedVolume(gridfinityTriangles(bin({ gridfinityLipChamfer: c })))) / removed, `${c}`).toBeCloseTo(1, 2);
+    }
+  });
+
+  it("draws every chamfered bin closed and in one piece, its top lowered by the chamfer", () => {
+    const front = { gridfinityOpenFront: true };
+    for (const fields of [
+      {},
+      front,
+      { gridfinityOpenLeft: true, gridfinityOpenBack: true },
+      { gridfinityHalfGrid: true, width: 20.5, depth: 41.5 },
+      { gridfinityMagnets: true, gridfinityScoopFront: true, gridfinityLabelBack: true },
+      { gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, gridfinityScoopFront: true },
+      { height: 7 + GRIDFINITY_LIP_HEIGHT },
+    ]) {
+      for (const c of [0.25, 1]) {
+        const triangles = gridfinityTriangles(bin({ ...fields, gridfinityLipChamfer: c }));
+        const label = `${JSON.stringify(fields)} ${c}`;
+        expect(edgeProblems(triangles), label).toBe(0);
+        expect(components(triangles), label).toBe(1);
+        const height = ((fields as { height?: number }).height ?? 21 + GRIDFINITY_LIP_HEIGHT) - c * Math.SQRT1_2;
+        expect(bounds(triangles).max[1], label).toBeCloseTo(height, 9);
+      }
+    }
+  });
+
+  it("keeps the chamfer through a saved project, the settings and the exact body, and refuses nonsense", async () => {
+    const settings = { gridfinityLipChamfer: 0.25 };
+    const shape = canonicalizeShape(binShape(settings));
+    expect(workplaneShapesEqual(shape, { ...shape, gridfinityLipChamfer: 0.3 })).toBe(false);
+    const save = (shapes: WorkplaneShape[]) => exportLylProject({
+      projectId: "chamfer",
+      projectName: "Chamfer",
+      createdAt: 1_700_000_000_000,
+      modifiedAt: 1_700_000_100_000,
+      shapes,
+      history: [editorHistoryEntry(shapes, [])],
+      historyIndex: 0,
+      assets: [],
+      workspace: DEFAULT_WORKPLANE_WORKSPACE,
+      snapGrid: DEFAULT_SNAP_GRID,
+      placementElevation: 0,
+    });
+    const [loaded] = (await importLylProject(await save([shape]))).shapes;
+    expect(workplaneShapesEqual(loaded, shape)).toBe(true);
+    expect(loaded).toMatchObject(settings);
+    expect(sceneShape(shape)).toMatchObject(settings);
+    expect(cadModifierGridfinityForShape(shape)).toMatchObject(settings);
+    expect(normalizeShapeCustomizations({ gridfinity: settings }, {})).toMatchObject({ gridfinity: settings });
+    expect(shapeDefaultsFromShape(shape)).toMatchObject(settings);
+    const asset = toolbarShapeAssets.find((entry) => entry.kind === "gridfinity")!;
+    expect(makeShapeFromAsset(asset, { x: 0, z: 0 }, settings)).toMatchObject(settings);
+    await expect(importLylProject(await save([{ ...shape, gridfinityLipChamfer: "small" } as unknown as WorkplaneShape]))).rejects.toThrow("gridfinityLipChamfer must be a finite number");
+    await expect(importLylProject(await save([{ ...shape, gridfinityLipChamfer: -1 }]))).rejects.toThrow("gridfinityLipChamfer is outside the supported range");
+    // The mesh that booleans and exports use has the chamfer.
+    const meshVolume = (s: WorkplaneShape) => { const { vertices, faces } = meshForShape(s); return signedVolume(faces.map((face) => face.map((i) => vertices[i]) as V[])); };
+    expect(meshVolume(canonicalizeShape(binShape({})))).toBeGreaterThan(meshVolume(shape) + 3);
+  });
+});
+
+describe("gridfinity lip chamfer on a set wall", () => {
+  const top = 21;
+  const lipTop = top + GRIDFINITY_LIP_HEIGHT;
+
+  it("chamfers the lip's top the same on a thin wall and above a ledge, and leaves the wall below as it is", () => {
+    for (const wall of [1.2, 3]) {
+      for (const c of [0.25, 1]) {
+        const label = `${wall} ${c}`;
+        const sharp = gridfinityWallProfile(gridfinityPlan(bin({ gridfinityWallThickness: wall })));
+        const chamfered = gridfinityWallProfile(gridfinityPlan(bin({ gridfinityWallThickness: wall, gridfinityLipChamfer: c })));
+        expect(chamfered.length, label).toBe(sharp.length + 1);
+        expect(chamfered[0], label).toEqual(sharp[0]);
+        [[0, lipTop - c], [c * Math.SQRT1_2, lipTop - c * Math.SQRT1_2]].forEach((point, k) => point.forEach((n, i) => expect(chamfered[1 + k][i], `${label} ${k} ${i}`).toBeCloseTo(n, 9)));
+        expect(chamfered.slice(3), label).toEqual(sharp.slice(2));
+      }
+    }
+    // Above 1.75 mm the wall stops at the ledge 0.85 mm under 7 mm per height unit, under the chamfered lip.
+    const ledged = gridfinityWallProfile(gridfinityPlan(bin({ gridfinityWallThickness: 3, gridfinityLipChamfer: 1 })));
+    expect(ledged).toContainEqual([1.75, top - 0.85]);
+    expect(ledged).toContainEqual([3, top - 0.85]);
+  });
+
+  it("draws chamfered bins with thick walls closed and in one piece, their top lowered by the chamfer", () => {
+    for (const fields of [
+      { gridfinityWallThickness: 4, gridfinityLipChamfer: 0.25 },
+      { gridfinityWallThickness: 4, gridfinityLipChamfer: 1, gridfinityOpenFront: true },
+      { gridfinityWallThickness: 2.5, gridfinityLipChamfer: 0.5, gridfinityCompartmentsX: 2, gridfinityScoopFront: true },
+      { gridfinityWallThickness: 4, gridfinityLipChamfer: 1, gridfinityOpenFront: true, gridfinityCompartmentsX: 2, gridfinityCompartmentsZ: 2 },
+    ]) {
+      const label = JSON.stringify(fields);
+      const triangles = gridfinityTriangles(bin(fields));
+      expect(edgeProblems(triangles), label).toBe(0);
+      expect(components(triangles), label).toBe(1);
+      expect(bounds(triangles).max[1], label).toBeCloseTo(lipTop - fields.gridfinityLipChamfer * Math.SQRT1_2, 9);
+    }
+  });
+});
+
+describe("gridfinity partly open side", { timeout: 60_000 }, () => {
+  let runtime: ManifoldToplevel;
+
+  beforeAll(async () => {
+    runtime = await manifoldModule();
+    runtime.setup();
+  });
+
+  // A bin of 2 x 1 x 3 units: 83.5 x 41.5, the lip's top at 25.4, the floor at 5.95, the wall 0.95 mm.
+  const front = { gridfinityOpenFront: true };
+  const opening = (entry: Record<string, unknown>) => ({ ...front, gridfinityOpenings: [{ side: "front", ...entry }] });
+
+  it("opens a switched side in full on a bin its wall makes solid, whatever opening is set", () => {
+    const solid = { width: 83.5, depth: 41.5, height: 25.4, gridfinityType: "bin" as const, gridfinityLip: true, gridfinityWallThickness: 20.75, ...front };
+    const set = { ...solid, gridfinityOpenings: [{ side: "front", width: 20, depth: 10 }] };
+    expect(gridfinityWallSolid(set)).toBe(true);
+    expect(gridfinityPlan(set).open.front).toBe(true);
+    expect(gridfinityPlan(set).notches).toEqual([]);
+    expect(gridfinityTriangles(set)).toEqual(gridfinityTriangles(solid));
+  });
+
+  it("never makes a bin switched open on all four sides solid, a partly open one too: its wall leaves the side open in full", () => {
+    const tray = { width: 83.5, depth: 41.5, height: 25.4, gridfinityType: "bin" as const, gridfinityLip: true, gridfinityOpenBack: true, gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenRight: true, gridfinityWallThickness: 20.75 };
+    const set = { ...tray, gridfinityOpenings: [{ side: "left", width: 10, depth: 10 }] };
+    const plan = gridfinityPlan(set);
+    expect([plan.solid, plan.floor, plan.notches]).toEqual([false, 5.95, []]);
+    expect(plan.open).toEqual({ back: true, front: true, left: true, right: true });
+    expect(gridfinityTriangles(set)).toEqual(gridfinityTriangles(tray));
+  });
+
+  it("opens the long side of a bin switched open on all four sides as set, its wall leaving room there", () => {
+    const tray = { width: 83.5, depth: 41.5, height: 25.4, gridfinityType: "bin" as const, gridfinityLip: true, gridfinityOpenBack: true, gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenRight: true, gridfinityWallThickness: 20.75 };
+    const plan = gridfinityPlan({ ...tray, gridfinityOpenings: [{ side: "front", width: 10, depth: 10 }] });
+    expect([plan.solid, plan.floor]).toEqual([false, 5.95]);
+    expect(plan.notches).toHaveLength(1);
+    expect(plan.notches[0]).toMatchObject({ side: "front", from: -5, to: 5 });
+  });
+
+  it("shows the distance as built beside a side open in full, where the opening runs out to the outline", () => {
+    // Left open: the front's straight part runs from the outline at -41.75 to the right corner at 38, 79.75 long.
+    const fields = bin({ ...opening({ width: 20, depth: 10, align: "start", distance: 58 }), gridfinityOpenLeft: true });
+    const [notch] = gridfinityPlan(fields).notches;
+    expect(notch.from).toBeCloseTo(-41.75 + 58, 9);
+    expect(gridfinityOpening(fields, "front").distance).toBe(58);
+    expect(gridfinityOpeningLimits(fields, "front").distance).toBeCloseTo(59.75, 9);
+    // Beyond what the side takes, both the opening and the row stop at the end.
+    const far = bin({ ...opening({ width: 20, depth: 10, align: "start", distance: 70 }), gridfinityOpenLeft: true });
+    expect(gridfinityPlan(far).notches[0].from).toBeCloseTo(-41.75 + 59.75, 9);
+    expect(gridfinityOpening(far, "front").distance).toBeCloseTo(59.75, 9);
+  });
+
+  it("builds a bin with no opening set, or one at the full depth and the full wall, exactly as before", () => {
+    expect(gridfinityPlan(bin({ gridfinityOpenings: [] }))).toEqual(gridfinityPlan(bin()));
+    expect(gridfinityTriangles(bin({ gridfinityOpenings: [] }))).toEqual(gridfinityTriangles(bin()));
+    for (const entry of [{}, { width: 76, depth: 19.45 }, { width: 75.6 }, { depth: 19.1 }, { align: "start", distance: 3 }]) {
+      const label = JSON.stringify(entry);
+      expect(gridfinityPlan(bin(opening(entry))), label).toEqual(gridfinityPlan(bin(front)));
+      expect(gridfinityTriangles(bin(opening(entry))), label).toEqual(gridfinityTriangles(bin(front)));
+    }
+    // An entry for a side that is not open is kept and does nothing.
+    expect(gridfinityPlan(bin({ gridfinityOpenings: [{ side: "front", width: 20 }] }))).toEqual(gridfinityPlan(bin()));
+  });
+
+  it("keeps a valid entry for each side once, within what a saved project takes", () => {
+    expect(normalizeGridfinityOpenings(undefined)).toBeUndefined();
+    expect(normalizeGridfinityOpenings([
+      { side: "front", depth: 10, width: 20, align: "end", distance: 1.4 },
+      { side: "front", depth: 3 },
+      { side: "top", depth: 3 },
+      { side: "left", depth: Number.NaN, width: "wide", align: "sideways", distance: -2 },
+      null,
+    ])).toEqual([{ side: "front", depth: 10, width: 20, align: "end", distance: 1.4 }, { side: "left", distance: 0 }]);
+  });
+
+  it("places an opening on the straight part of its wall, centred or from either end", () => {
+    // The front wall's straight part: 83.5 less the two corners of 3.75 mm, from -38 to 38.
+    expect(gridfinityPlan(bin(opening({ width: 50, depth: 10 }))).notches).toEqual([{ side: "front", from: -25, to: 25, bottom: 15.4 }]);
+    expect(gridfinityPlan(bin(opening({ width: 20, depth: 10, align: "start", distance: 5 }))).notches[0]).toMatchObject({ from: -33, to: -13 });
+    expect(gridfinityPlan(bin(opening({ width: 20, depth: 10, align: "end", distance: 5 }))).notches[0]).toMatchObject({ from: 13, to: 33 });
+    // A distance that would run off the wall stops at its end.
+    expect(gridfinityPlan(bin(opening({ width: 20, depth: 10, align: "start", distance: 100 }))).notches[0]).toMatchObject({ from: 18, to: 38 });
+    // The side walls run deep: 41.5 less two corners, from -17 to 17; start is the back.
+    const left = gridfinityPlan(bin({ gridfinityOpenLeft: true, gridfinityOpenings: [{ side: "left", width: 10, depth: 10, align: "start", distance: 2 }] }));
+    expect(left.notches).toEqual([{ side: "left", from: -15, to: -5, bottom: 15.4 }]);
+    expect(left.open.left).toBe(false);
+    expect(left.switched.left).toBe(true);
+  });
+
+  it("keeps an opening within its sizes and snaps it onto the full wall, the floor and off the ledge", () => {
+    const notch = (entry: Record<string, unknown>, more: Record<string, unknown> = {}) => gridfinityPlan(bin({ ...opening(entry), ...more })).notches[0];
+    expect(notch({ width: 2, depth: 10 })).toMatchObject({ from: -2.5, to: 2.5 });
+    expect(notch({ width: 20, depth: 1 })).toMatchObject({ bottom: 23.4 });
+    // A full width with less depth lowers the wall between the corners; a full depth with less width is a slot to the floor.
+    expect(notch({ depth: 10 })).toMatchObject({ from: -38, to: 38, bottom: 15.4 });
+    expect(notch({ width: 20 })).toMatchObject({ from: -10, to: 10, bottom: 5.95 });
+    expect(notch({ width: 20, depth: 19.2 })).toMatchObject({ bottom: 5.95 });
+    // Off the ledge and dividers' top, 0.85 mm under 21, so their faces never meet the opening's bottom.
+    expect(notch({ width: 20, depth: 5.25 }).bottom).toBeCloseTo(20.2, 9);
+    expect(notch({ width: 20, depth: 5.28 }).bottom).toBeCloseTo(20.1, 9);
+    // Measured from the lip's top after a chamfer.
+    expect(notch({ width: 20, depth: 10 }, { gridfinityLipChamfer: 1 }).bottom).toBeCloseTo(25.4 - Math.SQRT1_2 - 10, 5);
+    // A raised floor stops it.
+    expect(notch({ width: 20, depth: 15 }, { gridfinityFloorHeight: 12 })).toMatchObject({ bottom: 12 });
+  });
+
+  it("keeps an opening off the corners, as wide as the wall is thick, and runs it to an open neighbour's edge", () => {
+    expect(gridfinityPlan(bin({ ...opening({ depth: 10 }), gridfinityWallThickness: 4 })).notches[0]).toMatchObject({ from: -37.75, to: 37.75 });
+    expect(gridfinityPlan(bin({ ...opening({ depth: 10 }), gridfinityOpenLeft: true })).notches[0]).toMatchObject({ from: -41.75, to: 38 });
+    // No opening on a bin built solid by its wall.
+    expect(gridfinityPlan(bin({ ...opening({ width: 20, depth: 10 }), gridfinityWallThickness: 20.75 })).notches).toEqual([]);
+  });
+
+  it("takes the wall's setting when a side stays partly closed, even with all four switched open", () => {
+    const all = { gridfinityOpenBack: true, gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenRight: true, gridfinityWallThickness: 2 };
+    expect(gridfinityPlan(bin(all)).wallThickness).toBe(0.95);
+    expect(gridfinityPlan(bin({ ...all, gridfinityOpenings: [{ side: "front", width: 20 }] })).wallThickness).toBe(2);
+  });
+
+  it("leaves shelves and scoops off a side switched open, partly or fully", () => {
+    const shelved = { gridfinityLabelFront: true, gridfinityLabelBack: true, gridfinityScoopFront: true };
+    expect(gridfinityLabelPieces(bin({ ...opening({ width: 20, depth: 10 }), ...shelved }))!.shelves).toHaveLength(1);
+    expect(gridfinityScoopPieces(bin({ ...opening({ width: 20, depth: 10 }), ...shelved }))).toBeNull();
+    expect(gridfinityLabelMaxWidth(bin({ ...opening({ width: 20, depth: 10 }), ...shelved }), "back")).toBe(gridfinityLabelMaxWidth(bin({ gridfinityLabelBack: true }), "back"));
+    expect(gridfinityHasPieces(bin(opening({ width: 20, depth: 10 })))).toBe(true);
+    expect(gridfinityHasPieces(bin(opening({})))).toBe(false);
+  });
+
+  it("cuts the wall's own section above the opening's bottom, the floor's rounding with it", () => {
+    const plan = gridfinityPlan(bin(opening({ width: 50, depth: 10 })));
+    expect(gridfinityOpeningSection(plan, plan.notches[0], 0).map(([u, y]) => [Math.round(u * 1e6) / 1e6, Math.round(y * 1e6) / 1e6])).toEqual([[-2, 15.4], [0.95, 15.4], [0.95, 19.35], [2.6, 21], [1.9, 21.7], [1.9, 23.5], [0, 25.4], [0, 26.4], [-2, 26.4]]);
+    const slot = gridfinityPlan(bin(opening({ width: 20 })));
+    const rounded = gridfinityOpeningSection(slot, slot.notches[0], 2.8);
+    expect(rounded[1][0]).toBeCloseTo(0.95 + 2.8, 9);
+    expect(rounded[1][1]).toBeCloseTo(5.95, 9);
+    const shallow = gridfinityPlan(bin(opening({ width: 50, depth: 5 })));
+    const [, start] = gridfinityOpeningSection(shallow, shallow.notches[0], 0);
+    expect(start[0]).toBeCloseTo(0.95 + (20.4 - 19.35), 9);
+    expect(start[1]).toBeCloseTo(20.4, 9);
+  });
+
+  it("draws the bin again when an opening changes", () => {
+    const shape = binShape(opening({ width: 20, depth: 10 }));
+    const deeper = { ...shape, gridfinityOpenings: [{ side: "front" as const, width: 20, depth: 12 }] };
+    expect(shapeGeometrySignature(deeper)).not.toBe(shapeGeometrySignature(shape));
+    expect(tapeShapeTopologyKey(deeper)).not.toBe(tapeShapeTopologyKey(shape));
+  });
+
+  it("reads and writes one side's opening as the panel shows it", () => {
+    const shape = bin(opening({ width: 20, depth: 10, align: "end", distance: 3 }));
+    expect(gridfinityOpening(shape, "front")).toEqual({ depth: 10, width: 20, align: "end", distance: 3 });
+    expect(gridfinityOpening(bin(front), "front")).toEqual({ depth: 19.45, width: 76, align: "middle", distance: 0 });
+    expect(gridfinityOpeningLimits(shape, "front")).toEqual({ depth: { min: 2, max: 19.45 }, width: { min: 5, max: 76 }, distance: 56 });
+    expect(gridfinityOpeningPatch(shape, "front", { width: 30 })).toEqual({ gridfinityOpenings: [{ side: "front", width: 30, depth: 10, align: "end", distance: 3 }] });
+    expect(gridfinityOpeningPatch(bin(front), "front", { depth: 8 })).toEqual({ gridfinityOpenings: [{ side: "front", depth: 8 }] });
+  });
+
+  it("cuts every width up to half a millimetre under the largest, and the whole side from there, beside an open side too", () => {
+    const beside = (width: number) => gridfinityPlan(bin({ ...opening({ width, depth: 10 }), gridfinityOpenLeft: true })).notches[0];
+    const widths = Array.from({ length: 71 }, (_, index) => 5 + index).map((width) => beside(width).to - beside(width).from);
+    widths.forEach((width, index) => expect(width).toBeCloseTo(5 + index, 9));
+    for (const width of [75.5, 76]) expect(beside(width), String(width)).toMatchObject({ from: -41.75, to: 38 });
+    expect(gridfinityOpeningLimits(bin({ ...opening({ depth: 10 }), gridfinityOpenLeft: true }), "front").width.max).toBe(76);
+  });
+
+  it("opens a side in full where its straight part has no room for the narrowest opening", () => {
+    const small = bin({ width: 41.5, ...opening({ width: 10, depth: 5 }), gridfinityWallThickness: 19 });
+    expect(gridfinityPlan(small).open.front).toBe(true);
+    expect(gridfinityPlan(small).notches).toEqual([]);
+    expect(gridfinityOpeningFits(small, "front")).toBe(false);
+    expect(gridfinityOpeningFits(bin(opening({ width: 10, depth: 5 })), "front")).toBe(true);
+    expect(gridfinityOpeningFits(bin(), "front")).toBe(false);
+  });
+
+  it("says why a compartment's label shelf is left out: its side open in full, or switched open", () => {
+    const cellOf = (fields: Record<string, unknown>) => gridfinityCompartments(bin({ gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, ...fields }))!.cells.find((cell) => cell.column === 1 && cell.row === 1)!;
+    expect(gridfinityCompartmentLabelLeftOut(cellOf(front), "front")).toBe("open");
+    expect(gridfinityCompartmentLabelLeftOut(cellOf(opening({ width: 20, depth: 10 })), "front")).toBe("switched");
+    expect(gridfinityCompartmentLabelLeftOut(cellOf(opening({ width: 20, depth: 10 })), "back")).toBeNull();
+    expect(gridfinityCompartmentLabelLeftOut(cellOf({}), "front")).toBeNull();
+  });
+
+  it("keeps the openings through a saved project, the exact body and the MCP, and not as settings, and refuses nonsense", async () => {
+    const openings = [{ side: "front" as const, depth: 10, width: 30, align: "end" as const, distance: 3 }, { side: "left" as const, width: 12 }];
+    const shape = canonicalizeShape(binShape({ gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenings: openings }));
+    const [entry, other] = openings;
+    for (const change of [
+      { gridfinityOpenings: [entry] },
+      { gridfinityOpenings: [{ ...entry, side: "back" as const }, other] },
+      { gridfinityOpenings: [{ ...entry, depth: 11 }, other] },
+      { gridfinityOpenings: [{ ...entry, width: 31 }, other] },
+      { gridfinityOpenings: [{ ...entry, align: "start" as const }, other] },
+      { gridfinityOpenings: [{ ...entry, distance: 4 }, other] },
+    ]) {
+      expect(workplaneShapesEqual(shape, { ...shape, ...change }), JSON.stringify(change)).toBe(false);
+    }
+    expect(workplaneShapesEqual(shape, { ...shape, gridfinityOpenings: [{ ...entry }, { ...other }] })).toBe(true);
+    const save = (shapes: WorkplaneShape[]) => exportLylProject({ projectId: "openings", projectName: "Openings", createdAt: 1, modifiedAt: 2, shapes, history: [editorHistoryEntry(shapes, [])], historyIndex: 0, assets: [], workspace: DEFAULT_WORKPLANE_WORKSPACE, snapGrid: DEFAULT_SNAP_GRID, placementElevation: 0 });
+    const [loaded] = (await importLylProject(await save([shape]))).shapes;
+    expect(workplaneShapesEqual(loaded, shape)).toBe(true);
+    expect(loaded.gridfinityOpenings).toEqual(openings);
+    for (const wrong of [{ gridfinityOpenings: {} }, { gridfinityOpenings: [{ side: "top" }] }, { gridfinityOpenings: [{ side: "front", depth: "deep" }] }, { gridfinityOpenings: [{ side: "front", width: -1 }] }, { gridfinityOpenings: [{ side: "front", distance: 2e6 }] }, { gridfinityOpenings: [{ side: "front", align: "left" }] }, { gridfinityOpenings: [{ side: "front" }, { side: "front" }] }, { gridfinityOpenings: Array(5).fill({ side: "front" }) }]) {
+      await expect(importLylProject(await save([{ ...shape, ...wrong } as unknown as WorkplaneShape])), JSON.stringify(wrong)).rejects.toThrow();
+    }
+    expect(sceneShape(shape)).toMatchObject({ gridfinityOpenings: openings });
+    rememberManifoldRuntime(runtime);
+    expect(cadModifierGridfinityForShape(shape)).toMatchObject({ gridfinityOpenings: openings });
+    // The openings belong to one bin's size, as the dividers' places do.
+    expect(normalizeShapeCustomizations({ gridfinity: { gridfinityOpenings: openings } }, {}).gridfinity ?? {}).not.toHaveProperty("gridfinityOpenings");
+    expect(shapeDefaultsFromShape(shape) ?? {}).not.toHaveProperty("gridfinityOpenings");
+    // Through the MCP as a list or as the JSON text layerling_read_scene reports.
+    expect(mcpShapeSummary(shape).settings).toMatchObject({ gridfinityOpenings: JSON.stringify(openings) });
+    expect(gridfinityListPatch(mcpGridfinityListParams({ gridfinityOpenings: JSON.stringify(openings) }))).toStrictEqual({ gridfinityOpenings: openings });
+    expect(gridfinityListPatch(mcpGridfinityListParams({ gridfinityOpenings: [] }))).toStrictEqual({ gridfinityOpenings: undefined });
+    // What the MCP gives outside what a saved project takes is kept within it, where the bin would clamp it anyway.
+    const wide = canonicalizeShape(binShape({ gridfinityOpenFront: true, ...gridfinityListPatch({ gridfinityOpenings: [{ side: "front", depth: -3, width: 2e6, align: "end", distance: -2 }] }) }));
+    const [reloaded] = (await importLylProject(await save([wide]))).shapes;
+    expect(workplaneShapesEqual(reloaded, wide)).toBe(true);
+    expect(gridfinityPlan(reloaded).notches).toEqual(gridfinityPlan(binShape({ gridfinityOpenFront: true, gridfinityOpenings: [{ side: "front", depth: -3, width: 2e6, align: "end", distance: -2 }] })).notches);
+    // The mesh that booleans and exports use has the notches.
+    const meshVolume = (s: WorkplaneShape) => { const { vertices, faces } = meshForShape(s); return signedVolume(faces.map((face) => face.map((i) => vertices[i]) as V[])); };
+    expect(meshVolume(shape)).toBeLessThan(meshVolume({ ...shape, gridfinityOpenFront: false, gridfinityOpenLeft: false }) - 100);
+  });
+
+  it("draws a partly open bin closed and in one piece, with the wall's volume taken out", () => {
+    for (const fields of [
+      opening({ width: 30, depth: 10 }),
+      opening({ width: 20 }),
+      { ...opening({ depth: 8 }), gridfinityWallThickness: 2.5 },
+      { ...opening({ width: 20, depth: 12, align: "start", distance: 1.4 }), gridfinityWallThickness: 4, gridfinityLipChamfer: 0.5 },
+      { ...opening({ width: 20 }), gridfinityCompartmentsX: 3 },
+      { ...opening({ width: 20 }), gridfinityScoopBack: true },
+      { ...opening({ width: 20, depth: 10 }), gridfinityLip: false, height: 21 },
+      { gridfinityOpenLeft: true, gridfinityOpenings: [{ side: "left", width: 12, depth: 6 }], gridfinityHalfGrid: true, width: 20.5, depth: 41.5 },
+    ]) {
+      const label = JSON.stringify(fields);
+      const triangles = gridfinityLabelledTriangles(runtime, bin(fields));
+      expect(edgeProblems(triangles), label).toBe(0);
+      expect(components(triangles), label).toBe(1);
+      expect(signedVolume(triangles), label).toBeLessThan(signedVolume(gridfinityLabelledTriangles(runtime, bin({ ...fields, gridfinityOpenFront: false, gridfinityOpenLeft: false }))) - 1);
+    }
+  });
+});
+
+describe("gridfinity notch corners", { timeout: 60_000 }, () => {
+  let runtime: ManifoldToplevel;
+
+  beforeAll(async () => {
+    runtime = await manifoldModule();
+    runtime.setup();
+  });
+
+  // A bin of 2 x 1 x 3 units: the lip's top at 25.4, the floor at 5.95, the front's straight part from -38 to 38.
+  const opening = (entry: Record<string, unknown>, fields: Record<string, unknown> = {}) => bin({ gridfinityOpenFront: true, gridfinityOpenings: [{ side: "front", ...entry }], ...fields });
+  // What the notch follows inside: the floor's rounding (none on a plain bin, 2.8 mm on a divided or scooped one) and the compartments' edges.
+  const insideOf = (fields: ReturnType<typeof bin>) => gridfinityOpeningInside(gridfinityPlan(fields), gridfinityCompartmentPieces(fields));
+  const cornersOf = (fields: ReturnType<typeof bin>) => {
+    const plan = gridfinityPlan(fields);
+    return gridfinityOpeningCorners(plan, plan.notches[0], insideOf(fields));
+  };
+
+  it("keeps a notch's corners square unless a size is set, the same triangles as before", () => {
+    const sharp = opening({ width: 20, depth: 10 });
+    const plan = gridfinityPlan(sharp);
+    expect(gridfinityOpeningCorners(plan, plan.notches[0], insideOf(sharp))).toEqual({ fromTop: 0, fromBottom: 0, toTop: 0, toBottom: 0 });
+    expect(gridfinityOpeningOutline(plan, plan.notches[0], insideOf(sharp))).toBeNull();
+    const triangles = gridfinityLabelledTriangles(runtime, sharp);
+    for (const fields of [{ gridfinityOpeningCornerSize: 0 }, { gridfinityOpeningCorner: "chamfer", gridfinityOpeningCornerSize: 0 }, { gridfinityOpeningCornerSize: 0.45 }]) {
+      expect(gridfinityLabelledTriangles(runtime, { ...sharp, ...fields }), JSON.stringify(fields)).toEqual(triangles);
+    }
+  });
+
+  it("gives each corner the size set, at most what the notch and the wall beside it take", () => {
+    expect(cornersOf(opening({ width: 20, depth: 10 }, { gridfinityOpeningCornerSize: 2 }))).toEqual({ fromTop: 2, fromBottom: 2, toTop: 2, toBottom: 2 });
+    // The top corners first, as far as the depth; the bottom ones then at most half the width and what the depth leaves.
+    expect(cornersOf(opening({ width: 10, depth: 10 }, { gridfinityOpeningCornerSize: 8 }))).toEqual({ fromTop: 8, fromBottom: 2, toTop: 8, toBottom: 2 });
+    expect(cornersOf(opening({ width: 10, depth: 15 }, { gridfinityOpeningCornerSize: 8 }))).toEqual({ fromTop: 8, fromBottom: 5, toTop: 8, toBottom: 5 });
+    // The top corners stop at the end of the straight part: 2 mm from the right corner here.
+    expect(cornersOf(opening({ width: 20, depth: 10, align: "end", distance: 2 }, { gridfinityOpeningCornerSize: 3 }))).toEqual({ fromTop: 3, fromBottom: 3, toTop: 2, toBottom: 3 });
+    // A wall lowered between the corners has no top corners; beside a side open in full the notch's end has none at all.
+    expect(cornersOf(opening({ depth: 10 }, { gridfinityOpeningCornerSize: 2 }))).toEqual({ fromTop: 0, fromBottom: 2, toTop: 0, toBottom: 2 });
+    expect(cornersOf(opening({ depth: 10 }, { gridfinityOpeningCornerSize: 2, gridfinityOpenLeft: true }))).toEqual({ fromTop: 0, fromBottom: 0, toTop: 0, toBottom: 2 });
+    expect(cornersOf(opening({ width: 20, depth: 10, align: "start", distance: 1 }, { gridfinityOpeningCornerSize: 2, gridfinityOpenLeft: true }))).toEqual({ fromTop: 1, fromBottom: 2, toTop: 2, toBottom: 2 });
+    // To 0.01 mm, never more than set unless what is left would be under 0.01 mm, and square under 0.5 mm.
+    expect(cornersOf(opening({ width: 20, depth: 10 }, { gridfinityOpeningCornerSize: 1.237 }))).toEqual({ fromTop: 1.24, fromBottom: 1.24, toTop: 1.24, toBottom: 1.24 });
+    expect(cornersOf(opening({ width: 20, depth: 10, align: "end", distance: 0.95 }, { gridfinityOpeningCornerSize: 2 }))).toMatchObject({ toTop: 0.95 });
+    expect(cornersOf(opening({ width: 20, depth: 10, align: "end", distance: 0.95 }, { gridfinityOpeningCornerSize: 0.99 }))).toMatchObject({ toTop: 0.95, fromTop: 0.99 });
+    expect(cornersOf(opening({ width: 20, depth: 10, align: "end", distance: 1.005 }, { gridfinityOpeningCornerSize: 1 }))).toMatchObject({ toTop: 1.005, fromTop: 1 });
+    expect(cornersOf(opening({ width: 20, depth: 10, align: "end", distance: 0.45 }, { gridfinityOpeningCornerSize: 2 }))).toMatchObject({ toTop: 0 });
+  });
+
+  it("keeps a slot's top corners above the floor's rounding, which the dividers' check counts on", () => {
+    // 2 height units: the lip's top at 18.4, a slot to the floor 12.45 deep, the rounding 2.8 mm.
+    const low = { height: 14 + GRIDFINITY_LIP_HEIGHT, gridfinityOpeningCornerSize: 10 };
+    expect(cornersOf(opening({ width: 20 }, { ...low, gridfinityCompartmentsX: 3 }))).toEqual({ fromTop: 9.65, fromBottom: 2.8, toTop: 9.65, toBottom: 2.8 });
+    // Without a rounding in the section there is nothing to stay above.
+    expect(cornersOf(opening({ width: 20 }, low))).toEqual({ fromTop: 10, fromBottom: 2.45, toTop: 10, toBottom: 2.45 });
+  });
+
+  it("brings a corner down 0.01 mm at a time while it would end within 0.01 mm of a crease of the wall's section", () => {
+    // A scooped bin's slot to the floor: its section's rounding turns at 5.95 + 2.8 (1 - cos 56.25 degrees), 1.2444 up.
+    // A corner of 1.25 ends 0.0056 over it, 1.24 0.0044 under it, 1.23 0.0144 under it.
+    expect(2.8 * (1 - Math.cos((5 * Math.PI) / 16))).toBeCloseTo(1.2444, 4);
+    expect(cornersOf(opening({ width: 20 }, { gridfinityScoopBack: true, gridfinityOpeningCornerSize: 1.25 }))).toMatchObject({ fromBottom: 1.23, toBottom: 1.23 });
+    // Without that rounding the same corner keeps the size set.
+    expect(cornersOf(opening({ width: 20 }, { gridfinityOpeningCornerSize: 1.25 }))).toMatchObject({ fromBottom: 1.25, toBottom: 1.25 });
+  });
+
+  it("brings a corner down while it would leave a sliver of wall beside the corner's seam or cross a crease just beside it", () => {
+    // 1.905 mm of straight wall beside the notch's right end: all of it ends 0.005 mm under the lip's crease at 23.5
+    // (25.4 - 1.9), 1.9 leaves 0.005 mm of wall, 1.89 ends 0.01 mm over the crease; 1.88 is clear of both.
+    const { toTop } = cornersOf(opening({ width: 20, depth: 10, align: "end", distance: 1.905 }, { gridfinityOpeningCornerSize: 2 }));
+    expect(toTop).toBe(1.88);
+    // A wall lowered across a 1 x 1 bin, 16 mm from its top: its bottom corners of 10 end on the corners' seams at 17,
+    // and the support's foot at 26.35 crosses them 0.05 mm under their end, 0.00013 mm from the seam; they come down
+    // until it crosses 0.01 mm or more from it.
+    const plan = gridfinityPlan(bin({ width: 41.5, depth: 41.5, height: 28 + GRIDFINITY_LIP_HEIGHT, gridfinityOpenFront: true, gridfinityOpenings: [{ side: "front", depth: 16 }], gridfinityOpeningCornerSize: 10 }));
+    const lowered = gridfinityOpeningCorners(plan, plan.notches[0], gridfinityOpeningInside(plan, null));
+    const fromBottom = lowered.fromBottom;
+    expect(fromBottom).toBeLessThan(10);
+    const dy = plan.notches[0].bottom + fromBottom - 26.35;
+    expect(dy <= 0 || fromBottom - Math.sqrt(fromBottom ** 2 - dy ** 2) >= 0.01).toBe(true);
+  });
+
+  it("keeps a divided bin's corners at the size set, the compartments' edges not counted", () => {
+    // A slot to the floor at the right end of a bin with three compartments: its bottom corner there stood square up to 3.
+    for (const size of [0.5, 1, 2, 3.5]) {
+      expect(cornersOf(opening({ width: 20, align: "end", distance: 0 }, { gridfinityCompartmentsX: 3, gridfinityOpeningCornerSize: size })), String(size)).toMatchObject({ toBottom: size, fromBottom: size });
+    }
+    // A notch as deep as a 2.5 mm wall and a chamfered lip leave: its top corners of 4 to 6 came out at 3.85.
+    for (const size of [4, 5, 6]) {
+      expect(cornersOf(opening({ width: 27.5, depth: 21 }, { gridfinityWallThickness: 2.5, gridfinityLipChamfer: 0.5, gridfinityCompartmentsX: 3, gridfinityOpeningCornerSize: size })), String(size)).toMatchObject({ fromTop: size, toTop: size });
+    }
+  });
+
+  it("draws the outline seen from the front: the flat bottom, the ends, and out over the top", () => {
+    const plan = gridfinityPlan(opening({ width: 20, depth: 10 }, { gridfinityOpeningCorner: "chamfer", gridfinityOpeningCornerSize: 2 }));
+    const outline = gridfinityOpeningOutline(plan, plan.notches[0], gridfinityOpeningInside(plan, null))!;
+    expect(outline.notch).toEqual({ side: "front", from: -12, to: 12, bottom: 15.4 });
+    // Along the front from its start at -12; up to 2 mm over the lip's top.
+    expect(outline.outline.map(([t, y]) => [Math.round(t * 1e6) / 1e6, Math.round(y * 1e6) / 1e6])).toEqual([
+      [0, 27.4], [0, 25.4], [2, 23.4], [2, 17.4], [4, 15.4], [20, 15.4], [22, 17.4], [22, 23.4], [24, 25.4], [24, 27.4],
+    ]);
+    const round = gridfinityPlan(opening({ width: 20, depth: 10 }, { gridfinityOpeningCornerSize: 2 }));
+    const arcs = gridfinityOpeningOutline(round, round.notches[0], gridfinityOpeningInside(round, null))!.outline;
+    expect(arcs).toHaveLength(2 + 4 * 9);
+    // Halfway round the bottom corner at the start, about its centre 2 mm in and up.
+    expect(arcs.some(([t, y]) => Math.abs(t - (4 - Math.SQRT2)) < 1e-9 && Math.abs(y - (17.4 - Math.SQRT2)) < 1e-9)).toBe(true);
+  });
+
+  it("puts each corner at its own end of the outline on the back, which runs the other way", () => {
+    // A back notch from 16 to 36, 2 mm from the straight part's end at 38: its top corner there takes 2 mm, at 16 3 mm.
+    const fields = bin({ gridfinityOpenBack: true, gridfinityOpenings: [{ side: "back", width: 20, depth: 10, align: "end", distance: 2 }], gridfinityOpeningCornerSize: 3 });
+    const plan = gridfinityPlan(fields);
+    expect(gridfinityOpeningCorners(plan, plan.notches[0], gridfinityOpeningInside(plan, null))).toEqual({ fromTop: 3, fromBottom: 3, toTop: 2, toBottom: 3 });
+    // The outline starts from 38 (the frame's start on the back): the 2 mm corner ends 2 along, the 3 mm one 22 along.
+    const outline = gridfinityOpeningOutline(plan, plan.notches[0], gridfinityOpeningInside(plan, null))!.outline;
+    const has = (t: number, y: number) => outline.some(([u, v]) => Math.abs(u - t) < 1e-9 && Math.abs(v - y) < 1e-9);
+    expect(has(2, 25.4 - 2)).toBe(true);
+    expect(has(22, 25.4 - 3)).toBe(true);
+  });
+
+  it("draws the outline counter-clockwise on every side, whichever way the side runs", () => {
+    const area = (points: Array<[number, number]>) => points.reduce((sum, [x0, y0], i) => {
+      const [x1, y1] = points[(i + 1) % points.length];
+      return sum + (x0 * y1 - x1 * y0) / 2;
+    }, 0);
+    const areas = (["back", "front", "left", "right"] as const).map((side) => {
+      const fields = bin({ ...square, [GRIDFINITY_OPEN_WALL_KEYS[side]]: true, gridfinityOpenings: [{ side, width: 20, depth: 10, align: "start", distance: 4 }], gridfinityOpeningCornerSize: 2 });
+      const plan = gridfinityPlan(fields);
+      return area(gridfinityOpeningOutline(plan, plan.notches[0], gridfinityOpeningInside(plan, null))!.outline);
+    });
+    areas.forEach((value) => expect(value).toBeGreaterThan(0));
+    areas.forEach((value) => expect(value).toBeCloseTo(areas[0], 9));
+  });
+
+  it("offers a corner size up to the largest any corner takes, and shows what is set within it", () => {
+    expect(gridfinityOpeningMaxCornerSize(opening({ width: 20, depth: 10 }))).toBe(10);
+    expect(gridfinityOpeningMaxCornerSize(opening({ width: 6, depth: 3 }))).toBe(3);
+    expect(gridfinityOpeningMaxCornerSize(opening({}))).toBe(0);
+    expect(gridfinityOpeningCornerSize(opening({ width: 6, depth: 3 }, { gridfinityOpeningCornerSize: 5 }))).toBe(3);
+    expect(gridfinityOpeningCornerSize(opening({ width: 20, depth: 10 }))).toBe(0);
+    expect(gridfinityOpeningCornerSize(opening({ width: 20, depth: 10 }, { gridfinityOpeningCornerSize: 1.5 }))).toBe(1.5);
+    // As it is built, to 0.01 mm.
+    expect(gridfinityOpeningCornerSize(opening({ width: 20, depth: 10 }, { gridfinityOpeningCornerSize: 1.237 }))).toBe(1.24);
+  });
+
+  it("draws rounded and chamfered corners closed and in one piece, the notch still cut", () => {
+    for (const gridfinityOpeningCorner of ["round", "chamfer"]) {
+      for (const fields of [
+        opening({ width: 30, depth: 10 }),
+        opening({ width: 20 }),
+        opening({ depth: 8 }, { gridfinityWallThickness: 2.5 }),
+        opening({ width: 20, depth: 12, align: "start", distance: 1.4 }, { gridfinityWallThickness: 4, gridfinityLipChamfer: 0.5 }),
+        opening({ width: 20 }, { gridfinityCompartmentsX: 3 }),
+        opening({ width: 20, depth: 10 }, { gridfinityLip: false, height: 21 }),
+        opening({ width: 20, depth: 10, align: "start" }, { gridfinityOpenLeft: true }),
+        bin({ width: 41.5, depth: 41.5, height: 7 + GRIDFINITY_LIP_HEIGHT, gridfinityOpenFront: true, gridfinityOpenings: [{ side: "front", width: 10, depth: 2 }] }),
+        bin({ gridfinityOpenLeft: true, gridfinityOpenings: [{ side: "left", width: 12, depth: 6 }], gridfinityHalfGrid: true, width: 20.5, depth: 41.5 }),
+      ]) {
+        const set = { ...fields, gridfinityOpeningCorner, gridfinityOpeningCornerSize: 2 };
+        const label = JSON.stringify(set);
+        const triangles = gridfinityLabelledTriangles(runtime, set);
+        expect(edgeProblems(triangles), label).toBe(0);
+        expect(components(triangles), label).toBe(1);
+        expect(signedVolume(triangles), label).toBeLessThan(signedVolume(gridfinityLabelledTriangles(runtime, { ...fields, gridfinityOpenFront: false, gridfinityOpenLeft: false })) - 1);
+        expect(triangles, label).not.toEqual(gridfinityLabelledTriangles(runtime, fields));
+      }
+    }
+  });
+
+  it("keeps the corners through a saved project, the exact body, the settings and the MCP, and refuses nonsense", async () => {
+    const shape = canonicalizeShape(binShape({ gridfinityOpenFront: true, gridfinityOpenings: [{ side: "front", width: 20, depth: 10 }], gridfinityOpeningCorner: "chamfer", gridfinityOpeningCornerSize: 2 }));
+    expect(workplaneShapesEqual(shape, { ...shape, gridfinityOpeningCorner: "round" })).toBe(false);
+    expect(workplaneShapesEqual(shape, { ...shape, gridfinityOpeningCornerSize: 2.5 })).toBe(false);
+    const save = (shapes: WorkplaneShape[]) => exportLylProject({ projectId: "corners", projectName: "Corners", createdAt: 1, modifiedAt: 2, shapes, history: [editorHistoryEntry(shapes, [])], historyIndex: 0, assets: [], workspace: DEFAULT_WORKPLANE_WORKSPACE, snapGrid: DEFAULT_SNAP_GRID, placementElevation: 0 });
+    const [loaded] = (await importLylProject(await save([shape]))).shapes;
+    expect(loaded).toMatchObject({ gridfinityOpeningCorner: "chamfer", gridfinityOpeningCornerSize: 2 });
+    for (const wrong of [{ gridfinityOpeningCorner: "square" }, { gridfinityOpeningCornerSize: "big" }, { gridfinityOpeningCornerSize: -1 }]) {
+      await expect(importLylProject(await save([{ ...shape, ...wrong } as unknown as WorkplaneShape])), JSON.stringify(wrong)).rejects.toThrow();
+    }
+    expect(sceneShape(shape)).toMatchObject({ gridfinityOpeningCorner: "chamfer", gridfinityOpeningCornerSize: 2 });
+    rememberManifoldRuntime(runtime);
+    expect(cadModifierGridfinityForShape(shape)).toMatchObject({ gridfinityOpeningCorner: "chamfer", gridfinityOpeningCornerSize: 2 });
+    expect(normalizeShapeCustomizations({ gridfinity: { gridfinityOpeningCorner: "chamfer", gridfinityOpeningCornerSize: 2 } }, {}).gridfinity).toMatchObject({ gridfinityOpeningCorner: "chamfer", gridfinityOpeningCornerSize: 2 });
+    expect(shapeDefaultsFromShape(shape)).toMatchObject({ gridfinityOpeningCorner: "chamfer", gridfinityOpeningCornerSize: 2 });
+    expect(mcpShapeSummary(shape).settings).toMatchObject({ gridfinityOpeningCorner: "chamfer", gridfinityOpeningCornerSize: 2 });
+    expect(shapeGeometrySignature(shape)).not.toBe(shapeGeometrySignature({ ...shape, gridfinityOpeningCornerSize: 3 }));
+    expect(tapeShapeTopologyKey(shape)).not.toBe(tapeShapeTopologyKey({ ...shape, gridfinityOpeningCorner: "round" }));
+  });
+});
+
+describe("gridfinity tray", { timeout: 60_000 }, () => {
+  let runtime: ManifoldToplevel;
+
+  beforeAll(async () => {
+    runtime = await manifoldModule();
+    runtime.setup();
+  });
+
+  /** A tray of 80 x 40 x 20 mm: walls of 0.95, a floor of 1.2, corners of 3.75 outside and 2.8 inside. */
+  const tray = (fields: Record<string, unknown> = {}) => ({ width: 80, depth: 40, height: 20, gridfinityType: "tray" as const, ...fields });
+  /** A rounded rectangle's area, and what the mesh's eight steps a quarter take off a round corner of radius r, all four. */
+  const area = (w: number, d: number, r: number) => w * d - (4 - Math.PI) * r * r;
+  const polygonOff = (r: number) => 4 * r * r * (Math.PI / 4 - 4 * Math.sin(Math.PI / 16));
+  /** The exact volume of a tray of this size, wall and floor: the outline over its height less the inside over its depth. */
+  const exact = (w: number, d: number, h: number, wall: number, floor: number) => area(w, d, 3.75) * h - area(w - 2 * wall, d - 2 * wall, Math.max(0, 3.75 - wall)) * (h - floor);
+  /** The same with the mesh's polygon corners. */
+  const meshed = (w: number, d: number, h: number, wall: number, floor: number) => exact(w, d, h, wall, floor) - polygonOff(3.75) * h + polygonOff(Math.max(0, 3.75 - wall)) * (h - floor);
+
+  it("has no grid: no feet, no magnet holes and no lip, whatever is stored, and its walls stand on y = 0", () => {
+    for (const fields of [{}, { gridfinityLip: true, gridfinityMagnets: true, gridfinityHalfGrid: true, gridfinityLipChamfer: 1 }]) {
+      const plan = gridfinityPlan(tray(fields));
+      expect(plan).toMatchObject({ type: "tray", cells: [], magnetHoles: [], lip: false, magnets: false, lipChamfer: 0, top: 20, base: 0, floor: 1.2, dividerTop: 20, size: { width: 80, depth: 40, height: 20 } });
+      expect(gridfinityWallProfile(plan)[0]).toEqual([0, 0]);
+    }
+    expect(normalizeGridfinityType("tray")).toBe("tray");
+    expect(normalizeGridfinityType("trays")).toBe("bin");
+    expect(normalizeGridfinityType(undefined)).toBe("bin");
+    // No grid units: one of each, as the readers that count them expect.
+    expect(gridfinityUnits(tray())).toEqual({ x: 1, z: 1, y: 1 });
+  });
+
+  it("keeps a set wall on a tray switched open on all four sides with one opened only partly", () => {
+    const four = { gridfinityOpenFront: true, gridfinityOpenBack: true, gridfinityOpenLeft: true, gridfinityOpenRight: true };
+    expect(gridfinityPlan(tray({ ...four, gridfinityOpenings: [{ side: "front", width: 30, depth: 8 }], gridfinityWallThickness: 2 })).wallThickness).toBe(2);
+  });
+
+  it("is closed, wound outwards and one piece, open on a side or all four, with compartments, scoops, shelves, a thick wall or solid", () => {
+    for (const fields of [
+      {},
+      { gridfinityOpenFront: true },
+      { gridfinityOpenLeft: true, gridfinityOpenBack: true },
+      { gridfinityOpenBack: true, gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenRight: true },
+      { gridfinityScoopBack: true, gridfinityScoopFront: true, gridfinityScoopLeft: true, gridfinityScoopRight: true },
+      { gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2 },
+      { gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, gridfinityScoopFront: true, gridfinityCompartmentLabels: [{ column: 0, row: 0, side: "back" }] },
+      { gridfinityLabelBack: true },
+      { gridfinityLabelBack: true, gridfinityLabelLeft: true, gridfinityOpenFront: true },
+      { gridfinityWallThickness: 2 },
+      { gridfinityWallThickness: 5, gridfinityCompartmentsX: 2 },
+      { gridfinityFloorHeight: 8, gridfinityScoopFront: true },
+      { gridfinityFloorHeight: 20 },
+      { gridfinityOpenFront: true, gridfinityOpenings: [{ side: "front", width: 30, depth: 8 }] },
+      { gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenings: [{ side: "front", width: 20, depth: 8, align: "end" }, { side: "left", width: 10 }], gridfinityOpeningCornerSize: 2 },
+      { width: 10, depth: 10, height: 3 },
+      { width: 252, depth: 252, height: 140, gridfinityCompartmentsX: 8, gridfinityCompartmentsZ: 5 },
+    ]) {
+      const label = JSON.stringify(fields);
+      for (const triangles of [gridfinityTriangles(tray(fields)), gridfinityLabelledTriangles(runtime, tray(fields))]) {
+        expect(edgeProblems(triangles), label).toBe(0);
+        expect(signedVolume(triangles), label).toBeGreaterThan(0);
+        expect(components(triangles), label).toBe(1);
+      }
+    }
+  });
+
+  it("stands on y = 0 and fills its box exactly", () => {
+    for (const [w, d, h] of [[80, 40, 20], [92.5, 31.2, 7.3], [10, 10, 3], [252, 252, 140]]) {
+      const { min, max } = bounds(gridfinityTriangles(tray({ width: w, depth: d, height: h })));
+      [min[0] + w / 2, max[0] - w / 2, min[1], max[1] - h, min[2] + d / 2, max[2] - d / 2].forEach((v) => expect(Math.abs(v), `${w} ${d} ${h}`).toBeLessThan(1e-9));
+    }
+  });
+
+  it("holds the volume of its walls and floor: the outline over its height less the inside over its depth", () => {
+    expect(exact(80, 40, 20, 0.95, 1.2)).toBeCloseTo(7943.63, 2);
+    expect(signedVolume(gridfinityTriangles(tray()))).toBeCloseTo(meshed(80, 40, 20, 0.95, 1.2), 6);
+    expect(signedVolume(gridfinityTriangles(tray()))).toBeCloseTo(7940.93, 2);
+    expect(signedVolume(gridfinityTriangles(tray({ gridfinityWallThickness: 2 })))).toBeCloseTo(meshed(80, 40, 20, 2, 1.2), 6);
+    expect(signedVolume(gridfinityTriangles(tray({ gridfinityFloorHeight: 5 })))).toBeCloseTo(meshed(80, 40, 20, 0.95, 5), 6);
+  });
+
+  it("has a flat bottom: one face down at y = 0 over the whole outline", () => {
+    const triangles = gridfinityTriangles(tray());
+    const bottom = triangles.filter((t) => t.every((v) => Math.abs(v[1]) < 1e-9));
+    // Each faces down, and together they cover the outline drawn with the mesh's corners.
+    const down = bottom.map(([a, b, c]) => ((b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2])) / 2);
+    down.forEach((y) => expect(y).toBeLessThan(0));
+    expect(-down.reduce((sum, y) => sum + y, 0)).toBeCloseTo(area(80, 40, 3.75) - polygonOff(3.75), 6);
+    // Halfway up a line across it crosses the outer and the inner wall on each side, and nothing else.
+    const across = crossings(triangles, 10);
+    expect(across).toHaveLength(4);
+    [-40, -39.05, 39.05, 40].forEach((x, i) => expect(across[i]).toBeCloseTo(x, 9));
+  });
+
+  it("keeps its size in mm and only clamps it to 10 to 252 mm across and deep and 3 to 140 mm high", () => {
+    expect(gridfinityFootprintPatch(tray({ width: 80.3, depth: 40.7, height: 20.2 }))).toEqual({ width: 80.3, depth: 40.7, height: 20.2 });
+    expect(gridfinityFootprintPatch(tray({ width: 5, depth: 400, height: 1 }))).toEqual({ width: 10, depth: 252, height: 3 });
+    expect(gridfinityFootprintPatch(tray({ height: 200 }))).toEqual({ width: 80, depth: 40, height: 140 });
+  });
+
+  it("keeps the box when a bin becomes a tray, and reads a tray on the grid when it becomes a bin or a baseplate", () => {
+    expect(gridfinityShapePatch(bin(), { type: "tray" })).toMatchObject({ gridfinityType: "tray", width: 83.5, depth: 41.5, height: 21 + GRIDFINITY_LIP_HEIGHT });
+    // A baseplate keeps no height: turned into a tray it gets the tray's 20 mm.
+    expect(gridfinityShapePatch(plate(), { type: "tray" })).toMatchObject({ gridfinityType: "tray", width: 84, depth: 42, height: 20 });
+    // 100.5 / 42 is 2.39 units, 50.5 / 42 is 1.2, and (30 - 2.2) / 7 is 3.97 height units.
+    const big = tray({ width: 100, depth: 50, height: 30 });
+    expect(gridfinityShapePatch(big, { type: "bin" })).toMatchObject({ gridfinityType: "bin", width: 83.5, depth: 41.5, height: 28 + GRIDFINITY_LIP_HEIGHT });
+    expect(gridfinityShapePatch(big, { type: "baseplate" })).toMatchObject({ gridfinityType: "baseplate", width: 84, depth: 42, height: 5 });
+    expect(gridfinityShapePatch(tray(), { type: "tray" })).toMatchObject({ width: 80, depth: 40, height: 20 });
+  });
+
+  it("takes its floor from 1.2 mm up to the top, where it is a solid block", () => {
+    expect(gridfinityFloorMinHeight(tray())).toBe(1.2);
+    expect(gridfinityFloorMinHeight(bin())).toBeCloseTo(5.95, 9);
+    expect(gridfinityFloorMaxHeight(tray())).toBe(20);
+    expect(gridfinityFloorFits(tray())).toBe(true);
+    expect(gridfinityFloorHeight(tray({ gridfinityFloorHeight: 19.97 }))).toBe(20);
+    expect(gridfinityFloorHeight(tray({ gridfinityFloorHeight: 0.5 }))).toBe(1.2);
+    expect(gridfinityFloorHeight(tray({ gridfinityFloorHeight: 7 }))).toBe(7);
+    // Solid: the outline over the whole height.
+    expect(signedVolume(gridfinityTriangles(tray({ gridfinityFloorHeight: 20 })))).toBeCloseTo((area(80, 40, 3.75) - polygonOff(3.75)) * 20, 6);
+  });
+
+  it("takes the bin's settings for walls, shelves, scoops and compartments, with no grid to count them by", () => {
+    expect(gridfinityWallMaxThickness(tray())).toBe(20);
+    // The shelf's underside ends 0.5 mm above the floor from the top: (20 - 1.2 - 1.2 - 0.5) / tan 36 degrees.
+    expect(gridfinityLabelFits(tray())).toBe(true);
+    expect(gridfinityLabelMaxWidth(tray({ gridfinityLabelBack: true }), "back")).toBeCloseTo((20 - 1.2 - 1.2 - 0.5) / Math.tan((36 * Math.PI) / 180), 9);
+    expect(gridfinityLabelMaxWidth(tray({ gridfinityLabelBack: true }), "back")).toBeCloseTo(23.54, 2);
+    // At 5 mm there is room for (5 - 2.9) / tan 36 = 2.89 mm of shelf, under the 4 mm one.
+    expect(gridfinityLabelFits(tray({ height: 5 }))).toBe(false);
+    // Half the depth from the floor to the top.
+    expect(gridfinityScoopRadius(tray({ gridfinityScoopFront: true }))).toBeCloseTo(9.4, 9);
+    // Dividers stand at least 3 mm above the floor, up to the top.
+    expect(gridfinityDividerFits(tray({ height: 4.2 }))).toBe(true);
+    expect(gridfinityDividerFits(tray({ height: 4.1 }))).toBe(false);
+    expect(gridfinityDividerFits(tray({ height: 5 }))).toBe(true);
+    // Only the 6 mm a compartment and the 40 in all: (78.1 + 1.2) / 7.2 is 11 across, (38.1 + 1.2) / 7.2 is 5 deep.
+    expect(gridfinityCompartmentMax(tray(), "x")).toBe(11);
+    expect(gridfinityCompartmentMax(tray(), "z")).toBe(5);
+    expect(gridfinityCompartmentMax(tray({ gridfinityCompartmentsZ: 5 }), "x")).toBe(8);
+    expect(gridfinityCompartmentCount(tray({ gridfinityCompartmentsX: 30 }), "x")).toBe(11);
+  });
+
+  it("runs its dividers and shelves up to the top, where a bin's stop 0.85 mm under it", () => {
+    expect(gridfinityCompartmentPieces(tray({ gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2 }))!.top).toBe(20);
+    expect(gridfinityLabelPieces(tray({ gridfinityLabelBack: true }))!.top).toBe(20);
+    expect(gridfinityCompartmentPieces(bin({ gridfinityCompartmentsX: 3 }))!.top).toBeCloseTo(21 - 0.85, 9);
+    expect(gridfinityLabelPieces(bin({ gridfinityLabelBack: true }))!.top).toBeCloseTo(21 - 0.85, 9);
+    // The dividers reach the tray's top: a line across at 19.9 mm crosses them and the walls.
+    const triangles = gridfinityLabelledTriangles(runtime, tray({ gridfinityCompartmentsX: 3 }));
+    expect(crossings(triangles, 19.9)).toHaveLength(8);
+    expect(bounds(triangles).max[1]).toBeCloseTo(20, 9);
+  });
+
+  it("takes its partial openings from its own top, as a bin without the lip", () => {
+    const plan = gridfinityPlan(tray({ gridfinityOpenFront: true, gridfinityOpenings: [{ side: "front", width: 30, depth: 8 }] }));
+    expect(plan.notches).toEqual([{ side: "front", from: -15, to: 15, bottom: 12 }]);
+    expect(gridfinityOpeningFits(tray({ gridfinityOpenFront: true }), "front")).toBe(true);
+  });
+
+  it("keeps a tray through a saved project, a new shape, the settings, the exact body and the MCP, and refuses an unknown type", async () => {
+    const asset = toolbarShapeAssets.find((entry) => entry.kind === "gridfinity")!;
+    expect(makeShapeFromAsset(asset, { x: 0, z: 0 }, { gridfinityType: "tray" })).toMatchObject({ gridfinityType: "tray", width: 80, depth: 40, height: 20 });
+    expect(makeShapeFromAsset(asset, { x: 0, z: 0 }, { gridfinityType: "tray", width: 92.5 })).toMatchObject({ gridfinityType: "tray", width: 92.5, depth: 40, height: 20 });
+    const shape = canonicalizeShape(binShape({ gridfinityType: "tray", width: 92.5, depth: 31.2, height: 17.3 }));
+    expect(shape).toMatchObject({ width: 92.5, depth: 31.2, height: 17.3 });
+    expect(canonicalizeShape({ ...shape, width: 500 })).toMatchObject({ width: 252 });
+    const save = (shapes: WorkplaneShape[]) => exportLylProject({ projectId: "tray", projectName: "Tray", createdAt: 1, modifiedAt: 2, shapes, history: [editorHistoryEntry(shapes, [])], historyIndex: 0, assets: [], workspace: DEFAULT_WORKPLANE_WORKSPACE, snapGrid: DEFAULT_SNAP_GRID, placementElevation: 0 });
+    const [loaded] = (await importLylProject(await save([shape]))).shapes;
+    expect(workplaneShapesEqual(loaded, shape)).toBe(true);
+    await expect(importLylProject(await save([{ ...shape, gridfinityType: "trays" } as unknown as WorkplaneShape]))).rejects.toThrow("gridfinityType is invalid");
+    expect(normalizeShapeCustomizations({ gridfinity: { gridfinityType: "tray" } }, {}).gridfinity).toMatchObject({ gridfinityType: "tray" });
+    expect(shapeDefaultsFromShape(shape)).toMatchObject({ gridfinityType: "tray" });
+    expect(mcpShapeSummary(shape).settings).toMatchObject({ gridfinityType: "tray" });
+    expect(cadModifierGridfinityForShape(shape)).toMatchObject({ gridfinityType: "tray", width: 92.5, depth: 31.2, height: 17.3 });
+    // A padded baseplate turned into a tray through the MCP keeps its box across and deep, and its padding for later.
+    const padded = canonicalizeShape(binShape({ gridfinityType: "baseplate", width: 94, depth: 42, height: 5, gridfinityPaddingLeft: 10 }));
+    expect(mcpGridfinityPaddingPatch(padded, { gridfinityType: "tray" }, { gridfinityType: "tray" })).toMatchObject({ width: 94, depth: 42 });
+    expect(canonicalizeShape({ ...padded, gridfinityType: "tray" })).toMatchObject({ width: 94, depth: 42, height: 5, gridfinityPaddingLeft: 10 });
   });
 });

@@ -57,7 +57,7 @@ Dozen, bekers, behuizingen en deksels hebben één ding gemeen: ze zijn vanbinne
 
 1. Selecteer het lichaam en klik op {{ui:editor.tool.hollow}}, of klik met de rechtermuisknop op het lichaam en kies het in het menu.
 2. Stel de {{ui:shell.wall}} in.
-3. Zet onder {{ui:shell.openings}} de zijden aan die open blijven: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} of {{ui:shell.side.right}}, zoveel als je wilt. {{ui:shell.side.front}} alleen maakt een sleuf voor een lade, {{ui:shell.side.left}} en {{ui:shell.side.right}} een tunnel. Staat er geen zijde aan, dan blijft het lichaam rondom dicht, met een holte in het midden. {{ui:shell.side.top}} staat al aan als het paneel opent; een klik erop sluit de bovenkant weer. Een lichaam dat rondom dicht is, ziet er van buiten onveranderd uit: de doorsnedeweergave toont de holte.
+3. Zet onder {{ui:shell.openings}} de zijden aan die open blijven: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} of {{ui:shell.side.right}}, zoveel als je wilt. {{ui:shell.side.front}} alleen maakt een sleuf voor een lade, {{ui:shell.side.left}} en {{ui:shell.side.right}} een tunnel. Staat er geen zijde aan, dan blijft het lichaam rondom dicht, met een holte in het midden. {{ui:shell.side.closed}} zet alle zijden in één klik uit. {{ui:shell.side.top}} staat al aan als het paneel opent; een klik erop sluit de bovenkant weer. Een lichaam dat rondom dicht is, ziet er van buiten onveranderd uit: de doorsnedeweergave toont de holte.
 4. Bepaal of de {{ui:shell.edges}} {{ui:shell.edges.round}} of {{ui:shell.edges.sharp}} moeten zijn.
 5. Klik op {{ui:shell.apply}}.
 
@@ -80,6 +80,18 @@ Een lichaam met een kamer, een blok met een gat dat niet helemaal doorloopt, gem
 Verander je later de maat van een uitgehold lichaam, dan holt layerling het meteen opnieuw uit op de nieuwe maat. De wand blijft zo dik als je hebt gekozen, ook bij ronde lichamen. Een cilinder die je de ene kant verder uittrekt dan de andere wordt een ellips.
 
 > **Tip:** Met een spuitmond van 0,4 mm is 1,2 tot 2 mm wand een goed begin: dun genoeg om materiaal te besparen, dik genoeg voor een stevig onderdeel.
+
+## Lichamen verschuiven
+
+Elk vlak van een lichaam kan over dezelfde afstand naar buiten of naar binnen worden verschoven. Dat is wat een pasvorm, een deksel of een klikverbinding nodig heeft: een spleet van 0,1 tot 0,3 mm rondom terwijl de onderdelen op hun plaats blijven, wat schalen niet kan.
+
+1. Selecteer één lichaam en klik op {{ui:editor.tool.offset}}, of klik met de rechtermuisknop op het lichaam en kies het daar.
+2. Kies {{ui:offset.grow}} of {{ui:offset.shrink}} en stel de {{ui:offset.distance}} in.
+3. De {{ui:offset.edges}} bepalen de buitenhoeken: afgerond houdt het verschoven oppervlak daar rond, scherp laat de vlakken doorlopen tot ze elkaar raken.
+4. Vink {{ui:offset.copy}} aan om het onderdeel te houden en het vergrote lichaam als kopie te krijgen die al een gat is. Groepeer dat gat met het tegenstuk en het snijdt precies de speling die je koos.
+5. Klik op {{ui:offset.apply}}.
+
+Zonder vinkje wordt het lichaam zelf verschoven. Het wordt een vast exact lichaam, zoals na een afschuining: de lijst bovenin het paneel neemt de offset terug en {{ui:edge.editAction}} opent het gereedschap opnieuw met de oude afstand. Alleen exacte CAD-lichamen kunnen worden verschoven - blokken, cilinders en de andere vormen, groepen daarvan, geïmporteerde STEP-onderdelen. Een lichaam dat alleen een driehoeksnet is, zoals veel STL-imports, lukt vaak niet. Een afstand die te groot is voor het lichaam, bijvoorbeeld verkleinen voorbij de dunste wand, wordt geweigerd.
 
 ## Vlakken verwijderen
 

@@ -10,7 +10,7 @@ layerling runs in the browser of a tablet, and as an app from its home screen. A
 | You want to | On a tablet |
 | --- | --- |
 | Select a body | Tap it. |
-| Select several bodies | Hold a finger still for half a second, choose {{ui:contextMenu.selectMultiple}}, then tap one body after another. A tap on a selected body takes it out again. |
+| Select several bodies | Tap a body: a round button appears in the lower left. Tap it, and every further body you tap joins the selection; a tap on a selected body takes it out again. A tap on empty space changes nothing; a second tap on the button ends it and clears the selection. Or hold a finger still for half a second, choose {{ui:contextMenu.selectMultiple}}, then tap one body after another. |
 | Select all bodies | Hold a finger still on empty space for half a second, choose {{ui:contextMenu.selectAll}}. |
 | Open the menu of a right click | Hold a finger still on a body or on empty space for half a second. |
 | Move a body | Drag it. |
@@ -41,10 +41,12 @@ If bodies slip when children or hurried hands touch them, switch on {{ui:workspa
 ## On an iPad or iPhone
 
 - **Install it as an app.** In Safari, tap the Share icon and choose "Add to Home Screen". The app opens in a window of its own without the address bar, and it works without a connection, see [Offline and install](chapter:offline-and-install).
-- **Your designs live in the browser.** There is no account, and nothing is uploaded. Safari has a rule of its own against tracking: it deletes what a website stored after seven days in which you did not visit it in Safari. A web app added to the Home Screen is exempt from that rule, as WebKit documents it. That is one more reason to use the app from the Home Screen, and to back up important work: {{ui:dashboard.backupAll}} on the start page packs all designs into one file.
+- **Your designs live in the browser** (unless you host layerling yourself and set up a server folder). There is no account, and nothing is uploaded. Safari has a rule of its own against tracking: it deletes what a website stored after seven days in which you did not visit it in Safari. A web app added to the Home Screen is exempt from that rule, as WebKit documents it. That is one more reason to use the app from the Home Screen, and to back up important work: {{ui:dashboard.backupAll}} on the start page packs all designs into one file.
 - **Files.** Safari lets a page write into a file only through a download, so {{ui:editor.export}} puts the file into the Downloads of the Files app, and [[Ctrl]]+[[S]] on a keyboard downloads it again; see [Files and saving](chapter:files-and-saving).
-- **No keyboard needed.** Every tool has a button in the ribbon, and a number field opens the on-screen keyboard. A keyboard on the iPad adds the [keyboard shortcuts](chapter:shortcuts).
+- **No keyboard needed.** Every tool has a button in the ribbon, and a number field opens the on-screen keyboard. A keyboard on the iPad adds the [keyboard shortcuts](chapter:shortcuts). A value box beside a body opens its number field with the second tap: the first tap only marks it, so a finger that lands on it by accident does not raise the keyboard.
 
 ## Workshops with children
 
 Fingers and rubber-tip styluses work alike here. Two settings make a class easier: {{ui:workspace.selectBeforeMoving}} so that a touch does not move a body by accident, and {{ui:camera.touchRotate}} so that one finger always turns the view. The question mark button in the Help group of the ribbon switches on the {{ui:interactiveHelp.title}}: a tap on any button, field or handle then explains it, and the same button, or [[Esc]], leaves it.
+
+For a whole class, switch on {{ui:workspace.simpleMode}} in the settings. The ribbon then keeps only the tools a workshop uses (copy, paste, duplicate, delete, undo, group, mirror, chamfer, fillet, hollow, align, export), the shape library a short list, the buttons are larger, and the start page shows the designs and nothing else: no news, no welcome text, no help buttons and no links out of layerling. Switching it on is a tap; switching it off is a press held for two seconds on the button that then takes its place. A link ending in `?mode=simple` switches it on for the device that opens it, `?mode=full` switches it off again. Whoever runs layerling on a server can start everyone in it with `LAYERLING_SIMPLE_MODE=true`, or fix it for everyone with `always`, so that the program has no switch to leave it; see the README.

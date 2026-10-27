@@ -22,6 +22,7 @@ W panelu znajdziesz:
 
 - {{ui:edge.allSharpEdges}} wybiera naraz wszystkie krawędzie, {{ui:edge.clear}} czyści wybór.
 - **{{ui:edge.radius}}** dla zaokrąglenia. Dla fazki ustawiasz {{ui:edge.distance}} albo {{ui:edge.angle}}.
+- {{ui:edge.variableRadius}} (tylko zaokrąglenie) pozwala promieniowi zmieniać się wzdłuż jednej krawędzi: mały na jednym końcu, większy na drugim, równomiernie pomiędzy, jak tam, gdzie prosta ścianka spotyka skośną. Kliknij jedną krawędź, potem ustaw {{ui:edge.radiusStart}} i {{ui:edge.radiusEnd}}. To, który koniec liczy się jako początek, wynika ze sposobu, w jaki krawędź powstała. Jeśli większy promień wyjdzie na złym końcu, {{ui:edge.swapEnds}} go odwraca. Działa na jednej krawędzi naraz, więc kilka krawędzi zaokrąglaj po kolei. {{ui:edge.editAction}} przywraca obie wartości.
 - {{ui:edge.sharpThreshold}} decyduje, które krawędzie w ogóle liczą się jako ostre. Wartość 25° traktuje jako krawędzie tylko wyraźne załamania i pomija łagodne przejścia.
 - {{ui:edge.verticalEdges}} wybiera krawędzie stojące pionowo, takie jak narożniki prostopadłościanu: jedno zaokrąglenie zaokrągla wtedy naraz wszystkie pionowe narożniki.
 - {{ui:edge.topEdges}} wybiera tylko krawędzie wzdłuż samej góry bryły. To szybka droga do foremki do ciastek: zbuduj kontur w szkicu jako obrys, potem sfazuj górne krawędzie. {{ui:edge.angle}} ustawia, jak stroma jest fazka. Nie może sięgać dalej, niż ścianka jest gruba.
@@ -46,7 +47,7 @@ Obrobioną bryłę zawsze można obrobić ponownie. Zaznacz ją znowu i otwórz 
 
 Obok fazki, zaokrąglenia albo wydrążenia jest też {{ui:edge.editAction}}. Cofa obróbkę w ten sam sposób, ale od razu otwiera narzędzie ponownie z tymi samymi krawędziami i starą wartością. Zmieniasz wartość i stosujesz ją znowu: zaokrąglenie 3 mm staje się zaokrągleniem 5 mm bez ponownego klikania krawędzi. Jeśli leżą na niej nowsze obróbki, także tu znikają razem z nią. Dotyczy to obróbek krawędzi wykonanych od teraz. Starsze oferują tylko cofnięcie, podobnie jak pojedyncze części grupy.
 
-Na grupie, na przykład walcu z otworem, obrobiona krawędź należy do gotowej bryły, a nie do jednej z jej części. Grupa staje się więc jedną bryłą, a {{ui:editor.tool.ungroup}} nie jest już dostępne. Cofnij obróbkę, jak opisano wyżej, a grupa wróci ze wszystkimi częściami. Najprościej obrabiać krawędzie na końcu. Dotyczy to też gwintów: narzędzie krawędzi bierze gwint jako jego dokładną bryłę, więc klocek z otworem gwintowanym dostaje zaokrąglone krawędzie z gwintem na miejscu. Wyliczenie krawędzi gwintu trwa dłużej niż zwykłego kształtu, kilka sekund dla M6 i około pół minuty dla gwintu rurowego G1/2.
+Na grupie, na przykład walcu z otworem, obrobiona krawędź należy do gotowej bryły, a nie do jednej z jej części. Grupa staje się więc jedną bryłą. {{ui:editor.tool.ungroup}} nadal na niej działa: najpierw cofa obróbki krawędzi, a potem rozwiązuje grupę, w jednym kroku, który cofa [[Ctrl]]+[[Z]]. Cofnij obróbkę, jak opisano wyżej, a grupa wróci ze wszystkimi częściami. Najprościej obrabiać krawędzie na końcu. Dotyczy to też gwintów: narzędzie krawędzi bierze gwint jako jego dokładną bryłę, więc klocek z otworem gwintowanym dostaje zaokrąglone krawędzie z gwintem na miejscu. Wyliczenie krawędzi gwintu trwa dłużej niż zwykłego kształtu, kilka sekund dla M6 i około pół minuty dla gwintu rurowego G1/2.
 
 > **Warto wiedzieć:** layerling używa do zaokrągleń i fazek prawdziwej geometrii CAD, a nie tylko siatki trójkątów. Dlatego zaokrąglona krawędź pozostaje zaokrągloną krawędzią w eksporcie STEP.
 
@@ -58,7 +59,7 @@ Pudełka, kubki, obudowy i pokrywy mają jedną cechę wspólną: w środku są 
 
 1. Zaznacz bryłę i kliknij {{ui:editor.tool.hollow}} albo kliknij bryłę prawym przyciskiem i wybierz polecenie z menu.
 2. Ustaw {{ui:shell.wall}}.
-3. W {{ui:shell.openings}} włącz strony, które zostają otwarte: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} albo {{ui:shell.side.right}}, ile tylko chcesz. Sam {{ui:shell.side.front}} daje wnękę na szufladę, a {{ui:shell.side.left}} i {{ui:shell.side.right}} tunel. Gdy żadna strona nie jest włączona, bryła zostaje zamknięta ze wszystkich stron, z wnęką w środku. {{ui:shell.side.top}} jest już włączone po otwarciu panelu; kliknięcie go znów zamyka górę. Bryła zamknięta ze wszystkich stron wygląda z zewnątrz bez zmian: wnękę pokazuje widok przekroju.
+3. W {{ui:shell.openings}} włącz strony, które zostają otwarte: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} albo {{ui:shell.side.right}}, ile tylko chcesz. Sam {{ui:shell.side.front}} daje wnękę na szufladę, a {{ui:shell.side.left}} i {{ui:shell.side.right}} tunel. Gdy żadna strona nie jest włączona, bryła zostaje zamknięta ze wszystkich stron, z wnęką w środku. {{ui:shell.side.closed}} wyłącza wszystkie strony jednym kliknięciem. {{ui:shell.side.top}} jest już włączone po otwarciu panelu; kliknięcie go znów zamyka górę. Bryła zamknięta ze wszystkich stron wygląda z zewnątrz bez zmian: wnękę pokazuje widok przekroju.
 4. Zdecyduj, czy {{ui:shell.edges}} mają być {{ui:shell.edges.round}}, czy {{ui:shell.edges.sharp}}.
 5. Kliknij {{ui:shell.apply}}.
 
@@ -81,6 +82,18 @@ Bryłę z kieszenią (klocek z otworem, który nie przechodzi na wylot, zrobiony
 Jeśli później zmienisz rozmiar wydrążonej bryły, layerling od razu wydrąży ją ponownie w nowym rozmiarze. Ścianka zostaje tak gruba, jak wybrałeś, także w bryłach okrągłych. Walec rozciągnięty w jedną stronę bardziej niż w drugą staje się elipsą.
 
 > **Wskazówka:** przy dyszy 0,4 mm dobrym początkiem jest ścianka od 1,2 do 2 mm: wystarczająco cienka, żeby oszczędzić materiał, i wystarczająco gruba na solidną część.
+
+## Odsuwanie brył
+
+Każdą ścianę bryły można przesunąć o tę samą odległość na zewnątrz lub do środka. Tego potrzebuje pasowanie, pokrywka lub połączenie zatrzaskowe: luz 0,1-0,3 mm dookoła, podczas gdy detale zostają na miejscu, czego skalowanie nie daje.
+
+1. Zaznacz jedną bryłę i kliknij {{ui:editor.tool.offset}} albo kliknij bryłę prawym przyciskiem i wybierz to tam.
+2. Wybierz {{ui:offset.grow}} lub {{ui:offset.shrink}} i ustaw {{ui:offset.distance}}.
+3. {{ui:offset.edges}} decydują o zewnętrznych narożach: zaokrąglone utrzymuje odsuniętą powierzchnię okrągłą, ostre pozwala ścianom biec dalej, aż się spotkają.
+4. Zaznacz {{ui:offset.copy}}, aby zachować część bez zmian, a powiększoną bryłę dostać jako kopię, która już jest otworem. Zgrupuj ten otwór z częścią współpracującą, a wytnie dokładnie wybrany luz.
+5. Kliknij {{ui:offset.apply}}.
+
+Bez zaznaczenia odsunięta zostaje sama bryła. Staje się stałą, dokładną bryłą, jak po fazie: lista u góry panelu cofa odsunięcie, a {{ui:edge.editAction}} otwiera narzędzie ponownie ze starą odległością. Odsunąć można tylko dokładne bryły CAD - prostopadłościany, walce i inne kształty, ich grupy, importowane części STEP. Bryła będąca tylko siatką trójkątów, jak wiele importów STL, często nie daje się odsunąć. Odległość zbyt duża dla bryły, na przykład zmniejszenie poza najcieńszą ścianę, zostaje odrzucona.
 
 ## Usuwanie ścian
 

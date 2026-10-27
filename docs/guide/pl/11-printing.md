@@ -25,6 +25,8 @@ Bryła, która wystaje poza krawędź stołu, zostaje oznaczona. Komunikat mówi
 
 Ostrzeżenie nie przeszkadza w dalszej pracy. To podpowiedź, żebyś nie dowiedział się dopiero w slicerze, że część jest za duża. Za dużą część często da się podzielić: przetnij ją na dwie przez {{ui:editor.tool.split}} i wydrukuj obie połowy osobno.
 
+Jeśli celowo odkładasz części obok płyty, kliknij mały krzyżyk w komunikacie. Ostrzeżenie zniknie wtedy dla dokładnie tych brył. Gdy któraś z nich znów się zmieści, a potem ją wysuniesz, albo gdy wystanie inna bryła, komunikat wróci. Ukryte bryły nigdy się nie liczą, więc ukrycie odłożonych części też działa.
+
 ## Właściwe ułożenie części
 
 To, jak część leży na stole, decyduje o jej wytrzymałości i wyglądzie. Pomagają dwa narzędzia z sekcji {{ui:editor.group.arrange}}:

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 import type { MoveDimensionAxis, MoveDimensionOverlayData } from "@/lib/moveDimensionLines";
 import { selectWholeValue } from "@/lib/numberField";
 import { t } from "@/lib/i18n";
+import { useTouchSecondTap } from "@/lib/touchSecondTap";
 
 export function MoveDimensionOverlay({
   overlay,
@@ -23,6 +24,8 @@ export function MoveDimensionOverlay({
       setEditing(null);
     }
   }, [active]);
+
+  const { armed, accept } = useTouchSecondTap();
 
   const stopPointerPropagation = (event: PointerEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -62,7 +65,7 @@ export function MoveDimensionOverlay({
               aria-label={t("aria.axisMovement", { axis: line.axis === "z" ? "Y" : "X" })}
               value={editing.value}
               autoFocus
-              inputMode="decimal"
+              inputMode="text"
               spellCheck={false}
               style={styleForLine(line)}
               onFocus={(event) => selectWholeValue(event.currentTarget)}
@@ -98,11 +101,11 @@ export function MoveDimensionOverlay({
         ) : (
           <button
             key={line.axis}
-            className="dimension-label move-dimension-value"
+            className={armed === line.axis ? "dimension-label move-dimension-value armed" : "dimension-label move-dimension-value"}
             type="button"
             aria-label={t("aria.axisMovement", { axis: line.axis === "z" ? "Y" : "X" })}
             style={styleForLine(line)}
-            onClick={() => setEditing({ axis: line.axis, value: line.label })}
+            onClick={() => { if (accept(line.axis)) setEditing({ axis: line.axis, value: line.label }); }}
             onPointerDown={stopPointerPropagation}
             onContextMenu={(event) => {
               event.preventDefault();

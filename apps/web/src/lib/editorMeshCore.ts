@@ -22,7 +22,7 @@ import { createHoneycombGeometry } from "@/lib/honeycombGeometry";
 import { createRoundedBoxGeometry } from "@/lib/roundedBoxGeometry";
 import { createBentTubeGeometry } from "@/lib/bentTubeGeometry";
 import { createPrismGeometry } from "@/lib/prismGeometry";
-import { createBooleanHalfSphereGeometry, createBooleanHollowCylinderGeometry, createBooleanRoundRoofGeometry } from "@/lib/roundBodyGeometry";
+import { createBooleanHalfSphereGeometry, createBooleanHollowCylinderGeometry, createBooleanRoundRoofGeometry, createParaboloidGeometry } from "@/lib/roundBodyGeometry";
 import { createPyramidGeometry } from "@/lib/pyramidGeometry";
 import { roundSideCount } from "@/lib/roundSideCount";
 import { createThreadGeometry } from "@/lib/threadGeometry";
@@ -44,14 +44,15 @@ export type ShapeUpdatePatch = Partial<WorkplaneShape> & { bakeTransform?: boole
 
 export type ManifoldSolid = ReturnType<ManifoldToplevel["Manifold"]["cube"]>;
 
-export const CUTTER_PADDING = 0.05;
+/** What a hole sticks out at its top and bottom: 0.05 took a floor up to that thin away with it (#691). */
+export const CUTTER_PADDING = 0.001;
 
 /** What a hole is wider than typed, on each side: the size stays, an exact touch with a wall does not. */
 export const CUTTER_LATERAL_PADDING = 0.001;
 
 export const POINT_TOLERANCE = 0.0001;
 
-export const CUTTER_RESIDUAL_INSET = CUTTER_PADDING * 0.4;
+export const CUTTER_RESIDUAL_INSET = 0.02;
 
 export const MIN_SHAPE_DIMENSION = 0.01;
 
@@ -76,8 +77,15 @@ export function cleanModelDimension(value: number) {
   return Math.max(MIN_SHAPE_DIMENSION, Number(value.toFixed(MODEL_DIMENSION_PRECISION)));
 }
 
+// A worker has no page address to find manifold.js next to, so the page hands it over (lib/geometryWorker.ts).
+let manifoldAssetBaseOverride: string | null = null;
+
+export function setManifoldAssetBase(base: string) {
+  manifoldAssetBaseOverride = base;
+}
+
 export function getManifoldRuntime() {
-  const assetBase = typeof window === "undefined" ? "/" : new URL(".", window.location.href).href;
+  const assetBase = manifoldAssetBaseOverride ?? (typeof window === "undefined" ? "/" : new URL(".", window.location.href).href);
   const manifoldScriptUrl = new URL("manifold.js", assetBase).href;
   const runtimeModule = import(/* webpackIgnore: true */ manifoldScriptUrl).then((module) => (module as { default: typeof manifoldModule }).default);
   // Drop a rejected attempt so a transient failure (e.g. a network blip
@@ -408,6 +416,9 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
     case "halfSphere":
       geometry = createBooleanHalfSphereGeometry(width, height, depth, shape.steps ?? 32);
       break;
+    case "paraboloid":
+      geometry = createParaboloidGeometry(width, height, depth, shape.steps ?? 32);
+      break;
     case "torus":
       geometry = createBooleanTorusGeometry(width, height, depth, shape);
       break;
@@ -472,10 +483,14 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         depth,
         height,
         hingeKnuckles: shape.hingeKnuckles,
+        hingeKnuckleWidth: shape.hingeKnuckleWidth,
+        hingeConeSize: shape.hingeConeSize,
+        hingeStyle: shape.hingeStyle,
         hingePinDiameter: shape.hingePinDiameter,
         hingeLeafThickness: shape.hingeLeafThickness,
         hingeClearance: shape.hingeClearance,
         hingePinless: shape.hingePinless,
+        hingeAngle: shape.hingeAngle,
         sides: shape.sides,
       });
       break;
@@ -512,12 +527,26 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         gridfinityScoopRight: shape.gridfinityScoopRight,
         gridfinityScoopRadius: shape.gridfinityScoopRadius,
         gridfinityFloorHeight: shape.gridfinityFloorHeight,
+        gridfinityOpenBack: shape.gridfinityOpenBack,
+        gridfinityOpenFront: shape.gridfinityOpenFront,
+        gridfinityOpenLeft: shape.gridfinityOpenLeft,
+        gridfinityOpenRight: shape.gridfinityOpenRight,
+        gridfinityLipChamfer: shape.gridfinityLipChamfer,
+        gridfinityWallThickness: shape.gridfinityWallThickness,
+        gridfinityPaddingBack: shape.gridfinityPaddingBack,
+        gridfinityPaddingFront: shape.gridfinityPaddingFront,
+        gridfinityPaddingLeft: shape.gridfinityPaddingLeft,
+        gridfinityPaddingRight: shape.gridfinityPaddingRight,
+        gridfinityCornerRadius: shape.gridfinityCornerRadius,
         gridfinityCompartmentsX: shape.gridfinityCompartmentsX,
         gridfinityCompartmentsZ: shape.gridfinityCompartmentsZ,
         gridfinityDividerThickness: shape.gridfinityDividerThickness,
         gridfinityDividerPositionsX: shape.gridfinityDividerPositionsX,
         gridfinityDividerPositionsZ: shape.gridfinityDividerPositionsZ,
         gridfinityCompartmentLabels: shape.gridfinityCompartmentLabels,
+        gridfinityOpenings: shape.gridfinityOpenings,
+        gridfinityOpeningCorner: shape.gridfinityOpeningCorner,
+        gridfinityOpeningCornerSize: shape.gridfinityOpeningCornerSize,
       });
       break;
     case "loft":
@@ -755,10 +784,22 @@ export function boundsForCuboids(bounds: Cuboid[]): Cuboid {
   };
 }
 
+/**
+ * The box around the real vertices of every shape, also of a wrapped body, which meshAabb measures by its
+ * cylinder. A group is shown stretched to its size over the vertices it holds, so it has to be sized by them (#667).
+ */
+export function boundsForShapesOfVertices(shapes: WorkplaneShape[]): Cuboid {
+  return boundsForCuboids(shapes.map((shape) => aabbOfShape(shape, true)));
+}
+
 export function meshAabb(shape: WorkplaneShape): Cuboid {
+  return aabbOfShape(shape, false);
+}
+
+function aabbOfShape(shape: WorkplaneShape, ofVertices: boolean): Cuboid {
   // A wrapped body covers only an arc; its box around the cylinder's axis is what
   // makes "centre on the cylinder" put it on that cylinder's wall (#106).
-  if (shape.cylinderWrap && shape.importedMesh) return shapeAabb(shape);
+  if (shape.cylinderWrap && shape.importedMesh && !ofVertices) return shapeAabb(shape);
   const mesh = meshForShape(shape);
   if (mesh.vertices.length === 0) {
     return shapeAabb(shape);

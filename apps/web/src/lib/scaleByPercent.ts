@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { quaternionForShape } from "@/lib/geometryRotation";
+import { starSettingsForSize } from "@/lib/starGeometry";
 import { cleanNearZero, resizedShapeSize, shapeDepth, shapeHasTaper, shapeTaperDimensions, shapeWidth } from "@/lib/workplaneShapes";
 import type { WorkplaneShape } from "@/types/layerling";
 
@@ -25,6 +26,9 @@ export function scaledHorizontalShapePatch(shape: WorkplaneShape, scaleX: number
   };
   if (shape.kind === "cone") {
     patch.baseRadius = width / 2;
+  }
+  if (shape.kind === "star") {
+    Object.assign(patch, starSettingsForSize({ ...shape, width: shapeWidth(shape), depth: shapeDepth(shape) }, width, depth));
   }
   if (shapeHasTaper(shape)) {
     const taper = shapeTaperDimensions(shape);
@@ -53,6 +57,11 @@ export function worldBoxOfShapes(shapes: readonly WorkplaneShape[]) {
   const box = new THREE.Box3();
   shapes.forEach((shape) => worldCorners(shape).forEach((corner) => box.expandByPoint(corner)));
   return box;
+}
+
+/** 100 % changes nothing, so the window does not apply it; 100.4 % is a change (#817). */
+export function isUnchangedPercent(percent: number) {
+  return Math.abs(percent - 100) < 1e-9;
 }
 
 export type ScaleByPercentResult =

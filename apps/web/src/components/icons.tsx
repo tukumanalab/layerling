@@ -1,3 +1,4 @@
+import { Blend } from "lucide-react";
 import type { CSSProperties, SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -83,12 +84,29 @@ export function ToolbarCaretDownIcon(props: IconProps) {
 
 export function ToolbarIntersectionIcon(props: IconProps) {
   return (
-    <svg viewBox="0 0 48 48" aria-hidden="true" {...props}>
+    <svg viewBox="0 0 48 48" aria-hidden="true" className="toolbar-vector-art-icon" {...props}>
       <circle cx="19" cy="24" r="13" fill="none" stroke="currentColor" strokeWidth="2.4" />
       <circle cx="29" cy="24" r="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeDasharray="4 3" />
       <path d="M24 11.99A13 13 0 0 1 24 36.01A13 13 0 0 1 24 11.99Z" fill="currentColor" opacity="0.82" />
     </svg>
   );
+}
+
+// Hull (#863): two parts of different sizes, wrapped in one outline that touches both.
+export function ToolbarHullIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true" className="toolbar-vector-art-icon" {...props}>
+      <path d="M13.4 19.2L29.4 11.1A12 12 0 1 1 29.4 34.9L13.4 30.8A6 6 0 0 1 13.4 19.2Z" fill="currentColor" opacity="0.22" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+      <circle cx="14" cy="25" r="6" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="3 2.5" />
+      <circle cx="32" cy="23" r="12" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="3 2.5" />
+    </svg>
+  );
+}
+
+// The class gives it the same disabled dimming as the rest of the ribbon; the
+// bare theme colour alone left it looking live on the dark grounds.
+export function ToolbarIntersectPreviewIcon({ className, ...props }: IconProps) {
+  return <Blend className={["toolbar-vector-art-icon", className].filter(Boolean).join(" ")} {...props} />;
 }
 
 export function ToolbarAlignIcon(props: IconProps) {
@@ -101,6 +119,7 @@ export {
   SketchEllipseIcon,
   SketchHalfCircleIcon,
   SketchPieSliceIcon,
+  ToolbarAttachmentsIcon,
   ToolbarCenterOnWorkplaneIcon,
   ToolbarChamferIcon,
   ToolbarCopyIcon,
@@ -110,6 +129,8 @@ export {
   ToolbarFilletIcon,
   ToolbarHistoryIcon,
   ToolbarHollowIcon,
+  ToolbarOffsetIcon,
+  ToolbarCutOutIcon,
   ToolbarDeleteFaceIcon,
   ToolbarSimplifyIcon,
   ToolbarBundleIcon,

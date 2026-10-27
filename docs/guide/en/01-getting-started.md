@@ -13,7 +13,7 @@ Open [layerling.com](https://layerling.com/). On the start page click {{ui:dashb
 
 If you already have a file to continue with, use {{ui:dashboard.importGeometry}}. That works for layerling designs (`.lyl`) as well as STL, OBJ, 3MF, STEP or SVG files.
 
-All your designs later appear on the start page with a preview picture. They are kept in your browser's storage and saved automatically after every change, so there is no save button. **layerling takes no responsibility for designs kept in the browser.** A browser can fail, or a browser update can cause problems, so back up your designs from time to time with {{ui:dashboard.backupAll}} on the start page, or save them as files. A backup comes back with {{ui:dashboard.restoreBackup}}. How to pack designs into a file and pass them on is covered in [Files and saving](chapter:files-and-saving).
+All your designs later appear on the start page with a preview picture. They are kept in your browser's storage and saved automatically after every change, so there is no save button. **layerling takes no responsibility for designs kept in the browser.** A browser can fail, or a browser update can cause problems, so back up your designs from time to time with {{ui:dashboard.backupAll}} on the start page, or save them as files. A backup comes back with {{ui:dashboard.restoreBackup}}. How to pack designs into a file and pass them on is covered in [Files and saving](chapter:files-and-saving). If you would like a reminder, switch on {{ui:workspace.confirmTabClose}} in the settings (the cogwheel in the ribbon): the browser then asks before a tab with an open design is closed or reloaded.
 
 ## The editor at a glance
 
@@ -31,7 +31,7 @@ Hover over a button to see its name. If you are not sure what a button does, cli
 
 ### Paste
 
-{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) adds what you copied with {{ui:editor.tool.copy}} to the design. {{ui:common.duplicate}} copies and pastes in one step.
+{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) adds what you copied with {{ui:editor.tool.copy}} to the design. {{ui:common.duplicate}} copies and pastes in one step. A paste puts each part a little beside where it was. Parts that come from another program can land far from the plate, and for those there is {{ui:workspace.pasteCentered}} in the settings, under {{ui:workspace.appearance}}: a paste then sets the parts together in the middle of the workplane and drops them onto it.
 
 ### Delete
 
@@ -111,4 +111,4 @@ On a copy of layerling on your own computer or server, the notice "Update availa
 
 When your part is done, click {{ui:editor.export}}, choose STL or 3MF and download the file. Open it in your slicer, for example Bambu Studio, PrusaSlicer, OrcaSlicer or Cura. If you choose your printer in the settings, you can see while building whether the part fits on the print bed. More in [Printing](chapter:printing).
 
-> **Tip:** If you come from Tinkercad you will find your way quickly: plate, shapes, solid and hole, group, align and mirror work almost the same. What is new is mostly chamfer and fillet, hollowing, threads and sketches.
+> **Tip:** If you come from Tinkercad you will find your way quickly: plate, shapes, solid and hole, group, align and mirror work almost the same. What is new is mostly chamfer and fillet, hollowing, threads and sketches. Your own Tinkercad designs can come along too, see [Files, saving and sharing](chapter:files-and-saving).

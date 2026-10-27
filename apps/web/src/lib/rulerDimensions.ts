@@ -5,7 +5,11 @@ import { quaternionForShape } from "@/lib/geometryRotation";
 export type RulerPose = {
   x: number;
   z: number;
+  /** Height of the ruler's middle; only matters once the ruler is tipped out of the plate (#799). */
+  y?: number;
   rotation: number;
+  rotationX?: number;
+  rotationZ?: number;
   /** Laenge - das ist am Lineal-Koerper das Feld `width`. */
   length: number;
   /** Kreuzbreite quer zur Laenge - am Lineal-Koerper das Feld `depth`. */
@@ -16,6 +20,8 @@ export type RulerPose = {
 export type RulerCandidatePose = {
   x: number;
   z: number;
+  /** Height of the body's middle; only matters for a tipped ruler. */
+  y?: number;
   rotation: number;
   rotationX?: number;
   rotationZ?: number;
@@ -33,6 +39,8 @@ export type RulerDimensionMatch = {
   acrossOffset: number;
   /** Die volle Ausdehnung des Koerpers entlang der Lineal-Achse (mm). */
   extentAlong: number;
+  /** Its full extent across the ruler, in the ruler's face (mm). */
+  extentAcross: number;
   /**
    * Welches eigene Feld des Koerpers dieser Ausdehnung entspricht - nur gesetzt,
    * wenn eine seiner drei Achsen (innerhalb der Toleranz) parallel zur
@@ -46,10 +54,12 @@ const ALIGNMENT_TOLERANCE_DEGREES = 2;
 const ALIGNMENT_COS_TOLERANCE = Math.cos(THREE.MathUtils.degToRad(ALIGNMENT_TOLERANCE_DEGREES));
 
 /**
- * Ob und wie ein Koerper das Band eines Lineals kreuzt. Reine Projektions-
- * rechnung auf der Arbeitsebene (Hoehe/y spielt keine Rolle, ein Lineal liest
- * nur die Grundflaeche) - unabhaengig von Koerperart, damit sie fuer ein
- * Gewinde oder eine Gruppe genauso gilt wie fuer einen Quader.
+ * Ob und wie ein Koerper das Band eines Lineals kreuzt. Gemessen wird entlang
+ * der Achse des Lineals, wie es im Raum steht: flach auf der Platte die
+ * Grundflaeche (die Hoehe spielt keine Rolle), aufgestellt die Hoehe (#799).
+ * Quer zur Flaeche des Lineals zaehlt der Abstand nicht, so wie ein flaches
+ * Lineal auch einen Koerper ueber sich misst. Unabhaengig von der Koerperart,
+ * damit es fuer ein Gewinde oder eine Gruppe genauso gilt wie fuer einen Quader.
  */
 export function rulerDimensionMatch(ruler: RulerPose, candidate: RulerCandidatePose): RulerDimensionMatch | null {
   const rulerQuaternion = quaternionForShape(ruler);
@@ -66,7 +76,7 @@ export function rulerDimensionMatch(ruler: RulerPose, candidate: RulerCandidateP
   const extentAlongHalf = candidateAxes.reduce((sum, axis) => sum + Math.abs(axis.direction.dot(axisAlong)) * axis.half, 0);
   const extentAcrossHalf = candidateAxes.reduce((sum, axis) => sum + Math.abs(axis.direction.dot(axisAcross)) * axis.half, 0);
 
-  const relative = new THREE.Vector3(candidate.x - ruler.x, 0, candidate.z - ruler.z);
+  const relative = new THREE.Vector3(candidate.x - ruler.x, (candidate.y ?? 0) - (ruler.y ?? 0), candidate.z - ruler.z);
   const acrossOffset = relative.dot(axisAcross);
   if (Math.abs(acrossOffset) > ruler.crossWidth / 2 + extentAcrossHalf) {
     return null;
@@ -78,14 +88,24 @@ export function rulerDimensionMatch(ruler: RulerPose, candidate: RulerCandidateP
     alongOffset: relative.dot(axisAlong),
     acrossOffset,
     extentAlong: extentAlongHalf * 2,
+    extentAcross: extentAcrossHalf * 2,
     alignedField: aligned?.field ?? null,
   };
 }
 
-/** Weltkoordinaten (x, z) eines Punkts, der auf der Lineal-Achse im Abstand `alongOffset` von dessen Mitte liegt. */
-export function pointAlongRuler(ruler: RulerPose, alongOffset: number): { x: number; z: number } {
+/** Weltkoordinaten eines Punkts, der auf der Lineal-Achse im Abstand `alongOffset` von dessen Mitte liegt. */
+export function pointAlongRuler(ruler: RulerPose, alongOffset: number): { x: number; y: number; z: number } {
   const axisAlong = new THREE.Vector3(1, 0, 0).applyQuaternion(quaternionForShape(ruler));
-  return { x: ruler.x + axisAlong.x * alongOffset, z: ruler.z + axisAlong.z * alongOffset };
+  return { x: ruler.x + axisAlong.x * alongOffset, y: (ruler.y ?? 0) + axisAlong.y * alongOffset, z: ruler.z + axisAlong.z * alongOffset };
+}
+
+/**
+ * Whether the ruler lies flat, its face up or down. Only then do its numbers sit over the plate and does its
+ * handle place a copy on it; a tipped ruler still measures along its own direction (#799).
+ */
+export function rulerLiesFlat(ruler: Pick<RulerPose, "rotation" | "rotationX" | "rotationZ">): boolean {
+  const normal = new THREE.Vector3(0, 1, 0).applyQuaternion(quaternionForShape(ruler));
+  return Math.abs(normal.y) >= 1 - 1e-6;
 }
 
 /** Lage und Armlaengen des Winkellineals, so wie es auf der Arbeitsebene steht. */
@@ -157,8 +177,34 @@ export function cornerRulerDimensionMatchesFromCorner(
 ): { armX: RulerDimensionMatch | null; armZ: RulerDimensionMatch | null } {
   const armX = rulerDimensionMatch({ x: corner.x, z: corner.z, rotation, length: armLengthX, crossWidth: armWidth }, candidate);
   const armZ = rulerDimensionMatch({ x: corner.x, z: corner.z, rotation: rotation + 90, length: armLengthZ, crossWidth: armWidth }, candidate);
-  return { armX, armZ };
+  // Only a body at an arm counts: beside it within its length and on the side the other arm points to, or across it.
+  // One that only touches the corner from outside the square, or lies behind it on an arm's extension, kept its
+  // numbers on screen as if it stood at the arm (#831).
+  // The arms as they are drawn: the first along the rotation's x, the second along its z (frame.zAxis). The second
+  // arm's match is taken a quarter turn on, so its own "along" runs against the drawn arm.
+  const quaternion = quaternionForShape({ rotation });
+  const armXDirection = new THREE.Vector3(1, 0, 0).applyQuaternion(quaternion);
+  const armZDirection = new THREE.Vector3(0, 0, 1).applyQuaternion(quaternion);
+  const zQuaternion = quaternionForShape({ rotation: rotation + 90 });
+  const zMatchAlong = new THREE.Vector3(1, 0, 0).applyQuaternion(zQuaternion);
+  const zMatchAcross = new THREE.Vector3(0, 0, 1).applyQuaternion(zQuaternion);
+  const atArm = (match: RulerDimensionMatch | null, length: number, alongSign: number, inward: number) => {
+    if (!match) return null;
+    const along = alongSign * match.alongOffset;
+    const overlapsArm = along + match.extentAlong / 2 > CORNER_RULER_SIDE_TOLERANCE
+      && along - match.extentAlong / 2 < length - CORNER_RULER_SIDE_TOLERANCE;
+    const reachesInside = inward * match.acrossOffset + match.extentAcross / 2 > CORNER_RULER_SIDE_TOLERANCE;
+    return overlapsArm && reachesInside ? match : null;
+  };
+  return {
+    // The first arm's across is the second arm's direction: inside is its positive side.
+    armX: atArm(armX, armLengthX, 1, 1),
+    armZ: atArm(armZ, armLengthZ, Math.sign(zMatchAlong.dot(armZDirection)) || 1, Math.sign(zMatchAcross.dot(armXDirection)) || 1),
+  };
 }
+
+/** How far a body must reach past an arm's line or end (mm) to count as standing at it, not just touching it from outside. */
+const CORNER_RULER_SIDE_TOLERANCE = 0.01;
 
 /**
  * Teilstriche fuer einen Arm des Winkellineal-Werkzeugs, einer je Millimeter -
@@ -402,4 +448,55 @@ export function rulerTicks(length: number, inches = false): RulerTick[] {
     ticks.push({ offset: value, height: ten ? 0.62 : value % 5 === 0 ? 0.42 : 0.26, ...(ten ? { label: String(value) } : {}) });
   }
   return ticks;
+}
+
+/** The size of a green number field with its switch, in screen pixels (a little over the real one, so a gap is left). */
+export const CORNER_RULER_FIELD_SIZE = { width: 74, height: 30 } as const;
+
+type ScreenPoint = { x: number; y: number };
+type ScreenBox = { x: number; y: number; halfWidth: number; halfHeight: number };
+
+function boxesOverlap(a: ScreenBox, b: ScreenBox) {
+  return Math.abs(a.x - b.x) < a.halfWidth + b.halfWidth && Math.abs(a.y - b.y) < a.halfHeight + b.halfHeight;
+}
+
+/**
+ * Moves the centres of the green number fields apart where they would cover each other or the ruler's
+ * own buttons (#777): a body next to the ruler's corner has next to no distance, so all numbers sit
+ * where the arms meet. A field that is clear stays where it is; one that is not takes the nearest
+ * free place around its own spot, to the side, above or below. The order is kept, so the first
+ * numbers stay and the later ones step aside.
+ */
+export function spreadCornerRulerFields(
+  fields: ScreenPoint[],
+  obstacles: ScreenBox[] = [],
+  size: { width: number; height: number } = CORNER_RULER_FIELD_SIZE,
+): ScreenPoint[] {
+  const halfWidth = size.width / 2;
+  const halfHeight = size.height / 2;
+  const placed: ScreenBox[] = [];
+  return fields.map((field) => {
+    const free = (x: number, y: number) => {
+      const box = { x, y, halfWidth, halfHeight };
+      return !placed.some((other) => boxesOverlap(box, other)) && !obstacles.some((other) => boxesOverlap(box, other));
+    };
+    let best: ScreenPoint = field;
+    if (!free(field.x, field.y)) {
+      let bestDistance = Infinity;
+      for (let ring = 1; ring <= 4; ring += 1) {
+        for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+          const x = field.x + dx * ring * size.width;
+          const y = field.y + dy * ring * size.height;
+          const distance = Math.hypot(x - field.x, y - field.y);
+          if (distance < bestDistance && free(x, y)) {
+            best = { x, y };
+            bestDistance = distance;
+          }
+        }
+        if (bestDistance < Infinity) break;
+      }
+    }
+    placed.push({ x: best.x, y: best.y, halfWidth, halfHeight });
+    return best;
+  });
 }

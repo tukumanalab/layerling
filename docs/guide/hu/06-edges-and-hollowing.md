@@ -22,6 +22,7 @@ A panelen ezeket találod:
 
 - A {{ui:edge.allSharpEdges}} egyszerre minden élt kijelöl, a {{ui:edge.clear}} kiüríti a kijelölést.
 - **{{ui:edge.radius}}** a lekerekítéshez. Az élletöréshez a {{ui:edge.distance}} vagy a {{ui:edge.angle}} értéket állítod be.
+- A {{ui:edge.variableRadius}} (csak lekerekítésnél) egy él mentén változtatja a sugarat: az egyik végén kicsi, a másikon nagyobb, közte egyenletes, például ahol egy függőleges fal egy ferdével találkozik. Kattints egyetlen élre, majd állítsd be a {{ui:edge.radiusStart}} és a {{ui:edge.radiusEnd}} értékét. Hogy melyik vég az eleje, az él keletkezéséből adódik; ha a nagyobb sugár a rossz végre kerül, a {{ui:edge.swapEnds}} megfordítja. Egyszerre egy élen működik, több élt egymás után kerekíts le. A {{ui:edge.editAction}} mindkét értéket visszahozza.
 - Az {{ui:edge.sharpThreshold}} dönti el, mely élek számítanak egyáltalán élesnek. 25°-os értéknél csak a határozott töréseket veszi élnek, a lapos átmeneteket békén hagyja.
 - A {{ui:edge.topEdges}} csak a test legtetején futó éleket választja ki. Ez a gyors út egy sütikiszúróhoz: építsd meg a körvonalat egy vázlatban vonalként, majd törd le a felső éleket. A {{ui:edge.angle}} adja meg, milyen meredek a letörés; nem érhet tovább, mint amilyen vastag a fal.
 - Az {{ui:edge.bottomEdges}} csak a test legalján futó éleket választja ki, a {{ui:edge.topEdges}} párja. Így gyorsan lekerekítheted vagy letörheted csak egy alkatrész talpát.
@@ -57,7 +58,7 @@ A dobozokban, poharakban, házakban és fedelekben közös, hogy belül üresek,
 
 1. Jelöld ki a testet, és kattints a {{ui:editor.tool.hollow}} gombra, vagy kattints jobb gombbal a testre, és válaszd ki a menüből.
 2. Állítsd be a {{ui:shell.wall}} értékét.
-3. A {{ui:shell.openings}} alatt kapcsold be azokat az oldalakat, amelyek nyitva maradnak: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} vagy {{ui:shell.side.right}}, ahányat csak akarsz – egyedül az {{ui:shell.side.front}} fióknak való nyílást ad, a {{ui:shell.side.left}} és a {{ui:shell.side.right}} alagutat. Ha egyik oldal sincs bekapcsolva, a test minden oldalon zárt marad, középen egy üreggel. A {{ui:shell.side.top}} a panel megnyitásakor már be van kapcsolva; egy kattintás rá újra lezárja a tetejét. A minden oldalon zárt test kívülről változatlannak látszik: az üreget a metszetnézet mutatja.
+3. A {{ui:shell.openings}} alatt kapcsold be azokat az oldalakat, amelyek nyitva maradnak: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} vagy {{ui:shell.side.right}}, ahányat csak akarsz – egyedül az {{ui:shell.side.front}} fióknak való nyílást ad, a {{ui:shell.side.left}} és a {{ui:shell.side.right}} alagutat. Ha egyik oldal sincs bekapcsolva, a test minden oldalon zárt marad, középen egy üreggel. A {{ui:shell.side.closed}} egy kattintással minden oldalt kikapcsol. A {{ui:shell.side.top}} a panel megnyitásakor már be van kapcsolva; egy kattintás rá újra lezárja a tetejét. A minden oldalon zárt test kívülről változatlannak látszik: az üreget a metszetnézet mutatja.
 4. Döntsd el, hogy a {{ui:shell.edges}} {{ui:shell.edges.round}} vagy {{ui:shell.edges.sharp}} legyenek.
 5. Kattints a {{ui:shell.apply}} gombra.
 
@@ -80,3 +81,15 @@ Egy zsebes test – egy olyan hasáb, amelyben egy nem teljesen átmenő lyuk va
 Ha egy kiüregelt testet később átméretezel, a layerling azonnal újra kiüregeli az új méretben. A fal olyan vastag marad, amilyennek választottad, a kerek testeknél is. Egy hengerből, amelyet az egyik irányba jobban húzol, mint a másikba, ellipszis lesz.
 
 > **Tipp:** 0,4 mm-es fúvókával 1,2–2 mm-es fal jó kiindulás: elég vékony, hogy anyagot spórolj, és elég vastag egy erős alkatrészhez.
+
+## Testek eltolása
+
+A test minden lapja ugyanannyival tolható el kifelé vagy befelé. Erre van szüksége egy illesztésnek, fedélnek vagy pattintós kötésnek: 0,1-0,3 mm rés körben, miközben a részletek a helyükön maradnak, amit a méretezés nem ad.
+
+1. Jelölj ki egy testet, és kattints az {{ui:editor.tool.offset}} gombra, vagy kattints a testre jobb gombbal, és ott válaszd.
+2. Válaszd a {{ui:offset.grow}} vagy a {{ui:offset.shrink}} lehetőséget, és állítsd be a {{ui:offset.distance}} értékét.
+3. A {{ui:offset.edges}} a külső sarkokat dönti el: a lekerekített kerekre hagyja az eltolt felületet, az éles tovább viszi a lapokat, míg találkoznak.
+4. Pipáld be az {{ui:offset.copy}} jelölőt, hogy az alkatrész maradjon, a megnagyobbított test pedig másolatként jöjjön létre, amely már lyuk. Csoportosítsd ezt a lyukat a párjával, és pontosan a választott játékot vágja ki.
+5. Kattints az {{ui:offset.apply}} gombra.
+
+Pipa nélkül maga a test tolódik el. Rögzített, pontos test lesz, mint egy letörés után: a panel tetején lévő lista visszavonja az eltolást, az {{ui:edge.editAction}} pedig újra megnyitja az eszközt a régi távolsággal. Csak pontos CAD-testek tolhatók el - dobozok, hengerek és a többi forma, ezek csoportjai, importált STEP-alkatrészek. Az a test, amely csak háromszögháló, mint sok STL-import, gyakran nem. A testhez túl nagy távolságot, például a legvékonyabb falon túli kicsinyítést, elutasítja.

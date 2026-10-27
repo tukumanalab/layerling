@@ -21,7 +21,7 @@
     <a href="#layerling-mcp-skill"><img alt="Von einer KI steuerbar" src="https://img.shields.io/badge/KI--steuerbar-MCP--Server-16c0d4"></a>
   </p>
 
-  <p><a href="README.md">English</a> · <strong>Deutsch</strong> · <a href="README.nl.md">Nederlands</a></p>
+  <p><a href="README.md">English</a> · <strong>Deutsch</strong> · <a href="README.nl.md">Nederlands</a> · <a href="README.ar.md">العربية</a> · <a href="README.zh-cn.md">简体中文</a> · <a href="README.zh-tw.md">繁體中文</a></p>
 </div>
 
 <p align="center">
@@ -36,7 +36,7 @@
 
 Du hast einen 3D-Drucker. Du willst ein Teil, das passt – keine Laufbahn als CAD-Konstrukteur.
 
-layerling arbeitet so, wie du ohnehin denkst: Form auf die Platte stellen, auf Maß ziehen, eine zweite Form zur Aussparung erklären, beides gruppieren, exportieren, drucken. Es gibt nichts zu lernen, bevor du anfängst, und **nichts anzumelden** – Seite öffnen und bauen. Deine Entwürfe bleiben in deinem eigenen Browser: kein Konto, keine Cloud, nichts wird irgendwohin hochgeladen.
+layerling arbeitet so, wie du ohnehin denkst: Form auf die Platte stellen, auf Maß ziehen, eine zweite Form zur Aussparung erklären, beides gruppieren, exportieren, drucken. Es gibt nichts zu lernen, bevor du anfängst, und **nichts anzumelden** – Seite öffnen und bauen. Deine Entwürfe bleiben standardmäßig in deinem eigenen Browser: kein Konto, keine Cloud, nichts wird irgendwohin hochgeladen. Wenn du eine eigene Instanz betreibst, können sie stattdessen in einem Ordner auf deinem Server liegen, sodass jedes Gerät im Haus dieselben sieht.
 
 ### Von Tinkercad umgestiegen?
 
@@ -68,7 +68,7 @@ Ein vollständiges CAD-Paket ist es nicht: Es gibt keine parametrische Zeitleist
 - **Drehpunkt, der bleibt** – ein Drehpunkt für einen Körper bleibt bei diesem Körper: Er wandert, dreht und skaliert mit, wird gespeichert und lässt sich als X, Y und Z eintippen oder mit der Maus ziehen, wobei er an Ecken und Kantenmitten einrastet – für Scharniere und Gelenke.
 - **Licht und Schatten nach Geschmack** – Kontrast der Schattierung, Stärke und Weichheit der Schatten sowie Richtung und Höhe des Lichts, bis senkrecht von oben wie bei Tinkercad, alles in den Einstellungen. Ein Knopf „Wie Tinkercad“ stellt Farben, Raster und Licht auf einmal so ein wie dort, und die kräftigen Rasterlinien kommen auf Wunsch jeden Zentimeter in eigener Farbe.
 - **Schnellmodus** – für langsamere Rechner: ein Schalter in den Einstellungen schaltet Schatten, Kantenlinien und das Nachlaufen der Kamera ab und zeichnet die Ansicht in Bildschirmauflösung; das Nachlaufen lässt sich auch einzeln abschalten, dann steht die Ansicht sofort.
-- **Flächen aneinanderlegen und Winkel sehen** – das Werkzeug legt eine Fläche eines Teils an eine Fläche eines anderen, berührend oder bündig, auf Wunsch mit Abstand; ein gedrehter Körper zeigt seine Winkel um X, Y und Z unter der Auswahl, und die Karte „Drehung“ in seinen Einstellungen nimmt sie als Zahlen.
+- **Flächen aneinanderlegen und Winkel sehen** – das Werkzeug legt eine Fläche eines Teils an eine Fläche eines anderen, berührend oder bündig, auf Wunsch mit Abstand, oder bringt ein Loch oder einen Zapfen auf die Achse eines anderen Lochs; ein gedrehter Körper zeigt seine Winkel um X, Y und Z unter der Auswahl, und die Karte „Drehung“ in seinen Einstellungen nimmt sie als Zahlen.
 - **Fangen an anderen Formen** – beim Verschieben rastet eine Form mit Kante oder Mitte an Kanten und Mitten der Formen ringsum ein, eine Hilfslinie zeigt woran. So sitzen Teile bündig, ohne Zahlen zu tippen. Alt während des Ziehens hält das kurz an; Umschalt hält die Bewegung auf einer Achse, und mit Alt zu Beginn ziehst du wie in Tinkercad eine Kopie.
 - **Auf Flächen absetzen** – wie Cruise in Tinkercad: Eine neue Form legt sich auf die Fläche unter dem Zeiger, auch auf eine schräge, und C nimmt die Auswahl auf und setzt sie so auf eine andere Fläche.
 - **Bezugspunkte** – Körper mit der rechten Maustaste anklicken und Mitte, Ecken oder Kantenmitten mit Punkten markieren, die nichts druckt und an denen gezogene Formen einrasten; Punkte lassen sich ziehen oder per Koordinate eintippen und werden mit dem Entwurf gespeichert. Das Maßband kann die Mitte einer Messung markieren, etwa den Mittelpunkt einer runden Bohrung.
@@ -85,12 +85,13 @@ Ein vollständiges CAD-Paket ist es nicht: Es gibt keine parametrische Zeitleist
 - **Mehrfarbige Gruppen** – eine Gruppe kann jedes Teil in seiner eigenen Farbe zeigen, auch nachdem Aussparungen hineingeschnitten wurden, und der 3MF- oder OBJ-Export behält diese Farben, so dass der Slicer die Teile Filamenten zuordnen kann.
 - **Bündeln** – Strg+B hält Teile zusammen wie das Bündel in Tinkercad: Sie bewegen, drehen und skalieren sich gemeinsam, behalten aber ihre Farben und bleiben im Export getrennte Körper – praktisch für den Mehrfarbdruck.
 - **Schnittmenge** – nur das behalten, wo sich die ausgewählten Körper und Aussparungen überlappen.
+- **Hülle** – die gewählten Formen in ihre konvexe Hülle packen, den kleinsten Körper ohne Dellen um alle: Eine Halbkugel auf einem Zylinder wird zur Kuppel, vier Pfosten zu einem Kasten mit runden Ecken. Aussparungen in der Auswahl werden danach herausgeschnitten.
 - **Teilen** – Körper oder Aussparungen mit einer Ebene in zwei schneiden; ein ausgehöhlter Körper behält seinen Hohlraum. Gedreht schneidet die Ebene schräg; am Pfeil ziehen verschiebt sie, und mit „Fläche wählen“ legst du sie auf eine beliebige Fläche.
 
 ### Bearbeiten
 
 - **Kanten fasen und verrunden** – jede Kante eines Körpers brechen oder abrunden und später wieder zurücknehmen oder ändern.
-- **Skizzen** – Umrisse aus Linien, Kurven und fertigen Formen zeichnen, Linien schon beim Zeichnen nach Länge und Winkel setzen („50<30“, Umschalt rastet in 15°-Schritten ein), Längen, Winkel und Größen eintippen (Rechnungen wie „60+12,5“ gehen in jedem Zahlenfeld), Ecken runden oder fasen, an den Umrissen anderer Körper einrasten, Hilfslinien zum Einrasten ziehen und daraus exakte Körper ziehen oder drehen. Eine Drehung mit Steigung windet den Umriss als einen durchgehenden Strang zur Schraubenlinie statt zu Ringen, wie Filament auf einer Spule. Eine Skizze lässt sich auch als Kontur bauen: Ein geschlossener Umriss wird ein Rahmen, innen, außen oder mittig auf der Linie, eine offene Linie ein Streifen mit flachen, eckigen oder runden Enden.
+- **Skizzen** – Umrisse aus Linien, Kurven und fertigen Formen zeichnen, Linien schon beim Zeichnen nach Länge und Winkel setzen („50<30“, Umschalt rastet in 15°-Schritten ein), Längen, Winkel und Größen eintippen (Rechnungen wie „60+12,5“ gehen in jedem Zahlenfeld), Ecken runden oder fasen, an den Umrissen anderer Körper einrasten, Hilfslinien zum Einrasten ziehen und daraus exakte Körper ziehen, drehen oder an einem Pfad entlangziehen. Eine Drehung mit Steigung windet den Umriss als einen durchgehenden Strang zur Schraubenlinie statt zu Ringen, wie Filament auf einer Spule. Eine Skizze lässt sich auch als Kontur bauen: Ein geschlossener Umriss wird ein Rahmen, innen, außen oder mittig auf der Linie, eine offene Linie ein Streifen mit flachen, eckigen oder runden Enden.
 - **Aushöhlen** – aus einem Körper Wände gleicher Stärke machen, auf jeder gewünschten Seite offen (oben, unten, vorne, hinten, links, rechts, beliebig kombiniert) oder ganz geschlossen – für Dosen, Becher und Gehäuse.
 - **Fläche löschen** – die Flächen einer Verrundung, eines Lochs oder eines Zapfens anklicken und löschen: Die Flächen ringsum wachsen und schließen die Lücke, und der Körper bleibt exakt für weitere Verrundungen und den STEP-Export.
 - **Eigene Formen** – Körper, die du immer wieder brauchst, oben in der Formenliste ablegen und per Klick oder Ziehen in jeden Entwurf setzen; im Browser oder, mit dem Serverspeicher, auf dem Server für jedes Gerät. „Alle sichern“ nimmt sie mit.
@@ -101,14 +102,16 @@ Ein vollständiges CAD-Paket ist es nicht: Es gibt keine parametrische Zeitleist
 ### Dateien
 
 - **Eigene Schriften** – jede TrueType-, OpenType- oder WOFF-Schrift für Text, in Chrome und Edge auch eine auf dem Computer installierte. Ein Entwurf behält nur die Umrisse der benutzten Buchstaben und öffnet sich deshalb überall. Arabisch und Hebräisch laufen von rechts nach links, arabische Buchstaben verbinden sich.
-- **Eigene Modelle mitbringen** – STL, OBJ, 3MF, STEP oder SVG importieren und darum herum konstruieren. Ein SVG kommt als Skizzenkörper: als Fläche, als Kontur außen oder innen an seinen Linien, als Silhouette ohne Löcher oder rundum verbreitert - zusammen ein Ausstecher aus einer Datei oder die Schichten eines mehrfarbigen Logos. Die Textform hat dieselben Füllmodi, und die Formen-Bibliothek hat ein Namensschild: ein Text in farbigen Schichten für den Mehrfarbdruck, auf Wunsch mit Schlüsselringloch und gerundeter oder abgeschrägter Kante an den Buchstaben, und ein Symbolschild: ein SVG-Symbol in denselben farbigen Schichten, mit Anzahl und „so viele wie passen“, um eine Platte zu füllen. Eine farbige OBJ – aus layerling oder aus Tinkercad als ZIP mit ihrer `.mtl` – oder eine farbige 3MF, auch ein Slicer-Projekt, kommt als ein Körper je Farbe, eine 3MF mit mehreren Objekten als ein Körper je Objekt.
-- **Exportieren, was dein Slicer will** – STL, 3MF mit Namen und Farben oder OBJ mit Farben, für die Auswahl oder die ganze Szene (Ausgeblendetes bleibt draußen), dazu STEP, wenn der Entwurf in ein vollwertiges CAD weiterreisen soll. PNG speichert ein sauberes Bild der Ansicht, in doppelter Auflösung und auf Wunsch mit durchsichtigem Hintergrund.
+- **Eigene Modelle mitbringen** – STL, OBJ, 3MF, STEP, SVG oder DXF importieren und darum herum konstruieren. Eine DXF-Teilekontur, wie ein Laserschneid-Dienst oder ein Lieferant sie schickt, kommt als Körper mit ihren Löchern als eigenen Löchern, Bögen und Kreise bleiben echt. Ein SVG kommt als Skizzenkörper: als Fläche, als Kontur außen oder innen an seinen Linien, als Silhouette ohne Löcher oder rundum verbreitert - zusammen ein Ausstecher aus einer Datei oder die Schichten eines mehrfarbigen Logos. Die Textform hat dieselben Füllmodi, und die Formen-Bibliothek hat ein Namensschild: ein Text in farbigen Schichten für den Mehrfarbdruck, auf Wunsch mit Schlüsselringloch und gerundeter oder abgeschrägter Kante an den Buchstaben, und ein Symbolschild: ein SVG-Symbol in denselben farbigen Schichten, mit Anzahl und „so viele wie passen“, um eine Platte zu füllen. Eine farbige OBJ – aus layerling oder aus Tinkercad als ZIP mit ihrer `.mtl` – oder eine farbige 3MF, auch ein Slicer-Projekt, kommt als ein Körper je Farbe, eine 3MF mit mehreren Objekten als ein Körper je Objekt.
+- **Exportieren, was dein Slicer will** – STL, 3MF mit Namen und Farben oder OBJ mit Farben, für die Auswahl oder die ganze Szene (Ausgeblendetes bleibt draußen), dazu STEP, wenn der Entwurf in ein vollwertiges CAD weiterreisen soll, und die Draufsicht als SVG oder als DXF mit echten Bögen und Kreisen für den Laserschneider. PNG speichert ein sauberes Bild der Ansicht, in doppelter Auflösung und auf Wunsch mit durchsichtigem Hintergrund.
 - **Zeichnung exportieren** – ein Teil auswählen oder die Auswahl für den ganzen sichtbaren Entwurf aufheben, dann **Exportieren → Zeichnung → PDF oder SVG** wählen. Erstellt Vorder-, Drauf- und rechte Seitenansicht in Erstwinkelprojektion auf einem gerahmten Zeichnungsblatt mit Zonennummern und Schriftfeld unten rechts, mit Gesamtmaßen, verdeckten Kanten und Tabellen für Durchmesser und Positionen achsparalleler runder Bohrungen. Maßstab 1:1 in Millimetern; das Blatt wächst mit dem Entwurf. Bei **100 % / tatsächlicher Größe** drucken. Bohrungspositionen beziehen sich auf die linke untere Ecke der Gesamtmaße jeder Ansicht. Schräge oder unrunde Bohrungen, Gewinde, Tiefen und Toleranzen werden nicht automatisch bemaßt. Die Projektion basiert auf der Zeichnungsarbeit aus [Cadverix-3D](https://github.com/WC3D/Cadverix-3D).
 - **Hinweis auf Updates** – im veröffentlichten Programm bemerkt eine offene Seite eine neue Version selbst und bietet an, zu speichern und neu zu laden, samt Liste des Neuen.
+- **Mehrere Entwürfe auf einmal löschen** – **Auswählen** auf der Startseite wählt Entwürfe per Klick auf ihre Karten (oder alle), und eine Frage löscht die ganze Auswahl; auch im Serverordner.
 - **Ordner für Entwürfe** – die Entwürfe auf der Startseite in Ordner sortieren (auch Ordner in Ordnern), per Ziehen oder mit „Verschieben nach …“; die Suche schaut in alle, und „Alle sichern“ nimmt sie mit.
 - **Projekte als Datei** – ein ganzes Projekt samt Verlauf, Skizzen und Gruppen als `.lyl` sichern und anderswo weiterbauen. In Chrome und Edge wählst du den Ordner selbst, und Strg+S speichert wieder in genau diese Datei; andere Browser laden sie herunter. Ältere `.skf`-Dateien aus früheren Fassungen öffnen sich weiterhin; gespeichert wird dann als `.lyl` daneben.
 - **Fehlerbericht** – ein Link in der Fußzeile speichert ein ZIP mit dem Entwurf als `.lyl` und einem Text mit Version, Browser und den letzten Meldungen, fertig zum Anhängen im Forum oder bei GitHub, die eine bloße `.lyl` ablehnen.
-- **Entwürfe, die du wiedererkennst** – alles liegt in deinem eigenen Browser, jeder Entwurf mit Vorschaubild.
+- **Entwürfe, die du wiedererkennst** – jeder Entwurf mit Vorschaubild, in deinem Browser oder im Serverordner.
+- **Anhänge** – Notizen, ein Foto des gedruckten Teils oder ein Datenblatt im Entwurf aufbewahren: `.md`- und `.txt`-Dateien, Bilder als `.png`, `.jpg` und `.webp` sowie PDF-Dateien reisen mit der `.lyl`-Datei. Das Auge öffnet einen Text oder ein Bild in einem Fenster; ein PDF wird heruntergeladen. SVG wird nicht angenommen, weil es Skripte tragen kann.
 
 ### Ansicht
 
@@ -116,7 +119,9 @@ Ein vollständiges CAD-Paket ist es nicht: Es gibt keine parametrische Zeitleist
 - **Ansicht am Würfel drehen** – Ziehen am Ansichtswürfel dreht die Ansicht wie die rechte Maustaste, auf dem Tablet mit einem Finger; ein Klick springt weiter auf die gerade Seite, ein Klick auf eine Ecke oder Kante schaut von dort. Die Tasten **1**–**6** springen ebenfalls, **Umschalt+1**–**6** zoomen dabei auf die Auswahl.
 - **Vier gespeicherte Ansichten je Entwurf** – **Umschalt+7**, **8**, **9** oder **0** speichert die Ansicht genau so, wie sie ist (Blickwinkel, Ausschnitt, Zoom), und die Taste allein holt sie zurück. Jeder Entwurf hat seine eigenen, und eine gespeicherte `.lyl`-Datei nimmt sie mit.
 - **Der Ansichtswürfel in jeder Ecke** – Einstellungen > Darstellung > **Position des Ansichtswürfels** stellt den Würfel oben links, oben rechts, unten links oder unten rechts hin; in jeder Ecke außer oben links rückt die Kamerasteuerung an seinen Platz nach oben.
+- **In deiner Sprache** – das Programm und seine Anleitung gibt es auf Englisch, Deutsch und in 17 weiteren Sprachen; die Sprachliste steht ganz oben rechts.
 - **Von unten schauen** – das Auge über dem Gitter in der Kameraleiste blendet die Platte aus, damit die Unterseite eines Entwurfs frei zu sehen ist.
+- **Eine zweite Ansicht im eigenen Fenster** – ein Knopf in der Kameraleiste öffnet ein zweites Fenster, das denselben Entwurf durch eine eigene Kamera zeigt, mit eigenem Ansichtswürfel und eigener Kameraleiste, und folgt jeder Änderung. Es öffnet sich dort, wo du es zuletzt gelassen hast.
 - **Fenster nach Wunsch** – Objektliste, Einstellungen, Schnittansicht, Maßband und die Werkzeugfenster für Kanten, Aushöhlen und Muster lassen sich an ihrer Titelleiste frei verschieben und öffnen sich dort wieder; ein Doppelklick dockt sie an.
 - **Rechtsklick-Menü** – ein kurzer Rechtsklick auf einen Körper bringt die häufigsten Befehle: duplizieren, Aussparung oder Körper, gruppieren, Fase, Rundung und Aushöhlen für einen Körper, spiegeln und um Prozent skalieren, ausblenden, sperren, auf die Arbeitsebene setzen, löschen. Ziehen mit der rechten Taste dreht weiter die Ansicht.
 - **Schnittansicht** – die Ansicht entlang einer Ebene quer zu X, Y oder Z aufschneiden, um Wände, Hohlräume und ineinandergreifende Teile zu sehen, mit grobem und feinem Regler. Geschnitten wird nur die Ansicht: Entwurf und jeder Export bleiben ganz. Den Schnitt selbst speichert „Schnitt als SVG“ im Maßstab 1:1, etwa für einen Laser oder eine Schablone, und „Messen“ liest Wandstärken und Spalte direkt auf dem Schnitt ab, im rechten Winkel zur Wand eingerastet.
@@ -128,12 +133,12 @@ Ein vollständiges CAD-Paket ist es nicht: Es gibt keine parametrische Zeitleist
 Von anderen gemacht, nicht von diesem Projekt:
 
 <!-- videos:start -->
-- [I'm 100% In on Layerling - The Next Big Free CAD](https://youtu.be/IO7S-7bxS5o) – Printology (Englisch). Ein erster Test von einem Tinkercad-Nutzer: was layerling besser kann als Tinkercad, was noch fehlt und ob sich der Wechsel jetzt lohnt.
-- [10 Things Layerling Can Do That Tinkercad Can't!](https://youtu.be/cx0OVHgUsJM) – Print N Repeat (Englisch). Ein zweites Video dieses Kanals: zehn Dinge, die layerling kann und Tinkercad nicht.
+- [I Tried Layerling After Tinkercad… Is It REALLY Better?](https://youtu.be/5DpOxdoNwqs) – Maker Mates Studio 3D Printing (Englisch). Jemand, der von Tinkercad kommt, probiert layerling aus und vergleicht die beiden.
+- [Layerling CAD Videos](https://www.youtube.com/playlist?list=PLc09BHr_6nn8) – Printology (Englisch). Eine Playlist über layerling, bisher mit „I'm 100% In on Layerling - The Next Big Free CAD“ und „Layerling Features That Blow Tinkercad Out Of The Water“.
+- [Print by Layer](https://www.youtube.com/playlist?list=PLejZBz4L7CGQ) – Print N Repeat (Englisch). Eine Playlist über layerling, bisher mit „The EASIEST Way to Design Hinges in Layerling“ und „The EASIEST Way to 3D Model Threads!“.
 - [Layerling la nueva herramienta gratuita de modelado 3D, más completo que Tinkercad](https://youtu.be/-EEt0RSINoY) – Fulcro 1900 (Spanisch). Ein Video über layerling als neues, kostenloses 3D-Modellierwerkzeug, das vollständiger ist als Tinkercad.
-- [Layerling - Tussen Tinkercad en Fusion 360 in, en Helemaal Gratis!](https://youtu.be/X-UuvsfDI-s) – Werkplaats Marc (Niederländisch). Ein erster Blick auf layerling für Tinkercad-Umsteiger: Aushöhlen, Verrundungen, Lochmuster, Gewinde mit Spiel, eigene Schriften und Druckerprofile, dazu eine Schraube mit und ohne Spiel gedruckt, um den Unterschied zu zeigen.
+- [Layerling](https://www.youtube.com/playlist?list=PLQuXPoMXTnRQ) – Werkplaats Marc (Niederländisch). Eine Playlist über layerling, bisher mit einem ersten Blick für Tinkercad-Umsteiger („Layerling - De Gratis Tussenstap van Tinkercad naar Fusion 360“) und einer Anleitung zu Skizzen: Foto nachzeichnen, Drehen und entlang eines Pfads ziehen („Schetsen Uitgelegd“).
 - [Layerling](https://www.youtube.com/playlist?list=PLYqVFeqYBrPE) – TECHNOBENTO (Englisch). Eine Playlist über layerling, bisher mit „A new way to sketch in Layerling“.
-- [The PERFECT FREE CAD Program Between Tinkercad and Fusion 360!](https://youtu.be/GIoG-IHPXyg) – Print N Repeat (Englisch). Ein Video über layerling als kostenloses CAD-Programm zwischen Tinkercad und Fusion 360.
 - [Layerling Tutorials](https://www.youtube.com/playlist?list=PLZ-ZWS0D1JIk) – HL ModTech (Englisch). Eine Playlist von einem Tinkercad-Nutzer, bisher mit einem Blick auf layerling von etwa 23 Minuten (kostenloses CAD im Browser, das Tinkercad erweitert), einem tieferen Einstieg in die Funktionen und einem kurzen Update zu gedruckten Gewinden.
 - [Layerling – Playlist](https://www.youtube.com/playlist?list=PLCsBmX2kOGWs) – Making Layers (Englisch). Eine Reihe zu layerling, bisher mit „Tinkercad alternative / upgrade? Introducing Layerling!“, einem Überblick für Tinkercad-Umsteiger, und „Layerling Sketch Tools!“ zu den Skizzenwerkzeugen.
 - [Tinkercad Too Basic? Fusion 360 Too Much? Meet Layerling for 3D Printing](https://youtu.be/kzV7fQ3rXhw) – 3D Jesus | 3D Printing & Design (Englisch). Ein erster Test von layerling ganz ohne Anleitung: Verrunden und Fasen, Aushöhlen, Gewinde, Skizzen, Drehkörper, Muster, Import und Druckerprofile.
@@ -146,8 +151,8 @@ Am schnellsten geht es mit der gehosteten Fassung. Nichts zu installieren, nicht
 **https://layerling.com/**
 
 Der Rest dieses Abschnitts handelt davon, eine eigene Instanz zu betreiben: auf deinem Rechner oder auf einem Rechner in
-der Werkstatt, den alle im Browser öffnen. Woher die App auch ausgeliefert wird: Die Entwürfe verlassen den Browser nicht,
-in dem sie entstanden sind, und Exporte landen direkt auf dem Rechner der jeweiligen Person.
+der Werkstatt, den alle im Browser öffnen. Woher die App auch ausgeliefert wird: Nichts geht an Dritte. Die Entwürfe bleiben
+im Browser, in dem sie entstanden sind (oder im Serverordner, den du selbst einrichtest), und Exporte landen direkt auf dem Rechner der jeweiligen Person.
 
 ### Schnellstart unter Windows
 
@@ -201,7 +206,7 @@ Am schnellsten geht es mit einem einzigen Befehl:
 docker run -d --name layerling -p 3000:3000 -v layerling-thumbnails:/app/.codex/project-thumbnails --restart unless-stopped ghcr.io/henmedia/layerling:latest
 ```
 
-Die Option `-v` legt die Vorschaubilder der Startseite in ein Docker-Volume namens `layerling-thumbnails`, damit sie ein Update überstehen; ohne sie liegen sie im Container und sind bei jedem Neuanlegen weg (die Entwürfe selbst liegen im Browser und sind nicht betroffen). Auf einem NAS mit Container-Verwaltung (Synology Container Manager, Unraid, Portainer) suchst du in der Registrierung (Docker Hub) nach `henmedia/layerling` oder trägst `henmedia/layerling:latest` ein, gibst Port 3000 frei und legst ein Volume für `/app/.codex/project-thumbnails` an. Zum Aktualisieren das Image neu holen und den Container neu anlegen (oder Watchtower das erledigen lassen).
+Die Option `-v` legt die Vorschaubilder der Startseite in ein Docker-Volume namens `layerling-thumbnails`, damit sie ein Update überstehen; ohne sie liegen sie im Container und sind bei jedem Neuanlegen weg (die Entwürfe selbst sind davon nicht berührt: Sie liegen im Browser oder im Serverordner). Auf einem NAS mit Container-Verwaltung (Synology Container Manager, Unraid, Portainer) suchst du in der Registrierung (Docker Hub) nach `henmedia/layerling` oder trägst `henmedia/layerling:latest` ein, gibst Port 3000 frei und legst ein Volume für `/app/.codex/project-thumbnails` an. Zum Aktualisieren das Image neu holen und den Container neu anlegen (oder Watchtower das erledigen lassen).
 
 Die Image-Tags sind reine Versionsnummern **ohne „v“**: `ghcr.io/henmedia/layerling:1.42.0`, das GitHub-Release heißt dagegen `v1.42.0`. Ein Pull holt nur das neue Image; ein vorhandener Container läuft mit dem alten weiter, bis er entfernt und neu angelegt wird:
 
@@ -319,6 +324,13 @@ PHP können.
 
 Der Ordner hat **keine Anmeldung**: Wer die Seite erreicht, kann darin lesen, schreiben und löschen. Im Heimnetz oder in
 der Werkstatt ist genau das der Zweck; auf einer öffentlich erreichbaren Seite schütze ihn oder lege ihn nicht an.
+
+Nichts im Ordner soll über seine Adresse geöffnet werden: layerling liest und schreibt ihn nur über `store.php`. Unter
+Apache legt `store.php` dort eine `.htaccess` an, die jeden direkten Abruf abweist. Apache liest sie nur, wo
+`AllowOverride` es erlaubt (Debian stellt `/var/www` auf `None` und übergeht sie), nginx und andere Server nie; sperre
+`store/` dort selbst (in Apache: `<Directory /var/www/html/store> Require all denied </Directory>`, in nginx:
+`location /store/ { deny all; }`). `store.php` prüft außerdem jeden Export, den es speichert, und weist eine Datei ab,
+die in einem Browser etwas ausführen könnte.
 
 Beim Ausliefern daran denken: Wer den Export mit einer Option spiegelt, die Überzähliges löscht – `rsync --delete`,
 `robocopy /MIR`, WinSCP `-delete` –, muss `store` ausdrücklich ausnehmen. Sonst räumt jedes Update die Projekte weg.
@@ -450,6 +462,33 @@ Pfad auf deinem Rechner ersetzt. Codex neu starten und bitten:
 Use $layerling-mcp-skill to list my open layerling editors and inspect the current scene.
 ```
 
+### Gemini & Antigravity
+
+Für Antigravity liegt eine Kopie des Skills unter `.agents/skills/layerling-mcp-skill` im Repo, die Antigravity von selbst
+findet. Für die Gemini CLI kopierst du den Skill aus `docs/skills/layerling-mcp-skill` in deinen globalen Skill-Ordner.
+
+Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.gemini\skills" | Out-Null
+Copy-Item -Recurse -Force "docs\skills\layerling-mcp-skill" "$env:USERPROFILE\.gemini\skills\layerling-mcp-skill"
+```
+
+macOS oder Linux:
+
+```bash
+mkdir -p ~/.gemini/skills
+cp -R docs/skills/layerling-mcp-skill ~/.gemini/skills/
+```
+
+Trage danach den Server in die `settings.json` der Gemini CLI oder die `mcp_config.json` von Antigravity ein; als Vorlage
+dient [`docs/mcp/gemini-config.example.json`](docs/mcp/gemini-config.example.json), wobei du den Skriptpfad durch den
+absoluten Pfad auf deinem Rechner ersetzt. Den Client neu starten und bitten:
+
+```text
+Use the layerling MCP tools to list my open layerling editors and inspect the current scene.
+```
+
 ### Eine KI an eine Kopie auf NAS oder Server lassen
 
 Eine Kopie, die du selbst betreibst (das Docker-Image auf einer NAS, ein Heimserver), kann einen KI-Client ihre offenen
@@ -484,7 +523,7 @@ auch. Gute Anlaufstellen:
 
 - Fehlerbehebungen im Editor
 - Testfälle für Geometrie und boolesche Operationen
-- Grenzfälle bei Import und Export (STL, OBJ, 3MF, STEP, SVG)
+- Grenzfälle bei Import und Export (STL, OBJ, 3MF, STEP, SVG, DXF)
 - Feinschliff an der Oberfläche
 - Bildschirmfotos und Videos für die Dokumentation
 - Barrierefreiheit und Geschwindigkeit

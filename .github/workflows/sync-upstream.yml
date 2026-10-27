@@ -1,0 +1,90 @@
+name: Sync upstream
+
+# Follows henmedia/layerling (upstream) once a day. main mirrors upstream/main, so the
+# first step fast-forwards main; the second opens one pull request main -> tukumana (or
+# leaves the open one to pick up the new commits) and turns on auto-merge, so GitHub merges
+# it as soon as the required check "Typecheck and unit tests" passes. A conflict or a red
+# check leaves the pull request open; FORK.md says how to finish it by hand.
+#
+# Everything goes through SYNC_TOKEN (a fine-grained PAT with Contents and Pull requests
+# read/write), not GITHUB_TOKEN: events raised by GITHUB_TOKEN start no workflows, so the
+# pull request would get no CI and the merge would not publish the Pages site.
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # 06:00 JST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
+  REPO: ${{ github.repository }}
+  MIRROR: main
+  FORK: tukumana
+
+jobs:
+  sync:
+    name: Fast-forward main and open the pull request
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fast-forward main from upstream
+        # Fails when main is not a plain ancestor of upstream/main - that means someone
+        # committed to the mirror, which FORK.md forbids; fix it by hand before retrying.
+        run: gh repo sync "$REPO" --branch "$MIRROR"
+
+      - name: Count the commits tukumana is missing
+        id: diff
+        run: |
+          ahead=$(gh api "repos/$REPO/compare/$FORK...$MIRROR" --jq .ahead_by)
+          echo "ahead=$ahead" >> "$GITHUB_OUTPUT"
+          echo "$MIRROR is $ahead commit(s) ahead of $FORK"
+
+      - name: Open the pull request unless one is already open
+        if: steps.diff.outputs.ahead != '0'
+        id: pr
+        run: |
+          number=$(gh pr list --repo "$REPO" --base "$FORK" --head "$MIRROR" --state open --json number --jq '.[0].number')
+          if [ -z "$number" ]; then
+            today=$(TZ=Asia/Tokyo date +%Y-%m-%d)
+            body=$(cat <<EOF
+          upstream ([henmedia/layerling](https://github.com/henmedia/layerling)) の \`main\` を \`$FORK\` に取り込みます。
+          このコミット範囲: https://github.com/$REPO/compare/$FORK...$MIRROR
+
+          \`Typecheck and unit tests\` が通れば自動でマージされます（merge commit）。
+          CI が赤いとき、またはコンフリクトしているときはこの PR が開いたまま残ります。手元で解決してください:
+
+          \`\`\`bash
+          git fetch origin
+          git switch $FORK
+          git merge origin/$MIRROR   # 衝突したら origin/$MIRROR 側を優先して解決
+          npm run ci
+          git push origin $FORK      # push されるとこの PR は自動で閉じます
+          \`\`\`
+
+          詳しくは FORK.md を参照。この PR は Sync upstream ワークフローが作成しました。
+          EOF
+            )
+            url=$(gh pr create --repo "$REPO" --base "$FORK" --head "$MIRROR" \
+              --title "upstream に追随: $today" --body "$body")
+            number=${url##*/}
+            echo "opened #$number"
+          else
+            echo "#$number is already open; the push to $MIRROR updated it"
+          fi
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Merge automatically once the required check passes
+        if: steps.diff.outputs.ahead != '0'
+        # Already enabled on a pull request from an earlier day: GitHub answers with an
+        # error, which is fine - the setting is still on.
+        run: |
+          gh pr merge "${{ steps.pr.outputs.number }}" --repo "$REPO" --auto --merge \
+            || gh pr view "${{ steps.pr.outputs.number }}" --repo "$REPO" --json autoMergeRequest --jq '
+                 if .autoMergeRequest then "auto-merge was already on" else error("could not turn auto-merge on") end'

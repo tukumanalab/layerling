@@ -28,6 +28,8 @@ This is how you get:
 
 If several solids are in the group, they are joined. Two solids that touch become a single part.
 
+With large meshes, such as an imported STL with hundreds of thousands of triangles, the cut takes a few seconds. layerling then works in the background and shows "{{ui:status.computing}}"; meanwhile you can turn the view and use the interface. If you change the scene in that time, the result is dropped and layerling tells you so. The same goes for {{ui:editor.tool.split}}.
+
 You can treat a group like a shape: move, rotate, colour, group again. {{ui:editor.tool.ungroup}} ([[Ctrl]]+[[Shift]]+[[G]]) dissolves it and the individual parts are back.
 
 ### Making a group a hole
@@ -41,7 +43,7 @@ A whole group can also be a solid or a hole. A simple rule applies:
 
 Sometimes parts should only stay together without becoming one - a white logo on a black plate for a multicolour print, say. That is what {{ui:editor.tool.bundle}} ([[Ctrl]]+[[B]]) is for, as in Tinkercad. A bundle moves, turns and resizes like a shape, but nothing is merged:
 
-- Every part keeps its colour and stays a solid or a hole.
+- Every part keeps its colour and stays a solid or a hole. The bundle's settings have the same cards as a group's: {{ui:inspector.solid}} and {{ui:inspector.hole}} for the whole bundle (which keep the parts' colours), {{ui:inspector.transparent}} ([[T]]) and {{ui:inspector.multicolor}} ([[Shift]]+[[M]]); with Multicolor switched off the bundle shows and exports in one colour. {{ui:inspector.separateParts}} takes the bundle apart, as [[Ctrl]]+[[Shift]]+[[G]] does.
 - Holes cut nothing. When you group the bundle with other parts, its holes cut those parts but still not the bundle's own solids, as in Tinkercad. So a peg with its hole beside it, say, can be used again and again as a bundle.
 - In an STL, 3MF or OBJ export every part is a body of its own; in 3MF and OBJ with its colour.
 
@@ -50,6 +52,12 @@ Sometimes parts should only stay together without becoming one - a white logo on
 ## Intersection
 
 {{ui:editor.tool.intersect}} keeps only what two or more bodies have in common. Lay two overlapping shapes on top of each other, select both and click it. That turns a cylinder and a box into a piece with one round and one straight side. A group counts the way it looks, holes included. If a hole is selected too, what remains is what all the solids share with all the holes. If the shapes share nothing, nothing is changed and a message says so. Next to it, {{ui:editor.tool.intersectPreview}} shows the common part before you apply it: the selected shapes turn see-through and what they share is drawn in green. Select and move each shape on its own and the green part follows; {{ui:editor.tool.intersect}} applies it, [[Esc]] closes the preview.
+
+{{ui:editor.tool.hull}} wraps the selected shapes in one convex body, as if they were shrink-wrapped: the smallest body without dents that holds all of them. A half sphere on a cylinder becomes a dome with no step, four cylinders at the corners become a box with round corners, two spheres a capsule. Holes in the selection are cut out of the hull afterwards. The parts stay in it: {{ui:group.edit}} opens the hull like a group, and moving a part there and closing it builds the hull anew. The hull is a mesh, so round shapes show facets, and the edge tools work on it as on any mesh.
+
+## Cutting one body out of another
+
+For parts that have to fit, a shaft in a collar, a bolt in a case, you make the one part and cut it out of the other. Select the two bodies and click {{ui:editor.tool.cutOut}} in the {{ui:editor.group.combine}} area, or right-click and choose it there. The panel names the part that stays and the body that gets the cavity; layerling takes the smaller one as the part, and a click on {{ui:cutOut.swap}} turns it around. The {{ui:cutOut.clearance}} makes the cavity that much larger than the part on every side: 0 fits exactly, 0.2 mm is a usual room for a printed fit. {{ui:cutOut.apply}} cuts a copy of the part out of the other body and leaves the part itself where it is. The result is a group: {{ui:editor.tool.ungroup}} takes the cut apart again. A clearance needs the part to be an exact body, like the {{ui:editor.tool.offset}} tool, which it uses.
 
 ## Editing a group
 
@@ -78,6 +86,8 @@ A note: fillets and chamfers you had put on the **whole** group are lost on rebu
 {{ui:split.apply}} or [[Enter]] makes the cut, [[Esc]] cancels (while picking a face, the first [[Esc]] only stops picking). Every object the plane crosses becomes two closed bodies, named after their side, for example "Box (Z+)" and "Box (Z-)"; objects it misses stay as they are. A hole becomes two holes, and a hollowed body keeps its cavity. Both halves stay where they were - for printing, lay each one on its cut face with {{ui:editor.tool.layFlat}}.
 
 The halves are plain meshes: settings such as a cylinder's sides or a text's lettering are gone, so set those first. [[Ctrl]]+[[Z]] brings the original back in one step. Locked and hidden objects cannot be split.
+
+An imported mesh needs a closed surface to be split, grouped or cut. If it has openings, such as the eyes of a figure left open or a crack in a scan, layerling closes them with a flat cap first and says how many it closed. It closes small openings and flat ones of any size; a large opening whose rim bends is left to you, and the message says so. Close it in the program the model comes from, or with a mesh repair tool, and import it again.
 
 ## Separating parts
 

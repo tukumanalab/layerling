@@ -57,7 +57,7 @@ Del, uvožen kot STEP, prav tako obdrži svojo geometrijo CAD: posnetja, zaokro�
 
 1. Izberi telo in klikni {{ui:editor.tool.hollow}}, ali klikni z desnim gumbom na telo in izberi v meniju.
 2. Nastavi {{ui:shell.wall}}.
-3. Pod {{ui:shell.openings}} vklopi strani, ki ostanejo odprte: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} ali {{ui:shell.side.right}}, poljubno veliko – {{ui:shell.side.front}} sama da jašek za predal, {{ui:shell.side.left}} in {{ui:shell.side.right}} predor. Če ni vklopljena nobena stran, telo ostane povsod zaprto, z votlino v sredini. {{ui:shell.side.top}} je ob odprtju plošče že vklopljen; klik nanj zgornjo stran spet zapre. Telo, zaprto z vseh strani, je od zunaj videti nespremenjeno: votlino pokaže prerez.
+3. Pod {{ui:shell.openings}} vklopi strani, ki ostanejo odprte: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} ali {{ui:shell.side.right}}, poljubno veliko – {{ui:shell.side.front}} sama da jašek za predal, {{ui:shell.side.left}} in {{ui:shell.side.right}} predor. Če ni vklopljena nobena stran, telo ostane povsod zaprto, z votlino v sredini. {{ui:shell.side.closed}} izklopi vse strani z enim klikom. {{ui:shell.side.top}} je ob odprtju plošče že vklopljen; klik nanj zgornjo stran spet zapre. Telo, zaprto z vseh strani, je od zunaj videti nespremenjeno: votlino pokaže prerez.
 4. Odloči, ali naj bodo {{ui:shell.edges}} {{ui:shell.edges.round}} ali {{ui:shell.edges.sharp}}.
 5. Klikni {{ui:shell.apply}}.
 
@@ -80,6 +80,18 @@ Izdolbiš lahko tudi telo z žepom, na primer kvader z luknjo, ki ne gre skozi d
 Če pozneje spremeniš velikost izdolbenega telesa, ga layerling takoj znova izdolbe v novi velikosti. Stena ostane tako debela, kot si jo izbral, tudi pri okroglih telesih. Valj, ki ga pri tem v eno smer povlečeš bolj kot v drugo, postane elipsa.
 
 > **Namig:** Pri šobi 0,4 mm je dobro izhodišče debelina stene od 1,2 do 2 mm: dovolj tanka, da prihraniš material, dovolj debela za stabilen del.
+
+## Odmik teles
+
+Vsako ploskev telesa lahko premakneš za isto razdaljo navzven ali navznoter. To potrebuje nasedanje, pokrov ali zaskočni spoj: reža 0,1 do 0,3 mm naokrog, medtem ko značilnosti ostanejo na mestu, česar spreminjanje merila ne zmore.
+
+1. Izberi eno telo in klikni {{ui:editor.tool.offset}} ali z desno tipko klikni telo in ga izberi tam.
+2. Izberi {{ui:offset.grow}} ali {{ui:offset.shrink}} in nastavi {{ui:offset.distance}}.
+3. {{ui:offset.edges}} določajo zunanje vogale: zaobljeno obdrži odmaknjeno površino okroglo, ostro pusti ploskvam, da tečejo naprej, dokler se ne srečajo.
+4. Obkljukaj {{ui:offset.copy}}, da del ostane, kakršen je, povečano telo pa dobiš kot kopijo, ki je že luknja. To luknjo združi v skupino s protikosom in izreže natanko zračnost, ki si jo izbral.
+5. Klikni {{ui:offset.apply}}.
+
+Brez kljukice se odmakne samo telo. Postane fiksno natančno telo, kot po posnetju: seznam na vrhu okna odmik vzame nazaj, {{ui:edge.editAction}} pa orodje znova odpre s staro razdaljo. Odmakniti je mogoče le natančna telesa CAD - kvadre, valje in druge oblike, njihove skupine, uvožene dele STEP. Telo, ki je samo trikotniška mreža, kot mnogi uvozi STL, pogosto ne gre. Razdalja, ki je za telo prevelika, na primer zmanjšanje čez najtanjšo steno, se zavrne.
 
 ## Brisanje ploskev
 

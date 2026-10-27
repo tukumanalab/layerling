@@ -13,7 +13,7 @@ Odpri [layerling.com](https://layerling.com/). Na začetni strani klikni {{ui:da
 
 Če že imaš datoteko, ki jo želiš urejati naprej, izberi {{ui:dashboard.importGeometry}}. To deluje z načrti programa layerling (`.lyl`) prav tako kot z datotekami STL, OBJ, 3MF, STEP ali SVG.
 
-Vsi tvoji načrti se pozneje pojavijo na začetni strani s sličico predogleda. Shranjeni so v pomnilniku brskalnika in se ob vsaki spremembi samodejno shranijo. Zato gumba za shranjevanje ni. Kako načrte spraviš v datoteko in jih deliš z drugimi, piše v poglavju [Datoteke in shranjevanje](chapter:datoteke-in-shranjevanje).
+Vsi tvoji načrti se pozneje pojavijo na začetni strani s sličico predogleda. Shranjeni so v pomnilniku brskalnika in se ob vsaki spremembi samodejno shranijo. Zato gumba za shranjevanje ni. Kako načrte spraviš v datoteko in jih deliš z drugimi, piše v poglavju [Datoteke in shranjevanje](chapter:datoteke-in-shranjevanje). Če želiš opomnik, v nastavitvah (zobnik v traku) vklopi {{ui:workspace.confirmTabClose}}: brskalnik potem vpraša, preden se zavihek z odprtim načrtom zapre ali osveži.
 
 ## Urejevalnik na kratko
 
@@ -111,4 +111,4 @@ Pri kopiji programa layerling na tvojem računalniku ali strežniku ima obvestil
 
 Ko je tvoj del končan, klikni {{ui:editor.export}}, izberi STL ali 3MF in prenesi datoteko. Odpreš jo v svojem rezalniku, na primer v Bambu Studiu, PrusaSliceru, OrcaSliceru ali Curi. Kdor v nastavitvah izbere svoj tiskalnik, že med gradnjo vidi, ali del gre na tiskalno ploščo. Več o tem v poglavju [Tiskanje](chapter:tiskanje).
 
-> **Namig:** Če prihajaš iz Tinkercada, se boš hitro znašel: plošča, oblike, telesa in luknje, združevanje v skupine, poravnava in zrcaljenje delujejo skoraj enako. Novo so predvsem posnetje in zaokrožitev, izdolbljenje, navoji in skice.
+> **Namig:** Če prihajaš iz Tinkercada, se boš hitro znašel: plošča, oblike, telesa in luknje, združevanje v skupine, poravnava in zrcaljenje delujejo skoraj enako. Novo so predvsem posnetje in zaokrožitev, izdolbljenje, navoji in skice. Prenesete lahko tudi svoje načrte iz Tinkercada, glejte [Datoteke, shranjevanje in deljenje](chapter:datoteke-in-shranjevanje).

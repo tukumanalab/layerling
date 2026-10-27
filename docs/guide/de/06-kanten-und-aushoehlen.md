@@ -22,6 +22,7 @@ Im Fenster findest du:
 
 - {{ui:edge.allSharpEdges}} wählt sämtliche Kanten auf einmal, {{ui:edge.clear}} leert die Auswahl.
 - **{{ui:edge.radius}}** bei der Verrundung. Bei der Fase stellst du {{ui:edge.distance}} oder {{ui:edge.angle}} ein.
+- {{ui:edge.variableRadius}} (nur bei der Verrundung) lässt den Radius entlang einer Kante wachsen: an einem Ende klein, am anderen größer, dazwischen gleichmäßig, etwa wo eine senkrechte Wand auf eine schräge trifft. Klicke eine einzelne Kante an und stelle {{ui:edge.radiusStart}} und {{ui:edge.radiusEnd}} ein. Welches Ende der Anfang ist, ergibt sich daraus, wie die Kante entstanden ist; liegt der größere Radius am falschen Ende, dreht {{ui:edge.swapEnds}} ihn um. Es geht für eine Kante auf einmal, mehrere Kanten verrundest du nacheinander. {{ui:edge.editAction}} bringt beide Werte zurück.
 - {{ui:edge.sharpThreshold}} legt fest, welche Kanten überhaupt als scharf gelten. Ein Wert von 25° behandelt nur deutliche Knicke als Kante und lässt flache Übergänge in Ruhe.
 - {{ui:edge.verticalEdges}} wählt die Kanten, die senkrecht stehen, etwa die Ecken eines Quaders: Eine Verrundung rundet dann alle senkrechten Ecken auf einmal.
 - {{ui:edge.topEdges}} wählt nur die Kanten ganz oben am Körper. Das ist der schnelle Weg für eine Ausstechform: Umriss in der Skizze als Kontur bauen, dann die oberen Kanten fasen. Wie steil die Fase wird, stellst du mit {{ui:edge.angle}} ein; länger als die Wand dick ist, kann sie nicht werden.
@@ -58,7 +59,7 @@ Dosen, Becher, Gehäuse und Abdeckungen haben eines gemeinsam: Sie sind innen le
 
 1. Wähle den Körper aus und klicke auf {{ui:editor.tool.hollow}}, oder klicke mit der rechten Maustaste auf den Körper und wähle es im Menü.
 2. Stelle die {{ui:shell.wall}} ein.
-3. Schalte unter {{ui:shell.openings}} die Seiten ein, die offen bleiben: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} oder {{ui:shell.side.right}}, beliebig viele – {{ui:shell.side.front}} allein ergibt einen Schacht für eine Schublade, {{ui:shell.side.left}} und {{ui:shell.side.right}} einen Tunnel. Ist keine Seite eingeschaltet, bleibt der Körper rundum geschlossen, mit einem Hohlraum in der Mitte. {{ui:shell.side.top}} ist beim Öffnen schon eingeschaltet; ein Klick darauf schließt die Oberseite wieder. Ein rundum geschlossener Körper sieht von außen unverändert aus: Den Hohlraum zeigt die Schnittansicht.
+3. Schalte unter {{ui:shell.openings}} die Seiten ein, die offen bleiben: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} oder {{ui:shell.side.right}}, beliebig viele – {{ui:shell.side.front}} allein ergibt einen Schacht für eine Schublade, {{ui:shell.side.left}} und {{ui:shell.side.right}} einen Tunnel. Ist keine Seite eingeschaltet, bleibt der Körper rundum geschlossen, mit einem Hohlraum in der Mitte. {{ui:shell.side.closed}} schaltet alle Seiten mit einem Klick aus. {{ui:shell.side.top}} ist beim Öffnen schon eingeschaltet; ein Klick darauf schließt die Oberseite wieder. Ein rundum geschlossener Körper sieht von außen unverändert aus: Den Hohlraum zeigt die Schnittansicht.
 4. Entscheide, ob die {{ui:shell.edges}} {{ui:shell.edges.round}} oder {{ui:shell.edges.sharp}} sein sollen.
 5. Klicke auf {{ui:shell.apply}}.
 
@@ -81,6 +82,18 @@ Auch ein Körper mit einer Tasche lässt sich aushöhlen, etwa ein Block mit ein
 Änderst du später die Größe des ausgehöhlten Körpers, höhlt layerling ihn in der neuen Größe gleich noch einmal aus. Die Wand bleibt so dick, wie du sie gewählt hast, auch bei runden Körpern. Ein Zylinder, den du dabei in eine Richtung mehr ziehst als in die andere, wird zur Ellipse.
 
 > **Tipp:** Bei einer 0,4-mm-Düse sind 1,2 bis 2 mm Wandstärke ein guter Anfang: dünn genug, um Material zu sparen, dick genug für ein stabiles Teil.
+
+## Körper versetzen
+
+Jede Fläche eines Körpers lässt sich um dieselbe Strecke nach außen oder innen verschieben. Das braucht eine Passung, ein Deckel oder eine Schnappverbindung: ein Spalt von 0,1 bis 0,3 mm ringsum, während die Merkmale an ihrem Platz bleiben, was Skalieren nicht kann.
+
+1. Wähle einen Körper und klicke auf {{ui:editor.tool.offset}}, oder klicke den Körper mit der rechten Maustaste an und wähle es dort.
+2. Wähle {{ui:offset.grow}} oder {{ui:offset.shrink}} und stelle den {{ui:offset.distance}} ein.
+3. Die {{ui:offset.edges}} bestimmen die Außenecken: Gerundet hält die versetzte Fläche dort rund, scharf lässt die Flächen weiterlaufen, bis sie sich treffen.
+4. Setze den Haken bei {{ui:offset.copy}}, um das Teil zu behalten und den vergrößerten Körper als Kopie zu bekommen, die schon ein Loch ist. Gruppiere dieses Loch mit dem Gegenstück, und es schneidet genau das Spiel, das du gewählt hast.
+5. Klicke auf {{ui:offset.apply}}.
+
+Ohne den Haken wird der Körper selbst versetzt. Er wird zu einem festen exakten Körper, wie nach einer Fase: Die Liste oben im Fenster nimmt den Versatz zurück, und {{ui:edge.editAction}} öffnet das Werkzeug wieder mit dem alten Abstand. Versetzen lassen sich nur exakte CAD-Körper - Quader, Zylinder und die anderen Formen, Gruppen davon, importierte STEP-Teile. Ein Körper, der nur ein Dreiecksnetz ist, wie viele STL-Importe, lässt sich oft nicht versetzen. Ein Abstand, der für den Körper zu groß ist, etwa ein Verkleinern über die dünnste Wand hinaus, wird abgelehnt.
 
 ## Flächen löschen
 

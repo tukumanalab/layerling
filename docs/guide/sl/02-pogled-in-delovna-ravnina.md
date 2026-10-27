@@ -14,6 +14,7 @@ Z miško:
 | vlečenje s srednjim gumbom | premikanje pogleda |
 | kolesce miške | približevanje in oddaljevanje |
 | drži [[Ctrl]] / [[Cmd]] in vleci z levim gumbom | prav tako premikanje |
+| dvojni klik na prazno mesto delovne ravnine ali ob ploščo | premakne pogled, da je to mesto na sredini; pogled se nato vrti okoli njega |
 
 Hitrost zumiranja s kolescem nastaviš z {{ui:workspace.zoomSpeed}} v nastavitvah, pod {{ui:workspace.appearance}}: drsnik od 1 do 14, na začetku 5; nad 10 se pospeši le kolešček.
 
@@ -37,6 +38,7 @@ Ob levem robu je ozka vrstica. Od zgoraj navzdol:
 - {{ui:camera.focusSelection}} se približa izboru ([[F]] ali [[Shift]]+[[F]]).
 - {{ui:camera.zoomIn}} in {{ui:camera.zoomOut}} zumirata po korakih, prav tako tipki [[+]] in [[−]].
 - {{ui:camera.orthographic}} preklopi na ploski pogled, v katerem vzporedni robovi ostanejo vzporedni. To je za merjenje in za poravnavanje robov pogosto prijetnejše kot perspektivni pogled. S [[O]] preklapljaš sem in tja, drugi klik gre nazaj.
+- {{ui:camera.secondView}} odpre drugi pogled na načrt v lastnem oknu, opisanem spodaj. Drugi klik ga zapre.
 - {{ui:camera.hideWorkplane}} (oko nad mrežo) skrije ploščo z mrežo, da lahko spodnjo stran načrta pogledaš od spodaj. Spremeni se samo pogled: nove oblike še naprej pristanejo na delovni ravnini. Drugi klik jo spet prikaže.
 - {{ui:camera.placeWorkplane}}, merilni trak in kotomer so lastna orodja, ki so opisana spodaj in v poglavju [Merjenje in opombe](chapter:merjenje-in-opombe).
 
@@ -45,6 +47,10 @@ Z majhno puščico čisto na vrhu vrstice jo lahko skriješ, če te moti.
 Načrt se odpre tako, kot si ga zapustil: zorni kot, povečava in izrez pogleda ostanejo z njim v tem brskalniku, zato nadaljuješ tam, kjer si nehal, tudi po »Domov« ali po zaprtju strani. Shranjena datoteka (.lyl) vzame pogled s seboj, zato se odpre tako tudi drugje. Pogled ne spada v zgodovino razveljavitev.
 
 V vsakem načrtu lahko shraniš tudi štiri lastne poglede. [[Shift]]+[[7]], [[Shift]]+[[8]], [[Shift]]+[[9]] ali [[Shift]]+[[0]] shrani pogled natanko takšen, kot je - zorni kot, izrez, povečavo ter raven ali perspektivni pogled - pod to tipko, sama tipka ([[7]], [[8]], [[9]] ali [[0]]) pa ga vrne. Sporočilo spodaj potrdi shranjevanje; ponovno shranjevanje pod isto tipko pogled zamenja. Tako kot zgornji pogled ostanejo shranjeni pogledi z načrtom v tem brskalniku in gredo s seboj v shranjeni datoteki (.lyl); ne spadajo v zgodovino razveljavitev.
+
+### Drugi pogled v lastnem oknu
+
+{{ui:camera.secondView}} odpre okno, ki kaže isti načrt skozi lastno kamero, tako da ga vidite z dveh strani hkrati - na primer od spredaj, medtem ko delate od zgoraj. Vsaka sprememba v urejevalniku se tam takoj pokaže; načrt se spreminja le v glavnem oknu, in tudi ročaji ostanejo tam. V drugem oknu miška in kocka pogleda vrtita njegov pogled kot tukaj, prav tako tipke: [[1]] do [[6]], [[F]], [[Home]], [[O]], [[+]] in [[−]], puščice za vrtenje in [[Ctrl]] s puščicami za premik. [[F]] tam približa tisto, kar je izbrano v urejevalniku. Tam delujejo tudi štirje shranjeni pogledi načrta: [[7]], [[8]], [[9]] in [[0]] jih vrnejo, [[Shift]] z eno od teh tipk pa pod njo shrani pogled tega okna - za obe okni. Njegova lastna vrstica kamere ima {{ui:camera.home}}, {{ui:camera.focusSelection}}, {{ui:camera.zoomIn}}, {{ui:camera.zoomOut}}, {{ui:camera.orthographic}} in {{ui:camera.hideWorkplane}}, ki delujejo le na to okno. Okno se odpre tam, kjer ste ga pustili, v enaki velikosti, in se zapre skupaj z urejevalnikom. Na telefonih in tablicah gumb ni prikazan.
 
 ## Pogled v notranjost: prerezni pogled
 
@@ -75,7 +81,7 @@ Nove oblike se ravnajo po delovni ravnini. Na začetku je to osnovna plošča z 
 
 Na ploskvi se izhodišče delovne ravnine sicer zaskoči na mrežo. Če klikneš blizu oglišča ploskve, sedi natanko na tem ogliščku. Blizu roba leži na robu, mreža pa se uskladi z njim; tako zavestno izbereš kot mreže. Brez oglišča ali roba mreža na ležeči ploskvi teče vzporedno s telesom, pri zavrtenem kvadru torej zavrtena z njim.
 
-Klik ob ploščo ali [[Esc]] vrne delovno ravnino na osnovno ploščo. Hitreje gre z {{ui:camera.resetWorkplane}}: gumb s puščico navzdol je v vrstici kamere pod očesom, dokler ravnina leži na ploskvi. S [[Shift]]+[[W]] jo položiš neposredno na trenutno izbrano ploskev. Če pri kliku držiš [[Shift]], ravnina kaže v drugo smer.
+Klik ob ploščo ali [[Esc]] vrne delovno ravnino na osnovno ploščo. Hitreje gre z {{ui:camera.resetWorkplane}}: gumb s puščico navzdol je v vrstici kamere pod očesom, dokler ravnina leži na ploskvi. S [[Shift]]+[[W]] jo položiš neposredno na trenutno izbrano ploskev. [[Alt]]+[[W]] jo kadar koli vrne na osnovno ploščo, ne glede na to, ali je kaj izbrano. Če pri kliku držiš [[Shift]], ravnina kaže v drugo smer.
 
 Dokler delovna ravnina leži na ploskvi, se ob {{ui:camera.placeWorkplane}} pokaže oko. Skrije ravnino, ne da bi jo odstranilo, da imaš prost pogled na načrt: nove oblike še naprej pristanejo na tej ploskvi, vrti pa se še naprej okoli nje. Klik na oko jo spet prikaže, prav tako postavitev nove delovne ravnine.
 

@@ -22,6 +22,7 @@ In the panel you find:
 
 - {{ui:edge.allSharpEdges}} selects every edge at once, {{ui:edge.clear}} empties the selection.
 - **{{ui:edge.radius}}** for the fillet. For the chamfer you set {{ui:edge.distance}} or {{ui:edge.angle}}.
+- {{ui:edge.variableRadius}} (fillet only) lets the radius change along one edge: small at one end, larger at the other, evenly in between, as where a straight wall meets a slanted one. Click a single edge, then set {{ui:edge.radiusStart}} and {{ui:edge.radiusEnd}}. Which end counts as the start follows from how the edge was built; if the larger radius comes out at the wrong end, {{ui:edge.swapEnds}} turns it round. It works on one edge at a time, so round several edges one after the other. {{ui:edge.editAction}} brings both values back.
 - {{ui:edge.sharpThreshold}} decides which edges count as sharp at all. A value of 25° treats only clear kinks as edges and leaves flat transitions alone.
 - {{ui:edge.verticalEdges}} picks the edges that stand straight up, such as the corners of a box: one fillet then rounds all the vertical corners at once.
 - {{ui:edge.topEdges}} picks only the edges along the very top of the body. It is the quick way for a cookie cutter: build the outline in a sketch as a stroke, then chamfer the top edges. {{ui:edge.angle}} sets how steep the chamfer is; it cannot reach further than the wall is thick.
@@ -58,7 +59,7 @@ Boxes, cups, cases and covers have one thing in common: they are empty inside, w
 
 1. Select the body and click {{ui:editor.tool.hollow}}, or right-click the body and pick it from the menu.
 2. Set the {{ui:shell.wall}}.
-3. Under {{ui:shell.openings}}, switch on the sides that stay open: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} or {{ui:shell.side.right}}, as many as you like - {{ui:shell.side.front}} alone makes a slot for a drawer, {{ui:shell.side.left}} and {{ui:shell.side.right}} a tunnel. With no side switched on the body stays closed all round, with a cavity in the middle. {{ui:shell.side.top}} is already on when the panel opens; a click on it closes the top again. A body closed all round looks unchanged from outside: the section view shows the cavity.
+3. Under {{ui:shell.openings}}, switch on the sides that stay open: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} or {{ui:shell.side.right}}, as many as you like - {{ui:shell.side.front}} alone makes a slot for a drawer, {{ui:shell.side.left}} and {{ui:shell.side.right}} a tunnel. With no side switched on the body stays closed all round, with a cavity in the middle. {{ui:shell.side.closed}} switches every side off in one click. {{ui:shell.side.top}} is already on when the panel opens; a click on it closes the top again. A body closed all round looks unchanged from outside: the section view shows the cavity.
 4. Decide whether the {{ui:shell.edges}} should be {{ui:shell.edges.round}} or {{ui:shell.edges.sharp}}.
 5. Click {{ui:shell.apply}}.
 
@@ -81,6 +82,18 @@ A body with a pocket - a block with a hole that does not go all the way through,
 If you resize a hollowed body later, layerling hollows it again at the new size right away. The wall stays as thick as you chose, round bodies included. A cylinder you pull further one way than the other becomes an ellipse.
 
 > **Tip:** With a 0.4 mm nozzle, 1.2 to 2 mm of wall is a good start: thin enough to save material, thick enough for a sturdy part.
+
+## Offsetting bodies
+
+Every face of a body can be moved by the same distance, out or in. That is what a press fit, a lid or a snap joint needs: a gap of 0.1 to 0.3 mm all round while the features stay where they are, which scaling cannot give you.
+
+1. Select one body and click {{ui:editor.tool.offset}}, or right-click the body and choose it there.
+2. Choose {{ui:offset.grow}} or {{ui:offset.shrink}} and set the {{ui:offset.distance}}.
+3. The {{ui:offset.edges}} decide the outer corners: rounded keeps the offset surface round there, sharp lets the faces run on until they meet.
+4. Tick {{ui:offset.copy}} to keep the part as it is and get the grown body as a copy that already is a hole. Group that hole with the mating part and it cuts exactly the clearance you chose.
+5. Click {{ui:offset.apply}}.
+
+Without the tick the body itself is offset. It becomes a fixed exact body, like after a chamfer: the list at the top of the panel takes the offset back, and {{ui:edge.editAction}} opens the tool again with the old distance. Only bodies that are exact CAD bodies can be offset - boxes, cylinders and the other shapes, groups of them, imported STEP parts. A body that is only a triangle mesh, such as many STL imports, often cannot be. A distance that is too big for the body, for example a shrink beyond its thinnest wall, is refused.
 
 ## Deleting faces
 

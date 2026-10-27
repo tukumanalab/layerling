@@ -467,7 +467,8 @@ html[data-toolbar-size="small"] {
   --editor-toolbar-height: 109px;
 }
 
-html[data-toolbar-size="large"] {
+html[data-toolbar-size="large"],
+html[data-simple-mode="on"]:not([data-toolbar-size]) {
   --toolbar-scale: 1.25;
   --editor-toolbar-tools-height: 87px;
   --editor-toolbar-height: 131px;
@@ -476,7 +477,9 @@ html[data-toolbar-size="large"] {
 /* Large icons no longer fit the widths measured for the media queries below,
    so the groups wrap onto a further row at any width rather than being cut off. */
 html[data-toolbar-size="large"] .toolbar-mode-content,
-html[data-toolbar-size="large"] .sketch-toolbar-ribbon {
+html[data-toolbar-size="large"] .sketch-toolbar-ribbon,
+html[data-simple-mode="on"]:not([data-toolbar-size]) .toolbar-mode-content,
+html[data-simple-mode="on"]:not([data-toolbar-size]) .sketch-toolbar-ribbon {
   flex-wrap: wrap;
   height: auto;
 }
@@ -1386,6 +1389,29 @@ html[data-theme="dark"] .dashboard-trademark {
   background: #fff1dc;
   border: 2px solid #e08a2c;
   border-radius: 10px;
+}
+
+/* The designs are on the server: a statement, not a warning. */
+.storage-notice.on-server {
+  background: #e8f4ec;
+  border-color: #4f9a6a;
+}
+
+.storage-notice.on-server .storage-notice-icon {
+  background: #3d8a59;
+}
+
+.storage-notice.on-server .storage-notice-text strong {
+  color: #1f3d2a;
+}
+
+.storage-notice.on-server .storage-notice-text span {
+  color: #34503e;
+}
+
+.storage-notice.on-server .storage-notice-button.secondary {
+  color: #24553a;
+  box-shadow: inset 0 0 0 2px #3d8a59;
 }
 
 .storage-notice-icon {
@@ -3437,6 +3463,11 @@ html[data-theme="dark"] .edge-modifier-quick-actions button.active {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.shell-closed-option {
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 6px;
+}
+
 .shell-openings-summary {
   display: block;
   margin-top: 6px;
@@ -3447,6 +3478,18 @@ html[data-theme="dark"] .edge-modifier-quick-actions button.active {
 
 html[data-theme="dark"] .shell-openings-summary {
   color: #a8957f;
+}
+
+.offset-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.offset-copy input {
+  flex: none;
+  margin-top: 2px;
 }
 
 .edge-modifier-history-actions {
@@ -4742,6 +4785,42 @@ html[data-theme="dark"] .shell-openings-summary {
   font-size: 0.85em;
 }
 
+/* The colour a library entry lands in: its own, or the colour its kind saves in the shape defaults.
+   The grey icon keeps its shading; a colour layer masked by the icon's outline multiplies over it. */
+.shape-menu-item .shape-menu-thumb {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  max-width: none;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.shape-menu-item .shape-menu-thumb img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.shape-menu-item .shape-menu-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--shape-default-color);
+  -webkit-mask: var(--shape-icon) center / contain no-repeat;
+  mask: var(--shape-icon) center / contain no-repeat;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* The setting "Shapes in colour" (lib/shapeColors.ts): off leaves the grey pictures. */
+html[data-shape-colors="off"] .shape-menu-item .shape-menu-thumb::after {
+  display: none;
+}
+
 /* Custom shapes above the basic shapes (#109). Both scroll together in the
    menu body, so the library list itself no longer scrolls on its own there. */
 .shape-menu-body {
@@ -4775,7 +4854,8 @@ html[data-toolbar-size="small"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   --shape-menu-columns: 5;
 }
 
-html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-dropdown) {
+html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-dropdown),
+html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.sketch-shape-menu-dropdown) {
   --shape-menu-columns: 3;
 }
 
@@ -4839,7 +4919,7 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   padding: 5px;
 }
 
-.shape-menu-icons-only .shape-menu-item > span:not(.my-shape-no-preview) {
+.shape-menu-icons-only .shape-menu-item > span:not(.my-shape-no-preview):not(.shape-menu-thumb) {
   display: none;
 }
 
@@ -5132,6 +5212,12 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   border-radius: 6px;
 }
 
+.print-estimate-calculate {
+  justify-self: start;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
 .print-estimate-settings {
   display: flex;
   flex-wrap: wrap;
@@ -5215,7 +5301,7 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
 .export-format-slider {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
   height: 38px;
   padding: 3px;
   overflow: hidden;
@@ -5229,7 +5315,7 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   top: 3px;
   bottom: 3px;
   left: 3px;
-  width: calc((100% - 6px) / 8);
+  width: calc((100% - 6px) / 9);
   content: "";
   background: #fff;
   border: 1px solid #ddab78;
@@ -5254,16 +5340,20 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
   transform: translateX(400%);
 }
 
-.export-format-slider[data-format="png"]::before {
+.export-format-slider[data-format="dxf"]::before {
   transform: translateX(500%);
 }
 
-.export-format-slider[data-format="lyl"]::before {
+.export-format-slider[data-format="png"]::before {
   transform: translateX(600%);
 }
 
-.export-format-slider[data-format="drawing"]::before {
+.export-format-slider[data-format="lyl"]::before {
   transform: translateX(700%);
+}
+
+.export-format-slider[data-format="drawing"]::before {
+  transform: translateX(800%);
 }
 
 .export-format-slider button {
@@ -5294,7 +5384,7 @@ html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
 
 @media (max-width: 480px) {
   .export-format-slider {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     height: auto;
     gap: 3px;
   }
@@ -6029,7 +6119,49 @@ html[data-theme="dark"] .visibility-hidden-badge {
   display: block;
   width: 100%;
   height: 100%;
+  /* The box lets clicks through; the picture itself is turned and zoomed with the mouse. */
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
   background: radial-gradient(circle at 50% 48%, rgba(255, 239, 221, 0.98), rgba(238, 208, 176, 0.96));
+}
+
+.sketch-revolve-preview-reset {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  color: #7a6249;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(204, 186, 166, 0.9);
+  border-radius: 8px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.sketch-revolve-preview-reset:hover,
+.sketch-revolve-preview-reset:focus-visible {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme="dark"] .sketch-revolve-preview-reset {
+  color: #dfc5aa;
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(108, 81, 53, 0.8);
+}
+
+html[data-theme="dark"] .sketch-revolve-preview-reset:hover,
+html[data-theme="dark"] .sketch-revolve-preview-reset:focus-visible {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.sketch-revolve-preview canvas:active {
+  cursor: grabbing;
 }
 
 .sketch-revolve-preview-empty {
@@ -6270,139 +6402,6 @@ html[data-theme="dark"] .sketch-shape-options .unit {
   vector-effect: non-scaling-stroke;
 }
 
-.sketch-reference-images image {
-  cursor: move;
-  image-rendering: auto;
-  transition: opacity 100ms ease;
-}
-
-.sketch-reference-images image:hover {
-  filter: saturate(1.08) contrast(1.03);
-}
-
-.sketch-image-selection-box {
-  fill: none;
-  stroke: #da7409;
-  stroke-width: 1.7;
-  stroke-dasharray: 5 3;
-  vector-effect: non-scaling-stroke;
-}
-
-.sketch-image-resize-handle {
-  fill: #ffffff;
-  stroke: #a3590b;
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-}
-
-.sketch-image-resize-handle:hover {
-  fill: #ffb24b;
-  stroke: #9d4d00;
-}
-
-.sketch-image-resize-handle.handle-nw,
-.sketch-image-resize-handle.handle-se {
-  cursor: nwse-resize;
-}
-
-.sketch-image-resize-handle.handle-ne,
-.sketch-image-resize-handle.handle-sw {
-  cursor: nesw-resize;
-}
-
-.sketch-image-resize-handle.handle-n,
-.sketch-image-resize-handle.handle-s {
-  cursor: ns-resize;
-}
-
-.sketch-image-resize-handle.handle-e,
-.sketch-image-resize-handle.handle-w {
-  cursor: ew-resize;
-}
-
-/* Reference image (#216): crop handles, the turning handle and the calibration marks. */
-.sketch-image-selection-box.cropping {
-  stroke: #2f7f9e;
-}
-
-.sketch-image-resize-handle.crop {
-  fill: #e7f4f9;
-  stroke: #2f7f9e;
-}
-
-.sketch-image-resize-handle.crop:hover {
-  fill: #9fd3e8;
-}
-
-.sketch-image-rotate line {
-  stroke: #da7409;
-  stroke-width: 1.4;
-  stroke-dasharray: 3 3;
-  vector-effect: non-scaling-stroke;
-}
-
-.sketch-image-rotate-handle {
-  fill: #ffffff;
-  stroke: #a3590b;
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-  cursor: grab;
-}
-
-.sketch-image-rotate-handle:hover {
-  fill: #ffb24b;
-}
-
-.sketch-image-calibration circle {
-  fill: rgba(255, 255, 255, 0.85);
-  stroke: #2f7f9e;
-  stroke-width: 1.6;
-  vector-effect: non-scaling-stroke;
-}
-
-.sketch-image-calibration line {
-  stroke: #2f7f9e;
-  stroke-width: 1.6;
-  vector-effect: non-scaling-stroke;
-}
-
-.sketch-image-action-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.sketch-image-hint {
-  margin: -2px 0 0;
-  color: #8d7b68;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-.sketch-image-calibrate-field {
-  display: grid;
-  gap: 6px;
-}
-
-html[data-theme="dark"] .sketch-image-hint {
-  color: #b7a992;
-}
-
-.sketch-image-dimension rect {
-  fill: rgba(255, 255, 255, 0.97);
-  stroke: rgba(139, 118, 95, 0.9);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 1px 2px rgba(76, 51, 25, 0.15));
-}
-
-.sketch-image-dimension text {
-  fill: #5a3917;
-  font-weight: 700;
-  text-anchor: middle;
-}
-
 .sketch-profile-fills path {
   fill: rgba(199, 128, 52, 0.2);
   fill-rule: evenodd;
@@ -6469,11 +6468,6 @@ html[data-theme="dark"] .sketch-image-hint {
 .sketch-segments path.construction.selected {
   stroke: #ff8a00;
   stroke-width: 3;
-}
-
-/* A locked outline (#653): paler, in any theme, so it reads as fixed. */
-.sketch-segments path.locked {
-  stroke-opacity: 0.5;
 }
 
 .sketch-preview-line {
@@ -6802,158 +6796,6 @@ html[data-theme="dark"] .sketch-image-hint {
 .sketch-corner-cancel svg {
   width: 15px;
   height: 15px;
-}
-
-.sketch-image-inspector .shape-inspector-header strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sketch-image-inspector .inspector-header-icon.danger:hover {
-  color: #c3262e;
-  background: #fff0f1;
-}
-
-.sketch-image-inspector .inspector-header-icon:disabled {
-  cursor: default;
-  opacity: 0.38;
-}
-
-.sketch-image-preview-card {
-  display: grid;
-  place-items: center;
-  gap: 8px;
-  margin: 10px;
-  padding: 14px;
-  color: #907d6a;
-  background: rgba(255, 255, 255, 0.98);
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 750;
-}
-
-.sketch-image-preview-card img {
-  display: block;
-  width: 100%;
-  height: 112px;
-  object-fit: contain;
-  background:
-    linear-gradient(45deg, #f6f3ed 25%, transparent 25%),
-    linear-gradient(-45deg, #f6f3ed 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #f6f3ed 75%),
-    linear-gradient(-45deg, transparent 75%, #f6f3ed 75%);
-  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
-  background-size: 12px 12px;
-  border: 1px solid #e9e1d3;
-  border-radius: 4px;
-}
-
-.sketch-image-inspector .property-card-header.static {
-  cursor: default;
-}
-
-.sketch-image-inspector .property-card-header.static:hover {
-  color: #5d4731;
-}
-
-.sketch-image-range-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.sketch-image-number-input,
-.sketch-image-position-field input {
-  width: 100%;
-  height: 31px;
-  padding: 0 10px;
-  color: #746352;
-  font: 700 14px/1 var(--font-ui);
-  background: #ffffff;
-  border: 1px solid #daccbe;
-  border-radius: 999px;
-  outline: 0;
-}
-
-.sketch-image-number-input:focus,
-.sketch-image-position-field input:focus {
-  border-color: #ea953d;
-  box-shadow: 0 0 0 3px rgba(161, 83, 0, 0.14);
-}
-
-.sketch-image-range-row span {
-  min-width: 26px;
-  color: #988672;
-  font-size: 12px;
-}
-
-.sketch-image-range > input[type="range"] {
-  width: 100%;
-  height: 12px;
-  margin: 0;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.sketch-image-range > input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  background: linear-gradient(to right, #d27009 0 var(--slider-pos), #e8e3da var(--slider-pos) 100%);
-  border-radius: 999px;
-}
-
-.sketch-image-range > input[type="range"]::-webkit-slider-thumb {
-  width: 13px;
-  height: 13px;
-  margin-top: -4.5px;
-  appearance: none;
-  background: #ffffff;
-  border: 2px solid #ce6d09;
-  border-radius: 999px;
-  box-shadow: 0 1px 3px rgba(90, 58, 23, 0.22);
-}
-
-.sketch-image-position-field {
-  display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
-  align-items: center;
-  gap: 9px;
-  color: #867563;
-  font-size: 14px;
-  font-weight: 650;
-}
-
-.sketch-image-aspect-toggle {
-  display: flex;
-  min-height: 36px;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  color: #7c6853;
-  background: #fcfaf7;
-  border: 1px solid #ded1c4;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.sketch-image-aspect-toggle.active {
-  color: #a55808;
-  background: #f8f4ee;
-  border-color: #d59c5f;
-}
-
-.sketch-image-aspect-toggle:disabled,
-.sketch-image-position-field input:disabled,
-.sketch-image-number-input:disabled {
-  cursor: default;
-  opacity: 0.52;
-}
-
-.sketch-reference-images image.locked {
-  cursor: default;
 }
 
 .camera-controls {
@@ -7652,6 +7494,53 @@ html[data-theme="dark"] .inspector-bundle-note {
   height: 100%;
 }
 
+/* The round Select multiple button of a touch screen (#337): it stands in the lower left while a
+   body is picked with a finger. Tapped, it locks Select multiple and every further tap adds a body
+   to the selection; tapped again, it ends the mode, clears the selection and goes away. */
+.touch-multi-select {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 30;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  color: var(--foreground);
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(75, 56, 35, 0.22);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.touch-multi-select:hover,
+.touch-multi-select:focus-visible {
+  background: var(--tile-hover);
+  border-color: var(--active-tab);
+}
+
+.touch-multi-select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.touch-multi-select.active {
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  transform: scale(0.94);
+}
+
+html[data-theme="dark"] .touch-multi-select {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
 .selection-counter {
   position: fixed;
   top: 0;
@@ -7746,219 +7635,6 @@ html[data-theme="dark"] .inspector-bundle-note {
   border: 1px solid rgba(110, 196, 232, 0.75);
   color: #2b88b0;
   box-shadow: 0 1px 4px rgba(40, 110, 150, 0.12);
-}
-
-/* --- Notizen ---------------------------------------------------------------
-   Eine Notiz ist HTML ueber der Leinwand, keine Textur darin: So bleibt die
-   Schrift bei jeder Zoomstufe scharf, laesst sich markieren und kopieren. Die
-   Ebene selbst faengt keine Zeiger ab - nur die Nadeln und die Karten tun das,
-   sonst liesse sich durch sie hindurch nichts mehr anfassen. */
-.note-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 8;
-  pointer-events: none;
-}
-
-/* Verschoben wird um die halbe Nadel, nicht um die halbe Zeile: Die Nadel soll
-   auf dem Punkt sitzen, an dem die Notiz haengt - die Karte daneben zaehlt
-   nicht mit. Kippt die Zeile nach links, steht die Nadel an ihrem Ende. */
-.note-pin-anchor {
-  position: absolute;
-  transform: translate(-13px, -13px);
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  pointer-events: none;
-}
-
-.note-pin-anchor.flipped {
-  transform: translate(calc(-100% + 13px), -13px);
-  flex-direction: row-reverse;
-}
-
-.note-pin-anchor.flipped .note-pin {
-  border-radius: 999px 999px 4px 999px;
-}
-
-.note-pin {
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  border-radius: 999px 999px 999px 4px;
-  border: 2px solid var(--panel);
-  background: var(--primary);
-  color: #fff;
-  font: 700 13px/1 var(--font-ui);
-  display: grid;
-  place-items: center;
-  cursor: grab;
-  box-shadow: var(--shadow);
-  pointer-events: auto;
-  touch-action: none;
-}
-
-.note-pin:active {
-  cursor: grabbing;
-}
-
-/* Eine angeheftete Notiz traegt einen Ring: Man soll ihr ansehen, dass sie mit
-   ihrem Koerper wandert, ohne sie anzufassen. */
-.note-pin.attached {
-  box-shadow: var(--shadow), 0 0 0 3px color-mix(in srgb, var(--primary) 35%, transparent);
-}
-
-/* A reference point is a small round mark, not a numbered pin. */
-.note-pin.point-pin {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  background: #ff9a2e;
-  color: #1b1b1b;
-  border-width: 2px;
-}
-
-.note-pin-anchor.flipped .note-pin.point-pin {
-  border-radius: 999px;
-}
-
-.note-card.point-card {
-  width: 190px;
-}
-
-/* The title bar of the card: drag it away from the pin, double-click to bring it back. */
-.point-card-handle {
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  padding: 2px 0 4px;
-  font: 700 13px/1.2 var(--font-ui);
-}
-
-.point-card-handle:active {
-  cursor: grabbing;
-}
-
-.point-field {
-  display: grid;
-  grid-template-columns: 54px 1fr auto;
-  align-items: center;
-  gap: 6px;
-  font: 600 12px/1.2 var(--font-ui);
-  color: var(--foreground);
-}
-
-.point-field input {
-  min-width: 0;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--tile);
-  color: var(--foreground);
-  font: 500 13px/1.2 var(--font-ui);
-  padding: 5px 7px;
-  text-align: right;
-}
-
-.point-field input:focus-visible {
-  outline: 2px solid var(--primary);
-}
-
-.point-field small {
-  color: var(--muted);
-}
-
-.note-card {
-  width: 210px;
-  padding: 8px;
-  border-radius: 10px;
-  border: 1px solid var(--border-strong);
-  background: var(--panel);
-  box-shadow: var(--shadow);
-  pointer-events: auto;
-  display: grid;
-  gap: 6px;
-}
-
-/* Eine Zeile ist das Mindestmass - was darueber hinausgeht, waechst mit dem
-   Text mit. Der Anfasser bleibt, wer mehr Platz zum Schreiben will, zieht sich
-   das Feld groesser. */
-.note-text {
-  width: 100%;
-  min-height: 32px;
-  resize: vertical;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--tile);
-  color: var(--foreground);
-  font: 400 13px/1.35 var(--font-ui);
-  padding: 6px 7px;
-}
-
-.note-text:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 1px;
-}
-
-.note-card-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.point-card .point-delete-all {
-  width: 100%;
-  justify-content: center;
-  white-space: nowrap;
-}
-
-.note-card-end {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.note-help-link,
-.sketch-corner-help {
-  width: 24px;
-  height: 24px;
-}
-
-.note-action {
-  border: 0;
-  background: none;
-  padding: 2px 4px;
-  border-radius: 6px;
-  color: var(--muted-strong);
-  font: 600 11px/1 var(--font-ui);
-  cursor: pointer;
-}
-
-.note-action:hover {
-  background: var(--tile-hover);
-  color: var(--foreground);
-}
-
-.note-action.danger:hover {
-  color: var(--filament-coral);
-}
-
-.note-hint {
-  color: var(--muted-strong);
-  font: 500 11px/1 var(--font-ui);
-}
-
-/* Solange das Werkzeug an ist, sagt der Zeiger, dass der naechste Klick eine
-   Notiz setzt. */
-.workplane-wrap.note-mode .three-workplane-host {
-  cursor: copy;
-}
-
-@media (max-width: 720px) {
-  .note-card {
-    width: 168px;
-  }
 }
 
 .tape-overlay {
@@ -8068,6 +7744,19 @@ html[data-theme="dark"] .inspector-bundle-note {
   text-align: center;
   pointer-events: none;
   transform: translate(-50%, -50%);
+}
+
+/* A measurement with a body at one end: a click types a length and moves that body (#823). */
+.tape-label.editable {
+  font-family: inherit;
+  pointer-events: auto;
+  cursor: text;
+}
+
+.tape-label.editable:hover,
+.tape-label.editable:focus-visible {
+  color: #ad5900;
+  border-color: #ad5900;
 }
 
 /* The button under a measurement that puts a reference point in its middle (#323). */
@@ -8239,14 +7928,25 @@ html[data-theme="dark"] .inspector-bundle-note {
   transform: none;
 }
 
+/* The axis the number counts along, as a small letter in front of it (#777). */
+.ruler-coordinate-field .ruler-coordinate-axis {
+  margin-right: 4px;
+  font-size: 0.78em;
+  font-weight: 700;
+  opacity: 0.7;
+  text-transform: lowercase;
+}
+
 /* The ruler's lines stay in view over bodies (the eye is open) or hide behind them. */
-.corner-ruler-occlude-toggle {
+.corner-ruler-occlude-toggle,
+.corner-ruler-selected-toggle {
   color: #6b5b46;
   background: rgba(255, 255, 255, 0.96);
   border-color: rgba(182, 97, 8, 0.45);
 }
 
-.corner-ruler-occlude-toggle.active {
+.corner-ruler-occlude-toggle.active,
+.corner-ruler-selected-toggle.active {
   color: #b66108;
 }
 
@@ -8468,6 +8168,20 @@ html[data-theme="dark"] .inspector-bundle-note {
   transform: translate(-50%, -50%);
 }
 
+/* For a finger or a rubber-tip stylus the dots keep their look and catch from further away, a finger's width round them (#854). */
+@media (pointer: coarse) {
+  .align-dot {
+    touch-action: none;
+  }
+
+  .align-dot::before {
+    position: absolute;
+    inset: -14px;
+    border-radius: 999px;
+    content: "";
+  }
+}
+
 .align-dot:hover:not(:disabled),
 .align-dot:focus-visible:not(:disabled) {
   background: #e17709;
@@ -8576,6 +8290,12 @@ html[data-theme="dark"] .inspector-bundle-note {
   transform: translate3d(var(--overlay-x, 0), var(--overlay-y, 0), 0) translate(-50%, -50%);
   will-change: transform;
   box-shadow: 0 1px 4px rgba(58, 40, 20, 0.09);
+}
+
+/* With a finger the first tap on a value box only marks it; the second tap opens the number field (#855). */
+.dimension-label.armed {
+  border-color: rgba(166, 86, 0, 0.85);
+  box-shadow: 0 0 0 3px rgba(173, 89, 0, 0.22), 0 1px 4px rgba(58, 40, 20, 0.09);
 }
 
 .dimension-input {
@@ -8879,9 +8599,9 @@ html[data-theme="dark"] .inspector-bundle-note {
 
 .rotate-handle {
   z-index: 3;
-  /* The grab area is 40px; the arrow drawn in it is smaller. */
-  width: 40px;
-  height: 40px;
+  /* The grab area is 52px; the arrow drawn in it is smaller. */
+  width: 52px;
+  height: 52px;
   --rotate-handle-ink: #433629;
   --rotate-handle-axis: var(--rotate-handle-ink);
   --rotate-handle-halo: rgba(255, 252, 247, 0.95);
@@ -8907,8 +8627,8 @@ html[data-theme="dark"] .inspector-bundle-note {
 .rotate-handle-icon,
 .rotate-handle-icon svg {
   display: block;
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
 }
 
 .rotate-handle-icon {
@@ -9706,6 +9426,40 @@ html[data-theme="dark"] .rotation-angle-badge {
   cursor: default;
 }
 
+/* A bin's four open sides as a cross seen from above: the back on top, the
+   front at the bottom, left and right between. Each switch is placed by its
+   side's class, named rather than counted. The columns take what room the
+   panel gives, so a long label may wrap to a second line. */
+.property-layout-sides {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+  grid-template-areas:
+    "back back"
+    "left right"
+    "front front";
+  gap: 8px 12px;
+}
+
+.property-layout-sides > .check-property-back {
+  grid-area: back;
+  justify-self: center;
+}
+
+.property-layout-sides > .check-property-left {
+  grid-area: left;
+}
+
+.property-layout-sides > .check-property-right {
+  grid-area: right;
+  justify-self: end;
+}
+
+.property-layout-sides > .check-property-front {
+  grid-area: front;
+  justify-self: center;
+}
+
 .range-property {
   display: grid;
   gap: 7px;
@@ -9889,7 +9643,8 @@ html[data-theme="dark"] .property-defaults-actions button {
 
 .select-property {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  /* A long label (German "Buchstabenkanten") takes the room it needs instead of running under the field. */
+  grid-template-columns: minmax(92px, max-content) minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   color: #867563;
@@ -10614,6 +10369,147 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
   line-height: 1.35;
 }
 
+/* The font picker: a field that draws the chosen font, and a list that draws every font. */
+.font-picker-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 3px 12px;
+  color: #746352;
+  font: 600 15px/1 var(--font-ui);
+  text-align: left;
+  background: #fff;
+  border: 1px solid #daccbe;
+  border-radius: 999px;
+  outline: 0;
+  cursor: pointer;
+  box-shadow: inset 0 1px 1px rgba(65, 46, 25, 0.04);
+}
+
+.font-picker-button:focus-visible {
+  border-color: #ea953d;
+  box-shadow: 0 0 0 3px rgba(161, 83, 0, 0.14);
+}
+
+.font-picker-button:disabled {
+  cursor: default;
+  opacity: 0.52;
+}
+
+.font-picker-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.font-picker-current small,
+.font-picker-option small {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  color: #9a8874;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.font-preview-line {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: #5d4731;
+}
+
+.font-preview-line.empty {
+  display: inline-block;
+  width: 0;
+}
+
+.font-picker-list {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  align-content: start;
+  padding: 4px;
+  overflow-y: auto;
+  color: #5d4731;
+  background: #fff;
+  border: 1px solid #daccbe;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(65, 46, 25, 0.22);
+}
+
+.font-picker-group {
+  padding: 8px 10px 3px;
+  color: #9a8874;
+  font: 700 11px/1 var(--font-ui);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.font-picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 36px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.font-picker-option.active {
+  background: #f6e8d6;
+}
+
+.font-picker-option.selected {
+  box-shadow: inset 3px 0 0 #ea953d;
+}
+
+.font-picker-option.action {
+  color: #8a5a1c;
+  font: 600 14px/1.2 var(--font-ui);
+}
+
+.font-picker-option.action small {
+  max-width: none;
+  color: inherit;
+  font-size: 14px;
+}
+
+html[data-theme="dark"] .font-picker-button {
+  color: #e6d8c6;
+  background: #21180f;
+  border-color: #5c4b3a;
+}
+
+html[data-theme="dark"] .font-picker-list {
+  color: #e6d8c6;
+  background: #2b2016;
+  border-color: #5c4b3a;
+}
+
+html[data-theme="dark"] .font-preview-line {
+  color: #f1e4d1;
+}
+
+html[data-theme="dark"] .font-picker-option.active {
+  background: #3b2c1d;
+}
+
+html[data-theme="dark"] .font-picker-option.action {
+  color: #f0b36a;
+}
+
+.font-manager-row .font-preview-line {
+  margin-top: 2px;
+}
+
 .text-property input:focus,
 .select-property select:focus {
   border-color: #ea953d;
@@ -11093,7 +10989,8 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
   grid-template-columns: 145px 1fr;
   align-items: center;
   gap: 8px;
-  min-height: 20px;
+  /* No min-height: the settings body is a grid of a fixed height, which gives an auto row only its minimum, so a
+     label that wraps to two lines ran over the next row. */
   font-size: 14px;
   font-weight: 700;
 }
@@ -11785,6 +11682,11 @@ html[data-theme="dark"] .workspace-reset-row button {
   line-height: 1.5;
 }
 
+.workspace-footer-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 .make-default-button {
   min-width: 128px;
   height: 34px;
@@ -12352,6 +12254,25 @@ html[data-theme="dark"] .storage-notice-text strong {
 
 html[data-theme="dark"] .storage-notice-text span {
   color: #e2cfb6;
+}
+
+html[data-theme="dark"] .storage-notice.on-server {
+  background: #15291d;
+  border-color: #4f9a6a;
+}
+
+html[data-theme="dark"] .storage-notice.on-server .storage-notice-text strong {
+  color: #dff0e5;
+}
+
+html[data-theme="dark"] .storage-notice.on-server .storage-notice-text span {
+  color: #bcd6c5;
+}
+
+html[data-theme="dark"] .storage-notice.on-server .storage-notice-button.secondary {
+  color: #dff0e5;
+  background: #15291d;
+  box-shadow: inset 0 0 0 2px #4f9a6a;
 }
 
 html[data-theme="dark"] .storage-notice-button.secondary {
@@ -13634,290 +13555,18 @@ html[data-theme="dark"] .grid-settings {
   }
 }
 
-/* The keyboard shortcut list. It borrows the workspace modal's card and
-   header; only the list itself is its own. */
-.shortcuts-modal {
-  position: fixed;
-  z-index: 60;
-  padding-top: 46px;
-}
-
-.shortcuts-modal-card {
-  display: grid;
-  width: min(1080px, calc(100vw - 32px));
-  height: auto;
-  max-height: min(860px, calc(100vh - 92px));
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
-.shortcuts-modal[data-compact="true"] .shortcuts-modal-card {
-  width: min(560px, calc(100vw - 32px));
-}
-
-.shortcuts-modal[data-compact="true"] .shortcuts-groups {
-  columns: 1;
-}
-
-.shortcuts-modal-card .workspace-modal-content {
-  height: auto;
-  min-height: 0;
-}
-
-.shortcuts-modal-body {
-  gap: 18px;
-}
-
-.shortcuts-intro {
-  margin: 0;
-  color: #7a6550;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.shortcuts-groups {
-  columns: 300px;
-  column-gap: 30px;
-}
-
-.shortcuts-group {
-  display: grid;
-  align-content: start;
-  gap: 7px;
-  margin-bottom: 15px;
-  break-inside: avoid;
-}
-
-.shortcuts-group h3 {
-  margin: 0;
-  padding-bottom: 7px;
-  color: #543b21;
-  border-bottom: 1px solid #f0eae0;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.shortcuts-group dl {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-}
-
-.shortcuts-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 3px 12px;
-}
-
-.shortcuts-row dt {
-  min-width: 0;
-  margin: 0;
-  flex: 1 1 auto;
-  color: #6c5a48;
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.4;
-  overflow-wrap: break-word;
-}
-
-.shortcuts-row dd {
-  display: flex;
-  flex: 0 0 auto;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  margin: 0 0 0 auto;
-}
-
-.shortcuts-combo {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.shortcuts-plus,
-.shortcuts-or {
-  color: #a4917c;
-  font-size: 10.5px;
-  font-weight: 700;
-}
-
-.shortcuts-row kbd {
-  padding: 2px 6px;
-  color: #5f4529;
-  background: #f6f3ed;
-  border: 1px solid #dacfc2;
-  border-bottom-width: 2px;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-html[data-theme="dark"] .shortcuts-intro,
-html[data-theme="dark"] .shortcuts-row dt {
-  color: #cbbba6;
-}
-
-html[data-theme="dark"] .shortcuts-group h3 {
-  color: #f1e6d4;
-  border-bottom-color: #4a3b2c;
-}
-
-html[data-theme="dark"] .shortcuts-row kbd {
-  color: #f1eadd;
-  background: #322518;
-  border-color: #635241;
-}
-
-html[data-theme="dark"] .shortcuts-plus,
-html[data-theme="dark"] .shortcuts-or {
-  color: #9b8a76;
-}
-
-/* The printed list of shortcuts (Print button of the window, or Ctrl+P while it is open): black on
-   white and in large type, with nothing else of the app. The sheet is a child of the body, hidden on
-   screen; while the attribute is on <html>, every other child of the body goes. */
-.shortcuts-print-sheet {
-  display: none;
-}
-
-@media print {
-  /* The whole list on one side of a sheet, as a reference to keep at hand (#490): three columns in smaller, still sharp type. */
-  @page {
-    margin: 10mm;
-  }
-
-  html[data-print-shortcuts],
-  html[data-print-shortcuts] body {
-    height: auto !important;
-    overflow: visible !important;
-    background: #fff !important;
-    color: #000 !important;
-  }
-
-  html[data-print-shortcuts] body > *:not(.shortcuts-print-sheet) {
-    display: none !important;
-  }
-
-  html[data-print-shortcuts] .shortcuts-print-sheet {
-    display: block;
-    color: #000;
-    background: #fff;
-    font-size: 9pt;
-    /* The arrows must not turn into coloured emoji on a black-and-white sheet. */
-    font-variant-emoji: text;
-  }
-
-  /* No heading: the room is for the list. */
-  html[data-print-shortcuts] .shortcuts-print-sheet h1 {
-    display: none;
-  }
-
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-groups {
-    columns: 3;
-    column-gap: 6mm;
-  }
-
-  /* A long group may run over into the next column; a heading never stays alone at the foot of one. */
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-group {
-    margin-bottom: 3mm;
-    break-inside: auto;
-  }
-
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-group h3 {
-    break-after: avoid;
-    margin: 0 0 1mm;
-    color: #000;
-    border-bottom: 0.3mm solid #000;
-    font-size: 9.5pt;
-  }
-
-  /* Plain blocks, not grids: a block fragments across the columns, a grid does not (the sketch's list is one long group). */
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-group {
-    display: contents;
-  }
-
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-group dl {
-    display: block;
-    margin: 0;
-  }
-
-  /* The name on the left, the keys on the right on one line where they fit, else the keys below the name. */
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0 2mm;
-    padding-bottom: 0.7mm;
-    margin-bottom: 0.7mm;
-    border-bottom: 0.1mm solid #bbb;
-    break-inside: avoid;
-  }
-
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-row dd {
-    flex: 0 1 auto;
-    flex-wrap: wrap;
-    gap: 0.8mm;
-  }
-
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-row dt {
-    line-height: 1.25;
-  }
-
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-row dt {
-    color: #000;
-    font-size: 9pt;
-    font-weight: 600;
-  }
-
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-row kbd {
-    color: #000;
-    background: #fff;
-    padding: 0 1.2mm;
-    border: 0.25mm solid #000;
-    border-bottom-width: 0.25mm;
-    border-radius: 0.8mm;
-    font-size: 8pt;
-    line-height: 1.3;
-    /* Fonts whose arrows are plain strokes, not coloured emoji. */
-    font-family: "Segoe UI Symbol", "Apple Symbols", "DejaVu Sans", Arial, sans-serif;
-  }
-
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-plus,
-  html[data-print-shortcuts] .shortcuts-print-sheet .shortcuts-or {
-    color: #000;
-    font-size: 8.5pt;
-  }
-}
-
-@media (max-width: 960px) {
-  .shortcuts-modal {
-    padding-top: 18px;
-  }
-
-  .shortcuts-modal-card {
-    width: calc(100vw - 24px);
-  }
-}
-
 /* Das Menueband traegt neun Gruppen. Zwischen Laptop und breitem Schirm passen
    sie nicht mehr in voller Groesse nebeneinander - bisher wurde die letzte
    Gruppe einfach abgeschnitten, jetzt gehen die Symbole eine Stufe zurueck.
    Gemessen (Breite von der linken Kante der ersten bis zur rechten der letzten
    Gruppe, mit Lupen-, Anleitungs-, Kuerzel- und Hilfeknopf und "Flaeche
-   loeschen"): in voller Groesse braucht das Band 2081 px, in der mittleren
-   Stufe 1765 px, in der kleinen 1615 px. Ohne "Flaeche loeschen" waren es
+   loeschen" und "Huelle"): in voller Groesse braucht das Band 2172 px, in der
+   mittleren Stufe 1842 px, in der kleinen 1690 px (24.10.2026, #863). Ohne
+   "Huelle" passten 2081, 1765 und 1615 px. Ohne "Flaeche loeschen" waren es
    2038, 1728 und 1582 px, ohne den Knopf der Interaktiven Hilfe 1990, 1688
    und 1544 px: Jeder neue Knopf verschiebt alle drei Schwellen um das, was
    er braucht - neu messen. */
-@media (max-width: 2081px) {
+@media (max-width: 2180px) {
   :root {
     --toolbar-icon-size: calc(37px * var(--toolbar-scale));
   }
@@ -13938,7 +13587,7 @@ html[data-theme="dark"] .shortcuts-or {
   }
 }
 
-@media (max-width: 1765px) {
+@media (max-width: 1850px) {
   :root {
     --toolbar-icon-size: calc(34px * var(--toolbar-scale));
   }
@@ -13953,14 +13602,14 @@ html[data-theme="dark"] .shortcuts-or {
   }
 }
 
-/* Below the width even the smallest step needs (1615 px, measured with the
-   command search, guide, shortcuts, Interactive Help and Delete face buttons;
-   the middle step needs 1765 px and the full size 2081 px) the groups wrap onto a
+/* Below the width even the smallest step needs (1690 px, measured with the
+   command search, guide, shortcuts, Interactive Help, Delete face and Hull buttons;
+   the middle step needs 1842 px and the full size 2172 px) the groups wrap onto a
    further row instead of scrolling sideways: a scrolling bar hides tools and
    cuts off every menu that hangs beneath it. The bar grows, and the editor
    passes its real height on (see --editor-toolbar-height). A new button in
    the bar moves all three thresholds up: measure again. */
-@media (max-width: 1615px) {
+@media (max-width: 1698px) {
   .toolbar-mode-content,
   .sketch-toolbar-ribbon {
     flex-wrap: wrap;
@@ -15142,6 +14791,22 @@ html[data-theme="dark"] .color-keep-button[aria-pressed="true"] {
   white-space: nowrap;
 }
 
+/* "Select other" can list many bodies (#804): the menu scrolls instead of running off the window. */
+.shape-context-menu {
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+.shape-context-menu-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  vertical-align: -1px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 50%;
+}
+
 html[data-theme="dark"] .shape-context-menu {
   color: #ede4d4;
   background: rgba(40, 30, 20, 0.97);
@@ -15797,4 +15462,85 @@ html[data-theme="dark"] .interactive-help-window a:not(.primary):not(.secondary)
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
+}
+
+/* Simple mode (#695): leaving it is a press held for two seconds; the bar fills while it is held. */
+.simple-mode-hold {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  padding: 8px 14px;
+  border: 1px solid var(--workspace-border, rgba(127, 127, 127, 0.5));
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.simple-mode-hold::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 4px;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: currentColor;
+}
+
+.simple-mode-hold.holding::after {
+  transform: scaleX(1);
+  transition: transform 2s linear;
+}
+
+/* Links inside running text: the page resets every link to its surroundings,
+   so a link in a sentence looked like plain text. These get the accent colour, an underline and a
+   small arrow for "opens in a new tab", in the welcome panel, the what's-new note, the video lists
+   and the help window. */
+.dashboard-welcome-switch a,
+.dashboard-welcome-videos a,
+.whats-new-note a,
+.guide-videos a,
+.interactive-help-more a {
+  color: #8f4700;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.dashboard-welcome-switch a:hover,
+.dashboard-welcome-videos a:hover,
+.whats-new-note a:hover,
+.guide-videos a:hover,
+.interactive-help-more a:hover {
+  color: #ad6206;
+  text-decoration-thickness: 2.5px;
+}
+
+.dashboard-welcome-switch a[target="_blank"]::after,
+.dashboard-welcome-videos a[target="_blank"]::after,
+.whats-new-note a[target="_blank"]::after,
+.guide-videos a[target="_blank"]::after,
+.interactive-help-more a[target="_blank"]::after {
+  content: "\00a0\2197\FE0E";
+  display: inline-block;
+  font-size: 0.85em;
+  text-decoration: none;
+}
+
+html[data-theme="dark"] .dashboard-welcome-switch a,
+html[data-theme="dark"] .dashboard-welcome-videos a,
+html[data-theme="dark"] .whats-new-note a,
+html[data-theme="dark"] .guide-videos a,
+html[data-theme="dark"] .interactive-help-more a {
+  color: #f3a452;
+}
+
+html[data-theme="dark"] .dashboard-welcome-switch a:hover,
+html[data-theme="dark"] .dashboard-welcome-videos a:hover,
+html[data-theme="dark"] .whats-new-note a:hover,
+html[data-theme="dark"] .guide-videos a:hover,
+html[data-theme="dark"] .interactive-help-more a:hover {
+  color: #ffc784;
 }

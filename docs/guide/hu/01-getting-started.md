@@ -13,7 +13,7 @@ Nyisd meg a [layerling.com](https://layerling.com/) oldalt. A kezdőlapon kattin
 
 Ha már van egy fájlod, amellyel folytatnád, használd a {{ui:dashboard.importGeometry}} lehetőséget. Ez layerling tervekkel (`.lyl`) és STL, OBJ, 3MF, STEP vagy SVG fájlokkal is működik.
 
-A terveid később előnézeti képpel jelennek meg a kezdőlapon. A böngésződ tárolójában maradnak, és minden változtatás után automatikusan mentődnek, ezért nincs mentés gomb. Hogy hogyan csomagolhatsz terveket fájlba és adhatod tovább őket, azt a [Fájlok és mentés](chapter:files-and-saving) fejezet írja le.
+A terveid később előnézeti képpel jelennek meg a kezdőlapon. A böngésződ tárolójában maradnak, és minden változtatás után automatikusan mentődnek, ezért nincs mentés gomb. Hogy hogyan csomagolhatsz terveket fájlba és adhatod tovább őket, azt a [Fájlok és mentés](chapter:files-and-saving) fejezet írja le. Ha emlékeztetőt szeretnél, kapcsold be a beállításokban (a szalagon lévő fogaskerék) a {{ui:workspace.confirmTabClose}} opciót: a böngésző ilyenkor rákérdez, mielőtt egy nyitott tervet tartalmazó lapot bezárnál vagy újratöltenél.
 
 ## A szerkesztő egy pillantással
 
@@ -111,4 +111,4 @@ A layerling saját gépen vagy szerveren futó példányán a „Frissítés ér
 
 Ha kész az alkatrészed, kattints az {{ui:editor.export}} gombra, válaszd az STL vagy a 3MF formátumot, és töltsd le a fájlt. Nyisd meg a szeletelődben, például a Bambu Studióban, a PrusaSlicerben, az OrcaSlicerben vagy a Curában. Ha a beállításokban kiválasztod a nyomtatódat, már építés közben látod, hogy az alkatrész elfér-e a tárgyasztalon. Bővebben a [Nyomtatás](chapter:printing) fejezetben.
 
-> **Tipp:** Ha a Tinkercadből jössz, gyorsan eligazodsz: a tárgyasztal, az alakzatok, a tömör test és a lyuk, a csoportosítás, az igazítás és a tükrözés szinte ugyanúgy működik. Ami új, az főleg az élletörés és a lekerekítés, a kiüregelés, a menetek és a vázlatok.
+> **Tipp:** Ha a Tinkercadből jössz, gyorsan eligazodsz: a tárgyasztal, az alakzatok, a tömör test és a lyuk, a csoportosítás, az igazítás és a tükrözés szinte ugyanúgy működik. Ami új, az főleg az élletörés és a lekerekítés, a kiüregelés, a menetek és a vázlatok. A saját Tinkercad-terveidet is áthozhatod, lásd [Fájlok, mentés és megosztás](chapter:files-and-saving).

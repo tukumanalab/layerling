@@ -57,7 +57,7 @@ Krabičky, nádoby a kryty mají uvnitř prázdný prostor a rovnoměrně silné
 
 1. Vyberte těleso a zvolte {{ui:editor.tool.hollow}} v pásu nástrojů nebo nabídce pravého tlačítka.
 2. Nastavte {{ui:shell.wall}}.
-3. V části {{ui:shell.openings}} zapněte otevřené strany: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} a {{ui:shell.side.right}}. Lze kombinovat libovolný počet. Samotná {{ui:shell.side.front}} vytvoří otvor pro zásuvku, {{ui:shell.side.left}} a {{ui:shell.side.right}} průchozí tunel. Bez otevřené strany vznikne uzavřené těleso s vnitřní dutinou. {{ui:shell.side.top}} je při otevření panelu už zapnuté; kliknutím na něj se horní strana zase zavře. Těleso uzavřené ze všech stran vypadá zvenku beze změny: dutinu ukáže řez.
+3. V části {{ui:shell.openings}} zapněte otevřené strany: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} a {{ui:shell.side.right}}. Lze kombinovat libovolný počet. Samotná {{ui:shell.side.front}} vytvoří otvor pro zásuvku, {{ui:shell.side.left}} a {{ui:shell.side.right}} průchozí tunel. Bez otevřené strany vznikne uzavřené těleso s vnitřní dutinou. {{ui:shell.side.closed}} vypne všechny strany jedním kliknutím. {{ui:shell.side.top}} je při otevření panelu už zapnuté; kliknutím na něj se horní strana zase zavře. Těleso uzavřené ze všech stran vypadá zvenku beze změny: dutinu ukáže řez.
 4. Zvolte, zda mají být {{ui:shell.edges}} nastavené na {{ui:shell.edges.round}} nebo {{ui:shell.edges.sharp}}.
 5. Potvrďte {{ui:shell.apply}}.
 
@@ -80,6 +80,18 @@ Vytvořit dutinu lze i v tělese s kapsou, tedy kvádru se slepým otvorem vznik
 Při pozdější změně velikosti se dutina ihned přepočítá. Zadaná tloušťka stěn zůstává zachovaná i u oblých těles. Válec protažený v jednom směru více než v druhém se změní na elipsu.
 
 > **Tip:** Pro trysku 0,4 mm je vhodným výchozím rozsahem stěna 1,2 až 2 mm: šetří materiál a přitom poskytuje dostatečně pevný díl.
+
+## Odsazení těles
+
+Každou plochu tělesa lze posunout o stejnou vzdálenost ven nebo dovnitř. To potřebuje lícovaný spoj, víko nebo zacvakávací spoj: mezera 0,1 až 0,3 mm dokola, zatímco prvky zůstanou na místě, což změna měřítka nedá.
+
+1. Vyber jedno těleso a klikni na {{ui:editor.tool.offset}}, nebo na těleso klikni pravým tlačítkem a vyber to tam.
+2. Zvol {{ui:offset.grow}} nebo {{ui:offset.shrink}} a nastav {{ui:offset.distance}}.
+3. {{ui:offset.edges}} rozhodují o vnějších rozích: zaoblené drží odsazený povrch kulatý, ostré nechá plochy pokračovat, dokud se nepotkají.
+4. Zaškrtni {{ui:offset.copy}}, aby díl zůstal, jak je, a zvětšené těleso vzniklo jako kopie, která už je dírou. Seskup tuto díru s protikusem a vyřízne přesně vůli, kterou jsi zvolil.
+5. Klikni na {{ui:offset.apply}}.
+
+Bez zaškrtnutí se odsadí samotné těleso. Stane se pevným přesným tělesem, jako po zkosení: seznam nahoře v panelu odsazení vezme zpět a {{ui:edge.editAction}} znovu otevře nástroj se starou vzdáleností. Odsadit lze jen přesná CAD tělesa - kvádry, válce a další tvary, jejich skupiny, importované díly STEP. Těleso, které je jen trojúhelníková síť, jako mnoho importů STL, často nejde. Vzdálenost příliš velká pro těleso, například zmenšení za nejtenčí stěnu, se odmítne.
 
 ## Mazání ploch
 

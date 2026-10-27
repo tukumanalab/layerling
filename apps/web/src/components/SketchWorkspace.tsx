@@ -1,19 +1,25 @@
 "use client";
 
-import { AlignCenterHorizontal, AlignCenterVertical, Check, ChevronUp, CornerDownRight, Crop, Crosshair, FlipHorizontal2, FlipVertical2, Home, Layers, Link, Link2Off, LockKeyhole, LockKeyholeOpen, Minus, Plus, Ruler, RulerDimensionLine, Slash, Spline, Split, Trash2, Waves, X } from "lucide-react";
+import { AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignStartHorizontal, AlignStartVertical, Check, ChevronUp, CornerDownRight, Crop, Crosshair, FlipHorizontal2, FlipVertical2, Home, Layers, Link, Link2Off, LockKeyhole, LockKeyholeOpen, Minus, Plus, Ruler, RulerDimensionLine, Slash, Spline, Split, Trash2, Waves, X } from "lucide-react";
 import { displayedHandle } from "@/lib/sketchBezierHandles";
+import { curveStretches } from "@/lib/sketchCurveThroughPoints";
 import { markEscapeHandled } from "@/lib/escapeHandled";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
 import { SnapGridControl } from "@/components/workplane/ShapeInspector";
 import { SketchRevolvePreview } from "@/components/SketchRevolvePreview";
+import { SketchNotes } from "@/components/SketchNotes";
+import { SketchLockBadge, SketchRotateHandles } from "@/components/SketchHandles";
+import { lockBadgeSpot, rotateHandleSpots } from "@/lib/sketchHandleSpots";
+import { SKETCH_DOUBLE_CLICK_PIXELS, useSketchViewSlide } from "@/lib/useSketchViewSlide";
 import { ToolbarConstructionLineIcon } from "@/components/toolbarIcons";
 import { constructionCrossings } from "@/lib/sketchConstruction";
 import { outlineSideMiddles, sketchSnapPoints } from "@/lib/sketchSnapPoints";
+import { openEndPoints } from "@/lib/sketchPointJoin";
 import { canApplySketchCornerTreatment } from "@/lib/sketchFilletChamfer";
 import { t } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
 import { useMovablePanel, type MovablePanelOptions } from "@/lib/useMovablePanel";
-import { parseMeasurementInput, resolveMeasurementInput } from "@/lib/measurementUnits";
+import { currentLengthUnitLabel, formatLengthMm, lengthDisplayUnit, parseLengthMm, parseMeasurementInput, resolveLengthMm, setLengthUnit } from "@/lib/measurementUnits";
 import { applySegmentDimension, SEGMENT_DIMENSION_CENTER } from "@/lib/sketchDimensions";
 import { applyCornerAngle, sketchCornerAt, type CornerTurn, type SketchCorner } from "@/lib/sketchAngles";
 import { isSegmentCurved } from "@/lib/sketchSegmentCurve";
@@ -25,12 +31,14 @@ import { isSketchPrimitive, type SketchPrimitive } from "@/lib/sketchPrimitives"
 import { meshForShape } from "@/lib/editorMeshCore";
 import { mirrorSign, resizedImportedMeshPositions } from "@/lib/workplaneShapes";
 import { DEFAULT_SNAP_GRID, DEFAULT_WORKPLANE_WORKSPACE, keyboardNudgeCoarseFactor, keyboardNudgeStep, normalizeSnapGrid, normalizeWorkspaceSettings, snapGridStep as snapStep, orbitControlsZoomSpeed, zoomDistanceScale, ZOOM_STEP_IN, ZOOM_STEP_OUT } from "@/lib/workplaneSettings";
-import type { GridSize, SketchImage, SketchOperation, SketchPoint, SketchProfile, SketchSegment, SketchStroke, SketchStrokeAlign, SketchStrokeCap, SketchStrokeJoin, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
+import type { GridSize, SketchImage, SketchNote, SketchOperation, SketchPoint, SketchProfile, SketchSegment, SketchStroke, SketchStrokeAlign, SketchStrokeCap, SketchStrokeJoin, SweepAnchor, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { resizePointerOnGrid } from "@/lib/sketchFrameResize";
+import { viewArrowStep } from "@/lib/viewArrowKeys";
 import { resizeSketchPoints, resizeSketchPointsToSize, type ResizeHandle, type SelectionBounds } from "@/lib/sketchSelectionResize";
+import { alignSketchSelection, canAlignSketchSelection, type SketchAlignMode } from "@/lib/sketchAlign";
 import { changesLockedOutline, sketchLockState } from "@/lib/sketchLock";
 import { dragRotationDegrees, rotateSketchPointsAbout, sketchPointsPivot } from "@/lib/sketchRotation";
-import { calibrateImage, centreImage, cropImage, imageAngleTo, imageCorners, imageCropViewBox, imageHandlePositions, imageRotateHandle, imageToWorld, normalizeImageRotation, resizeImage, rotateImage, uncropImage } from "@/lib/sketchImageTransform";
+import { calibrateImage, centreImage, cropImage, imageAngleTo, imageCorners, imageCropViewBox, imageHandlePositions, normalizeImageRotation, resizeImage, rotateImage, uncropImage } from "@/lib/sketchImageTransform";
 import { DEFAULT_SKETCH_STROKE, SKETCH_STROKE_ALIGNS, SKETCH_STROKE_CAPS, SKETCH_STROKE_JOINS } from "@/lib/sketchStroke";
 import { selectWholeValue } from "@/lib/numberField";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
@@ -44,6 +52,8 @@ export type { SketchPrimitive } from "@/lib/sketchPrimitives";
 export type SketchTool = "line" | "arc" | "bezier" | "smooth" | SketchPrimitive | "select" | "refine" | "erase" | "measure";
 /** The keys 1 to 4 and the drawing tool each picks, in the order of the tools on the left (#347). */
 export const SKETCH_TOOL_KEYS: Readonly<Record<string, SketchTool>> = { "1": "line", "2": "bezier", "3": "smooth", "4": "refine" };
+/** With the Select tool and something selected, the same keys change it instead (#347): 1 straight / corner, 2 curve, 3 smooth. */
+export const SKETCH_EDIT_KEYS: Readonly<Record<string, "straight" | "curve" | "smooth">> = { "1": "straight", "2": "curve", "3": "smooth" };
 export type { SketchSelection } from "@/lib/sketchSelection";
 export type SketchMeasurement = { start: SketchPoint; end: SketchPoint } | null;
 
@@ -52,6 +62,8 @@ type SketchWorkspaceProps = {
   operation?: SketchOperation;
   /** What the sketch becomes changed from the badge at the top (#655). */
   onOperationChange?: (operation: SketchOperation) => void;
+  /** Which edge of a swept section runs along the path, from the badge at the top (#732). */
+  onSweepAnchorChange?: (anchor: SweepAnchor) => void;
   revolvePreviewPositions?: number[] | null;
   referenceShapes: WorkplaneShape[];
   /** Where a workplane inside a body cuts it: the outline of the cut per body (id), as an SVG path of loops. */
@@ -98,6 +110,10 @@ type SketchWorkspaceProps = {
   onSelectTool?: (tool: SketchTool) => void;
   onInsertPoint: (segmentId: string, point: { x: number; z: number }, amount: number) => void;
   onSetPointMode: (id: string, mode: "corner" | "smooth" | "split") => void;
+  /** Several points at once, one undo step: the keys 1 and 3 on a selection (#347). */
+  onSetPointsMode?: (ids: string[], mode: "corner" | "smooth") => void;
+  /** One smooth curve from the first selected point to the last, through those between (3 or more points). */
+  onCurveThroughPoints?: (ids: string[]) => void;
   /** Bends a straight side into a curve with handles, or makes a curved side straight again. */
   onCurveSegment?: (id: string) => void;
   /** Curve or straighten all the selected lines at once (#283). */
@@ -121,6 +137,14 @@ type SketchWorkspaceProps = {
   /** Leave the holes out (#197), set in the same panel. */
   onSilhouetteChange?: (silhouette: boolean) => void;
   strokePreview?: string | null;
+  /** The sketch body's notes: pins and cards as in the 3D view; with `noteMode`, the next click puts one there. */
+  notes?: readonly SketchNote[];
+  noteNumbers?: ReadonlyMap<string, number>;
+  noteMode?: boolean;
+  /** Puts a note on the spot and gives its id, or null when there is no room for another. */
+  onAddNote?: (spot: { x: number; z: number }) => string | null;
+  onUpdateNote?: (id: string, patch: Partial<SketchNote>) => void;
+  onRemoveNote?: (id: string) => void;
 };
 
 type SketchReferenceFootprint = {
@@ -139,8 +163,8 @@ type PointerAction =
   | { kind: "marquee"; pointerId: number; origin: { x: number; z: number }; current: { x: number; z: number }; clientX: number; clientY: number }
   | { kind: "move-image"; pointerId: number; imageId: string; origin: { x: number; z: number }; current: { x: number; z: number }; start: SketchImage }
   | { kind: "resize-image"; pointerId: number; imageId: string; handle: ResizeHandle; current: { x: number; z: number }; start: SketchImage }
-  | { kind: "rotate-selection"; pointerId: number; pivot: { x: number; z: number }; start: { x: number; z: number }; current: { x: number; z: number }; startPoints: SketchPoint[]; snap: boolean }
-  | { kind: "rotate-image"; pointerId: number; imageId: string; startAngle: number; current: { x: number; z: number }; start: SketchImage; snap: boolean }
+  | { kind: "rotate-selection"; pointerId: number; pivot: { x: number; z: number }; start: { x: number; z: number }; current: { x: number; z: number }; startPoints: SketchPoint[]; snap: boolean; corner: number }
+  | { kind: "rotate-image"; pointerId: number; imageId: string; startAngle: number; current: { x: number; z: number }; start: SketchImage; snap: boolean; corner: number }
   | { kind: "crop-image"; pointerId: number; imageId: string; handle: ResizeHandle; current: { x: number; z: number }; start: SketchImage };
 
 
@@ -227,9 +251,18 @@ const IMAGE_SETTINGS_PANEL: MovablePanelOptions = {
   dockedAt: (area, panel) => ({ left: area.width - panel.width, top: 0 }),
 };
 
+// Lengths read and type in the workspace unit (#757); the sketch itself stays in millimetres.
 function formatDimension(value: number, accuracy: 1 | 2 | 3) {
+  return formatLengthMm(value, accuracy);
+}
+
+function formatPlainNumber(value: number, accuracy: 1 | 2 | 3) {
   const threshold = 0.5 * 10 ** -accuracy;
   return (Math.abs(value) < threshold ? 0 : value).toFixed(accuracy);
+}
+
+function defaultCornerText() {
+  return formatLengthMm(2, 2);
 }
 
 function dimensionPillSize(label: string, screenUnit: number, extra = 24) {
@@ -370,8 +403,12 @@ function triangleArea2d(a: { x: number; z: number }, b: { x: number; z: number }
   return Math.abs((b.x - a.x) * (c.z - a.z) - (c.x - a.x) * (b.z - a.z)) / 2;
 }
 
+/** One triangle of a fill, always wound the same way: under the nonzero rule triangles wound against each other cancel where they overlap, as the parts of a group do (#778). */
 function trianglePath(points: Array<{ x: number; z: number }>) {
-  return `M ${points[0].x} ${points[0].z} L ${points[1].x} ${points[1].z} L ${points[2].x} ${points[2].z} Z`;
+  const [a, b, c] = (points[1].x - points[0].x) * (points[2].z - points[0].z) - (points[2].x - points[0].x) * (points[1].z - points[0].z) < 0
+    ? [points[0], points[2], points[1]]
+    : points;
+  return `M ${a.x} ${a.z} L ${b.x} ${b.z} L ${c.x} ${c.z} Z`;
 }
 
 function convexHull(points: Array<{ x: number; z: number }>) {
@@ -456,9 +493,26 @@ function boundaryPath(points: Array<{ x: number; z: number }>, triangles: number
   return commands.join(" ");
 }
 
-function importedMeshFootprint(shape: WorkplaneShape): SketchReferenceFootprint | null {
+export function importedMeshFootprint(shape: WorkplaneShape): SketchReferenceFootprint | null {
   if (!shape.importedMesh) return null;
-  return footprintOfPositions(resizedImportedMeshPositions(shape), (x, z) => sketchReferencePoint(shape, x, z), Math.max(shape.width, shape.depth, shape.height), shape.height);
+  const positions = resizedImportedMeshPositions(shape);
+  const project = (x: number, z: number) => sketchReferencePoint(shape, x, z);
+  const size = Math.max(shape.width, shape.depth, shape.height);
+  const counts = shape.importedMesh.partTriangleCounts;
+  if (!counts?.length) return footprintOfPositions(positions, project, size, shape.height);
+  // On a workplane set on a face (#778) each part shows as it is seen from the plane: the face on the plane alone was a thin
+  // strip when the plane stood a little askew, and a group left out its parts behind the plane.
+  const fills: string[] = [];
+  const outlines: string[] = [];
+  let start = 0;
+  for (const count of counts) {
+    const part = footprintOfPositions(positions.slice(start * 9, (start + count) * 9), project, size, shape.height, true);
+    if (part?.fillD) fills.push(part.fillD);
+    if (part?.outlineD) outlines.push(part.outlineD);
+    start += count;
+  }
+  if (!outlines.length) return null;
+  return { fillD: fills.length === outlines.length ? fills.join(" ") : null, outlineD: outlines.join(" ") };
 }
 
 /** More triangles than this and a body is shown by its box, not by an outline made of its triangles. */
@@ -469,26 +523,89 @@ const REFERENCE_OUTLINE_TRIANGLE_LIMIT = 20000;
  * a heart or a wedge was drawn as the rectangle of its width and depth, the same square for all of them.
  */
 export function shapeMeshFootprint(shape: WorkplaneShape): SketchReferenceFootprint | null {
-  if (shape.importedMesh || shape.groupedShapes?.length || shape.kind === "box" || isRoundReference(shape)) return null;
+  if (shape.importedMesh || shape.kind === "box" || (isRoundReference(shape) && !shape.groupedShapes?.length)) return null;
   let mesh: ReturnType<typeof meshForShape>;
   try {
     mesh = meshForShape(shape);
   } catch {
     return null;
   }
-  if (!mesh.faces.length || mesh.faces.length > REFERENCE_OUTLINE_TRIANGLE_LIMIT) return null;
+  if (!mesh.faces.length) return null;
+  // A group's limit counts per part (#834): a knurl and a bolt, each under it, were over it together, and the group fell
+  // back to its box, one square for both.
+  if (shape.groupedShapes?.length) return groupMeshFootprint(shape, mesh);
+  if (mesh.faces.length > REFERENCE_OUTLINE_TRIANGLE_LIMIT) return null;
   const positions: number[] = [];
   mesh.faces.forEach((face) => face.forEach((index) => positions.push(...mesh.vertices[index])));
   const footprint = footprintOfPositions(positions, (x, z) => ({ x, z }), Math.max(shape.width, shape.depth, shape.height), shape.height);
   return footprint ? { ...footprint, world: true } : null;
 }
 
-/** The outline of a mesh seen from above: its bottom triangles, as a fill and as the boundary round them; the hull when it has no flat bottom. */
+/**
+ * The outline of a group (#778): each visible member's own outline, in one path. A group's mesh holds its members one after
+ * the other, so a member's triangles are the ones whose vertices lie in its range. Taken as one body, the group would show only
+ * the bottom of its lowest member, and a group with a plate on top of a gear showed the gear, not the plate; without the mesh
+ * it fell back to a box, the same square for every group.
+ */
+function groupMeshFootprint(shape: WorkplaneShape, mesh: ReturnType<typeof meshForShape>): SketchReferenceFootprint | null {
+  const fills: string[] = [];
+  const outlines: string[] = [];
+  let start = 0;
+  for (const child of (shape.groupedShapes ?? []).filter((entry) => !entry.hidden)) {
+    let count: number;
+    try {
+      count = meshForShape(child).vertices.length;
+    } catch {
+      return null;
+    }
+    const end = start + count;
+    const positions: number[] = [];
+    let faces = 0;
+    mesh.faces.forEach((face) => {
+      if (face[0] >= start && face[0] < end) {
+        face.forEach((index) => positions.push(...mesh.vertices[index]));
+        faces += 1;
+      }
+    });
+    // A part with more triangles than an outline is worked out from shows as its own box, the others keep their outline.
+    const part = faces > REFERENCE_OUTLINE_TRIANGLE_LIMIT
+      ? boxOfPositions(positions)
+      : footprintOfPositions(positions, (x, z) => ({ x, z }), Math.max(child.width, child.depth, child.height), child.height);
+    if (part?.fillD) fills.push(part.fillD);
+    if (part?.outlineD) outlines.push(part.outlineD);
+    start = end;
+  }
+  if (!outlines.length) return null;
+  return { fillD: fills.length === outlines.length ? fills.join(" ") : null, outlineD: outlines.join(" "), world: true };
+}
+
+/** The rectangle round a part's points seen from above, for a part too fine to work its outline out from. */
+function boxOfPositions(positions: ArrayLike<number>): SketchReferenceFootprint | null {
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minZ = Number.POSITIVE_INFINITY;
+  let maxZ = Number.NEGATIVE_INFINITY;
+  for (let index = 0; index + 2 < positions.length; index += 3) {
+    minX = Math.min(minX, positions[index]);
+    maxX = Math.max(maxX, positions[index]);
+    minZ = Math.min(minZ, positions[index + 2]);
+    maxZ = Math.max(maxZ, positions[index + 2]);
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(minZ)) return null;
+  const d = `M ${minX} ${minZ} L ${maxX} ${minZ} L ${maxX} ${maxZ} L ${minX} ${maxZ} Z`;
+  return { fillD: d, outlineD: d };
+}
+
+/**
+ * The outline of a mesh seen from above: its bottom triangles, as a fill and as the boundary round them; as it is seen from
+ * above when it has no flat bottom or `asSeen` asks for that (#778).
+ */
 function footprintOfPositions(
   positions: ArrayLike<number>,
   project: (x: number, z: number) => { x: number; z: number },
   size: number,
   height: number,
+  asSeen = false,
 ): SketchReferenceFootprint | null {
   if (positions.length < 9) return null;
   let minY = Number.POSITIVE_INFINITY;
@@ -519,11 +636,30 @@ function footprintOfPositions(
     triangles.push([offset, offset + 1, offset + 2]);
   }
 
-  if (triangles.length > 0) {
+  if (triangles.length > 0 && !asSeen) {
     return {
       fillD: triangles.length <= 5000 ? triangles.map((triangle) => trianglePath(triangle.map((index) => points[index]))).join(" ") : null,
       outlineD: boundaryPath(points, triangles, tolerance),
     };
+  }
+
+  // No face lies on the plane: the body as it is seen from the plane. The triangles turned towards it cover that outline once,
+  // edge to edge, on a closed body; the hull round all points was drawn here before and showed a tower of a box, a cylinder, a
+  // sphere and a cone as one rough polygon (#778). A body turned the other way round has the larger side the other way.
+  const facing: number[][][] = [[], []];
+  const facingArea = [0, 0];
+  for (let index = 0; index + 2 < allProjected.length; index += 3) {
+    const [a, b, c] = allProjected.slice(index, index + 3);
+    const signed = (b.x - a.x) * (c.z - a.z) - (c.x - a.x) * (b.z - a.z);
+    if (Math.abs(signed) / 2 <= tolerance) continue;
+    const side = signed > 0 ? 0 : 1;
+    facing[side].push([index, index + 1, index + 2]);
+    facingArea[side] += Math.abs(signed) / 2;
+  }
+  const seen = facingArea[0] >= facingArea[1] ? facing[0] : facing[1];
+  if (seen.length > 0 && seen.length <= REFERENCE_OUTLINE_TRIANGLE_LIMIT) {
+    const outlineD = boundaryPath(allProjected, seen, tolerance);
+    if (outlineD) return { fillD: seen.length <= 5000 ? seen.map((triangle) => trianglePath(triangle.map((index) => allProjected[index]))).join(" ") : null, outlineD };
   }
 
   const hull = convexHull(allProjected);
@@ -536,6 +672,7 @@ export function SketchWorkspace({
   profile,
   operation = "extrude",
   onOperationChange,
+  onSweepAnchorChange,
   revolvePreviewPositions = null,
   referenceShapes,
   referenceSlices,
@@ -572,6 +709,8 @@ export function SketchWorkspace({
   onSelectTool,
   onInsertPoint,
   onSetPointMode,
+  onSetPointsMode,
+  onCurveThroughPoints,
   onCurveSegment,
   onCurveSegments,
   onMirror,
@@ -589,9 +728,17 @@ export function SketchWorkspace({
   onStrokeChange,
   onSilhouetteChange,
   strokePreview = null,
+  notes,
+  noteNumbers,
+  noteMode = false,
+  onAddNote,
+  onUpdateNote,
+  onRemoveNote,
 }: SketchWorkspaceProps) {
   useLanguage();
   const workspace = useMemo(() => normalizeWorkspaceSettings(initialWorkspace, DEFAULT_WORKPLANE_WORKSPACE), [initialWorkspace]);
+  setLengthUnit(workspace);
+  const unitLabel = lengthDisplayUnit(workspace).label;
   const [snap, setSnap] = useState<GridSize>(() => normalizeSnapGrid(initialSnap, DEFAULT_SNAP_GRID));
   // One grid for the sketch and the 3D view: what the editor holds wins, and a pick here goes back to it.
   useEffect(() => {
@@ -607,6 +754,10 @@ export function SketchWorkspace({
   const [snapOpen, setSnapOpen] = useState(false);
   const [view, setView] = useState<SketchView>({ zoom: 1, pan: { x: 0, z: 0 } });
   const { zoom, pan } = view;
+  const viewSlide = useSketchViewSlide(setView);
+  // Where the last left press on the empty plate began a selection frame; any other press clears it, so only a
+  // double click there centres the view, as in the 3D view.
+  const emptyPressRef = useRef<{ x: number; y: number } | null>(null);
   const [hover, setHover] = useState<{ x: number; z: number } | null>(null);
   // The three-point arc (#643): the two ends clicked so far; the third click sets the bend.
   const [arcPicks, setArcPicks] = useState<SketchArcEnd[]>([]);
@@ -662,6 +813,7 @@ export function SketchWorkspace({
     });
   };
   const [svgSize, setSvgSize] = useState({ width: 0, height: 0 });
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapRef = useRef<HTMLElement | null>(null);
   // Width or height of the selected shape, while its value is typed (#168).
@@ -836,8 +988,15 @@ export function SketchWorkspace({
     ? selected.pointIds.map((id) => pointById.get(id)).filter((point): point is SketchPoint => Boolean(point))
     : [];
   const selectedGeometryBounds = boundsForSketchPoints(selectedGeometryPoints);
-  // A selection with a locked outline in it (#653) has no handles to stretch or turn it.
+  // A selection with a locked outline in it (#653) keeps its handles, grey and inert, as a locked body in 3D.
   const selectionLock = selected?.kind === "multiple" ? sketchLockState(profile, selected.pointIds) : "none";
+  // Two outlines or more selected: they can be lined up on each other (#836).
+  const canAlignOutlines = selected?.kind === "multiple" && canAlignSketchSelection(profile, selected.pointIds);
+  const alignOutlines = (mode: SketchAlignMode) => {
+    if (selected?.kind !== "multiple") return;
+    const moved = alignSketchSelection(profile, selected.pointIds, mode);
+    if (moved) onTransformPoints(moved, t("sketch.aligned"));
+  };
   const selectionLocked = selectionLock !== "none";
   const isPointSelected = (id: string) => selected?.kind === "point" ? selected.id === id : selected?.kind === "multiple" ? selected.pointIds.includes(id) : false;
   const isSegmentSelected = (id: string) => selected?.kind === "segment" ? selected.id === id : selected?.kind === "multiple" ? selected.segmentIds.includes(id) : false;
@@ -847,7 +1006,7 @@ export function SketchWorkspace({
     setLocalCornerDialog(dialog);
     onCornerDialogChange?.(dialog);
   }, [onCornerDialogChange]);
-  const [cornerValue, setCornerValue] = useState("2");
+  const [cornerValue, setCornerValue] = useState(defaultCornerText);
   // Mirror (#512): the bar with the choice of axis, and the step where a line is picked as the axis.
   const [mirrorOpen, setMirrorOpen] = useState(false);
   const [mirrorPicking, setMirrorPicking] = useState(false);
@@ -880,7 +1039,7 @@ export function SketchWorkspace({
 
   useEffect(() => {
     setCornerDialog(null);
-    setCornerValue("2");
+    setCornerValue(defaultCornerText());
   }, [selectedPoint?.id, setCornerDialog]);
 
   // One corner, or several selected ones that get the same radius or distance at once (#269).
@@ -893,9 +1052,10 @@ export function SketchWorkspace({
   const canStraightenLines = selectedLines.some((segment) => isSegmentCurved(displayProfile, segment) || (segment.kind ?? "line") !== "line");
   const manyCorners = selected?.kind === "multiple" && selectedCornerIds.some((id) => canApplySketchCornerTreatment(displayProfile, id));
   const manyLines = selected?.kind === "multiple" && selectedLines.length > 0 && Boolean(onCurveSegments && onStraightenSegments);
+  const canCurveThroughPoints = selected?.kind === "multiple" && Boolean(onCurveThroughPoints) && selectedCornerIds.length >= 3 && curveStretches(displayProfile, selectedCornerIds).length > 0;
   const handleApplyCorner = () => {
     if (selectedCornerIds.length === 0 || !activeCornerDialog) return;
-    const val = parseMeasurementInput(cornerValue);
+    const val = parseLengthMm(cornerValue);
     if (!Number.isFinite(val) || val <= 0) return;
     if (activeCornerDialog === "fillet") {
       onApplyFillet?.(selectedCornerIds, val);
@@ -924,7 +1084,7 @@ export function SketchWorkspace({
         }}
         autoFocus
       />
-      <span className="sketch-corner-unit">mm</span>
+      <span className="sketch-corner-unit">{unitLabel}</span>
       <button
         type="button"
         className="sketch-corner-submit"
@@ -969,7 +1129,7 @@ export function SketchWorkspace({
   const commitDimensionEdit = useCallback((symmetric = false) => {
     if (!editingDimension || dimensionEditDoneRef.current) return;
     dimensionEditDoneRef.current = true;
-    const length = parseMeasurementInput(editingDimension.value);
+    const length = parseLengthMm(editingDimension.value);
     const segment = profile.segments.find((entry) => entry.id === editingDimension.segmentId);
     if (segment && Number.isFinite(length) && length > 0.001) {
       const anchor = symmetric
@@ -992,7 +1152,7 @@ export function SketchWorkspace({
       const bounds = boundsForSketchPoints(startPoints);
       if (bounds) {
         const current = editingBoxSize.axis === "x" ? bounds.width : bounds.depth;
-        const size = resolveMeasurementInput(editingBoxSize.value, current);
+        const size = resolveLengthMm(editingBoxSize.value, current);
         if (Number.isFinite(size) && size > 0) {
           onTransformPoints(resizeSketchPointsToSize(startPoints, bounds, editingBoxSize.axis, size, keepProportionsRef.current), t("sketch.shapeResized"));
         }
@@ -1100,7 +1260,7 @@ export function SketchWorkspace({
       let nearestDistance = reach;
       // A dragged point leaves out the middle of its own lines, which would move away under it.
       const targets = pointerAction?.kind === "move-point"
-        ? [...referenceSnapPoints, ...crossingSnapPoints, ...sketchSnapPoints(displayProfile, pointerAction.pointId)]
+        ? [...referenceSnapPoints, ...crossingSnapPoints, ...sketchSnapPoints(displayProfile, pointerAction.pointId), ...openEndPoints(displayProfile, pointerAction.pointId)]
         : snapTargets;
       targets.forEach((candidate) => {
         const distance = Math.hypot(candidate.x - local.x, candidate.z - local.z);
@@ -1202,6 +1362,16 @@ export function SketchWorkspace({
   const rightPressRef = useRef<{ x: number; y: number } | null>(null);
 
   const handlePanPointerDownCapture = (event: ReactPointerEvent<SVGSVGElement>) => {
+    emptyPressRef.current = null;
+    viewSlide.stop();
+    // With the note tool, a click anywhere - on a line as well - puts the note there, and nothing else happens.
+    const notePoint = noteMode && event.button === 0 && onAddNote ? unsnappedPointFromEvent(event) : null;
+    if (notePoint) {
+      event.preventDefault();
+      event.stopPropagation();
+      setEditingNoteId(onAddNote!(notePoint));
+      return;
+    }
     if (event.button === 2) rightPressRef.current = { x: event.clientX, y: event.clientY };
     if (isSketchPanGesture(event)) beginPan(event);
     else retargetTouchPress(event);
@@ -1222,6 +1392,7 @@ export function SketchWorkspace({
       setPointerAction({ kind: "bezier", pointerId: event.pointerId, origin: startPoint, current: startPoint });
     } else if (tool === "select" || (tool === "erase" && onEraseMany)) {
       capturePointer(event.currentTarget, event.pointerId);
+      if (tool === "select") emptyPressRef.current = { x: event.clientX, y: event.clientY };
       setPointerAction({ kind: "marquee", pointerId: event.pointerId, origin: point, current: point, clientX: event.clientX, clientY: event.clientY });
     } else if (tool === "arc") {
       pickArcPoint(point);
@@ -1374,6 +1545,7 @@ export function SketchWorkspace({
 
   const handleWheel = (event: ReactWheelEvent<SVGSVGElement>) => {
     event.preventDefault();
+    viewSlide.stop();
     const bounds = event.currentTarget.getBoundingClientRect();
     const offset = { x: event.clientX - (bounds.left + bounds.width / 2), y: event.clientY - (bounds.top + bounds.height / 2) };
     const pixelsPerUnit = Math.min(bounds.width / workspace.width, bounds.height / workspace.depth);
@@ -1444,6 +1616,27 @@ export function SketchWorkspace({
     return true;
   }, [focusBounds, workspace.depth, workspace.width]);
 
+  // The keys 1 to 3 on a selection with the Select tool (#347). False when the selection has nothing to
+  // change this way, so the key goes on to pick the drawing tool.
+  const editSelectionByKey = (action: "straight" | "curve" | "smooth"): boolean => {
+    if (tool !== "select") return false;
+    const lineIds = selectedLines.map((segment) => segment.id);
+    if (action === "curve") {
+      if (!lineIds.length || !(onCurveSegments || onCurveSegment)) return false;
+      if (canCurveLines) (onCurveSegments ?? ((ids: string[]) => ids.forEach((id) => onCurveSegment?.(id))))(lineIds);
+      return true;
+    }
+    if (action === "straight" && lineIds.length && (onStraightenSegments || onStraightenSegment)) {
+      if (canStraightenLines) (onStraightenSegments ?? ((ids: string[]) => ids.forEach((id) => onStraightenSegment?.(id))))(lineIds);
+      return true;
+    }
+    if (!selectedCornerIds.length) return false;
+    if (onSetPointsMode) onSetPointsMode(selectedCornerIds, action === "smooth" ? "smooth" : "corner");
+    else if (selectedCornerIds.length === 1) onSetPointMode(selectedCornerIds[0], action === "smooth" ? "smooth" : "corner");
+    else return false;
+    return true;
+  };
+
   useEffect(() => {
     const syncShiftConstrain = (shiftKey: boolean) => {
       if (!lastPointerRef.current) return;
@@ -1475,6 +1668,23 @@ export function SketchWorkspace({
       }
       const target = event.target;
       if (target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      // As in the 3D view: with nothing selected, Ctrl+arrows slide the sketch that way, a tenth of the
+      // view a press (Shift: half).
+      const panStep = !selected && !selectedHandle && !pointerAction ? viewArrowStep(event)?.pan : undefined;
+      if (panStep && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        setView((current) => {
+          const height = workspace.depth / current.zoom;
+          return {
+            ...current,
+            pan: {
+              x: clamp(current.pan.x - panStep[0] * height, -workspace.width / 2, workspace.width / 2),
+              z: clamp(current.pan.z + panStep[1] * height, -workspace.depth / 2, workspace.depth / 2),
+            },
+          };
+        });
+        return;
+      }
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (activePoint && !pointerAction && (tool === "line" || tool === "smooth") && /^[0-9.,<]$/.test(event.key)) {
         event.preventDefault();
@@ -1504,6 +1714,8 @@ export function SketchWorkspace({
       } else if (event.key === "-" || event.key === "_") {
         event.preventDefault();
         zoomByButton(ZOOM_STEP_OUT);
+      } else if (!activePoint && !pointerAction && SKETCH_EDIT_KEYS[event.key] && editSelectionByKey(SKETCH_EDIT_KEYS[event.key])) {
+        event.preventDefault();
       } else if (onSelectTool && !activePoint && !pointerAction && SKETCH_TOOL_KEYS[event.key]) {
         // 1 to 4 pick the drawing tools, as in Tinkercad (#347). While a line is being drawn the digits
         // are its length (above), so they only come here when no line is in progress.
@@ -1512,7 +1724,7 @@ export function SketchWorkspace({
       } else if (tool === "select" && !pointerAction && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
         // Fine moves, as on the workplane: one grid step, or a coarser one with
         // Shift. What moves is the selection - points, the ends of lines, an image.
-        const step = keyboardNudgeStep(snap, event.shiftKey, keyboardNudgeCoarseFactor(workspace));
+        const step = keyboardNudgeStep(snap, event.shiftKey, keyboardNudgeCoarseFactor(workspace), event.altKey);
         const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
         const dz = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
         // A clicked handle goes first (#347): it moves alone, a smooth point's other handle with it.
@@ -1557,7 +1769,8 @@ export function SketchWorkspace({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [activePoint, focusSelection, onMoveHandle, onSelectTool, onTransformPoints, onUpdateImage, pendingMeasurementStart, pointerAction, profile, resetView, selected, selectedHandle, snap, tool, workspace.depth, workspace.width]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- editSelectionByKey is rebuilt from the selection, which is listed
+  }, [activePoint, focusSelection, onMoveHandle, onSetPointMode, onSetPointsMode, onCurveSegment, onCurveSegments, onStraightenSegment, onStraightenSegments, selectedLines, selectedCornerIds, canCurveLines, canStraightenLines, onSelectTool, onTransformPoints, onUpdateImage, pendingMeasurementStart, pointerAction, profile, resetView, selected, selectedHandle, snap, tool, workspace.depth, workspace.width]);
 
   const beginEntityDrag = (event: ReactPointerEvent<SVGElement>, action: PointerAction) => {
     if (event.button !== 0) return;
@@ -1582,7 +1795,7 @@ export function SketchWorkspace({
   const pointerAngle = activePoint && hover ? sketchLineAngle(activePoint, hover) : 0;
   const typedLineTarget = (() => {
     if (!typedLine || !activePoint) return null;
-    const length = parseMeasurementInput(typedLine.length);
+    const length = parseLengthMm(typedLine.length);
     if (!Number.isFinite(length) || length <= 0.001) return null;
     const typedAngle = typedLine.angle.trim() ? parseMeasurementInput(typedLine.angle) : pointerAngle;
     return Number.isFinite(typedAngle) ? sketchPolarPoint(activePoint, length, typedAngle) : null;
@@ -1611,9 +1824,18 @@ export function SketchWorkspace({
     minZ: Math.min(...selectedImageCorners.map((corner) => corner.z)),
     maxZ: Math.max(...selectedImageCorners.map((corner) => corner.z)),
   } : null;
-  const imageResizeHandles: Array<{ id: ResizeHandle; x: number; z: number }> = selectedImage && !selectedImage.locked ? imageHandlePositions(selectedImage) : [];
-  const imageRotateHandlePoint = selectedImage && !selectedImage.locked && !cropMode ? imageRotateHandle(selectedImage, 22 * screenUnit) : null;
-  const imageTopMiddle = selectedImage ? imageToWorld(selectedImage, { x: 0, z: -selectedImage.depth / 2 }) : null;
+  // While it turns, the picture shows only the arrow being dragged: no resize handles.
+  const imageResizeHandles: Array<{ id: ResizeHandle; x: number; z: number }> = selectedImage && !selectedImage.locked && pointerAction?.kind !== "rotate-image" ? imageHandlePositions(selectedImage) : [];
+  // The part of the plate on screen: lock badges stay inside it, so a locked picture can be unlocked zoomed in.
+  const visibleWidth = svgSize.width > 0 ? svgSize.width * screenUnit : width;
+  const visibleDepth = svgSize.height > 0 ? svgSize.height * screenUnit : depth;
+  const plateView = { minX: pan.x - visibleWidth / 2, maxX: pan.x + visibleWidth / 2, minZ: pan.z - visibleDepth / 2, maxZ: pan.z + visibleDepth / 2 };
+  // As far out as the 3D editor's arrows stand from the frame; the one being dragged follows the pointer.
+  const rotateHandleGap = 22 * screenUnit;
+  const imageRotateSpots = selectedImage && selectedImageCorners && !selectedImage.locked && !cropMode
+    ? rotateHandleSpots(selectedImageCorners, selectedImage, rotateHandleGap, pointerAction?.kind === "rotate-image" ? { corner: pointerAction.corner, at: pointerAction.current } : undefined)
+    : [];
+  const imageTurnLabel = pointerAction?.kind === "rotate-image" && selectedImage ? `${formatPlainNumber(selectedImage.rotation ?? 0, 1)}°` : null;
   const imageCalibration = calibration && selectedImage && calibration.imageId === selectedImage.id ? calibration : null;
   // The frame stands a little off the shape, so a corner handle never sits on the
   // corner point of a rectangle and hides behind it (#168).
@@ -1624,7 +1846,7 @@ export function SketchWorkspace({
     minZ: selectedGeometryBounds.minZ - selectionFrameGap,
     maxZ: selectedGeometryBounds.maxZ + selectionFrameGap,
   } : null;
-  const selectionResizeHandles: Array<{ id: ResizeHandle; x: number; z: number; grab: { x: number; z: number } }> = selectedGeometryBounds && selectionFrame && !selectionLocked ? ([
+  const selectionResizeHandles: Array<{ id: ResizeHandle; x: number; z: number; grab: { x: number; z: number } }> = selectedGeometryBounds && selectionFrame && pointerAction?.kind !== "rotate-selection" ? ([
     // Corners stretch both ways (Shift keeps the proportions), the sides one way only (#168).
     { id: "nw", x: selectionFrame.minX, z: selectionFrame.minZ },
     { id: "n", x: selectedGeometryBounds.cx, z: selectionFrame.minZ },
@@ -1827,6 +2049,18 @@ export function SketchWorkspace({
             <option value="revolve">{t("sketch.modeBadgeRevolve")}</option>
             <option value="sweep">{t("sketch.modeBadgeSweep")}</option>
           </select>
+          {operation === "sweep" && onSweepAnchorChange ? (
+            <select
+              aria-label={t("sketch.sweepAnchorHint")}
+              title={t("sketch.sweepAnchorHint")}
+              value={profile.sweepAnchor ?? "center"}
+              onChange={(event) => onSweepAnchorChange(event.target.value as SweepAnchor)}
+            >
+              <option value="center">{t("sketch.sweepAnchorCenter")}</option>
+              <option value="left">{t("sketch.sweepAnchorLeft")}</option>
+              <option value="right">{t("sketch.sweepAnchorRight")}</option>
+            </select>
+          ) : null}
         </label>
       ) : (
         <div className="sketch-mode-badge">{operation === "revolve" ? t("sketch.modeBadgeRevolve") : operation === "sweep" ? t("sketch.modeBadgeSweep") : t("sketch.modeBadge")}</div>
@@ -1878,7 +2112,7 @@ export function SketchWorkspace({
       <section ref={wrapRef} className="sketch-plate-wrap" aria-label="2D sketch plate">
         <svg
           ref={svgRef}
-          className={`sketch-plate tool-${tool} ${pointerAction?.kind === "pan" ? "panning" : ""}`}
+          className={`sketch-plate tool-${tool} ${pointerAction?.kind === "pan" ? "panning" : ""} ${noteMode ? "note-mode" : ""}`}
           viewBox={`${pan.x - width / 2} ${pan.z - depth / 2} ${width} ${depth}`}
           preserveAspectRatio="xMidYMid meet"
           onPointerDownCapture={handlePanPointerDownCapture}
@@ -1892,6 +2126,19 @@ export function SketchWorkspace({
             setRefinePreview(null);
           }}
           onWheel={handleWheel}
+          onDoubleClick={(event) => {
+            // A double click on the empty plate, with nothing selected, slides the view so that the spot comes to the middle.
+            const press = emptyPressRef.current;
+            if (event.button !== 0 || !press || noteMode || workspace.doubleClickCentersView === false) return;
+            if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > SKETCH_DOUBLE_CLICK_PIXELS) return;
+            if (selected && (selected.kind !== "multiple" || selected.pointIds.length || selected.segmentIds.length || selected.imageIds?.length)) return;
+            const spot = unsnappedPointFromEvent(event);
+            if (!spot) return;
+            viewSlide.slideTo(pan, {
+              x: clamp(spot.x, -workspace.width / 2, workspace.width / 2),
+              z: clamp(spot.z, -workspace.depth / 2, workspace.depth / 2),
+            });
+          }}
           onContextMenu={(event) => {
             event.preventDefault();
             if (onFinishLine && activePointId && isChainDrawingTool(tool) && rightClickEndsChain(rightPressRef.current, { x: event.clientX, y: event.clientY })) onFinishLine();
@@ -1940,7 +2187,7 @@ export function SketchWorkspace({
               >
               <image
                 data-sketch-entity={image.locked ? undefined : "image"}
-                className={image.locked ? "locked" : undefined}
+                className={image.locked ? "locked" : calibration?.imageId === image.id ? "calibrating" : undefined}
                 aria-label={image.name}
                 href={image.dataUrl}
                 x={0}
@@ -2257,7 +2504,7 @@ export function SketchWorkspace({
                   <rect
                     key={`selection-handle-${handle.id}`}
                     data-sketch-entity="selection-handle"
-                    className={`sketch-geometry-resize-handle handle-${handle.id}`}
+                    className={`sketch-geometry-resize-handle handle-${handle.id} ${selectionLocked ? "locked" : ""}`}
                     x={handle.x - handleSize / 2}
                     y={handle.z - handleSize / 2}
                     width={handleSize}
@@ -2268,52 +2515,71 @@ export function SketchWorkspace({
                         beginPan(event);
                         return;
                       }
-                      if (event.button !== 0 || selected?.kind !== "multiple") return;
+                      if (event.button !== 0 || selected?.kind !== "multiple" || selectionLocked) return;
                       const startPoints = selected.pointIds.map((id) => profile.points.find((entry) => entry.id === id)).filter((entry): entry is SketchPoint => Boolean(entry)).map((entry) => ({ ...entry, handleIn: entry.handleIn ? { ...entry.handleIn } : undefined, handleOut: entry.handleOut ? { ...entry.handleOut } : undefined }));
                       const bounds = boundsForSketchPoints(startPoints);
                       if (!bounds) return;
                       beginEntityDrag(event, { kind: "resize-selection", pointerId: event.pointerId, handle: handle.id, current: { x: handle.x, z: handle.z }, grab: handle.grab, startPoints, bounds });
                     }}
-                  />
+                  >
+                    {selectionLocked ? <title>{t("status.objectLocked")}</title> : null}
+                  </rect>
                 ))}
-                {selectionFrame && selected?.kind === "multiple" && !selected.imageIds?.length && !selectionLocked ? (() => {
-                  // A round handle above the frame turns the selection about its middle (#330).
-                  const centreX = (selectionFrame.minX + selectionFrame.maxX) / 2;
-                  // Above the width figure that stands over the frame, so the two do not cover each other.
-                  const handleAt = { x: centreX, z: selectionFrame.minZ - 54 * screenUnit };
+                {selectionFrame && selected?.kind === "multiple" && !selected.imageIds?.length ? (() => {
+                  // A curved arrow beyond each corner turns the selection about its middle (#330), like a picture's.
+                  const frameCorners = [
+                    { x: selectionFrame.minX, z: selectionFrame.minZ }, { x: selectionFrame.maxX, z: selectionFrame.minZ },
+                    { x: selectionFrame.maxX, z: selectionFrame.maxZ }, { x: selectionFrame.minX, z: selectionFrame.maxZ },
+                  ];
+                  const frameCentre = { x: (selectionFrame.minX + selectionFrame.maxX) / 2, z: (selectionFrame.minZ + selectionFrame.maxZ) / 2 };
                   const turning = pointerAction?.kind === "rotate-selection" ? pointerAction : null;
                   const turnLabel = turning ? `${Math.round(dragRotationDegrees(turning.pivot, turning.start, turning.current, turning.snap ? 15 : 0) * 10) / 10}°` : null;
                   const pill = turnLabel ? dimensionPillSize(turnLabel, screenUnit, 18) : null;
                   return (
-                    <g className="sketch-image-rotate">
-                      <line x1={centreX} y1={selectionFrame.minZ} x2={handleAt.x} y2={handleAt.z} pointerEvents="none" />
-                      <circle
-                        data-sketch-entity="selection-rotate-handle"
-                        className="sketch-image-rotate-handle"
-                        cx={handleAt.x}
-                        cy={handleAt.z}
-                        r={handleSize / 2}
-                        onPointerDown={(event) => {
+                    <>
+                      <SketchRotateHandles
+                        spots={rotateHandleSpots(frameCorners, frameCentre, rotateHandleGap, turning ? { corner: turning.corner, at: turning.current } : undefined)}
+                        screenUnit={screenUnit}
+                        entity="selection-rotate-handle"
+                        locked={selectionLocked}
+                        title={t(selectionLocked ? "status.objectLocked" : "sketch.rotateSelection")}
+                        onPointerDown={(event, corner) => {
                           if (event.button === 1) {
                             beginPan(event);
                             return;
                           }
-                          if (event.button !== 0 || selected?.kind !== "multiple") return;
+                          if (event.button !== 0 || selected?.kind !== "multiple" || selectionLocked) return;
                           const startPoints = selected.pointIds.map((id) => profile.points.find((entry) => entry.id === id)).filter((entry): entry is SketchPoint => Boolean(entry)).map((entry) => ({ ...entry }));
                           const point = unsnappedPointFromEvent(event);
                           if (!point || startPoints.length < 1) return;
-                          beginEntityDrag(event, { kind: "rotate-selection", pointerId: event.pointerId, pivot: sketchPointsPivot(startPoints), start: point, current: point, startPoints, snap: event.shiftKey });
+                          beginEntityDrag(event, { kind: "rotate-selection", pointerId: event.pointerId, pivot: sketchPointsPivot(startPoints), start: point, current: point, startPoints, snap: event.shiftKey, corner });
                         }}
-                      >
-                        <title>{t("sketch.rotateSelection")}</title>
-                      </circle>
-                      {pill && turnLabel ? (
-                        <g className="sketch-geometry-dimension" pointerEvents="none" transform={`translate(${handleAt.x} ${handleAt.z - 24 * screenUnit})`}>
+                      />
+                      {selectionLock === "all" && tool === "select" ? (() => {
+                        // A locked outline wears the picture's padlock while selected: a click on it unlocks the outline.
+                        const spot = lockBadgeSpot(frameCorners[0], frameCorners, plateView, 28 * screenUnit);
+                        return spot ? (
+                          <SketchLockBadge
+                            spot={spot}
+                            screenUnit={screenUnit}
+                            title={t("sketch.unlockOutlineHint")}
+                            onPointerDown={(event) => {
+                              if (event.button !== 0) return;
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onToggleOutlineLock?.();
+                            }}
+                          />
+                        ) : null;
+                      })() : null}
+                      {pill && turnLabel && turning ? (
+                        // The angle rides above the pointer while turning.
+                        <g className="sketch-geometry-dimension" pointerEvents="none" transform={`translate(${turning.current.x} ${turning.current.z - 40 * screenUnit})`}>
                           <rect x={-pill.width / 2} y={-pill.height / 2} width={pill.width} height={pill.height} rx={pill.radius} />
                           <text y={5 * screenUnit} fontSize={13 * screenUnit}>{turnLabel}</text>
                         </g>
                       ) : null}
-                    </g>
+                    </>
                   );
                 })() : null}
               </g>
@@ -2421,7 +2687,7 @@ export function SketchWorkspace({
             {displayProfile.points.map((point) => (
               <circle
                 data-sketch-entity="point"
-                className={`${isPointSelected(point.id) ? "selected" : ""} ${activePointId === point.id ? "active" : ""}`}
+                className={`${isPointSelected(point.id) ? "selected" : ""} ${activePointId === point.id ? "active" : ""} ${point.locked ? "locked" : ""}`}
                 key={point.id}
                 cx={point.x}
                 cy={point.z}
@@ -2518,36 +2784,44 @@ export function SketchWorkspace({
                   }}
                 />
               ))}
-              {imageRotateHandlePoint && imageTopMiddle ? (
-                <g className="sketch-image-rotate">
-                  <line x1={imageTopMiddle.x} y1={imageTopMiddle.z} x2={imageRotateHandlePoint.x} y2={imageRotateHandlePoint.z} pointerEvents="none" />
-                  <circle
-                    data-sketch-entity="image-handle"
-                    className="sketch-image-rotate-handle"
-                    cx={imageRotateHandlePoint.x}
-                    cy={imageRotateHandlePoint.z}
-                    r={handleSize / 2}
-                    onPointerDown={(event) => {
-                      if (event.button === 1) {
-                        beginPan(event);
-                        return;
-                      }
-                      if (event.button !== 0) return;
-                      const point = unsnappedPointFromEvent(event);
-                      if (!point) return;
-                      beginEntityDrag(event, {
-                        kind: "rotate-image",
-                        pointerId: event.pointerId,
-                        imageId: selectedImage.id,
-                        startAngle: imageAngleTo(selectedImage, point),
-                        current: point,
-                        start: { ...selectedImage },
-                        snap: event.shiftKey,
-                      });
-                    }}
-                  />
-                </g>
+              {imageRotateSpots.length ? (
+                // A curved arrow beyond each corner turns the picture about its middle, as in the 3D editor.
+                <SketchRotateHandles
+                  spots={imageRotateSpots}
+                  screenUnit={screenUnit}
+                  entity="image-handle"
+                  title={t("sketch.rotateSelection")}
+                  onPointerDown={(event, corner) => {
+                    if (event.button === 1) {
+                      beginPan(event);
+                      return;
+                    }
+                    if (event.button !== 0) return;
+                    const point = unsnappedPointFromEvent(event);
+                    if (!point) return;
+                    beginEntityDrag(event, {
+                      kind: "rotate-image",
+                      pointerId: event.pointerId,
+                      imageId: selectedImage.id,
+                      startAngle: imageAngleTo(selectedImage, point),
+                      current: point,
+                      start: { ...selectedImage },
+                      snap: event.shiftKey,
+                      corner,
+                    });
+                  }}
+                />
               ) : null}
+              {imageTurnLabel && pointerAction?.kind === "rotate-image" ? (() => {
+                // The angle rides above the pointer while turning.
+                const pill = dimensionPillSize(imageTurnLabel, screenUnit, 18);
+                return (
+                  <g className="sketch-geometry-dimension" pointerEvents="none" transform={`translate(${pointerAction.current.x} ${pointerAction.current.z - 40 * screenUnit})`}>
+                    <rect x={-pill.width / 2} y={-pill.height / 2} width={pill.width} height={pill.height} rx={pill.radius} />
+                    <text y={5 * screenUnit} fontSize={13 * screenUnit}>{imageTurnLabel}</text>
+                  </g>
+                );
+              })() : null}
               {imageCalibration ? (
                 <g className="sketch-image-calibration" pointerEvents="none">
                   {imageCalibration.points.length === 2 ? (
@@ -2564,8 +2838,49 @@ export function SketchWorkspace({
               ) : null}
             </g>
           ) : null}
+          {tool === "select" ? displayImages.filter((image) => image.locked).map((image) => {
+            // A locked picture lets clicks through, so its padlock is the way back: a click unlocks and selects it.
+            const corners = imageCorners(image);
+            const spot = lockBadgeSpot(corners[0], corners, plateView, 16 * screenUnit);
+            return spot ? (
+              <SketchLockBadge
+                key={image.id}
+                spot={spot}
+                screenUnit={screenUnit}
+                title={t("sketch.unlockImage")}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onUpdateImage(image.id, { locked: false }, t("sketch.imageUnlocked"));
+                  onSelectImage(image.id);
+                }}
+              />
+            ) : null;
+          }) : null}
           {hover && ["line", "arc", "bezier", "smooth", "measure"].includes(tool) ? <circle className="sketch-cursor-point" cx={hover.x} cy={hover.z} r={hoverPointRadius} pointerEvents="none" /> : null}
         </svg>
+        {notes?.length && onUpdateNote && onRemoveNote ? (
+          <SketchNotes
+            notes={notes}
+            numbers={noteNumbers ?? new Map()}
+            toScreen={(spot) => {
+              // Where the plate's viewBox puts the spot, centred and kept in proportion (xMidYMid meet).
+              const scale = Math.min(svgSize.width / width, svgSize.height / depth) || 0;
+              return {
+                x: (svgSize.width - width * scale) / 2 + (spot.x - pan.x + width / 2) * scale,
+                y: (svgSize.height - depth * scale) / 2 + (spot.z - pan.z + depth / 2) * scale,
+              };
+            }}
+            toSketch={unsnappedPointFromEvent}
+            viewWidth={svgSize.width}
+            editingId={editingNoteId}
+            onEditingIdChange={setEditingNoteId}
+            onChange={onUpdateNote}
+            onRemove={onRemoveNote}
+            workspace={workspace}
+          />
+        ) : null}
         {typedLine && activePoint ? (() => {
           const overlayPos = getOverlayPos(typedLine.sketchPos);
           if (!overlayPos) return null;
@@ -2612,7 +2927,7 @@ export function SketchWorkspace({
                   onKeyDown={fieldKeys}
                   onBlur={leave}
                 />
-                <span>mm</span>
+                <span>{unitLabel}</span>
               </label>
               <label>
                 <span>{t("sketch.typedAngle")}</span>
@@ -2620,7 +2935,7 @@ export function SketchWorkspace({
                   ref={typedLineAngleRef}
                   value={typedLine.angle}
                   placeholder={String(Math.round(pointerAngle * 10) / 10)}
-                  inputMode="decimal"
+                  inputMode="text"
                   onFocus={(event) => event.currentTarget.select()}
                   onChange={(event) => setTypedLine((prev) => prev ? { ...prev, angle: event.target.value.replace("<", "") } : null)}
                   onKeyDown={fieldKeys}
@@ -2771,8 +3086,8 @@ export function SketchWorkspace({
             cornerDialogContent
           ) : (
             <>
-              <button type="button" title={t("sketch.makeCorner")} onClick={() => onSetPointMode(selectedPoint.id, "corner")}><CornerDownRight /><span>{t("sketch.corner")}</span></button>
-              <button type="button" title={t("sketch.makeSmooth")} onClick={() => onSetPointMode(selectedPoint.id, "smooth")}><Waves /><span>{t("sketch.smooth")}</span></button>
+              <button type="button" title={`${t("sketch.makeCorner")} (1)`} aria-keyshortcuts="1" onClick={() => onSetPointMode(selectedPoint.id, "corner")}><CornerDownRight /><span>{t("sketch.corner")}</span></button>
+              <button type="button" title={`${t("sketch.makeSmooth")} (3)`} aria-keyshortcuts="3" onClick={() => onSetPointMode(selectedPoint.id, "smooth")}><Waves /><span>{t("sketch.smooth")}</span></button>
               <button type="button" title={t("sketch.splitHandles")} onClick={() => onSetPointMode(selectedPoint.id, "split")}><Split /><span>{t("sketch.split")}</span></button>
               {canApplySketchCornerTreatment(displayProfile, selectedPoint.id) ? (
                 <>
@@ -2782,7 +3097,7 @@ export function SketchWorkspace({
                     title={t("sketch.filletCorner")}
                     onClick={() => {
                       setCornerDialog("fillet");
-                      setCornerValue("2");
+                      setCornerValue(defaultCornerText());
                     }}
                   >
                     <Spline />
@@ -2793,7 +3108,7 @@ export function SketchWorkspace({
                     title={t("sketch.chamferCorner")}
                     onClick={() => {
                       setCornerDialog("chamfer");
-                      setCornerValue("2");
+                      setCornerValue(defaultCornerText());
                     }}
                   >
                     <Slash />
@@ -2807,7 +3122,7 @@ export function SketchWorkspace({
           )}
         </div>
       ) : null}
-      {(manyCorners || manyLines || (selected?.kind === "multiple" && onMirror)) && tool === "select" && !mirrorOpen ? (
+      {(manyCorners || manyLines || canCurveThroughPoints || (selected?.kind === "multiple" && onMirror)) && tool === "select" && !mirrorOpen ? (
         <div className="sketch-point-actions" aria-label={t("sketch.pointActions")}>
           {activeCornerDialog && manyCorners ? (
             cornerDialogContent
@@ -2820,7 +3135,7 @@ export function SketchWorkspace({
                 title={t("sketch.filletCorners", { count: selectedCornerIds.length })}
                 onClick={() => {
                   setCornerDialog("fillet");
-                  setCornerValue("2");
+                  setCornerValue(defaultCornerText());
                 }}
               >
                 <Spline />
@@ -2831,7 +3146,7 @@ export function SketchWorkspace({
                 title={t("sketch.chamferCorners", { count: selectedCornerIds.length })}
                 onClick={() => {
                   setCornerDialog("chamfer");
-                  setCornerValue("2");
+                  setCornerValue(defaultCornerText());
                 }}
               >
                 <Slash />
@@ -2842,8 +3157,14 @@ export function SketchWorkspace({
               {manyCorners && manyLines ? <span className="sketch-point-divider" /> : null}
               {manyLines ? (
                 <>
-                  <button type="button" title={t("sketch.curveLineHint")} disabled={!canCurveLines} onClick={() => onCurveSegments?.(selectedLines.map((segment) => segment.id))}><Spline /><span>{t("sketch.curveLine")}</span></button>
-                  <button type="button" title={t("sketch.straightenLineHint")} disabled={!canStraightenLines} onClick={() => onStraightenSegments?.(selectedLines.map((segment) => segment.id))}><Minus /><span>{t("sketch.straightenLine")}</span></button>
+                  <button type="button" title={`${t("sketch.curveLineHint")} (2)`} aria-keyshortcuts="2" disabled={!canCurveLines} onClick={() => onCurveSegments?.(selectedLines.map((segment) => segment.id))}><Spline /><span>{t("sketch.curveLine")}</span></button>
+                  <button type="button" title={`${t("sketch.straightenLineHint")} (1)`} aria-keyshortcuts="1" disabled={!canStraightenLines} onClick={() => onStraightenSegments?.(selectedLines.map((segment) => segment.id))}><Minus /><span>{t("sketch.straightenLine")}</span></button>
+                </>
+              ) : null}
+              {canCurveThroughPoints ? (
+                <>
+                  {manyCorners || manyLines ? <span className="sketch-point-divider" /> : null}
+                  <button type="button" title={t("sketch.curveThroughPointsHint")} onClick={() => onCurveThroughPoints?.(selectedCornerIds)}><Waves /><span>{t("sketch.curveThroughPoints")}</span></button>
                 </>
               ) : null}
               {mirrorButton}
@@ -2873,6 +3194,23 @@ export function SketchWorkspace({
                       <span>{t(selectionLock === "all" ? "sketch.unlockOutline" : "sketch.lockOutline")}</span>
                     </button>
                   ) : null}
+                  {canAlignOutlines ? (
+                    <>
+                      <span className="sketch-point-divider" />
+                      {([
+                        ["left", AlignStartVertical, "sketch.alignLeft"],
+                        ["centerX", AlignCenterVertical, "sketch.alignCenterX"],
+                        ["right", AlignEndVertical, "sketch.alignRight"],
+                        ["top", AlignStartHorizontal, "sketch.alignTop"],
+                        ["centerZ", AlignCenterHorizontal, "sketch.alignCenterZ"],
+                        ["bottom", AlignEndHorizontal, "sketch.alignBottom"],
+                      ] as const).map(([mode, Icon, label]) => (
+                        <button key={mode} type="button" className="sketch-align-button" title={t(label)} aria-label={t(label)} onClick={() => alignOutlines(mode)}>
+                          <Icon />
+                        </button>
+                      ))}
+                    </>
+                  ) : null}
                 </>
               ) : null}
               <GuideHelpLink section={manyCorners ? "sketchCorners" : "sketchCurve"} className="sketch-corner-help" iconSize={17} />
@@ -2882,8 +3220,8 @@ export function SketchWorkspace({
       ) : null}
       {selectedSegment && tool === "select" && onCurveSegment && onStraightenSegment && !mirrorOpen ? (
         <div className="sketch-point-actions" aria-label={t("sketch.segmentActions")}>
-          <button type="button" title={t("sketch.curveLineHint")} disabled={selectedSegmentCurved} onClick={() => onCurveSegment(selectedSegment.id)}><Spline /><span>{t("sketch.curveLine")}</span></button>
-          <button type="button" title={t("sketch.straightenLineHint")} disabled={!selectedSegmentCurved && (selectedSegment.kind ?? "line") === "line"} onClick={() => onStraightenSegment(selectedSegment.id)}><Minus /><span>{t("sketch.straightenLine")}</span></button>
+          <button type="button" title={`${t("sketch.curveLineHint")} (2)`} aria-keyshortcuts="2" disabled={selectedSegmentCurved} onClick={() => onCurveSegment(selectedSegment.id)}><Spline /><span>{t("sketch.curveLine")}</span></button>
+          <button type="button" title={`${t("sketch.straightenLineHint")} (1)`} aria-keyshortcuts="1" disabled={!selectedSegmentCurved && (selectedSegment.kind ?? "line") === "line"} onClick={() => onStraightenSegment(selectedSegment.id)}><Minus /><span>{t("sketch.straightenLine")}</span></button>
           {onSetSegmentConstruction ? (
             <button
               type="button"
@@ -2953,7 +3291,7 @@ function SketchImageInspector({
   const [calibrateDraft, setCalibrateDraft] = useState("");
   useEffect(() => setCalibrateDraft(measured > 0 ? formatDimension(measured, accuracy) : ""), [accuracy, measured]);
   const applyCalibration = () => {
-    const length = parseMeasurementInput(calibrateDraft);
+    const length = parseLengthMm(calibrateDraft);
     if (Number.isFinite(length) && length > 0) onCalibrate({ type: "apply", length });
   };
   const aspect = image.width / Math.max(0.5, image.depth);
@@ -3053,7 +3391,7 @@ function SketchImageInspector({
                   onChange={(event) => setCalibrateDraft(event.currentTarget.value)}
                   onKeyDown={(event) => { if (event.key === "Enter") applyCalibration(); if (event.key === "Escape") onCalibrate({ type: "cancel" }); }}
                 />
-                <span>mm</span>
+                <span>{currentLengthUnitLabel()}</span>
               </div>
               <button className="sketch-image-aspect-toggle active" type="button" onClick={applyCalibration}>
                 <Check size={17} />
@@ -3190,10 +3528,12 @@ function SketchImageRange({
   onChange: (value: number) => void;
 }) {
   const safeValue = clamp(Number.isFinite(value) ? value : min, min, max);
-  const [draft, setDraft] = useState(formatDimension(safeValue, accuracy));
-  useEffect(() => setDraft(formatDimension(safeValue, accuracy)), [accuracy, safeValue]);
+  const isLength = suffix === "mm";
+  const formatValue = isLength ? formatDimension : formatPlainNumber;
+  const [draft, setDraft] = useState(formatValue(safeValue, accuracy));
+  useEffect(() => setDraft(formatValue(safeValue, accuracy)), [accuracy, safeValue, formatValue]);
   const commit = () => {
-    const parsed = parseMeasurementInput(draft);
+    const parsed = isLength ? parseLengthMm(draft) : parseMeasurementInput(draft);
     onChange(clamp(Number.isFinite(parsed) ? parsed : safeValue, min, max));
   };
   const position = ((safeValue - min) / Math.max(0.001, max - min)) * 100;
@@ -3204,7 +3544,7 @@ function SketchImageRange({
         <input
           className="sketch-image-number-input"
           type="text"
-          inputMode="decimal"
+          inputMode={min < 0 ? "text" : "decimal"}
           onFocus={(event) => selectWholeValue(event.currentTarget)}
           value={draft}
           disabled={disabled}
@@ -3212,7 +3552,7 @@ function SketchImageRange({
           onBlur={commit}
           onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
         />
-        <span>{suffix}</span>
+        <span>{isLength ? currentLengthUnitLabel() : suffix}</span>
       </div>
       <input type="range" min={min} max={max} step={accuracy === 1 ? 0.1 : 0.01} value={safeValue} disabled={disabled} onChange={(event) => onChange(Number(event.currentTarget.value))} />
     </label>
@@ -3236,7 +3576,7 @@ function SketchImagePositionField({
   const [draft, setDraft] = useState(formatted);
   useEffect(() => setDraft(formatted), [formatted]);
   const commit = () => {
-    const parsed = parseMeasurementInput(draft);
+    const parsed = parseLengthMm(draft);
     const next = Number.isFinite(parsed) ? parsed : value;
     onChange(next);
     setDraft(formatDimension(next, accuracy));
@@ -3247,7 +3587,7 @@ function SketchImagePositionField({
       <span>{label}</span>
       <input
         type="text"
-        inputMode="decimal"
+        inputMode="text"
         onFocus={(event) => selectWholeValue(event.currentTarget)}
         value={draft}
         disabled={disabled}

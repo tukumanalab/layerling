@@ -48,9 +48,6 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true
   },
-  // brepjs (loaded lazily by the STEP exporter) ships an auto-init helper that
-  // tries optional kernel backends via guarded `import().catch()`. We only install
-  // and use occt-wasm, so silence the resolution warnings for the backends we omit.
   // Next.js 16 builds with Turbopack by default and refuses a `webpack` hook
   // without a `turbopack` entry. The empty entry accepts Turbopack's defaults
   // there; Next.js 15 ignores it for webpack builds (#217).
@@ -63,11 +60,6 @@ const nextConfig: NextConfig = {
       config.cache.maxAge = 3 * 24 * 60 * 60 * 1000;
       if (!dev) config.cache.compression = "gzip";
     }
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      "brepkit-wasm": false,
-      "brepjs-opencascade": false,
-    };
     return config;
   },
   ...(isStaticExport

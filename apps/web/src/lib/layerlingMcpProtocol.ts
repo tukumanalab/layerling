@@ -70,6 +70,8 @@ export type LayerlingMcpSceneSummary = {
   openGroups?: { groupId: string; name: string; partIds: string[] }[];
   /** The active workplane: the base plate, or a plane set on a face; hidden means it still applies but is not drawn. */
   workplane?: { onBase: boolean; hidden: boolean; origin: { x: number; y: number; z: number }; normal: { x: number; y: number; z: number } };
+  /** The files kept with the design (#820): what they are, never what they hold; layerling_get_attachment reads one. */
+  attachments?: { id: string; name: string; mediaType: string; bytes: number; sha256: string }[];
 };
 
 export type LayerlingMcpEditorSummary = {
@@ -107,6 +109,7 @@ export type LayerlingMcpCommandName =
   | "group_objects"
   | "ungroup_objects"
   | "intersect_objects"
+  | "hull_objects"
   | "boolean_cut"
   | "separate_parts"
   | "split_objects"
@@ -121,6 +124,8 @@ export type LayerlingMcpCommandName =
   | "list_faces"
   | "delete_faces"
   | "hollow_object"
+  | "offset_object"
+  | "cut_out"
   | "array_objects"
   | "inspect_errors"
   | "estimate_print"
@@ -133,16 +138,23 @@ export type LayerlingMcpCommandName =
   | "layer_text"
   | "layer_icon"
   | "create_qr_code"
+  | "reference_image"
   | "set_section_view"
   | "set_history_view"
   | "restore_from_history"
   | "clear_history"
   | "show_workplane"
   | "saved_view"
+  | "measurements"
   | "export_section_svg"
   | "export_drawing"
   | "export_mesh"
   | "save_project"
+  | "list_attachments"
+  | "get_attachment"
+  | "add_attachment"
+  | "rename_attachment"
+  | "remove_attachment"
   | "import_file"
   | "add_font"
   | "list_fonts"

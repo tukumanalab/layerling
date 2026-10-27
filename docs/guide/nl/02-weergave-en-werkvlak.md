@@ -14,6 +14,7 @@ Met de muis:
 | slepen met de middelste knop | de weergave verschuiven |
 | scrollwiel | in- en uitzoomen |
 | [[Ctrl]] / [[Cmd]] ingedrukt houden en slepen met de linkerknop | verschuift ook de weergave |
+| dubbelklik op een lege plek van het werkvlak of naast de plaat | verschuift de weergave tot die plek in het midden ligt; de weergave draait daarna om die plek |
 
 Hoe snel het muiswiel zoomt, stel je in bij de instellingen onder {{ui:workspace.appearance}} met {{ui:workspace.zoomSpeed}}: een schuifregelaar van 1 tot 14, eerst 5; boven 10 wordt alleen het wiel sneller.
 
@@ -37,6 +38,7 @@ Aan de linkerrand staat een smalle balk. Van boven naar beneden:
 - {{ui:camera.focusSelection}} zoomt in op de selectie ([[F]] of [[Shift]]+[[F]]).
 - {{ui:camera.zoomIn}} en {{ui:camera.zoomOut}} zoomen stap voor stap, net als de toetsen [[+]] en [[−]].
 - {{ui:camera.orthographic}} schakelt naar een platte weergave waarin evenwijdige randen evenwijdig blijven. Voor meten en randen uitlijnen is dat vaak prettiger dan de perspectiefweergave. [[O]] schakelt heen en weer, en een tweede klik zet het terug.
+- {{ui:camera.secondView}} opent een tweede weergave van het ontwerp in een eigen venster, zie hieronder. Een tweede klik sluit het.
 - {{ui:camera.hideWorkplane}} (het oog boven een raster) verbergt de plaat met het raster, zodat je een ontwerp van onderen kunt bekijken. Alleen de weergave verandert: nieuwe vormen komen nog steeds op het werkvlak terecht. Een tweede klik toont de plaat weer.
 - {{ui:camera.placeWorkplane}}, het meetlint en de winkelhaak zijn gereedschappen op zich, die hieronder en in [Meten en notities](chapter:meten-en-notities) aan bod komen.
 
@@ -45,6 +47,10 @@ Het pijltje helemaal bovenaan de balk verbergt hem als hij in de weg zit.
 Een ontwerp opent zoals je het hebt achtergelaten: de hoek, de zoom en de positie van de weergave worden er in deze browser bij bewaard, zodat je verdergaat waar je gebleven was, ook nadat je naar de startpagina bent gegaan of de pagina hebt gesloten. Een opgeslagen bestand (.lyl) neemt de weergave mee, zodat het ook elders zo opent. De weergave hoort niet bij de geschiedenis van ongedaan maken.
 
 Je kunt in elk ontwerp ook vier eigen weergaven bewaren. [[Shift]]+[[7]], [[Shift]]+[[8]], [[Shift]]+[[9]] of [[Shift]]+[[0]] slaat de weergave precies op zoals ze is - hoek, positie, zoom, en vlak of in perspectief - onder die toets, en de toets alleen ([[7]], [[8]], [[9]] of [[0]]) brengt haar terug. Een melding onderaan bevestigt het opslaan; opnieuw opslaan onder dezelfde toets vervangt de weergave. Net als de weergave hierboven blijven de opgeslagen weergaven in deze browser bij het ontwerp en gaan ze mee in een opgeslagen bestand (.lyl); ze horen niet bij de geschiedenis van ongedaan maken.
+
+### Een tweede weergave in een eigen venster
+
+{{ui:camera.secondView}} opent een venster dat hetzelfde ontwerp door een eigen camera toont, zodat je het van twee kanten tegelijk ziet - bijvoorbeeld van voren terwijl je van boven werkt. Elke wijziging in de editor verschijnt daar meteen; het ontwerp wordt alleen in het hoofdvenster gewijzigd, en ook de grepen blijven daar. In het tweede venster draaien de muis en de weergavekubus de weergave zoals hier, en ook de toetsen: [[1]] tot [[6]], [[F]], [[Home]], [[O]], [[+]] en [[−]], de pijltjestoetsen om te draaien en [[Ctrl]] met de pijltjes om te schuiven. [[F]] zoomt daar in op wat in de editor geselecteerd is. Ook de vier opgeslagen weergaven van het ontwerp werken daar: [[7]], [[8]], [[9]] en [[0]] halen ze terug, en [[Shift]] met een van die toetsen slaat de weergave van dat venster eronder op - voor beide vensters. De eigen camerabalk heeft {{ui:camera.home}}, {{ui:camera.focusSelection}}, {{ui:camera.zoomIn}}, {{ui:camera.zoomOut}}, {{ui:camera.orthographic}} en {{ui:camera.hideWorkplane}}, en die werken alleen op dat venster. Het venster opent waar je het liet, even groot, en sluit samen met de editor. Op telefoons en tablets wordt de knop niet getoond.
 
 ## Naar binnen kijken: de doorsnede
 
@@ -75,7 +81,7 @@ Klik je in plaats daarvan op de lege plaat, dan ligt het werkvlak plat op de ple
 
 Op een vlak klikt de oorsprong van het werkvlak verder vast aan het raster. Klik dicht bij een hoek van het vlak en hij zit precies op die hoek. Dicht bij een rand ligt hij op de rand en lijnt het raster ermee uit; zo kies je bewust de hoek van het raster. Zonder hoek of rand loopt het raster op een liggend vlak evenwijdig aan het lichaam, dus op een gedraaide kubus is het mee gedraaid.
 
-Een klik naast de plaat of [[Esc]] zet het werkvlak terug op de grondplaat. Nog sneller is {{ui:camera.resetWorkplane}}: de knop met het pijltje omlaag staat in de camerabalk onder het oog, zolang het werkvlak op een vlak ligt. [[Shift]]+[[W]] legt het direct op het geselecteerde vlak. Houd je [[Shift]] ingedrukt tijdens het klikken, dan wijst het vlak de andere kant op.
+Een klik naast de plaat of [[Esc]] zet het werkvlak terug op de grondplaat. Nog sneller is {{ui:camera.resetWorkplane}}: de knop met het pijltje omlaag staat in de camerabalk onder het oog, zolang het werkvlak op een vlak ligt. [[Shift]]+[[W]] legt het direct op het geselecteerde vlak. [[Alt]]+[[W]] zet het altijd terug op de grondplaat, of er nu iets geselecteerd is of niet. Houd je [[Shift]] ingedrukt tijdens het klikken, dan wijst het vlak de andere kant op.
 
 Zolang een werkvlak op een vlak ligt, verschijnt er een oog naast {{ui:camera.placeWorkplane}}. Dat verbergt het werkvlak zonder het los te laten, voor een vrij zicht op het ontwerp: nieuwe vormen komen nog steeds op dat vlak terecht, en draaien gebeurt nog steeds daaromheen. Een klik op het oog toont het weer, en een nieuw werkvlak neerleggen ook.
 

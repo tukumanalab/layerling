@@ -1,6 +1,6 @@
-import type { GridfinityCompartmentLabel, GridfinityLabelCorner, GridfinityType, ShellEdges, ShellOpenings } from "@/types/layerling";
+import type { GridfinityCompartmentLabel, GridfinityLabelCorner, GridfinityOpening, GridfinityType, ShellEdges, ShellOpenings } from "@/types/layerling";
 
-export type CadModifierKind = "chamfer" | "chamfillet" | "fillet" | "shell" | "deleteFace";
+export type CadModifierKind = "chamfer" | "chamfillet" | "fillet" | "shell" | "deleteFace" | "offset";
 
 export type CadModifierEdge = {
   id: number;
@@ -308,12 +308,26 @@ export type CadModifierGridfinityPart = {
   gridfinityScoopRight?: boolean;
   gridfinityScoopRadius?: number;
   gridfinityFloorHeight?: number;
+  gridfinityOpenBack?: boolean;
+  gridfinityOpenFront?: boolean;
+  gridfinityOpenLeft?: boolean;
+  gridfinityOpenRight?: boolean;
+  gridfinityLipChamfer?: number;
+  gridfinityWallThickness?: number;
+  gridfinityPaddingBack?: number;
+  gridfinityPaddingFront?: number;
+  gridfinityPaddingLeft?: number;
+  gridfinityPaddingRight?: number;
+  gridfinityCornerRadius?: number;
   gridfinityCompartmentsX?: number;
   gridfinityCompartmentsZ?: number;
   gridfinityDividerThickness?: number;
   gridfinityDividerPositionsX?: number[];
   gridfinityDividerPositionsZ?: number[];
   gridfinityCompartmentLabels?: GridfinityCompartmentLabel[];
+  gridfinityOpenings?: GridfinityOpening[];
+  gridfinityOpeningCorner?: GridfinityLabelCorner;
+  gridfinityOpeningCornerSize?: number;
   transform?: number[];
   expected?: { bounds: number[]; volume: number };
 };
@@ -386,9 +400,13 @@ export type CadModifierWorkerRequest =
       amount: number;
       quality: CadModifierQuality;
       chamferAngle: number;
+      // Only for "fillet" of one edge (#687): the radius at the edge's end, `amount` the one at its start.
+      endAmount?: number;
       // Only for "shell": which faces stay open; `amount` is the wall thickness.
       shellOpenings?: ShellOpenings;
       shellEdges?: ShellEdges;
+      // Only for "offset" (#919): `amount` is the distance, moved inward when this is set.
+      offsetShrink?: boolean;
       // Only for "deleteFace": the faces to delete, as the prepare numbered them.
       faceIds?: number[];
       // The finest deflection the shape's edge-treatment history has needed

@@ -6,6 +6,61 @@ import type { WorkplaneShape } from "@/types/layerling";
 export type PivotPoint = { x: number; y: number; z: number };
 
 /**
+ * The triangle a click landed on, among `positions` (world triangles, nine numbers each): the
+ * one nearest to `point` of those that face `normal`, either way round; -1 when none does, or
+ * when the nearest lies farther than `within`.
+ */
+export function nearestFaceTriangle(positions: ArrayLike<number>, point: PivotPoint, normal: PivotPoint, within = Infinity) {
+  const triangleCount = Math.floor(positions.length / 9);
+  const n = new THREE.Vector3(normal.x, normal.y, normal.z);
+  if (triangleCount === 0 || n.lengthSq() < 1e-12) return -1;
+  n.normalize();
+
+  const p = new THREE.Vector3(point.x, point.y, point.z);
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  const triangle = new THREE.Triangle();
+  const closest = new THREE.Vector3();
+  const edgeAB = new THREE.Vector3();
+  const edgeAC = new THREE.Vector3();
+  const triangleNormal = new THREE.Vector3();
+  let hit = -1;
+  let hitDistance = Infinity;
+  for (let index = 0; index < triangleCount; index += 1) {
+    const o = index * 9;
+    a.set(positions[o], positions[o + 1], positions[o + 2]);
+    b.set(positions[o + 3], positions[o + 4], positions[o + 5]);
+    c.set(positions[o + 6], positions[o + 7], positions[o + 8]);
+    edgeAB.subVectors(b, a);
+    edgeAC.subVectors(c, a);
+    triangleNormal.crossVectors(edgeAB, edgeAC);
+    if (triangleNormal.lengthSq() < 1e-18) continue;
+    // The pick's normal and the winding of the mesh may disagree in sign; the plane is what counts.
+    if (Math.abs(triangleNormal.normalize().dot(n)) < 0.999) continue;
+    triangle.set(a, b, c);
+    const distance = triangle.closestPointToPoint(p, closest).distanceTo(p);
+    if (distance < hitDistance) {
+      hitDistance = distance;
+      hit = index;
+    }
+  }
+  return hitDistance <= within ? hit : -1;
+}
+
+/** How far a point on a part's drawn face may lie from the group's joined face and still be on it, in mm. */
+export const JOINED_FACE_REACH = 0.01;
+
+/**
+ * The pivot a click on a group sets once its parts are joined: the middle of the joined face it hit
+ * (`face`, in world space), or `drawn`, the drawn face's, when the joined body has no face there.
+ */
+export function pivotAfterJoin(drawn: PivotPoint, face: { point: PivotPoint; normal: PivotPoint }, joined: ArrayLike<number>) {
+  const triangle = nearestFaceTriangle(joined, face.point, face.normal, JOINED_FACE_REACH);
+  return (triangle < 0 ? null : planarFaceCentroid(joined, triangle)) ?? drawn;
+}
+
+/**
  * The centre of the flat face a click landed on.
  *
  * `positions` holds world-space triangles, nine numbers per triangle, and
@@ -165,17 +220,23 @@ function shapePivotFrame(shape: WorkplaneShape) {
  * not along the body's own up axis, so the base slides: a pocket on a sloped workplane wandered along the plane when
  * its height was changed with the slider (forum, DrJones). The patch gets the position that keeps the middle of the
  * base where it was. A patch that sets the position itself, or a body that is not turned, stays as it is.
+ * `keep: "top"` keeps the middle of the top face instead, as after a pull on the lower handle.
  */
-export function heightPatchKeepingBase(shape: WorkplaneShape, patch: Partial<WorkplaneShape>): Partial<WorkplaneShape> {
+export function heightPatchKeepingBase(shape: WorkplaneShape, patch: Partial<WorkplaneShape>, keep: "base" | "top" = "base"): Partial<WorkplaneShape> {
   const height = patch.height;
   if (typeof height !== "number" || !Number.isFinite(height) || height === shape.height) return patch;
   if ("x" in patch || "z" in patch || "elevation" in patch) return patch;
-  const turn = quaternionForShape(shape);
-  if (Math.abs(turn.w) > 1 - 1e-9) return patch;
-  const up = new THREE.Vector3(0, mirrorSign(shape.mirrorY), 0).applyQuaternion(turn);
-  const base = new THREE.Vector3(shape.x, (shape.elevation ?? 0) + shape.height / 2, shape.z).addScaledVector(up, -shape.height / 2);
-  const centre = base.addScaledVector(up, height / 2);
+  if (!shapeIsTurned(shape)) return patch;
+  const up = new THREE.Vector3(0, mirrorSign(shape.mirrorY), 0).applyQuaternion(quaternionForShape(shape));
+  const side = keep === "top" ? 1 : -1;
+  const kept = new THREE.Vector3(shape.x, (shape.elevation ?? 0) + shape.height / 2, shape.z).addScaledVector(up, side * shape.height / 2);
+  const centre = kept.addScaledVector(up, -side * height / 2);
   return { ...patch, x: centre.x, z: centre.z, elevation: centre.y - height / 2 };
+}
+
+/** Whether a body is turned at all, so that its own up axis is not the world's. */
+export function shapeIsTurned(shape: WorkplaneShape): boolean {
+  return Math.abs(quaternionForShape(shape).w) <= 1 - 1e-9;
 }
 
 /** Where a body's own pivot lies in the world, or null if it has none. */
