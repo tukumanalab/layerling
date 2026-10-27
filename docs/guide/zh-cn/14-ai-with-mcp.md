@@ -77,6 +77,8 @@ AI 使用与你相同的功能，走的是与你在编辑器中的操作相同�
 | `layerling_list_edges` | 列出一个对象真实的 CAD 边 |
 | `layerling_apply_edge_treatment` | 对选定的边做倒角或圆角 |
 | `layerling_hollow_object` | 用均匀的壁抽壳实体 |
+| `layerling_cut_out` | 从一个实体中挖出另一个实体使两者配合：零件保留，按间隙放大的副本从另一个实体中减去 |
+| `layerling_offset_object` | 移动实体的所有面以得到配合间隙：放大或缩小实体，或把放大的副本作为孔添加 |
 | `layerling_list_faces` | 列出精确实体的面 |
 | `layerling_delete_faces` | 删除面并闭合缺口 |
 | `layerling_array_objects` | 按行或沿圆周复制 |
@@ -100,6 +102,7 @@ AI 使用与你相同的功能，走的是与你在编辑器中的操作相同�
 | `layerling_delete_custom_shape` | 移除自定义形状；已插入的实体保留 |
 | `layerling_show_workplane` | 隐藏和显示带网格的平台，例如为了拍摄底部图片（仅改变视图） |
 | `layerling_set_section_view` | 沿一个平面把视图剖开以便查看内部（仅改变视图，不会真正切开任何东西） |
+| `layerling_measurements` | 显示或隐藏卷尺的测量，并列出它们及其长度 |
 | `layerling_saved_view` | 把当前视图保存在按键 7、8、9 或 0 下，并可回到该视图，如同 Shift+按键和单独按该键（仅改变视图）；也可设置新设计的起始视图 |
 | `layerling_clear_history` | 永久删除所有撤销步骤，如同历史记录视图的“删除历史记录”按钮；需要 `confirm: true` |
 | `layerling_set_history_view` | 回看项目更早的状态，如同历史记录视图（实际设计不受影响；会改动设计的工具会等到它关闭） |

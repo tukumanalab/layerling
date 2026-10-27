@@ -391,6 +391,28 @@ export function ToolbarHollowIcon(props: IconProps) {
   );
 }
 
+/** A block inside its own outline drawn dashed a little wider: every face moved out by one distance. */
+export function ToolbarOffsetIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M15 17h18v18H15Z" {...SOLID} />
+      <path d="M15 17h18v18H15Z" />
+      <path d="M9 11h30v30H9Z" strokeDasharray="4 3" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A block with a notch cut into its top edge, the dashed part that fits it beside it: one body cut out of another. */
+export function ToolbarCutOutIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M6 22h14v6h8v-6h14v18H6Z" {...SOLID} />
+      <path d="M6 22h14v6h8v-6h14v18H6Z" />
+      <path d="M20 8h8v14h-8Z" strokeDasharray="4 3" />
+    </ToolbarVectorIcon>
+  );
+}
+
 /** A block whose boss on top is drawn dashed: the faces that go, the top closed again. */
 export function ToolbarDeleteFaceIcon(props: IconProps) {
   return (

@@ -241,7 +241,7 @@ export function TransformOverlay({
           onBlur={() => onCommitDimensionEdit()}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
-              onCommitDimensionEdit(event.altKey);
+              onCommitDimensionEdit(event.altKey, event.shiftKey);
             }
             if (event.key === "Escape") {
               onCancelDimensionEdit();
@@ -365,7 +365,7 @@ export function TransformOverlay({
           }}
         >
           <span className="rotate-handle-icon" aria-hidden="true">
-            <svg viewBox="-15 -15 30 30" focusable="false">
+            <svg viewBox="-20 -20 40 40" focusable="false">
               <path className="rotate-arrow-arc" d={handle.arc} />
               <path className="rotate-arrow-heads" d={handle.heads} />
             </svg>

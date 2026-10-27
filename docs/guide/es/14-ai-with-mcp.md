@@ -77,6 +77,8 @@ La IA trabaja con las mismas funciones que tú, por el mismo camino que sigues c
 | `layerling_list_edges` | lista las aristas CAD reales de un objeto |
 | `layerling_apply_edge_treatment` | achaflana o redondea las aristas elegidas |
 | `layerling_hollow_object` | vacía un cuerpo con una pared uniforme |
+| `layerling_cut_out` | recorta un sólido de otro para que encajen: la pieza se queda, una copia ampliada con el margen se resta del otro cuerpo |
+| `layerling_offset_object` | desfasa todas las caras de un cuerpo para la holgura de un ajuste: lo agranda o reduce, o añade la copia agrandada como hueco |
 | `layerling_list_faces` | lista las caras de un cuerpo exacto |
 | `layerling_delete_faces` | elimina caras y cierra el hueco |
 | `layerling_array_objects` | multiplica en una fila o en un círculo |
@@ -100,6 +102,7 @@ La IA trabaja con las mismas funciones que tú, por el mismo camino que sigues c
 | `layerling_delete_custom_shape` | elimina una forma personalizada; los cuerpos ya insertados se quedan |
 | `layerling_show_workplane` | oculta y muestra la placa con su cuadrícula, por ejemplo para una captura de la parte de abajo (solo la vista) |
 | `layerling_set_section_view` | abre la vista en corte por un plano para mirar dentro (solo la vista: no se corta nada) |
+| `layerling_measurements` | muestra u oculta las mediciones de la cinta métrica y las lista con sus longitudes |
 | `layerling_saved_view` | guarda la vista actual en la tecla 7, 8, 9 o 0 y vuelve a ella, como Mayús+tecla y la tecla (solo la vista); también fija la vista de arranque de los diseños nuevos |
 | `layerling_clear_history` | elimina para siempre todos los pasos de deshacer, como el botón «Eliminar historial» de la vista del historial; necesita `confirm: true` |
 | `layerling_set_history_view` | consulta un estado anterior del proyecto, como la vista del historial (el diseño real no se toca; las herramientas que cambian algo esperan a que se cierre) |

@@ -97,3 +97,6 @@ apps/web/public/guia-es/
 
 # The Japanese typeface, cut from Zen Kaku Gothic New by scripts/build-japanese-typeface.mjs
 apps/web/public/fonts/japanese/
+
+# Built European Portuguese user guide.
+apps/web/public/guia-pt-pt/

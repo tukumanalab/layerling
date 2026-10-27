@@ -482,7 +482,7 @@ export function canonicalizeShape(unrepaired: WorkplaneShape): WorkplaneShape {
     Object.assign(next, footprint);
     next.size = resizedShapeSize(footprint.width, footprint.depth);
   }
-  // A Gridfinity bin or baseplate is whole grid units, whatever set its box.
+  // A Gridfinity bin or baseplate is whole grid units, whatever set its box; a tray is clamped to its limits.
   if (shape.kind === "gridfinity") {
     // Padding is stored as the geometry reads it, 0 to 41 mm, so a saved project opens again whatever gave it (#455).
     for (const key of Object.values(GRIDFINITY_PADDING_KEYS)) if (typeof next[key] === "number") next[key] = normalizeGridfinityPadding(next[key]);
@@ -617,6 +617,10 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.honeycombWallThickness === b.honeycombWallThickness &&
     a.honeycombFrameWidth === b.honeycombFrameWidth &&
     a.hingeKnuckles === b.hingeKnuckles &&
+    a.hingeKnuckleWidth === b.hingeKnuckleWidth &&
+    a.tubeBoreHole === b.tubeBoreHole &&
+    a.hingeStyle === b.hingeStyle &&
+    a.hingeConeSize === b.hingeConeSize &&
     a.hingePinDiameter === b.hingePinDiameter &&
     a.hingeLeafThickness === b.hingeLeafThickness &&
     a.hingeClearance === b.hingeClearance &&

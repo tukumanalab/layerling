@@ -129,6 +129,8 @@ export {
   ToolbarFilletIcon,
   ToolbarHistoryIcon,
   ToolbarHollowIcon,
+  ToolbarOffsetIcon,
+  ToolbarCutOutIcon,
   ToolbarDeleteFaceIcon,
   ToolbarSimplifyIcon,
   ToolbarBundleIcon,

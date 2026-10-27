@@ -176,6 +176,7 @@ import { iconKeyringAlongLimit } from "@/lib/sketchKeyring";
 import { DEFAULT_KEYRING_DIAMETER, MAX_TEXT_SPACING, MIN_KEYRING_DIAMETER, MIN_TEXT_SPACING, TEXT_KEYRING_SIDES } from "@/lib/textGeometry";
 import { addTextLayer, MIN_LETTER_SIZE, MIN_NAME_TAG_LAYERS, NAME_TAG_GAP, NAME_TAG_LAYERS, NAME_TAG_LETTER_SIZE, removeTextLayer, textBaselineKeepShift, textLetterSize, textLetterSizePatch, textSpacingPatch, type NameTagStack } from "@/lib/nameTag";
 import { FONT_MANAGER_OPTION, requestFontManager } from "@/lib/fontManagerEvents";
+import { FontPicker } from "@/components/workplane/FontPicker";
 import { QR_BYTE_CAPACITY, qrByteLength, qrTextFits, type QrCodeSettings } from "@/lib/qrCode";
 import { ICON_TAG_LAYERS, iconTagFitCount, MAX_ICON_TAG_WIDTH, MAX_ICON_TAGS, MIN_ICON_TAG_WIDTH, normalizeIconTagCount, type IconLayerStack } from "@/lib/iconTag";
 import { PICTURE_FILE_ACCEPT } from "@/lib/pictureIcon";
@@ -195,13 +196,16 @@ import {
   MAX_GRIDFINITY_HEIGHT_UNITS,
   MAX_GRIDFINITY_LIP_CHAMFER,
   MAX_GRIDFINITY_PADDING,
+  MAX_GRIDFINITY_TRAY_HEIGHT,
+  MAX_GRIDFINITY_TRAY_SIZE,
   MIN_GRIDFINITY_COMPARTMENT_LABEL_LENGTH,
   MIN_GRIDFINITY_COMPARTMENT_LABEL_MM,
   MIN_GRIDFINITY_DIVIDER_THICKNESS,
   MIN_GRIDFINITY_DRAWER,
-  MIN_GRIDFINITY_FLOOR_HEIGHT,
   MIN_GRIDFINITY_LABEL_WIDTH,
   MIN_GRIDFINITY_SCOOP_RADIUS,
+  MIN_GRIDFINITY_TRAY_HEIGHT,
+  MIN_GRIDFINITY_TRAY_SIZE,
   MIN_GRIDFINITY_UNITS,
   MIN_GRIDFINITY_WALL_THICKNESS,
   type GridfinityAxis,
@@ -224,6 +228,7 @@ import {
   gridfinityFloorFits,
   gridfinityFloorHeight,
   gridfinityFloorMaxHeight,
+  gridfinityFloorMinHeight,
   gridfinityLabelCornerSize,
   gridfinityLabelFits,
   gridfinityLabelLength,
@@ -253,7 +258,7 @@ import {
   gridfinityWallThickness,
   normalizeGridfinityType,
 } from "@/lib/gridfinityGeometry";
-import { MAX_HINGE_ANGLE, MAX_HINGE_CLEARANCE, MAX_HINGE_KNUCKLES, MIN_HINGE_CLEARANCE, MIN_HINGE_KNUCKLES, hingePlan, minimumHingeDepth, normalizeHingeAngle, normalizeHingeClearance, normalizeHingeKnuckles, normalizeHingeLeafThickness, normalizeHingePinDiameter } from "@/lib/hingeGeometry";
+import { hingeLargestConeSize, MAX_HINGE_ANGLE, MAX_HINGE_CLEARANCE, MAX_HINGE_KNUCKLES, MIN_HINGE_CLEARANCE, MIN_HINGE_KNUCKLES, hingePlan, minimumHingeDepth, normalizeHingeAngle, normalizeHingeClearance, normalizeHingeKnuckles, normalizeHingeKnuckleWidth, normalizeHingeLeafThickness, normalizeHingePinDiameter } from "@/lib/hingeGeometry";
 import { useLanguage } from "@/lib/useLanguage";
 import { useMovablePanel, type MovablePanelOptions } from "@/lib/useMovablePanel";
 import { isNonSolidShape, resizedShapeSize, shapeDepth, shapeHasTaper, shapeOverallFootprintDimensions, shapeSupportsTaper, shapeTaperDimensions, shapeWidth } from "@/lib/workplaneShapes";
@@ -275,7 +280,7 @@ import {
 import { regularPolygonAspect } from "@/lib/regularPolygonFootprint";
 import { DEFAULT_TAPER_DIMENSION_MAX, MAX_HIGH_RESOLUTION_SIDES, MAX_HIGH_RESOLUTION_STEPS, POSITION_TYPED_LIMIT, RULER_MAX_LENGTH, customSnapGridLabel, positionReach, shapeDimensionLimit, snapGridOptions, snapGridStep } from "@/lib/workplaneSettings";
 import { printerPresetById } from "@/lib/printBed";
-import type { BentTubeInnerProfile, BentTubeProfile, CustomSnapGrid, GearType, GridfinityCompartmentLabel, GridSize, MeasurementAccuracy, ShapeCustomization, SketchProfile, SketchStroke, SketchStrokeAlign, SketchStrokeJoin, ThreadHead, ThreadProfile, ThreadRole, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
+import type { BentTubeInnerProfile, BentTubeProfile, CustomSnapGrid, GearType, GridfinityCompartmentLabel, GridfinityType, GridSize, MeasurementAccuracy, ShapeCustomization, SketchProfile, SketchStroke, SketchStrokeAlign, SketchStrokeJoin, ThreadHead, ThreadProfile, ThreadRole, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { selectWholeValue } from "@/lib/numberField";
 import { formulaMatchesValue, formulaToRemember, withFieldFormula, type FieldFormulas } from "@/lib/fieldFormulas";
 import { useKeptColors, useRecentColors } from "@/lib/recentColors";
@@ -411,6 +416,8 @@ type SelectPropertyConfig = {
   options: SelectPropertyOption[];
   /** Eine Zeile unter dem Feld, die die getroffene Wahl erklaert. */
   hint?: string;
+  /** The words a font picker draws every font with: set, the entries are fonts and the field is a picker, not a plain select. */
+  fontSample?: string;
   onChange: (value: string) => void;
 };
 
@@ -991,7 +998,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
 
   if (shape.kind === "gridfinity") {
     const plan = gridfinityPlan({ ...shape, depth });
-    // The size is whole grid units; every change writes the box they make.
+    // The size is whole grid units; every change writes the box they make; a tray's is free in mm.
     const apply = (next: Parameters<typeof gridfinityShapePatch>[1]) => {
       const patch = gridfinityShapePatch({ ...shape, depth }, next);
       onUpdate({ ...patch, size: resizedShapeSize(patch.width, patch.depth) });
@@ -1002,19 +1009,28 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         id: "gridfinityType",
         label: t("prop.gridfinityType"),
         value: plan.type,
-        options: [{ value: "bin", label: t("gridfinity.bin") }, { value: "baseplate", label: t("gridfinity.baseplate") }],
-        hint: t(plan.type === "bin" ? "gridfinity.binHint" : "gridfinity.baseplateHint"),
+        options: [{ value: "bin", label: t("gridfinity.bin") }, { value: "baseplate", label: t("gridfinity.baseplate") }, { value: "tray", label: t("gridfinity.tray") }],
+        hint: t(plan.type === "bin" ? "gridfinity.binHint" : plan.type === "baseplate" ? "gridfinity.baseplateHint" : "gridfinity.trayHint"),
         onChange: (value) => apply({ type: normalizeGridfinityType(value) }),
       },
     ];
     if (plan.type === "bin") {
       properties.push({ type: "toggle", id: "gridfinityHalfGrid", label: t("prop.gridfinityHalfGrid"), value: plan.halfGrid, onChange: (value) => apply({ halfGrid: value }) });
     }
-    const maxUnits = gridfinityMaxUnits(shape);
-    properties.push(
-      { id: "gridfinityUnitsX", label: t("prop.gridfinityUnitsX"), value: plan.count.x, min: MIN_GRIDFINITY_UNITS, max: maxUnits, step: 1, hint: plan.halfGrid ? t("gridfinity.halfGridHint") : undefined, onChange: (value) => apply({ x: Math.round(value) }) },
-      { id: "gridfinityUnitsZ", label: t("prop.gridfinityUnitsZ"), value: plan.count.z, min: MIN_GRIDFINITY_UNITS, max: maxUnits, step: 1, onChange: (value) => apply({ z: Math.round(value) }) },
-    );
+    if (plan.type === "tray") {
+      // A tray (#837) has no grid: its size is free in mm, as a box's.
+      properties.push(
+        { id: "length", label: t("prop.length"), value: plan.size.depth, min: MIN_GRIDFINITY_TRAY_SIZE, max: MAX_GRIDFINITY_TRAY_SIZE, onChange: setDepth },
+        { id: "width", label: t("prop.width"), value: plan.size.width, min: MIN_GRIDFINITY_TRAY_SIZE, max: MAX_GRIDFINITY_TRAY_SIZE, onChange: setWidth },
+        { id: "height", label: t("prop.height"), value: plan.size.height, min: MIN_GRIDFINITY_TRAY_HEIGHT, max: MAX_GRIDFINITY_TRAY_HEIGHT, onChange: setHeight },
+      );
+    } else {
+      const maxUnits = gridfinityMaxUnits(shape);
+      properties.push(
+        { id: "gridfinityUnitsX", label: t("prop.gridfinityUnitsX"), value: plan.count.x, min: MIN_GRIDFINITY_UNITS, max: maxUnits, step: 1, hint: plan.halfGrid ? t("gridfinity.halfGridHint") : undefined, onChange: (value) => apply({ x: Math.round(value) }) },
+        { id: "gridfinityUnitsZ", label: t("prop.gridfinityUnitsZ"), value: plan.count.z, min: MIN_GRIDFINITY_UNITS, max: maxUnits, step: 1, onChange: (value) => apply({ z: Math.round(value) }) },
+      );
+    }
     if (plan.type === "baseplate") {
       // The drawer it fills (#455): typing a drawer's inside size works out the units and the paddings of that axis.
       const drawer = gridfinityDrawerSize({ ...shape, depth });
@@ -1062,7 +1078,8 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
     if (gridfinityFloorFits(fields) && !gridfinityWallSolid(fields)) {
       // The floor (#455): raised, it leaves a bin blank to cut shapes into; it decides what room the shelves and scoops have.
       const maxFloor = gridfinityFloorMaxHeight(fields);
-      properties.push({ id: "gridfinityFloorHeight", label: t("prop.gridfinityFloorHeight"), value: gridfinityFloorHeight(fields), min: MIN_GRIDFINITY_FLOOR_HEIGHT, max: maxFloor, step: 0.05, hint: t("gridfinity.floorHeightHint"), onChange: (value) => onUpdate({ gridfinityFloorHeight: clamp(value, MIN_GRIDFINITY_FLOOR_HEIGHT, maxFloor) }) });
+      const minFloor = gridfinityFloorMinHeight(fields);
+      properties.push({ id: "gridfinityFloorHeight", label: t("prop.gridfinityFloorHeight"), value: gridfinityFloorHeight(fields), min: minFloor, max: maxFloor, step: 0.05, hint: t("gridfinity.floorHeightHint"), onChange: (value) => onUpdate({ gridfinityFloorHeight: clamp(value, minFloor, maxFloor) }) });
     }
     const { switched } = plan;
     if (gridfinityOpenFits(fields)) {
@@ -1184,37 +1201,68 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
       { id: "length", label: t("prop.hingeOpenWidth"), value: depth, min: minimumHingeDepth(shape.height, plan.leaf, plan.clearance), max: 300, onChange: setDepth },
       { id: "height", label: t("prop.hingeKnuckleDiameter"), value: shape.height, min: 2, max: 60, onChange: setHeight },
       {
+        type: "select",
+        id: "hingeStyle",
+        label: t("prop.hingeStyle"),
+        value: plan.style,
+        options: [{ value: "pin", label: t("hinge.stylePin") }, { value: "pinless", label: t("prop.hingePinless") }, { value: "cone", label: t("hinge.styleCone") }],
+        hint: plan.style === "cone" ? t("hinge.styleConeHint") : undefined,
+        // The old "without pin" switch is part of this choice now (#907).
+        onChange: (value) => onUpdate({ hingeStyle: value === "cone" || value === "pinless" ? value : undefined, hingePinless: undefined }),
+      },
+      ...(plan.style === "cone" ? [{
+        id: "hingeConeSize",
+        label: t("prop.hingeConeSize"),
+        value: plan.coneRadius * 2,
+        min: 0.6,
+        max: Math.max(0.6, hingeLargestConeSize(plan.knuckleLength, shape.height, plan.clearance)),
+        step: 0.1,
+        hint: t("prop.hingeConeSizeHint"),
+        onChange: (value: number) => onUpdate({ hingeConeSize: value }),
+      }] : []),
+      {
         id: "hingeKnuckles",
         label: t("prop.hingeKnuckles"),
         value: plan.knuckles,
         min: MIN_HINGE_KNUCKLES,
         max: MAX_HINGE_KNUCKLES,
         step: 2,
-        onChange: (value) => onUpdate({ hingeKnuckles: normalizeHingeKnuckles(value, width, plan.clearance) }),
+        // Typing a count takes the width away: the two ways of saying how many do not mix (#907).
+        onChange: (value) => onUpdate({ hingeKnuckles: normalizeHingeKnuckles(value, width, plan.clearance), hingeKnuckleWidth: undefined }),
       },
       {
+        id: "hingeKnuckleWidth",
+        label: t("prop.hingeKnuckleWidth"),
+        value: shape.hingeKnuckleWidth ?? 0,
+        min: 0,
+        max: 100,
+        step: 0.5,
+        hint: t("prop.hingeKnuckleWidthHint"),
+        onChange: (value) => onUpdate({ hingeKnuckleWidth: normalizeHingeKnuckleWidth(value) }),
+      },
+      // The cone hinge has no pin: its cones take the pin's place.
+      ...(plan.style === "cone" ? [] : [{
         id: "hingePinDiameter",
         label: t("prop.hingePinDiameter"),
         value: plan.pinRadius * 2,
         min: 0.2,
         max: Math.max(0.4, shape.height - 2 * (plan.clearance + 0.4)),
         step: 0.1,
-        onChange: (value) => {
+        onChange: (value: number) => {
           const pin = normalizeHingePinDiameter(value, shape.height, plan.clearance);
-          onUpdate({ hingePinDiameter: pin, hingeLeafThickness: normalizeHingeLeafThickness(plan.leaf, shape.height, pin, plan.clearance) });
+          onUpdate({ hingePinDiameter: pin, hingeLeafThickness: normalizeHingeLeafThickness(plan.leaf, shape.height, pin, plan.clearance, plan.style) });
         },
-      },
+      }]),
       {
         id: "hingeLeafThickness",
         label: t("prop.hingeLeafThickness"),
         value: plan.leaf,
         min: 0.4,
-        max: Math.max(0.5, plan.radius - plan.boreRadius),
+        max: plan.style === "cone" ? shape.height : Math.max(0.5, plan.radius - plan.boreRadius),
         step: 0.1,
-        onChange: (value) => onUpdate({ hingeLeafThickness: normalizeHingeLeafThickness(value, shape.height, plan.pinRadius * 2, plan.clearance) }),
+        onChange: (value) => onUpdate({ hingeLeafThickness: normalizeHingeLeafThickness(value, shape.height, plan.pinRadius * 2, plan.clearance, plan.style) }),
       },
       { id: "hingeAngle", label: t("prop.hingeAngle"), value: plan.angle, min: 0, max: MAX_HINGE_ANGLE, step: 1, onChange: (value) => onUpdate({ hingeAngle: normalizeHingeAngle(value) }) },
-      { type: "toggle", id: "hingePinless", label: t("prop.hingePinless"), value: plan.pinless, onChange: (value) => onUpdate({ hingePinless: value }) },
       {
         id: "hingeClearance",
         label: t("prop.hingeClearance"),
@@ -1225,7 +1273,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         onChange: (value) => {
           const clearance = normalizeHingeClearance(value);
           const pin = normalizeHingePinDiameter(plan.pinRadius * 2, shape.height, clearance);
-          onUpdate({ hingeClearance: clearance, hingePinDiameter: pin, hingeLeafThickness: normalizeHingeLeafThickness(plan.leaf, shape.height, pin, clearance) });
+          onUpdate({ hingeClearance: clearance, hingePinDiameter: pin, hingeLeafThickness: normalizeHingeLeafThickness(plan.leaf, shape.height, pin, clearance, plan.style) });
         },
       },
       ...roundSideProperties(shape, shape.height, shape.height, onUpdate),
@@ -1406,7 +1454,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
     ];
   }
 
-  if (shape.kind === "halfSphere") {
+  if (shape.kind === "halfSphere" || shape.kind === "paraboloid") {
     return [
       { id: "steps", label: t("prop.steps"), value: shape.steps ?? 32, min: 6, max: MAX_HIGH_RESOLUTION_STEPS, step: 1, onChange: (steps) => onUpdate({ steps: Math.round(steps) }) },
       { id: "length", label: t("prop.length"), value: depth, min: MIN_SHAPE_SIZE, max: 160, onChange: setDepth },
@@ -1526,6 +1574,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         },
         { id: "thickness", label: t("prop.thickness"), value: wall, min: 0.5, max: 20, onChange: (bevel) => onUpdate({ bevel: clamp(bevel, 0.5, wallLimit) }) },
         { id: "height", label: t("prop.height"), value: shape.height, min: MIN_SHAPE_SIZE, max: 160, onChange: setHeight },
+        { type: "toggle" as const, id: "tubeBoreHole", label: t("prop.tubeBoreHole"), value: shape.tubeBoreHole === true, onChange: (value: boolean) => onUpdate({ tubeBoreHole: value || undefined }) },
       ];
     }
     return [
@@ -1542,6 +1591,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
       { id: "length", label: t("prop.length"), value: depth, min: MIN_SHAPE_SIZE, max: 160, onChange: setDepth },
       { id: "width", label: t("prop.width"), value: width, min: MIN_SHAPE_SIZE, max: 160, onChange: setWidth },
       { id: "height", label: t("prop.height"), value: shape.height, min: MIN_SHAPE_SIZE, max: 160, onChange: setHeight },
+      { type: "toggle" as const, id: "tubeBoreHole", label: t("prop.tubeBoreHole"), value: shape.tubeBoreHole === true, onChange: (value: boolean) => onUpdate({ tubeBoreHole: value || undefined }) },
     ];
   }
 
@@ -2402,6 +2452,8 @@ function sketchFillProperties(profile: SketchProfile, onUpdate: ShapeInspectorUp
 function textFontProperty(shape: WorkplaneShape, onUpdate: ShapeInspectorUpdate): ShapePropertyConfig {
   // An older name of the Japanese face is shown as its current one.
   const current = builtInFontName(shape.font) ?? "Multilanguage";
+  // The words of the text itself, so the list shows how they will look.
+  const sample = typeof shape.text === "string" ? shape.text : "";
   const builtIn = t("font.builtInGroup");
   const own = t("font.customGroup");
   const options: SelectPropertyOption[] = [
@@ -2416,6 +2468,7 @@ function textFontProperty(shape: WorkplaneShape, onUpdate: ShapeInspectorUpdate)
     label: t("prop.font"),
     value: current,
     options,
+    fontSample: sample,
     onChange: (font) => {
       if (font === FONT_MANAGER_OPTION) requestFontManager();
       else onUpdate({ font });
@@ -2536,7 +2589,7 @@ export function ShapeInspector({
   const tiltedMeasures = orientedMeasures(shape).kind === "tilted";
   // What each value would be on a shape of this kind made new, with the saved defaults: the
   // small arrow next to a changed value takes it back there.
-  const propertyDefaults = useMemo(() => shapePropertyDefaults(shape.kind, workspace), [shape.kind, workspace]);
+  const propertyDefaults = useMemo(() => shapePropertyDefaults(shape.kind, workspace, shape.kind === "gridfinity" ? normalizeGridfinityType(shape.gridfinityType) : undefined), [shape.kind, workspace, shape.gridfinityType]);
   const savedDefaults = workspace.shapeCustomizations[shape.kind];
   const defaultsToSave = shapeDefaultsFromShape(shape, workspace.shapeCustomizations);
   const sameDefaults = JSON.stringify(defaultsToSave ?? null) === JSON.stringify(savedDefaults && Object.keys(savedDefaults).length > 0 ? savedDefaults : null);
@@ -2814,15 +2867,14 @@ export function ShapeInspector({
       ) : iconTag ? (
         <MakeIconLayersButton disabled={locked} onLayer={iconTag.onLayer} />
       ) : null}
-      {shape.groupOperation === "bundle" ? (
-        <p className="inspector-bundle-note">{t(nameTagStack || iconTag?.isTag ? "nameTag.bundleNote" : "inspector.bundleNote")}</p>
-      ) : !isNonSolidShape(shape) ? (
+      {shape.groupOperation === "bundle" || !isNonSolidShape(shape) ? (
       <div className="shape-state-card" role="group" aria-label={t("inspector.shapeMode")}>
         <button
           className={!shape.hole ? "active solid-choice" : "solid-choice"}
           onClick={() => {
             const wasHole = Boolean(shape.hole);
-            onUpdate({ hole: false, color: solidColor });
+            // Sending the colour too would paint it onto every part of a group or bundle and lose their own colours.
+            onUpdate(shape.groupedShapes?.length ? { hole: false } : { hole: false, color: solidColor });
             setColorOpen((open) => (wasHole ? false : !open));
           }}
           disabled={locked}
@@ -2931,6 +2983,10 @@ export function ShapeInspector({
           <Split size={17} strokeWidth={2.5} />
           <span>{t("inspector.separateParts")}</span>
         </button>
+      ) : null}
+
+      {shape.groupOperation === "bundle" ? (
+        <p className="inspector-bundle-note">{t(nameTagStack || iconTag?.isTag ? "nameTag.bundleNote" : "inspector.bundleNote")}</p>
       ) : null}
 
       {onWrapAroundCylinder ? (
@@ -4223,7 +4279,7 @@ function GridfinityCompartmentsCard({
   };
   const properties: ShapePropertyConfig[] = [
     countRow("x", "gridfinityCompartmentsX", "prop.gridfinityCompartmentsX"),
-    countRow("z", "gridfinityCompartmentsZ", "prop.gridfinityCompartmentsZ", t("gridfinity.compartmentsHint")),
+    countRow("z", "gridfinityCompartmentsZ", "prop.gridfinityCompartmentsZ", t(normalizeGridfinityType(fields.gridfinityType) === "tray" ? "gridfinity.compartmentsTrayHint" : "gridfinity.compartmentsHint")),
   ];
   if (compartments) {
     properties.push({ id: "gridfinityDividerThickness", label: t("prop.gridfinityDividerThickness"), value: gridfinityDividerThickness(fields), min: MIN_GRIDFINITY_DIVIDER_THICKNESS, max: MAX_GRIDFINITY_DIVIDER_THICKNESS, step: 0.1, onChange: (value) => onUpdate({ gridfinityDividerThickness: clamp(value, MIN_GRIDFINITY_DIVIDER_THICKNESS, MAX_GRIDFINITY_DIVIDER_THICKNESS) }) });
@@ -4350,11 +4406,15 @@ type PropertyDefaultValues = ReadonlyMap<string, number | string | boolean>;
  * different things in them. Null for a shape that is not made from the toolbar: a sketch,
  * a mesh, a group.
  */
-function shapePropertyDefaults(kind: WorkplaneShape["kind"], workspace: WorkplaneWorkspaceSettings) {
+function shapePropertyDefaults(kind: WorkplaneShape["kind"], workspace: WorkplaneWorkspaceSettings, gridfinityType?: GridfinityType) {
   const asset = shapeDefaultsAsset(kind);
   if (!asset) return null;
   try {
-    const fresh = makeShapeFromAsset(asset, undefined, workspace.shapeCustomizations[kind]);
+    // A tray (#837) is held to a tray made new, its floor starting at 1.2 mm, and a bin or baseplate to its own type
+    // where the defaults make a tray.
+    const saved = workspace.shapeCustomizations[kind];
+    const tray = gridfinityType === "tray" || (gridfinityType !== undefined && normalizeGridfinityType(saved?.gridfinityType) === "tray");
+    const fresh = makeShapeFromAsset(asset, undefined, tray ? { ...saved, gridfinityType } : saved);
     const main = new Map<string, number | string | boolean>();
     getShapeProperties(fresh, () => undefined, workspace).forEach((property) => {
       if (property.type !== "text") main.set(property.id, property.value);
@@ -4863,7 +4923,8 @@ function TextProperty({ label, value, disabled, onChange, onInteractionActiveCha
   );
 }
 
-function SelectProperty({ label, value, options, hint, disabled, onChange, onReset }: Omit<SelectPropertyConfig, "id"> & { id?: string } & { disabled?: boolean; onReset?: () => void }) {
+function SelectProperty({ label, value, options, hint, fontSample, disabled, onChange, onReset }: Omit<SelectPropertyConfig, "id"> & { id?: string } & { disabled?: boolean; onReset?: () => void }) {
+  if (fontSample !== undefined) return <FontPicker label={label} value={value} options={options} sample={fontSample} disabled={disabled} onChange={onChange} />;
   // Aufeinanderfolgende Eintraege mit derselben Ueberschrift werden zu einem
   // Block; ohne Ueberschrift stehen sie fuer sich.
   const blocks: Array<{ group?: string; items: SelectPropertyOption[] }> = [];
@@ -5183,6 +5244,17 @@ export function SelectionInspector({
             <span>{t("inspector.hole")} <span className="key-hint">(H)</span></span>
           </button>
           {!noHoles && !allHoles ? <p className="selection-mixed-note">{t("inspector.selectionMixed")}</p> : null}
+          {onUpdateShapes && solids.length > 0 ? (
+            <ToggleProperty
+              label={`${t("inspector.transparent")} (T)`}
+              value={solids.every((shape) => Boolean(shape.transparent))}
+              disabled={anyLocked}
+              onChange={(transparent) => onUpdateShapes(
+                solids.map((shape) => ({ id: shape.id, patch: { transparent: transparent || undefined } })),
+                transparent ? t("status.selectionTransparent") : t("status.selectionOpaque"),
+              )}
+            />
+          ) : null}
         </div>
       ) : null}
       {colorOpen ? (

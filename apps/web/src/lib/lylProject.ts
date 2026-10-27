@@ -24,6 +24,7 @@ import { importedShapeFromSvg } from "@/lib/svgImport";
 import { importedShapeFrom3mf } from "@/lib/threemfImport";
 import { normalizeDesignView, normalizeSavedViews, readDesignView, readSavedViews, type DesignView, type SavedDesignViews } from "@/lib/designView";
 import { normalizeSavedCornerRulers, readCornerRulers, type SavedCornerRuler } from "@/lib/cornerRulerStore";
+import { normalizeSavedTape, readTape, type SavedTape } from "@/lib/tapeStore";
 import { isSketchKeyring } from "@/lib/sketchKeyring";
 import { isReferenceImageOpacity } from "@/lib/referenceImage";
 import { isThreadProfile } from "@/lib/threadProfiles";
@@ -56,7 +57,7 @@ export const LYL_FILE_TYPES_FORMAT_VERSION = 4;
 /** The newest format this layerling reads. */
 export const LYL_NEWEST_READABLE_FORMAT_VERSION = LYL_FILE_TYPES_FORMAT_VERSION;
 export const LYL_OLDEST_READABLE_FORMAT_VERSION = 1;
-export const LYL_CREATED_WITH_VERSION = "1.111.0";
+export const LYL_CREATED_WITH_VERSION = "1.113.0";
 export const LYL_MEDIA_TYPE = "application/vnd.layerling.project+zip";
 
 export const LYL_LIMITS = {
@@ -74,11 +75,11 @@ export const LYL_LIMITS = {
 
 const SHAPE_KINDS = new Set([
   "box", "roundedBox", "cylinder", "slot", "ellipse", "sphere", "sketch", "scribble", "cone", "pyramid", "roof", "text", "roundRoof",
-  "halfSphere", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "honeycomb", "hinge", "knurl", "dovetail", "counterbore", "countersink", "doubleCountersink", "teardrop", "loft", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
+  "halfSphere", "paraboloid", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "honeycomb", "hinge", "knurl", "dovetail", "counterbore", "countersink", "doubleCountersink", "teardrop", "loft", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
 ]);
 
 const FEATURE_TYPES = new Set([
-  "group", "boolean-subtraction", "boolean-intersection", "mirror", "sketch-extrusion", "sketch-revolve", "sketch-sweep", "fillet", "chamfer", "chamfillet", "shell", "delete-face",
+  "group", "boolean-subtraction", "boolean-intersection", "mirror", "sketch-extrusion", "sketch-revolve", "sketch-sweep", "fillet", "chamfer", "chamfillet", "shell", "delete-face", "offset",
 ]);
 
 type LylAssetKind = "source" | "derived-mesh" | "brep" | "image" | "display-edges" | "attachment";
@@ -244,6 +245,8 @@ export type LylProjectDocumentV1 = {
     savedViews?: SavedDesignViews;
     /** The framing square where it was set (#829); older readers pass over it. */
     cornerRulers?: SavedCornerRuler[];
+    /** The tape measure's measurements and whether they are shown (#881); older readers pass over it. */
+    tapeMeasurements?: SavedTape;
   };
 };
 
@@ -270,6 +273,8 @@ export type LylProjectExportInput = {
   savedViews?: SavedDesignViews | null;
   /** The framing square; when left out, the one the browser keeps for this design goes in (#829). */
   cornerRulers?: SavedCornerRuler[] | null;
+  /** The tape measure's measurements; when left out, the ones the browser keeps for this design go in (#881). */
+  tapeMeasurements?: SavedTape | null;
   compressionLevel?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   /** Weitere Dateien im Paket, etwa der Fehlerbericht; ein Leser uebergeht sie. */
   extraFiles?: Record<string, Uint8Array>;
@@ -298,6 +303,8 @@ export type LylRestoredProject = {
   savedViews?: SavedDesignViews;
   /** The framing square, when the file has one (#829). */
   cornerRulers?: SavedCornerRuler[];
+  /** The tape measure's measurements, when the file has them (#881). */
+  tapeMeasurements?: SavedTape;
   migratedFromVersion?: number;
   /** Set when a newer layerling saved the design: its version, for a hint that an update helps. */
   savedWithNewerVersion?: string;
@@ -971,7 +978,7 @@ function activeProjectIndexes(state: LylStateV1) {
     }
     const treatments = Array.isArray(node.definition.edgeTreatments) ? node.definition.edgeTreatments as Array<Record<string, unknown>> : [];
     treatments.forEach((treatment, index) => {
-      const type = treatment.kind === "fillet" || treatment.kind === "chamfillet" || treatment.kind === "shell" ? treatment.kind : treatment.kind === "deleteFace" ? "delete-face" : "chamfer";
+      const type = treatment.kind === "fillet" || treatment.kind === "chamfillet" || treatment.kind === "shell" || treatment.kind === "offset" ? treatment.kind : treatment.kind === "deleteFace" ? "delete-face" : "chamfer";
       const featureId = `feature/${safeNodeToken(node.nodeId)}/${type}/${index}`;
       features.push({
         id: featureId,
@@ -1093,6 +1100,7 @@ export async function exportLylProject(input: LylProjectExportInput) {
   const view = input.view === undefined ? readDesignView(input.projectId) : normalizeDesignView(input.view);
   const savedViews = normalizeSavedViews(input.savedViews === undefined ? readSavedViews(input.projectId) : input.savedViews);
   const cornerRulers = normalizeSavedCornerRulers(input.cornerRulers === undefined ? readCornerRulers(input.projectId) : input.cornerRulers);
+  const tapeMeasurements = normalizeSavedTape(input.tapeMeasurements === undefined ? readTape(input.projectId) : input.tapeMeasurements);
   const selectedWorkplaneId = placementWorkplaneIsBase(placementWorkplane) ? "workplane-base" : "workplane-active";
   const document: Omit<LylProjectDocumentV1, "states"> & { states: typeof STATES_PLACEHOLDER } = {
     schema: LYL_SCHEMA_ID,
@@ -1134,6 +1142,7 @@ export async function exportLylProject(input: LylProjectExportInput) {
       ...(view ? { view } : {}),
       ...(savedViews ? { savedViews } : {}),
       ...(cornerRulers ? { cornerRulers } : {}),
+      ...(tapeMeasurements ? { tapeMeasurements } : {}),
     },
   };
   // The states are already text; put them in where the placeholder stands. The
@@ -1610,8 +1619,8 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     }
   }
   if (kind === "gridfinity") {
-    // The size is rounded to whole grid units on loading, and the geometry clamps the label shelf's, the finger scoop's, the floor's, the lip chamfer's, the wall's, the corners' and the dividers' values; only nonsense is refused.
-    if (definition.gridfinityType !== undefined && definition.gridfinityType !== "bin" && definition.gridfinityType !== "baseplate") {
+    // The size is rounded to whole grid units on loading (a tray's is kept to its limits), and the geometry clamps the label shelf's, the finger scoop's, the floor's, the lip chamfer's, the wall's, the corners' and the dividers' values; only nonsense is refused.
+    if (definition.gridfinityType !== undefined && definition.gridfinityType !== "bin" && definition.gridfinityType !== "baseplate" && definition.gridfinityType !== "tray") {
       throw new Error(`${label}.gridfinityType is invalid`);
     }
     for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityOpenBack", "gridfinityOpenFront", "gridfinityOpenLeft", "gridfinityOpenRight", "hingePinless"] as const) {
@@ -1681,7 +1690,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "hinge") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["hingeKnuckles", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeAngle"] as const) {
+    for (const key of ["hingeKnuckles", "hingeKnuckleWidth", "hingeConeSize", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeAngle"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       if (value < 0 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
@@ -2148,6 +2157,7 @@ async function restoreV1(document: LylProjectDocumentV1, assetById: Map<string, 
   const restoredView = normalizeDesignView(document.editor.view);
   const restoredSavedViews = normalizeSavedViews(document.editor.savedViews);
   const restoredCornerRulers = normalizeSavedCornerRulers(document.editor.cornerRulers);
+  const restoredTape = normalizeSavedTape(document.editor.tapeMeasurements);
   // The files were checked with the document; each is copied out of the archive.
   const attachments = (document.attachments ?? []).map((record): ProjectAttachment => {
     const asset = assetById.get(record.assetId) as LylAssetRecordV1;
@@ -2174,6 +2184,7 @@ async function restoreV1(document: LylProjectDocumentV1, assetById: Map<string, 
     ...(restoredView ? { view: restoredView } : {}),
     ...(restoredSavedViews ? { savedViews: restoredSavedViews } : {}),
     ...(restoredCornerRulers ? { cornerRulers: restoredCornerRulers } : {}),
+    ...(restoredTape ? { tapeMeasurements: restoredTape } : {}),
     ...(document.formatVersion < LYL_FORMAT_VERSION ? { migratedFromVersion: document.formatVersion } : {}),
   } satisfies LylRestoredProject;
 }

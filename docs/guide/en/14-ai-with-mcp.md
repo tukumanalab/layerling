@@ -77,6 +77,8 @@ The AI works with the same functions as you, through the same path as your opera
 | `layerling_list_edges` | lists the real CAD edges of an object |
 | `layerling_apply_edge_treatment` | chamfers or fillets chosen edges |
 | `layerling_hollow_object` | hollows a body with an even wall |
+| `layerling_cut_out` | cuts one solid out of another so they fit: the part stays, a copy grown by the clearance is subtracted from the other body |
+| `layerling_offset_object` | builds the clearance of a press fit: grows or shrinks a solid, or adds the grown copy as a hole |
 | `layerling_list_faces` | lists the faces of an exact body |
 | `layerling_delete_faces` | deletes faces and closes the gap |
 | `layerling_array_objects` | multiplies in a row or on a circle |
@@ -100,6 +102,7 @@ The AI works with the same functions as you, through the same path as your opera
 | `layerling_delete_custom_shape` | removes a custom shape; inserted bodies stay |
 | `layerling_show_workplane` | hides and shows the plate with its grid, for a picture of the underside for example (only the view) |
 | `layerling_set_section_view` | cuts the view open along a plane to look inside (only the view, nothing is cut apart) |
+| `layerling_measurements` | shows or hides the measurements of the tape measure and lists them with their lengths |
 | `layerling_saved_view` | saves the current view under the key 7, 8, 9 or 0 and goes back to it, like Shift+key and the key (only the view); also sets the start view of new designs |
 | `layerling_clear_history` | deletes every undo step for good, as the History view's "Delete history" button does; needs `confirm: true` |
 | `layerling_set_history_view` | looks back at an earlier state of the project, like the History view (the real design stays untouched; changing tools wait until it is closed) |

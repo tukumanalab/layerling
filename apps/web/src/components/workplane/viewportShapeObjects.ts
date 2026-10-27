@@ -13,6 +13,7 @@ import { createHeartGeometry } from "@/lib/heartGeometry";
 import { createCrescentGeometry } from "@/lib/crescentGeometry";
 import { createSlotGeometry } from "@/lib/slotGeometry";
 import { createDovetailGeometry } from "@/lib/dovetailGeometry";
+import { createParaboloidGeometry } from "@/lib/roundBodyGeometry";
 import { createLoftGeometry } from "@/lib/loftGeometry";
 import { createHingeGeometry } from "@/lib/hingeGeometry";
 import { createGridfinityGeometry } from "@/lib/gridfinityGeometry";
@@ -185,6 +186,9 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     honeycombWallThickness: shape.honeycombWallThickness,
     honeycombFrameWidth: shape.honeycombFrameWidth,
     hingeKnuckles: shape.hingeKnuckles,
+    hingeKnuckleWidth: shape.hingeKnuckleWidth,
+    hingeConeSize: shape.hingeConeSize,
+    hingeStyle: shape.hingeStyle,
     hingePinDiameter: shape.hingePinDiameter,
     hingeLeafThickness: shape.hingeLeafThickness,
     hingeClearance: shape.hingeClearance,
@@ -502,6 +506,9 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     honeycombWallThickness: shape.honeycombWallThickness,
     honeycombFrameWidth: shape.honeycombFrameWidth,
     hingeKnuckles: shape.hingeKnuckles,
+    hingeKnuckleWidth: shape.hingeKnuckleWidth,
+    hingeConeSize: shape.hingeConeSize,
+    hingeStyle: shape.hingeStyle,
     hingePinDiameter: shape.hingePinDiameter,
     hingeLeafThickness: shape.hingeLeafThickness,
     hingeClearance: shape.hingeClearance,
@@ -1565,6 +1572,9 @@ export function createShapeObject(
         depth,
         height,
         hingeKnuckles: shape.hingeKnuckles,
+        hingeKnuckleWidth: shape.hingeKnuckleWidth,
+        hingeConeSize: shape.hingeConeSize,
+        hingeStyle: shape.hingeStyle,
         hingePinDiameter: shape.hingePinDiameter,
         hingeLeafThickness: shape.hingeLeafThickness,
         hingeClearance: shape.hingeClearance,
@@ -1677,6 +1687,9 @@ export function createShapeObject(
       break;
     case "halfSphere":
       addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createHalfSphereGeometry(width, height, depth, shape.steps ?? 32)), material, shape);
+      break;
+    case "paraboloid":
+      addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createParaboloidGeometry(width, height, depth, shape.steps ?? 32)), material, shape);
       break;
     case "torus":
       addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createTorusGeometry(width, height, depth, shape)), material, shape);
@@ -1851,6 +1864,9 @@ export function createShapeObject(
 
 export const RULER_TICK_TEXTURE_WIDTH = 2048;
 
+/** From this width across (mm), a ruler carries both scales, millimetres and inches (#913). */
+export const RULER_TWO_SCALES_MIN_WIDTH = 15;
+
 /** Whether the rulers are scaled in inches: the workspace's unit is Imperial (#500). Read when a ruler is built, and part of its geometry key. */
 export let rulerInchScale = false;
 
@@ -1877,20 +1893,35 @@ export function createRulerTickTexture(length: number, crossWidth: number, baseC
   context.textAlign = "center";
   context.textBaseline = "top";
   const pxPerMm = canvas.width / length;
-  // The numbers stand a ten millimetres or an inch apart, so they get that much room.
-  const labelRoom = pxPerMm * (inches ? 24 : 9);
-  rulerTicks(length, inches).forEach((tick) => {
-    const x = tick.offset * pxPerMm;
-    context.lineWidth = tick.label !== undefined ? 3 : 1.6;
-    context.beginPath();
-    context.moveTo(x, 0);
-    context.lineTo(x, canvas.height * tick.height);
-    context.stroke();
-    if (tick.label !== undefined) {
-      context.font = `600 ${Math.round(canvas.height * 0.24)}px ${WORKPLANE_LABEL_FONT_STACK}`;
-      context.fillText(tick.label, x, canvas.height * 0.66, labelRoom);
-    }
-  });
+  // Wide enough for two rows of lines (#913): the scale of the unit goes along the top edge, the other one along the bottom edge.
+  const both = crossWidth >= RULER_TWO_SCALES_MIN_WIDTH;
+  const drawScale = (inchScale: boolean, fromBottom: boolean) => {
+    // The numbers stand a ten millimetres or an inch apart, so they get that much room.
+    const labelRoom = pxPerMm * (inchScale ? 24 : 9);
+    const reach = both ? 0.5 : 1;
+    rulerTicks(length, inchScale).forEach((tick) => {
+      const x = tick.offset * pxPerMm;
+      const end = canvas.height * tick.height * reach;
+      context.lineWidth = tick.label !== undefined ? 3 : 1.6;
+      context.beginPath();
+      context.moveTo(x, fromBottom ? canvas.height : 0);
+      context.lineTo(x, fromBottom ? canvas.height - end : end);
+      context.stroke();
+      if (tick.label !== undefined) {
+        context.font = `600 ${Math.round(canvas.height * (both ? 0.17 : 0.24))}px ${WORKPLANE_LABEL_FONT_STACK}`;
+        if (!both) context.fillText(tick.label, x, canvas.height * 0.66, labelRoom);
+        else if (fromBottom) {
+          context.textBaseline = "bottom";
+          context.fillText(tick.label, x, canvas.height * (1 - tick.height * reach) - 2, labelRoom);
+          context.textBaseline = "top";
+        } else {
+          context.fillText(tick.label, x, end + 2, labelRoom);
+        }
+      }
+    });
+  };
+  drawScale(inches, false);
+  if (both) drawScale(!inches, true);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
@@ -2128,7 +2159,7 @@ export function addShapeEdgeDecorations(group: THREE.Group, mesh: THREE.Mesh, pr
   const complexEdges =
     shape.kind === "mesh" ||
     Boolean(shape.importedMesh) ||
-    ["cone", "pyramid", "roof", "roundRoof", "halfSphere", "torus", "tube", "ring", "star", "gear", "wedge", "polygon", "heart", "crescent", "slot", "dovetail", "hinge", "gridfinity", "knurl", "teardrop", "counterbore", "countersink", "doubleCountersink", "honeycomb", "loft"].includes(shape.kind);
+    ["cone", "pyramid", "roof", "roundRoof", "halfSphere", "paraboloid", "torus", "tube", "ring", "star", "gear", "wedge", "polygon", "heart", "crescent", "slot", "dovetail", "hinge", "gridfinity", "knurl", "teardrop", "counterbore", "countersink", "doubleCountersink", "honeycomb", "loft"].includes(shape.kind);
   const importedTriangleCount = shape.importedMesh?.triangleCount ?? 0;
   const skipHeavyImportedEdges = Boolean(shape.importedMesh) && importedTriangleCount > IMPORTED_SELECTED_EDGE_TRIANGLE_LIMIT;
   // The setting draws a line on every body, in the colour chosen.

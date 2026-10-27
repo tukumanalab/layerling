@@ -15,6 +15,8 @@ export type SavedCornerRuler = {
   mode?: CornerRulerMode;
   axisModes?: CornerRulerAxisModes;
   occlude?: boolean;
+  /** The bodies at the arms show no measures of their own, only the selected ones do (#831). */
+  selectedOnly?: boolean;
 };
 
 const CORNER_RULERS_STORAGE_PREFIX = "layerling.cornerRulers.";
@@ -58,6 +60,7 @@ function normalizeRuler(value: unknown): SavedCornerRuler | null {
     ...(mode ? { mode } : {}),
     ...(Object.keys(axisModes).length ? { axisModes } : {}),
     ...(entry.occlude === false ? { occlude: false } : {}),
+    ...(entry.selectedOnly === true ? { selectedOnly: true } : {}),
   };
 }
 
@@ -70,8 +73,8 @@ export function normalizeSavedCornerRulers(value: unknown): SavedCornerRuler[] |
 
 /** What is kept of a framing square in the view: its fields without the view's own id. */
 export function savedCornerRuler<T extends SavedCornerRuler>(ruler: T): SavedCornerRuler {
-  const { corner, workplane, frame, armLengthX, armLengthZ, mode, axisModes, occlude } = ruler;
-  return { corner, workplane, frame, armLengthX, armLengthZ, ...(mode ? { mode } : {}), ...(axisModes ? { axisModes } : {}), ...(occlude === false ? { occlude } : {}) };
+  const { corner, workplane, frame, armLengthX, armLengthZ, mode, axisModes, occlude, selectedOnly } = ruler;
+  return { corner, workplane, frame, armLengthX, armLengthZ, ...(mode ? { mode } : {}), ...(axisModes ? { axisModes } : {}), ...(occlude === false ? { occlude } : {}), ...(selectedOnly === true ? { selectedOnly } : {}) };
 }
 
 export function readCornerRulers(projectId: string | null | undefined): SavedCornerRuler[] {

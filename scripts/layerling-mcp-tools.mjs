@@ -19,7 +19,7 @@ export const editorTargetSchema = {
  */
 export const creatableShapeKinds = [
   "box", "roundedBox", "cube", "cylinder", "slot", "ellipse", "polygon", "sphere", "cone", "pyramid", "wedge",
-  "roundRoof", "halfSphere", "torus", "loft", "tube", "bentTube", "star", "heart", "crescent", "text", "thread", "spring", "gridfinity", "gear",
+  "roundRoof", "halfSphere", "paraboloid", "torus", "loft", "tube", "bentTube", "star", "heart", "crescent", "text", "thread", "spring", "gridfinity", "gear",
   "hinge", "knurl", "dovetail", "counterbore", "countersink", "doubleCountersink", "teardrop", "ruler", "sketch",
 ];
 
@@ -121,12 +121,16 @@ export const shapeSettingSchema = {
   knurlAngle: { type: "number", description: "Diamond knurl only: angle of the grooves to the axis in degrees, 10 to 60 (default 30)." },
   knurlChamfer: { type: "number", description: "Knurl only: 45-degree chamfer on both ends in mm (default 0.5, 0 for none), at most a quarter of the diameter and just under half the height. Straight and round knurling stay an exact body with it." },
   hingeKnuckles: { type: "number", description: "Hinge only: how many knuckles share the axis, odd from 3 to 15 (default 5) so the part with the pin holds both ends. A hinge is a print-in-place hinge lying open flat: width is its length along the axis (x), depth both leaves together (z), height the knuckle diameter; it prints in one piece and turns afterwards." },
+  tubeBoreHole: { type: "boolean", description: "Tube or ring only: when true the bore counts as a hole once the shape is grouped, so it also cuts the wall of whatever the tube is grouped with - two tubes in a T-junction open into each other. false or left out: the bore only keeps the tube hollow." },
+  hingeKnuckleWidth: { type: "number", description: "Hinge only: the knuckles are at most this wide in mm and their number follows (odd, from 3 up to 31), instead of giving hingeKnuckles; the fewest knuckles that are not wider. Left out, hingeKnuckles stands. Giving hingeKnuckles in a later update takes the width away." },
+  hingeStyle: { type: "string", enum: ["pin", "pinless", "cone"], description: "Hinge only: \"pin\" (default) puts a printed pin through the knuckles; \"pinless\" leaves the pin out and runs the bore through every knuckle for a pin of one's own (the same as hingePinless true); \"cone\" gives every other knuckle cones on its ends that nest into conical recesses of the others - no pin and no bridge, so it prints lying flat without sagging. The cone hinge ignores hingePinDiameter, is a mesh (no chamfers or fillets, a mesh in STEP), makes fewer knuckles when they would be too short for a cone, and its hingeLeafThickness may be as thick as the whole knuckle (a flush hinge that opens about 90 degrees)." },
+  hingeConeSize: { type: "number", description: "Hinge, cone style only: the diameter of a cone where it grows from its knuckle, in mm. Left out, the largest that fits; a larger value is cut back to that." },
   hingePinDiameter: { type: "number", description: "Hinge only: diameter of the pin in mm (default 3); the other part's bore is wider by the clearance." },
   hingeLeafThickness: { type: "number", description: "Hinge only: thickness of the two leaves in mm (default 2), at most the knuckle radius less the bore radius so a leaf stays below the bore." },
   hingeClearance: { type: "number", description: "Hinge only: gap in mm between the moving parts (0.1 to 1, default 0.4) - around the pin, between the knuckles and in front of the leaves. Go up for a printer that tends to fuse, down for a tighter hinge." },
   hingePinless: { type: "boolean", description: "Hinge only: leave the printed pin out. The bore (pin diameter plus the clearance) then runs through every knuckle, the ends included, for a pin of your own such as a piece of filament or wire (default false)." },
   hingeAngle: { type: "number", description: "Hinge only: fold the second leaf up about the pin, in degrees (0 to 180, default 0): 0 lies flat as it prints, 180 is closed. Set it back to 0 before printing the hinge in place." },
-  gridfinityType: { type: "string", enum: ["bin", "baseplate"], description: "Gridfinity only: a bin, or the baseplate bins stand in, to the published Gridfinity measures so they fit parts printed from other designs. The size is whole grid units of 42 mm: a bin is 42 x units - 0.5 across and deep (41.5, 83.5, 125.5 ... up to 6 units, 251.5), 7 mm per height unit, up to 20 units, plus 4.4 for the stacking lip (a 3-unit bin is 25.4 tall); a baseplate is 42 x units across and deep, plus its padding (gridfinityPaddingBack and the others), and 5 tall. Any width, depth or height is rounded to the nearest whole units. When a baseplate becomes a bin, give its height too, or it gets one height unit. With gridfinityHalfGrid a bin's units are cells of 21 mm instead." },
+  gridfinityType: { type: "string", enum: ["bin", "baseplate", "tray"], description: "Gridfinity only: a bin, or the baseplate bins stand in, to the published Gridfinity measures so they fit parts printed from other designs, or a tray. A bin's or baseplate's size is whole grid units of 42 mm: a bin is 42 x units - 0.5 across and deep (41.5, 83.5, 125.5 ... up to 6 units, 251.5), 7 mm per height unit, up to 20 units, plus 4.4 for the stacking lip (a 3-unit bin is 25.4 tall); a baseplate is 42 x units across and deep, plus its padding (gridfinityPaddingBack and the others), and 5 tall. Any width, depth or height is rounded to the nearest whole units. When a baseplate becomes a bin, give its height too, or it gets one height unit. With gridfinityHalfGrid a bin's units are cells of 21 mm instead. A tray (#837) has no grid: a flat bottom with no feet, lip or magnet holes, its width and depth free in mm from 10 to 252 and its height from 3 to 140, kept as given within them (a new one is 80 x 40 x 20); when a baseplate becomes a tray, give its height too, or it stays 5 mm tall. The settings marked Gridfinity bin only apply to a tray too, except gridfinityLip, gridfinityLipChamfer, gridfinityMagnets and gridfinityHalfGrid; its floor starts at 1.2 mm (gridfinityFloorHeight), it takes as many compartments as leave each at least 6 mm wide (up to 24 along a side and 40 in all), its dividers and label shelves run up to its top, and its label shelves need no height units, only room, as finger scoops on any part." },
   gridfinityLip: { type: "boolean", description: "Gridfinity bin only: the stacking lip on top of the wall that the next bin's feet sit in (default true). Switching it keeps the height units and adds or takes off the 4.4 mm." },
   gridfinityMagnets: { type: "boolean", description: "Gridfinity bin only: holes for 6 x 2 mm magnets under each foot, 6.5 mm wide and 2.4 deep, 13 mm from the middle of the unit both ways (default false); on the half-size grid one hole under each foot, see gridfinityHalfGrid. A baseplate has none." },
   gridfinityHalfGrid: { type: "boolean", description: "Gridfinity bin only: a half-size grid (default false). The width and depth then count cells of 21 mm: a bin is 21 x units - 0.5 (20.5, 41.5, 62.5 ... up to 12 units, 251.5), with a foot under every cell, the same steps and corners, four to a socket of an ordinary baseplate. Switching it on keeps the outline; switching it off rounds an odd count up to whole units of 42 mm. With magnets each foot gets one hole, 2.5 mm both ways from its middle towards the corner of its cell on the 42 mm grid, counted from the bin's left back corner (-x, -z). A baseplate ignores it." },
@@ -154,7 +158,7 @@ export const shapeSettingSchema = {
   gridfinityScoopRight: { type: "boolean", description: "Gridfinity bin only: a finger scoop along the right wall (default false); see gridfinityScoopBack." },
   gridfinityScoopRadius: { type: "number", description: "Gridfinity bin only: the finger scoops' radius in mm, at least 3.5. Unset, it is half the height from the floor (5.95 mm up unless gridfinityFloorHeight raises it) to where the stacking lip's support leaves the wall, 1.65 mm under 7 mm per height unit with the 0.95 mm wall (with a wall over 1.75 mm, the ledge 0.85 mm under it), or to the top of a bin without the lip: 6.7 for a bin of 3 height units with the lip, 7.525 without. It stays at least 0.5 mm less than that height, and across the bin it leaves at least 2 mm of floor, between two scoops facing each other or between a scoop and the wall opposite it." },
   gridfinityFloorHeight: { type: "number", description: "Gridfinity bin only: the floor's height inside in mm, measured from the underside of the bin (default 5.95, the 1.2 mm floor on the feet). Raised, the bin is solid up to it, a blank to cut shapes into: at most where the stacking lip's support leaves the wall, 1.65 mm under 7 mm per height unit with the 0.95 mm wall (19.35 for 3 units), so a stacked bin's feet stay clear by 2.25 mm less the wall; with a wall over 1.75 mm, at most the ledge 0.85 mm under 7 mm per height unit; or the top of a bin without the lip, a solid block. Not in a bin of 1 height unit with the lip and a wall of 1.6 mm or less. Finger scoops start on it and label shelves can reach less far out above it; both are left out once it leaves them no room." },
-  gridfinityOpenBack: { type: "boolean", description: "Gridfinity bin only: no wall and no stacking lip along the back above the floor (default false), so bins open on facing sides stand side by side as one run. The walls beside it and their lip run straight out to the bin's outline and end square, 0.5 mm from the next bin as between any two bins, and the floor runs flat to the edge and ends square there. Feet and magnet holes stay as they are. A label shelf or finger scoop on an open side is not built, nor are the scoops against dividers facing that way (the setting is kept for when the side is closed again); shelves and scoops beside it, and dividers that meet it, run out to the edge, and a compartment takes no label on an open side. Any sides together, all four for a tray. A bin without the lip whose floor is raised to the top (gridfinityFloorHeight) is a solid block and has nothing to open. gridfinityOpenings opens a side only partly." },
+  gridfinityOpenBack: { type: "boolean", description: "Gridfinity bin only: no wall and no stacking lip along the back above the floor (default false), so bins open on facing sides stand side by side as one run. The walls beside it and their lip run straight out to the bin's outline and end square, 0.5 mm from the next bin as between any two bins, and the floor runs flat to the edge and ends square there. Feet and magnet holes stay as they are. A label shelf or finger scoop on an open side is not built, nor are the scoops against dividers facing that way (the setting is kept for when the side is closed again); shelves and scoops beside it, and dividers that meet it, run out to the edge, and a compartment takes no label on an open side. Any sides together, all four for a floor on its feet alone. A bin without the lip whose floor is raised to the top (gridfinityFloorHeight) is a solid block and has nothing to open. gridfinityOpenings opens a side only partly." },
   gridfinityOpenFront: { type: "boolean", description: "Gridfinity bin only: no wall and no stacking lip along the front above the floor (default false), or only partly with gridfinityOpenings; see gridfinityOpenBack." },
   gridfinityOpenLeft: { type: "boolean", description: "Gridfinity bin only: no wall and no stacking lip along the left above the floor (default false), or only partly with gridfinityOpenings; see gridfinityOpenBack." },
   gridfinityOpenRight: { type: "boolean", description: "Gridfinity bin only: no wall and no stacking lip along the right above the floor (default false), or only partly with gridfinityOpenings; see gridfinityOpenBack." },
@@ -879,6 +883,36 @@ export const tools = [
     },
   },
   {
+    name: "layerling_offset_object",
+    description: "Move every face of one exact solid by the same distance, outward (grow, the default) or inward (shrink) - like the editor's Offset tool. This is the clearance for a press fit or a snap joint: with asHole true the original stays as it is and a copy, grown by the distance, is added as a hole to cut the mating part with (group them with layerling_group_objects, or use layerling_boolean_cut). `distance` is in millimetres (0.01 to 10, default 0.2). `edges` round (default) keeps the offset surface round at the outer corners, sharp lets the faces run on until they meet. A body that is only a triangle mesh often cannot be offset, and neither can a bundle or a hole; the error then says so. The result is a fixed exact body: its offset can be taken back like a chamfer.",
+    inputSchema: {
+      ...editorTargetSchema,
+      required: ["id"],
+      properties: {
+        ...editorTargetSchema.properties,
+        id: { type: "string" },
+        distance: { type: "number", description: "Distance in millimetres, 0.01 to 10; 0.2 when omitted." },
+        shrink: { type: "boolean", description: "True moves the faces inward (the body gets smaller); false or omitted outward." },
+        asHole: { type: "boolean", description: "True keeps the original and adds the offset body as a copy that is a hole; the result is that copy." },
+        edges: { type: "string", enum: ["round", "sharp"] },
+      },
+    },
+  },
+  {
+    name: "layerling_cut_out",
+    description: "Cut one solid out of another so the two fit, like the editor's Cut out tool: a copy of the part is subtracted from the host and the part itself stays where it is. This replaces copying the part, making the copy a hole, aligning it and grouping. `clearance` (millimetres, 0 to 10, default 0) makes the cavity that much larger than the part on every side, the room for a printed fit (0.2 is usual); it needs the part to be an exact CAD body, like layerling_offset_object. The host is replaced by the result, a group that can be ungrouped again; the part is returned unchanged. Both must be unlocked solids, neither a hole nor a bundle.",
+    inputSchema: {
+      ...editorTargetSchema,
+      required: ["partId", "hostId"],
+      properties: {
+        ...editorTargetSchema.properties,
+        partId: { type: "string", description: "The part that stays, such as a shaft, a bolt or a sleeve." },
+        hostId: { type: "string", description: "The body that is cut, such as a collar or a case." },
+        clearance: { type: "number", description: "Extra room all round in millimetres, 0 to 10; 0 when omitted." },
+      },
+    },
+  },
+  {
     name: "layerling_array_objects",
     description: "Repeat objects n times in a row or around a circle - hole rows, hole grids, bolt circles, the teeth of a ring - like the editor's Pattern tool. `count` includes the originals. Coordinates are as in a slicer: X to the right, Y to the back, Z up. A row steps `spacing` millimetres along `direction` (negative runs the other way), or along several axes at once with `spacingX`, `spacingY` and `spacingZ` (a diagonal row, a staircase; give any of them and the others count as 0). A circle turns about the vertical axis through (`centerX`, `centerY`) over `angle` degrees: 360 (default) spreads the pieces evenly, a smaller angle puts the first and last piece on its ends; positive runs counter-clockwise seen from above. `rise` lifts every copy that many millimetres more than the one before (a screw, an ascending spiral) and `radiusChange` moves it that far further from the centre (negative: closer) for a flat or conical spiral. `rotateCopies` (default true) turns each copy with the circle. The copies are added as one undo step and returned with their ids; the originals stay where they are.",
     inputSchema: {
@@ -1195,6 +1229,17 @@ export const tools = [
       properties: {
         ...editorTargetSchema.properties,
         visible: { type: "boolean", description: "true shows the plate, false hides it. Left out it stays as it is." },
+      },
+    },
+  },
+  {
+    name: "layerling_measurements",
+    description: "The measurements of the editor's tape measure: what is measured and whether they are shown. Call with nothing to read them: visible and measurements, each with its id and its length in millimetres (a measured edge counts along the edge). visible true shows the measurements, false hides them, like the eye among the tape measure's buttons; hidden measurements stay in the design. The measurements belong to the design: they stay in the browser and travel in a .lyl file, never in the undo history, and hiding is kept too. Combine with layerling_capture_image to see them (or not) in the picture. Not available while a sketch is open.",
+    inputSchema: {
+      ...editorTargetSchema,
+      properties: {
+        ...editorTargetSchema.properties,
+        visible: { type: "boolean", description: "true shows the measurements, false hides them. Left out they stay as they are." },
       },
     },
   },

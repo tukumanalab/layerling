@@ -158,6 +158,10 @@ async function callTool(name, args) {
       return bridgeCommand("delete_faces", args, 90000);
     case "layerling_hollow_object":
       return bridgeCommand("hollow_object", args, 90000);
+    case "layerling_offset_object":
+      return bridgeCommand("offset_object", args, 90000);
+    case "layerling_cut_out":
+      return bridgeCommand("cut_out", args, 90000);
     case "layerling_array_objects":
       return bridgeCommand("array_objects", args, 30000);
     case "layerling_apply_edge_treatment":
@@ -196,6 +200,8 @@ async function callTool(name, args) {
       return bridgeCommand("restore_from_history", args);
     case "layerling_show_workplane":
       return bridgeCommand("show_workplane", args);
+    case "layerling_measurements":
+      return bridgeCommand("measurements", args);
     case "layerling_saved_view":
       return bridgeCommand("saved_view", args);
     case "layerling_export_section_svg":

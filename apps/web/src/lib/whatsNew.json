@@ -1,5 +1,155 @@
 [
   {
+    "version": "1.113.0",
+    "items": [
+      {
+        "title": {
+          "de": "Scharnier: Kegelgröße und bündiges Blatt",
+          "en": "Hinge: cone size and a flush leaf"
+        },
+        "body": {
+          "de": "Beim Scharnier mit Kegeln stellst du jetzt den Kegeldurchmesser ein (standardmäßig so groß, wie es passt), und das Blatt darf so dick sein wie der ganze Knöchel, also bündig. Die Bauart ist eine Auswahl aus Mit Stift, Ohne Stift und Mit Kegeln.",
+          "en": "On the hinge with cones you now set the cone diameter (as large as fits by default), and the leaf may be as thick as the whole knuckle, flush with it. The style is one choice of With pin, Without pin and With cones."
+        }
+      },
+      {
+        "title": {
+          "de": "Rohr: Bohrung als Loch",
+          "en": "Tube: bore as a hole"
+        },
+        "body": {
+          "de": "Bei Rohr und Ring gibt es den Schalter „Bohrung schneidet beim Gruppieren wie ein Loch“. Gruppierst du dann zwei Rohre in einer T-Verbindung, öffnet die Bohrung auch die Wand des anderen Rohrs.",
+          "en": "Tube and ring have a new switch, “Bore cuts as a hole when grouped”. Group two tubes in a T-junction and the bore now opens the wall of the other tube too."
+        }
+      },
+      {
+        "title": {
+          "de": "Versatz: Körper um einen Abstand vergrößern oder verkleinern",
+          "en": "Offset: grow or shrink a body by a distance"
+        },
+        "body": {
+          "de": "Das neue Werkzeug „Versatz“ neben „Aushöhlen“ verschiebt jede Fläche eines Körpers um denselben Abstand, nach außen oder innen. So bekommst du das Spiel für Passungen und Schnappverbindungen: Mit dem Haken „Original behalten“ bleibt dein Teil, und die vergrößerte Kopie liegt schon als Loch daneben, bereit zum Gruppieren mit dem Gegenstück.",
+          "en": "The new Offset tool next to Hollow moves every face of a body by the same distance, out or in. That gives you the clearance for press fits and snap joints: with \"Keep the original\" ticked your part stays and the grown copy is already a hole beside it, ready to group with the mating part."
+        }
+      },
+      {
+        "title": {
+          "de": "Passend ausschneiden: einen Körper aus einem anderen",
+          "en": "Cut out: one body out of another"
+        },
+        "body": {
+          "de": "Bei Teilen, die zusammenpassen müssen, wählst du beide Körper und klickst im Bereich Kombinieren auf „Passend ausschneiden“. Das Teil bleibt, der andere Körper bekommt seine Form als Aussparung, auf Wunsch mit Spiel ringsum, etwa 0,2 mm für eine gedruckte Passung. Das Kopieren, Zum-Loch-Machen und Ausrichten entfällt.",
+          "en": "For parts that have to fit, select both bodies and click Cut out in the Combine area. The part stays and the other body gets its shape as a cavity, with a clearance all round if you want one, 0.2 mm for a printed fit, say. No more copying, making a hole and aligning it."
+        }
+      },
+      {
+        "title": {
+          "de": "Schriftvorschau in der Schriftwahl",
+          "en": "Font preview in the font list"
+        },
+        "body": {
+          "de": "Die Liste der Schriften bei Text und Namensschild zeigt jede Schrift jetzt in ihren eigenen Buchstaben, mit den Wörtern deines Textes. So siehst du auch bei eigenen Schriften vor dem Wählen, wie sie aussehen. Auch das Fenster „Eigene Schriften“ zeigt die Vorschau.",
+          "en": "The list of fonts for text and name tags now draws every font in its own letters, with the words of your text. So you see how a font looks before you choose it, your own fonts included. The window of your own fonts shows the preview too."
+        }
+      },
+      {
+        "title": {
+          "de": "Paraboloid als neue Form",
+          "en": "A paraboloid shape"
+        },
+        "body": {
+          "de": "Neben der Halbkugel gibt es jetzt das Paraboloid: eine Kuppel, die zum Rand hin quadratisch abfällt, mit gerundeter Spitze. Bei unterschiedlicher Breite und Tiefe wird der Grundriss oval.",
+          "en": "Next to the half sphere there is now a paraboloid: a dome whose height falls with the square of the distance from the axis, with a rounded tip. With a different width and depth the footprint becomes oval."
+        }
+      },
+      {
+        "title": {
+          "de": "Lineal mit Millimetern und Zoll",
+          "en": "Ruler with millimetres and inches"
+        },
+        "body": {
+          "de": "Ein Lineal ab 15 mm Breite trägt jetzt beide Skalen: die der gewählten Einheit an der oberen Kante, die andere an der unteren. Für schnelles Umrechnen muss nichts mehr umgeschaltet werden.",
+          "en": "A ruler 15 mm wide or more now carries both scales: the one of your unit along the top edge and the other along the bottom edge. A quick conversion needs no switching any more."
+        }
+      },
+      {
+        "title": {
+          "de": "Stege für herausfallende Teile (DXF und SVG)",
+          "en": "Stencil bridges for falling parts (DXF and SVG)"
+        },
+        "body": {
+          "de": "Beim Lasern fallen die Mitten von Buchstaben wie o, a und b heraus. Im Export von DXF und SVG halten jetzt auf Wunsch kleine Stege solche Teile am Rand fest, wie bei einer Schablone. Breite und Anzahl pro Teil sind einstellbar.",
+          "en": "When a plate with text is laser cut, the middle of letters like o, a and b falls out. The DXF and SVG export can now hold such parts to the material with small bridges, as on a stencil, with a width and a number per part you set."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.112.0",
+    "items": [
+      {
+        "title": {
+          "de": "Messungen bleiben im Entwurf",
+          "en": "Measurements stay with the design"
+        },
+        "body": {
+          "de": "Die Messungen des Maßbands werden jetzt mit dem Entwurf gespeichert, auch in der .lyl-Datei, und sind beim Öffnen wieder da. Ein neuer Augenknopf unter den Maßband-Knöpfen blendet sie aus und wieder ein; auch das wird gemerkt.",
+          "en": "The measurements of the tape measure are now saved with the design, also in the .lyl file, and are back when you open it. A new eye button among the tape measure's buttons hides and shows them; that is remembered too."
+        }
+      },
+      {
+        "title": {
+          "de": "Mitte einer Fläche markieren",
+          "en": "Mark the centre of a face"
+        },
+        "body": {
+          "de": "Im Rechtsklickmenü eines Körpers setzt „Mitte dieser Fläche markieren“ einen Bezugspunkt in die Mitte der ebenen Fläche, auf die du geklickt hast, an einer Seite oder einem Ende, nicht nur oben. Das Maßband rastet daran ein.",
+          "en": "In the right-click menu of a body, \"Mark the centre of this face\" puts a reference point in the middle of the flat face you clicked, on a side or an end, not only on top. The tape measure snaps to it."
+        }
+      },
+      {
+        "title": {
+          "de": "Gridfinity-Schalen in jeder Größe",
+          "en": "Gridfinity trays of any size"
+        },
+        "body": {
+          "de": "Die Gridfinity-Form hat unter „Art“ jetzt auch „Schale“: eine Schale beliebiger Größe in mm mit flachem Boden, ohne Füße und Stapelrand, etwa für Spieleinsätze. Fächer, Griffmulden, Etikettenleisten und offene Seiten funktionieren wie in einem Behälter, und die Trennwände reichen bis oben.",
+          "en": "The Gridfinity shape now has \"Tray\" under \"Type\": a tray of any size in mm with a flat bottom and no feet or stacking lip, for board game inserts and the like. Compartments, finger scoops, label shelves and open sides work as in a bin, and the dividers run up to the top."
+        }
+      },
+      {
+        "title": {
+          "de": "Winkellineal: Maße nur für die Auswahl",
+          "en": "Framing square: measures for the selection only"
+        },
+        "body": {
+          "de": "Stehen viele Körper an den Armen des Winkellineals, zeigt jeder seine Maße, und die Zahlen lassen sich nicht mehr zuordnen. Ein neuer Knopf unter dem Griff des Lineals schaltet das ab: Dann zeigen nur die ausgewählten Körper Maße. Die Wahl wird mit dem Entwurf gespeichert.",
+          "en": "With many bodies at the arms of the framing square, each shows its measures and the numbers can no longer be told apart. A new button under the square's handle switches that off: then only the selected bodies show measures. The choice is kept with the design."
+        }
+      },
+      {
+        "title": {
+          "de": "Scharnier mit Kegeln",
+          "en": "A hinge with cones"
+        },
+        "body": {
+          "de": "Das Scharnier gibt es jetzt auch mit Kegeln statt Stift: Jeder zweite Knöchel endet in Kegeln, die in Mulden der Nachbarn passen, ohne lange Brücke, die durchhängen könnte. Statt der Zahl der Knöchel kannst du außerdem ihre größte Breite angeben.",
+          "en": "The hinge now also comes with cones instead of a pin: every other knuckle ends in cones that fit into recesses of its neighbours, with no long bridge that could sag. Instead of the number of knuckles you can also give their widest width."
+        }
+      },
+      {
+        "title": {
+          "de": "Mehrere Entwürfe auf einmal löschen",
+          "en": "Delete several designs at once"
+        },
+        "body": {
+          "de": "Auf der Startseite gibt es über den Entwürfen den Knopf „Auswählen“: Ein Klick auf eine Karte wählt sie aus, „Alle auswählen“ nimmt alle, und „Löschen“ fragt einmal für die ganze Auswahl. So sind viele alte Entwürfe schnell weg. Im Serverordner geht es genauso.",
+          "en": "The start page has a Select button above the designs: a click on a card chooses it, Select all takes every design, and Delete asks once for the whole choice. Many old designs are gone in a moment. It works the same in the server folder."
+        }
+      }
+    ]
+  },
+  {
     "version": "1.111.0",
     "items": [
       {

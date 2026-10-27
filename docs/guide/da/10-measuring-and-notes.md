@@ -40,7 +40,7 @@ Vinkelmåleren ligger på arbejdsplanet. Ligger det på siden af en form, ligger
 - **Den lille knap til venstre for håndtaget** skifter hvad der måles fra: ydersiden af en form (endepunkt, et ikon med streger) eller dens midte (midtpunkt, et sigtekorn).
   En lille kontakt af samme slags sidder ved siden af hvert grønt tal og sætter kun det tal: for en stående cylinder er det midten i de to arme og bunden i højden, for en liggende midten på tværs og en ende i længden. Når alle tre igen er enige, viser knappen ved håndtaget den fælles tilstand.
 
-Står der former ved en af armene, viser vinkelmåleren automatisk deres dimensioner, valgt eller ikke: former inden i vinkelmåleren, ved siden af en arm eller på tværs af den. En form uden for den, bag hjørnet eller ved siden af en arm udefra, får ingen. Det virker kun på grundpladen, ikke på siden af en form.
+Står der former ved en af armene, viser vinkelmåleren automatisk deres dimensioner, valgt eller ikke: former inden i vinkelmåleren, ved siden af en arm eller på tværs af den. En form uden for den, bag hjørnet eller ved siden af en arm udefra, får ingen. Det virker kun på grundpladen, ikke på siden af en form. Knappen med pilen under vinkelmålerens håndtag slår det fra, så kun de valgte former viser deres mål; den gemmes med designet.
 
 Når du vælger en form, viser vinkelmåleren med grønt hvor langt den er fra hjørnet, langs begge arme og i højden. Klik et grønt tal for at taste en afstand, og formen flytter sig præcis derhen. Med flere former valgt tæller de som én: måleren måler deres fælles omrids, og en tastet værdi flytter dem alle sammen uden at ændre deres position i forhold til hinanden.
 
@@ -48,7 +48,7 @@ De grønne tals hjælpelinjer løber langs det plan, vinkelmåleren ligger i, fr
 
 Med midtpunktet tæller de grønne tal til formens midte, også i højden. Sådan placerer du en kugle med dens centrum præcis 15 mm fra en kant, uden at trække radius fra. På en væg placerer du et hul 40 mm fra venstre og 190 mm fra toppen sådan: vælg hullet, skift til midtpunkt, tast 40 og 190. Højden der tæller udad fra væggen.
 
-Både målebåndet og vinkelmåleren bliver hvor de er mens du skitser og kommer tilbage til 3D-visningen. Ingen af dem er i historikken. Målebåndet gemmes ikke med designet og forsvinder når du genindlæser siden; vinkelmåleren gemmes derimod med designet.
+Både målebåndet og vinkelmåleren bliver hvor de er mens du skitser og kommer tilbage til 3D-visningen. Ingen af dem er i historikken. Vinkelmåleren gemmes med designet, og det samme gør målebåndets målinger, i browseren og i .lyl-filen: de er der igen, når du åbner designet. Øjeknappen blandt målebåndets knapper skjuler alle målinger og viser dem igen; om de er skjult, gemmes også, og hvis du sætter, flytter eller sletter en måling, vises de først.
 
 ## Afstande til nulpunktet og under flytning
 
@@ -76,7 +76,7 @@ Noter gemmes i designet, optræder i ingen eksport og kan vises eller skjules me
 
 ## Referencepunkter
 
-Et referencepunkt er et bart mærke i rummet, som en blyantsmarkering eller et layout-punkt i et værksted: det hører til ingen form, printes aldrig, og andre ting snapper til det. Højreklik en form og vælg {{ui:contextMenu.markCenter}}, {{ui:contextMenu.markCorners}} eller {{ui:contextMenu.markMidpoints}}: punkterne dukker op på formens øverste flade (af hele markeringen, hvis du valgte flere).
+Et referencepunkt er et bart mærke i rummet, som en blyantsmarkering eller et layout-punkt i et værksted: det hører til ingen form, printes aldrig, og andre ting snapper til det. Højreklik en form og vælg {{ui:contextMenu.markCenter}}, {{ui:contextMenu.markCorners}} eller {{ui:contextMenu.markMidpoints}}: punkterne dukker op på formens øverste flade (af hele markeringen, hvis du valgte flere). {{ui:contextMenu.markFaceCenter}} sætter i stedet ét i midten af den flade du højreklikkede på, for eksempel på en side eller en ende.
 
 - Træk et punkt for at flytte det, eller klik det for at se dets koordinater og taste nye; de bruger den enhed du har sat. Kortet kan trækkes væk i dets titellinje hvis det dækker noget, og et dobbeltklik på titellinjen sætter det tilbage. {{ui:common.delete}} fjerner det.
   Hvert kort kan trækkes væk alene, så de andre kort bliver hvor de er. Det kort du rørte sidst ligger foran de andre. **Slet alle** i et kort, eller **Slet alle referencepunkter** i højreklikmenuen (på en form eller på et tomt sted i 3D-visningen), sletter alle punkter på én gang.

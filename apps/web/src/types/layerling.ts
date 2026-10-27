@@ -13,6 +13,7 @@ export type ShapeKind =
   | "text"
   | "roundRoof"
   | "halfSphere"
+  | "paraboloid"
   | "torus"
   | "tube"
   | "bentTube"
@@ -175,6 +176,14 @@ export type ShapeCustomization = {
   honeycombFrameWidth?: number;
   /** Hinge: how many knuckles share the axis, odd so the pin's part holds both ends. */
   hingeKnuckles?: number;
+  /** Tube or ring: its bore counts as a hole when the shape is grouped, and cuts what it is grouped with - a wall of another tube in a T-junction (#892). */
+  tubeBoreHole?: boolean;
+  /** Hinge: the knuckles are at most this wide in mm and their number follows; left out, the count of `hingeKnuckles` stands (#907). */
+  hingeKnuckleWidth?: number;
+  /** Hinge, cone style: the diameter of the cones at their root in mm; left out, the largest that fits (#907). */
+  hingeConeSize?: number;
+  /** Hinge: "pin" (default) or "cone": cones on every other knuckle that nest into the others, printing without bridges (#907). */
+  hingeStyle?: "pin" | "pinless" | "cone";
   /** Hinge: diameter of the pin in mm; the other part's bore is wider by the clearance. */
   hingePinDiameter?: number;
   /** Hinge: thickness of the two leaves in mm. */
@@ -185,7 +194,7 @@ export type ShapeCustomization = {
   hingePinless?: boolean;
   /** Hinge: the second leaf folded up about the pin, in degrees; 0 lies flat, 180 is closed. */
   hingeAngle?: number;
-  /** Gridfinity: a bin or the baseplate it stands in; the size counts grid units of 42 mm (height units of 7 mm). */
+  /** Gridfinity: a bin or the baseplate it stands in, whose size counts grid units of 42 mm (height units of 7 mm), or a tray of any size in mm (#837). */
   gridfinityType?: GridfinityType;
   /** Gridfinity bin: the stacking lip on top of the wall; missing means on. */
   gridfinityLip?: boolean;
@@ -562,8 +571,8 @@ export type SketchOperation = "extrude" | "revolve" | "sweep";
 export type GearType = "spur" | "helical" | "herringbone" | "bevel" | "internal" | "rack";
 export type GearProfile = "involute" | "round" | "simple";
 
-/** A Gridfinity bin, or the baseplate bins stand in. */
-export type GridfinityType = "bin" | "baseplate";
+/** A Gridfinity bin, the baseplate bins stand in, or a tray of any size with a flat bottom (#837). */
+export type GridfinityType = "bin" | "baseplate" | "tray";
 /** How a label shelf's corners are finished where it meets a wall or another shelf. */
 export type GridfinityLabelCorner = "round" | "chamfer";
 /**
@@ -637,8 +646,8 @@ export type ShellOpenings = "none" | "top" | "bottom" | "top-bottom" | ShellSide
 export type ShellEdges = "round" | "sharp";
 
 export type EdgeTreatmentFeature = {
-  /** "shell" hollows the body: `amount` is then the wall thickness. "deleteFace" deletes faces and closes the gap (#451). */
-  kind: "fillet" | "chamfer" | "chamfillet" | "shell" | "deleteFace";
+  /** "shell" hollows the body: `amount` is then the wall thickness. "deleteFace" deletes faces and closes the gap (#451). "offset" moves every face by `amount` (#919). */
+  kind: "fillet" | "chamfer" | "chamfillet" | "shell" | "deleteFace" | "offset";
   amount: number;
   edgeCount: number;
   /** The edges picked, as the tool numbered them on the body before this treatment: "Edit" picks them again (#227). */
@@ -647,8 +656,10 @@ export type EdgeTreatmentFeature = {
   /** Only for a fillet of one edge (#687): the radius at the edge's end, `amount` the one at its start. */
   endAmount?: number;
   openings?: ShellOpenings;
-  /** Only for "shell"; missing means "round". */
+  /** Only for "shell" and "offset"; missing means "round". */
   shellEdges?: ShellEdges;
+  /** Only for "offset": the faces moved inward, the body shrunk; missing means grown. */
+  offsetShrink?: boolean;
   /** Only for "deleteFace": the faces deleted, as the tool numbered them on the body before. */
   faceIds?: number[];
   faceCount?: number;
@@ -828,6 +839,14 @@ export type WorkplaneShape = {
   honeycombFrameWidth?: number;
   /** Hinge: how many knuckles share the axis, odd so the pin's part holds both ends. */
   hingeKnuckles?: number;
+  /** Tube or ring: its bore counts as a hole when the shape is grouped, and cuts what it is grouped with - a wall of another tube in a T-junction (#892). */
+  tubeBoreHole?: boolean;
+  /** Hinge: the knuckles are at most this wide in mm and their number follows; left out, the count of `hingeKnuckles` stands (#907). */
+  hingeKnuckleWidth?: number;
+  /** Hinge, cone style: the diameter of the cones at their root in mm; left out, the largest that fits (#907). */
+  hingeConeSize?: number;
+  /** Hinge: "pin" (default) or "cone": cones on every other knuckle that nest into the others, printing without bridges (#907). */
+  hingeStyle?: "pin" | "pinless" | "cone";
   /** Hinge: diameter of the pin in mm; the other part's bore is wider by the clearance. */
   hingePinDiameter?: number;
   /** Hinge: thickness of the two leaves in mm. */
@@ -838,7 +857,7 @@ export type WorkplaneShape = {
   hingePinless?: boolean;
   /** Hinge: the second leaf folded up about the pin, in degrees; 0 lies flat, 180 is closed. */
   hingeAngle?: number;
-  /** Gridfinity: a bin or the baseplate it stands in; the size counts grid units of 42 mm (height units of 7 mm). */
+  /** Gridfinity: a bin or the baseplate it stands in, whose size counts grid units of 42 mm (height units of 7 mm), or a tray of any size in mm (#837). */
   gridfinityType?: GridfinityType;
   /** Gridfinity bin: the stacking lip on top of the wall; missing means on. */
   gridfinityLip?: boolean;

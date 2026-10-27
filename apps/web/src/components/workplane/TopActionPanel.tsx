@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_STENCIL_BRIDGES, MAX_BRIDGE_COUNT, normalizedStencilBridges, type StencilBridgeOptions } from "@/lib/stencilBridges";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
 import { CloudUpload, Download, EyeOff, FilePlus2, FolderOpen, ImagePlus, Info, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
@@ -12,6 +13,7 @@ import { type EditorHistoryExportLimit } from "@/lib/editorHistory";
 import { projectExportFileName, stlNameAsksForNewFile } from "@/lib/exportNames";
 import { readImportSvgWidth, readKeepSvgPage, setImportSvgWidth, storeKeepSvgPage } from "@/lib/importPreferences";
 import { lylFileAccessSupported } from "@/lib/lylFileAccess";
+import { hasOwnShapeName } from "@/lib/shapeCatalog";
 import type { ProjectAttachment, WorkplaneShape } from "@/types/layerling";
 import { type ExportSolidVolume, PRINT_MATERIAL_STORAGE_KEY, PRINT_INFILL_STORAGE_KEY, PRINT_WALLS_STORAGE_KEY, formatEstimateNumber } from "@/lib/editorBooleans";
 
@@ -76,7 +78,7 @@ export function TopActionPanel({
   estimateShapes: readonly WorkplaneShape[];
   onEstimatePrint: (shapes: readonly WorkplaneShape[]) => Promise<ExportSolidVolume>;
   onClose: () => void;
-  onExport: (format: DirectExportFormat, exportName: string, chooseFile?: boolean, svgView?: SvgExportView, toServer?: boolean) => void;
+  onExport: (format: DirectExportFormat, exportName: string, chooseFile?: boolean, svgView?: SvgExportView, toServer?: boolean, bridges?: StencilBridgeOptions | null) => void;
   /** The STL file this design exports into, once one was chosen (Chrome and Edge). */
   stlFileName?: string | null;
   onExportLyl: (exportName: string, historyLimit: LylHistoryLimit, target?: LylExportTarget) => void;
@@ -110,17 +112,24 @@ export function TopActionPanel({
   const [drawingFormat, setDrawingFormat] = useState<"svg" | "pdf">("pdf");
   const [svgView, setSvgView] = useState<SvgExportView>("silhouette");
   const [dxfView, setDxfView] = useState<DxfExportView>("silhouette");
-  const [exportName, setExportName] = useState(projectName);
-  const previousProjectNameRef = useRef(projectName);
+  // Stencil bridges for the parts a cut would let fall out (the middle of an "o"): off unless asked for.
+  const [bridgesOn, setBridgesOn] = useState(false);
+  const [bridges, setBridges] = useState<StencilBridgeOptions>(DEFAULT_STENCIL_BRIDGES);
+  // One body with a name of its own is exported under that name; a design file keeps the design's name.
+  const ownObjectName = estimateShapes.length === 1 && hasOwnShapeName(estimateShapes[0]) ? estimateShapes[0].name!.trim() : null;
+  const suggestedName = ownObjectName && exportFormat !== "lyl" ? ownObjectName : projectName;
+  const [exportName, setExportName] = useState(suggestedName);
+  const previousSuggestedNameRef = useRef(suggestedName);
   // Starts at the history setting from the workspace settings, so a project
   // file carries what the editor keeps unless it is changed here.
   const [lylHistoryLimit, setLylHistoryLimit] = useState<LylHistoryLimit>(workspaceHistoryLimit);
   useEffect(() => setLylHistoryLimit(workspaceHistoryLimit), [workspaceHistoryLimit]);
+  // A name that is still the one suggested follows a new suggestion; a typed one stays.
   useEffect(() => {
-    const previousProjectName = previousProjectNameRef.current;
-    setExportName((current) => current === previousProjectName ? projectName : current);
-    previousProjectNameRef.current = projectName;
-  }, [projectName]);
+    const previousSuggestedName = previousSuggestedNameRef.current;
+    setExportName((current) => current === previousSuggestedName ? suggestedName : current);
+    previousSuggestedNameRef.current = suggestedName;
+  }, [suggestedName]);
   // A custom number from the settings joins the usual stops in its place; the last stop, None,
   // saves the design with its current state only, for sharing a file without its undo steps (#246).
   const lylHistoryLimits = useMemo<readonly LylHistoryLimit[]>(() => {
@@ -268,7 +277,12 @@ export function TopActionPanel({
     else if (exportFormat === "step") onExportStep(exportName, toServer);
     else if (exportFormat === "png") onExportImage(exportName, imageOptions, toServer);
     else if (exportFormat === "lyl") onExportLyl(exportName, lylHistoryLimit, lylFileAccessSupported() ? "fileAs" : "download");
-    else onExport(exportFormat, exportName, false, exportFormat === "dxf" ? dxfView : svgView, toServer);
+    else {
+      const view = exportFormat === "dxf" ? dxfView : svgView;
+      // Bridges go into a cut outline: the DXF, or the SVG's silhouette.
+      const withBridges = bridgesOn && (exportFormat === "dxf" || (exportFormat === "svg" && svgView === "silhouette"));
+      onExport(exportFormat, exportName, false, view, toServer, withBridges ? bridges : null);
+    }
   };
 
   return (
@@ -439,6 +453,7 @@ export function TopActionPanel({
                   <option value="edges">{t("export.svg.viewEdges")}</option>
                 </select>
               </label>
+              {svgView === "silhouette" ? <StencilBridgeControls on={bridgesOn} options={bridges} onToggle={setBridgesOn} onChange={setBridges} /> : null}
             </section>
           ) : null}
 
@@ -451,6 +466,7 @@ export function TopActionPanel({
                   <option value="footprint">{t("export.svg.viewFootprint")}</option>
                 </select>
               </label>
+              <StencilBridgeControls on={bridgesOn} options={bridges} onToggle={setBridgesOn} onChange={setBridges} />
             </section>
           ) : null}
 
@@ -661,5 +677,36 @@ export function TopActionPanel({
         </div>
       ) : null}
     </div>
+  );
+}
+
+const BRIDGE_WIDTHS = [0.5, 0.8, 1, 1.5, 2, 3] as const;
+
+/** The stencil bridges' switch, and with it on, how wide the bridges are and how many hold each part. */
+function StencilBridgeControls({ on, options, onToggle, onChange }: { on: boolean; options: StencilBridgeOptions; onToggle: (on: boolean) => void; onChange: (options: StencilBridgeOptions) => void }) {
+  return (
+    <>
+      <label className="export-image-option" title={t("export.bridgesHint")}>
+        <input type="checkbox" checked={on} onChange={(event) => onToggle(event.currentTarget.checked)} />
+        <span>{t("export.bridges")}</span>
+      </label>
+      {on ? (
+        <>
+          <span className="print-estimate-note">{t("export.bridgesHint")}</span>
+          <label>
+            <strong>{t("export.bridgeWidth")}</strong>{" "}
+            <select aria-label={t("export.bridgeWidth")} value={String(options.width)} onChange={(event) => onChange(normalizedStencilBridges({ ...options, width: Number(event.target.value) }))}>
+              {BRIDGE_WIDTHS.map((width) => <option key={width} value={String(width)}>{`${width} mm`}</option>)}
+            </select>
+          </label>
+          <label>
+            <strong>{t("export.bridgeCount")}</strong>{" "}
+            <select aria-label={t("export.bridgeCount")} value={String(options.count)} onChange={(event) => onChange(normalizedStencilBridges({ ...options, count: Number(event.target.value) }))}>
+              {Array.from({ length: MAX_BRIDGE_COUNT }, (_, index) => index + 1).map((count) => <option key={count} value={String(count)}>{count}</option>)}
+            </select>
+          </label>
+        </>
+      ) : null}
+    </>
   );
 }

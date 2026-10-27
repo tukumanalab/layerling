@@ -1,6 +1,6 @@
 # layerling project files (`.lyl`)
 
-`.lyl` is layerling's native, editable project format. It is an additional backup, transfer, and sharing mechanism; IndexedDB autosave remains the normal local persistence system, and STL, 3MF, OBJ, STEP, and SVG remain geometry exports.
+`.lyl` is layerling's native, editable project format. It is an additional backup, transfer, and sharing mechanism; IndexedDB autosave remains the normal local persistence system, and STL, 3MF, OBJ, STEP, SVG, and DXF remain geometry exports.
 
 ## Architecture decision
 
@@ -119,3 +119,4 @@ Future schema changes should add a version-to-version migration, run validation 
 - The camera is stored as optional editor state, `editor.view` (#220): `orthographic`, `position`, `target`, `up` and `zoom`. It is not part of the undo history; a reader that does not know it passes over it, and a file without it opens in the standard view.
 - OBJ and 3MF are import formats as well as export formats; their source files are kept like STL ones and the bodies are rebuilt from them on load.
 - The views saved under the keys 7, 8, 9 and 0 are stored as optional editor state too, `editor.savedViews`: an array of four entries in that order, each a view like `editor.view` or `null` for an empty slot. It is left out when no slot holds a view, is not part of the undo history, and a reader that does not know it passes over it.
+- The measurements of the tape measure are stored as optional editor state, `editor.tapeMeasurements` (#881): `points` (each with `id`, a world position `x`, `y`, `z` and, for a point fixed to a body, an `attachment` with the body's `shapeId` and a `normalized` place measured against its box) and `segments` (each `id`, `startId`, `endId` and, for a measured edge, an `edge`), plus `hidden: true` when the measurements are kept but not shown. It is left out when there is no measurement, is not part of the undo history, and a reader that does not know it passes over it; the format version stays as it is. A point whose body is gone, or whose edge no longer fits the body, is dropped when the design is opened.

@@ -315,7 +315,7 @@ export function resizeShapeFromFrameHandle(
     // Past the opposite corner both sides cross together.
     flipX = flipZ = flipX || flipZ;
   }
-  // A Gridfinity bin or baseplate is whole grid units: the box is rounded to them before the
+  // A Gridfinity bin or baseplate is whole grid units (a tray's size is free): the box is rounded to them before the
   // middle is placed, so the side that is not dragged stays where it is.
   if (shape.kind === "gridfinity" && (signs.x || signs.z)) {
     const footprint = gridfinityFootprintPatch({ ...shape, width: nextWidth, depth: nextDepth });
@@ -494,7 +494,7 @@ export function resizeShapeAlongFrameNormal(
     return importedPatch;
   }
 
-  // A Gridfinity bin is whole height units: the height is rounded before the fixed face is kept.
+  // A Gridfinity bin is whole height units (a tray's height is free): the height is rounded before the fixed face is kept.
   const frameHeight = shape.kind === "gridfinity" && !shape.rotationX && !shape.rotationZ
     ? gridfinityFootprintPatch({ ...shape, height: Math.abs(nextFrameHeight) }).height
     : nextFrameHeight;

@@ -77,6 +77,8 @@ AI pracuje tymi samymi funkcjami co Ty, tą samą drogą co Twoja praca w edytor
 | `layerling_list_edges` | wypisuje prawdziwe krawędzie CAD obiektu |
 | `layerling_apply_edge_treatment` | fazuje albo zaokrągla wybrane krawędzie |
 | `layerling_hollow_object` | drąży bryłę z równą ścianką |
+| `layerling_cut_out` | wycina jedną bryłę z drugiej, aby do siebie pasowały: część zostaje, kopia powiększona o luz jest odejmowana od drugiej bryły |
+| `layerling_offset_object` | odsuwa wszystkie ściany bryły na luz pasowania: powiększa lub zmniejsza ją albo dodaje powiększoną kopię jako otwór |
 | `layerling_list_faces` | wypisuje ściany dokładnej bryły |
 | `layerling_delete_faces` | usuwa ściany i zamyka lukę |
 | `layerling_array_objects` | powiela w rzędzie albo na okręgu |
@@ -100,6 +102,7 @@ AI pracuje tymi samymi funkcjami co Ty, tą samą drogą co Twoja praca w edytor
 | `layerling_delete_custom_shape` | usuwa własny kształt. Wstawione bryły zostają |
 | `layerling_show_workplane` | ukrywa i pokazuje płytę z siatką, na przykład do zdjęcia spodu (tylko widok) |
 | `layerling_set_section_view` | rozcina widok wzdłuż płaszczyzny, żeby zajrzeć do środka (tylko widok, nic nie jest cięte) |
+| `layerling_measurements` | pokazuje lub ukrywa pomiary narzędzia Zmierz i wypisuje je z ich długościami |
 | `layerling_saved_view` | zapisuje bieżący widok pod klawiszem 7, 8, 9 lub 0 i do niego wraca, jak Shift+klawisz i sam klawisz (tylko widok); ustawia też widok startowy nowych projektów |
 | `layerling_clear_history` | usuwa na dobre wszystkie kroki cofania, tak jak przycisk „Usuń historię” w widoku historii. Wymaga `confirm: true` |
 | `layerling_set_history_view` | pokazuje wcześniejszy stan projektu, jak widok historii (prawdziwy projekt zostaje nietknięty, a narzędzia zmieniające czekają, aż widok zostanie zamknięty) |

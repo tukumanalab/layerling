@@ -1158,3 +1158,106 @@ describe("exact Gridfinity bins with notch corners", () => {
     }
   });
 });
+
+describe("exact Gridfinity trays", () => {
+  /** A tray of 80 x 40 x 20 mm (#837): walls of 0.95, a floor of 1.2, corners of 3.75 outside and 2.8 inside. */
+  const tray = (extra: Partial<CadModifierGridfinityPart> = {}): CadModifierGridfinityPart => ({ width: 80, depth: 40, height: 20, gridfinityType: "tray", gridfinityLip: true, gridfinityMagnets: true, ...extra });
+  const area = (w: number, d: number, r: number) => w * d - (4 - Math.PI) * r * r;
+  /** The outline over the height less the inside over its depth, as calculated by hand. */
+  const exact = (w: number, d: number, h: number, wall: number, floor: number) => area(w, d, 3.75) * h - area(w - 2 * wall, d - 2 * wall, Math.max(0, 3.75 - wall)) * (h - floor);
+
+  it("builds a tray as one valid solid with the mesh's volume and box, and the volume calculated by hand", () => {
+    for (const [extra, volume] of [
+      [{}, exact(80, 40, 20, 0.95, 1.2)],
+      [{ gridfinityWallThickness: 2 }, exact(80, 40, 20, 2, 1.2)],
+      [{ gridfinityFloorHeight: 5 }, exact(80, 40, 20, 0.95, 5)],
+      [{ gridfinityFloorHeight: 20 }, area(80, 40, 3.75) * 20],
+      [{ gridfinityWallThickness: 99 }, area(80, 40, 3.75) * 20],
+    ] as const) {
+      const solid = expectBuilt(tray(extra));
+      expect(Math.abs(cad.getVolume(solid)), JSON.stringify(extra)).toBeCloseTo(volume, 3);
+    }
+    expect(exact(80, 40, 20, 0.95, 1.2)).toBeCloseTo(7943.63, 2);
+    // It stands on y = 0 with no feet, magnet holes or lip, whatever is stored: no baseplate and no bin.
+    const solid = gridfinityPartSolid(cad, tray());
+    expect(cad.getBoundingBox(solid)).toMatchObject({ ymin: expect.closeTo(0, 6), ymax: expect.closeTo(20, 6) });
+    expect(material(solid, 0, 0, 0, 1.2)).toBeCloseTo(0.3 * 0.3 * 1.2, 6);
+    expect(material(solid, 0, 0, 1.25, 20)).toBeLessThan(1e-6);
+    expect(material(solid, -40 + 0.6, 0, 0, 20)).toBeCloseTo(0.3 * 0.3 * 20, 6);
+  });
+
+  it("builds trays with compartments, scoops, shelves, labels, open sides and openings, small and large", () => {
+    for (const part of [
+      tray({ gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, gridfinityScoopBack: true, gridfinityScoopFront: true, gridfinityScoopLeft: true, gridfinityScoopRight: true }),
+      tray({ gridfinityCompartmentsX: 3, gridfinityCompartmentLabels: [{ column: 0, row: 0, side: "back" }, { column: 2, row: 0, side: "left" }] }),
+      tray({ gridfinityScoopFront: true, gridfinityScoopBack: true }),
+      tray({ gridfinityLabelBack: true, gridfinityLabelLeft: true }),
+      tray({ gridfinityOpenFront: true }),
+      tray({ gridfinityOpenBack: true, gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenRight: true }),
+      tray({ gridfinityOpenFront: true, gridfinityCompartmentsX: 2, gridfinityLabelBack: true }),
+      tray({ gridfinityOpenFront: true, gridfinityOpenBack: true, gridfinityOpenLeft: true, gridfinityOpenRight: true, gridfinityOpenings: [{ side: "front", width: 20, depth: 8 }, { side: "back", width: 20, depth: 8 }, { side: "left", width: 10, depth: 8 }, { side: "right", width: 10 }], gridfinityOpeningCornerSize: 2 }),
+      tray({ gridfinityWallThickness: 2.5, gridfinityCompartmentsX: 2, gridfinityScoopFront: true }),
+      tray({ gridfinityFloorHeight: 8, gridfinityScoopFront: true, gridfinityLabelBack: true }),
+    ]) expectBuilt(part);
+    // Small ones: the mesh's polygon corners are 0.57 of the smallest's 157.8 mm³ (0.36 %), and the compartments' floors,
+    // drawn by the mesh as balls of 32 sides as in a bin, 16 of a low tray's 6223 mm³ (0.24 %).
+    expectBuilt(tray({ width: 10, depth: 10, height: 3 }), 0.004);
+    expectBuilt(tray({ width: 92.5, depth: 31.2, height: 7.3, gridfinityCompartmentsX: 4 }), 0.003);
+    // Forty compartments: the same balls under each, on a tray with no feet to take up the difference, are 0.55 % (up to
+    // 0.62 % on a smaller tray with scoops as well).
+    expectBuilt(tray({ gridfinityCompartmentsX: 8, gridfinityCompartmentsZ: 5 }), 0.006);
+  });
+
+  it("builds a tray with compartments and an opening cut partly, as one solid", () => {
+    // The compartments' cutters stand apart up to the top, so the box over them joins them to the notch.
+    for (const part of [
+      tray({ width: 120, depth: 60, height: 25, gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, gridfinityOpenFront: true, gridfinityOpenings: [{ side: "front", width: 20, depth: 10 }] }),
+      tray({ gridfinityCompartmentsZ: 2, gridfinityOpenFront: true, gridfinityOpenings: [{ side: "front", width: 20, depth: 10 }] }),
+      tray({ gridfinityCompartmentsX: 3, gridfinityOpenFront: true, gridfinityOpenings: [{ side: "front", width: 20 }] }),
+      tray({ width: 120, depth: 60, height: 25, gridfinityCompartmentsX: 3, gridfinityCompartmentsZ: 2, gridfinityScoopFront: true, gridfinityScoopBack: true, gridfinityLabelBack: true, gridfinityCompartmentLabels: [{ column: 1, row: 1, side: "back" }], gridfinityOpenFront: true, gridfinityOpenLeft: true, gridfinityOpenings: [{ side: "front", width: 20, depth: 10 }], gridfinityOpeningCornerSize: 2, gridfinityWallThickness: 1.6 }),
+    ]) expectBuilt(part);
+  });
+
+  it("builds a low tray with compartments and openings down to the floor", () => {
+    // Each notch down to the floor takes the floor's rounding as the section draws it, in chords, a little more than the
+    // arc: the dividers' check counts it so, or it would refuse these trays, whose short dividers leave it no slack.
+    const four = { gridfinityOpenFront: true, gridfinityOpenBack: true, gridfinityOpenLeft: true, gridfinityOpenRight: true };
+    for (const part of [
+      tray({ width: 37.3, depth: 21.9, height: 4.2, ...four, gridfinityOpenings: [{ side: "front", width: 10, depth: 3 }, { side: "back", width: 10, depth: 3 }, { side: "left", width: 6, depth: 3 }, { side: "right", width: 6 }], gridfinityCompartmentsX: 5, gridfinityCompartmentsZ: 2 }),
+      tray({ width: 57.4, depth: 89.1, height: 6.2, gridfinityOpenFront: true, gridfinityOpenBack: true, gridfinityOpenings: [{ side: "front", width: 8, align: "middle", distance: 3 }, { side: "back", width: 34, depth: 10.5, align: "start", distance: 4 }], gridfinityCompartmentsX: 7, gridfinityDividerThickness: 2.8, gridfinityLabelFront: true }),
+      tray({ width: 45.3, depth: 70.5, height: 8.2, gridfinityOpenFront: true, gridfinityOpenBack: true, gridfinityOpenRight: true, gridfinityOpenings: [{ side: "front", width: 18, align: "end", distance: 3 }, { side: "back", width: 6, align: "middle", distance: 3 }, { side: "right", width: 32, depth: 8.5, align: "start", distance: 3 }], gridfinityOpeningCorner: "chamfer", gridfinityCompartmentsX: 8, gridfinityCompartmentsZ: 2, gridfinityLabelRight: true, gridfinityCompartmentLabels: [{ column: 0, row: 0, side: "front" }] }),
+    ]) expectBuilt(part, 0.006);
+  });
+
+  it("builds a tray whose finger scoop ends under an opening's rounded corner, as one solid", () => {
+    // The scoop runs out on the floor under the notch's rounded corners, which the kernel cannot fuse into the inside, so
+    // the notch is cut after it. Edges under 0.01 mm are left where the three meet the floor, as on a notched bin.
+    const part = tray({ width: 64.6, depth: 19.1, height: 39.6, gridfinityOpenBack: true, gridfinityOpenings: [{ side: "back", width: 10, align: "middle", distance: 1 }], gridfinityOpeningCornerSize: 2.5, gridfinityDividerThickness: 3, gridfinityLabelBack: true, gridfinityScoopFront: true, gridfinityFloorHeight: 1.89 });
+    const solid = gridfinityPartSolid(cad, part);
+    expect(cad.isValid(solid)).toBe(true);
+    expect(cad.isSolid(solid) ? 1 : cad.getSubShapes(solid, "solid").length).toBe(1);
+    const exact = Math.abs(cad.getVolume(solid));
+    expect(Math.abs(exact - meshVolume(part)) / exact).toBeLessThan(0.002);
+    const box = cad.getBoundingBox(solid);
+    const { min, max } = meshBounds(part);
+    [box.xmin - min[0], box.ymin - min[1], box.zmin - min[2], box.xmax - max[0], box.ymax - max[1], box.zmax - max[2]].forEach((d) => expect(Math.abs(d)).toBeLessThan(0.01));
+  });
+
+  it("runs the dividers and the shelves up to the top", () => {
+    const solid = expectBuilt(tray({ gridfinityCompartmentsX: 2 }));
+    // The divider stands in the middle from the floor right up to the top.
+    expect(material(solid, 0, 0, 1.5, 20)).toBeCloseTo(0.3 * 0.3 * 18.5, 6);
+    const shelf = expectBuilt(tray({ gridfinityLabelBack: true }));
+    expect(material(shelf, 0, -20 + 0.95 + 2, 19.5, 20)).toBeCloseTo(0.3 * 0.3 * 0.5, 6);
+  });
+
+  it("takes a fillet and a chamfer on its flat bottom's edge", () => {
+    const solid = gridfinityPartSolid(cad, tray());
+    const edges = cad.getSubShapes(solid, "edge").filter((edge) => cad.getBoundingBox(edge).ymax < 1e-6);
+    expect(edges.length).toBeGreaterThan(0);
+    const filleted = cad.fillet(solid, edges, 0.4);
+    expect(cad.isValid(filleted)).toBe(true);
+    expect(Math.abs(cad.getVolume(filleted))).toBeLessThan(Math.abs(cad.getVolume(solid)));
+    expect(cad.isValid(cad.chamfer(solid, edges, 0.4))).toBe(true);
+  });
+});

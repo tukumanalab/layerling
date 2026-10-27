@@ -77,6 +77,8 @@ L’IA usa le stesse funzioni che hai a disposizione, attraverso lo stesso perco
 | `layerling_list_edges` | Elenca gli spigoli CAD reali di un oggetto. |
 | `layerling_apply_edge_treatment` | Applica smussi o raccordi agli spigoli selezionati. |
 | `layerling_hollow_object` | Svuota un corpo mantenendo pareti di spessore uniforme. |
+| `layerling_cut_out` | ritaglia un solido da un altro perché combacino: la parte resta, una copia ingrandita del gioco viene sottratta all'altro corpo |
+| `layerling_offset_object` | sposta tutte le facce di un corpo per il gioco di un accoppiamento: lo ingrandisce o riduce, o aggiunge la copia ingrandita come vuoto |
 | `layerling_list_faces` | Elenca le facce di un corpo CAD esatto. |
 | `layerling_delete_faces` | Elimina le facce e chiude l’apertura. |
 | `layerling_array_objects` | Crea copie in fila o disposte in cerchio. |
@@ -100,6 +102,7 @@ L’IA usa le stesse funzioni che hai a disposizione, attraverso lo stesso perco
 | `layerling_delete_custom_shape` | Elimina una forma personalizzata; i corpi già inseriti restano nel progetto. |
 | `layerling_show_workplane` | Nasconde o mostra il piano con la griglia, per esempio per fotografare la parte inferiore (modifica solo la vista). |
 | `layerling_set_section_view` | Apre la vista lungo un piano di sezione per mostrare l’interno; non taglia realmente il pezzo (modifica solo la vista). |
+| `layerling_measurements` | mostra o nasconde le misurazioni del metro a nastro e le elenca con le loro lunghezze |
 | `layerling_saved_view` | Salva la vista corrente con il tasto 7, 8, 9 o 0 e la richiama in seguito, come con Maiusc+tasto e poi il tasto (modifica solo la vista). Imposta anche la vista di avvio dei nuovi progetti. |
 | `layerling_clear_history` | Elimina definitivamente tutti i passaggi annullabili, come il pulsante «Elimina cronologia» nella vista Cronologia; richiede `confirm: true`. |
 | `layerling_set_history_view` | Mostra uno stato precedente del progetto, come la vista Cronologia. Il progetto vero e proprio non viene modificato; gli strumenti di modifica restano in attesa finché la vista non viene chiusa. |

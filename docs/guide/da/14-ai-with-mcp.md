@@ -77,6 +77,8 @@ AI'en arbejder med de samme funktioner som dig, gennem den samme vej som din han
 | `layerling_list_edges` | lister objektets rigtige CAD-kanter |
 | `layerling_apply_edge_treatment` | faser eller runder valgte kanter |
 | `layerling_hollow_object` | udhuler en form med jævn væg |
+| `layerling_cut_out` | skærer ét massivt legeme ud af et andet, så de passer sammen: delen bliver, en kopi forstørret med spillerummet trækkes fra det andet legeme |
+| `layerling_offset_object` | forskyder alle flader på et legeme til spillerummet i en pasning: forstørrer eller formindsker det, eller tilføjer den forstørrede kopi som hul |
 | `layerling_list_faces` | lister fladerne på en eksakt form |
 | `layerling_delete_faces` | sletter flader og lukker åbningen |
 | `layerling_array_objects` | mangfoldiggør i en række eller på en cirkel |
@@ -100,6 +102,7 @@ AI'en arbejder med de samme funktioner som dig, gennem den samme vej som din han
 | `layerling_delete_custom_shape` | fjerner en egne form; indsatte former bevares |
 | `layerling_show_workplane` | skjuler og viser pladen med sit gitter, for et billede af undersiden for eksempel (kun visningen) |
 | `layerling_set_section_view` | skærer visningen op langs et plan for at kigge indeni (kun visningen, intet skæres fra hinanden) |
+| `layerling_measurements` | viser eller skjuler målebåndets målinger og viser dem med deres længder |
 | `layerling_saved_view` | gemmer den aktuelle visning under tasten 7, 8, 9 eller 0 og går tilbage til den, som Shift+tast og tasten (kun visningen); sætter også startvisningen for nye designs |
 | `layerling_clear_history` | sletter hvert fortryd-trin for evigt, som historikvisningens "Slet historik"-knap; kræver `confirm: true` |
 | `layerling_set_history_view` | ser tilbage på en tidligere tilstand af projektet, som historikvisningen (det rigtige design forbliver urørt; ændringsværktøjer venter indtil den er lukket) |

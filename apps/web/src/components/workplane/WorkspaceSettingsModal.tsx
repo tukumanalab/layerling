@@ -81,6 +81,7 @@ import { BOOLEAN_TRIANGLE_LIMIT_PRESETS, BOOLEAN_TRIANGLE_LIMIT_STEP, DEFAULT_WO
 import { DEFAULT_SKETCH_BACKGROUND, DEFAULT_SKETCH_GRID_COLOR, DEFAULT_SKETCH_PLATE_COLOR, IMPERIAL_GRID_BLOCK_PRESETS, inchGridPresetMm, workplaneGridPalette } from "@/lib/workplaneGrid";
 import type { BentTubeProfile, CustomSnapGrid, GearProfile, GearType, GridSize, ShapeCustomization, ShapeKind, ThreadHand, ThreadHead, ThreadProfile, ThreadRole, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { DEFAULT_LOFT } from "@/lib/loftGeometry";
+import { DEFAULT_GRIDFINITY_TRAY_SIZE, normalizeGridfinityType } from "@/lib/gridfinityGeometry";
 import { selectWholeValue } from "@/lib/numberField";
 
 type WorkspaceSettings = WorkplaneWorkspaceSettings;
@@ -220,7 +221,7 @@ function specialFieldsForShape(
       step: 1,
     }];
   }
-  if (kind === "sphere" || kind === "halfSphere") return [{ type: "number", key: "steps", label: t("prop.steps"), defaultValue: defaults.steps ?? (kind === "halfSphere" ? 32 : 24), min: 6, max: MAX_HIGH_RESOLUTION_STEPS, step: 1 }];
+  if (kind === "sphere" || kind === "halfSphere" || kind === "paraboloid") return [{ type: "number", key: "steps", label: t("prop.steps"), defaultValue: defaults.steps ?? (kind === "halfSphere" || kind === "paraboloid" ? 32 : 24), min: 6, max: MAX_HIGH_RESOLUTION_STEPS, step: 1 }];
   if (kind === "torus") {
     const effective = torusTessellation({ sides: defaults.sides, steps: defaults.steps }, dimensions.width, dimensions.depth, dimensions.height);
     return [
@@ -362,7 +363,7 @@ function specialFieldsForShape(
   if (kind === "gridfinity") {
     // The lip and the magnet holes are switches, which this list has no field for; saving a bin as the default from its panel keeps them.
     return [
-      { type: "select", key: "gridfinityType", label: t("prop.gridfinityType"), defaultValue: defaults.gridfinityType ?? "bin", options: [{ value: "bin", label: t("gridfinity.bin") }, { value: "baseplate", label: t("gridfinity.baseplate") }] },
+      { type: "select", key: "gridfinityType", label: t("prop.gridfinityType"), defaultValue: defaults.gridfinityType ?? "bin", options: [{ value: "bin", label: t("gridfinity.bin") }, { value: "baseplate", label: t("gridfinity.baseplate") }, { value: "tray", label: t("gridfinity.tray") }] },
     ];
   }
   if (kind === "hinge") {
@@ -514,8 +515,9 @@ export function WorkspaceSettingsModal({
   const derivedGridMajorColor = workplaneGridPalette("light", gridColor).major.color;
   const gridMajorColor = /^#[0-9a-f]{6}$/i.test(workspace.gridMajorColor) ? workspace.gridMajorColor : derivedGridMajorColor;
   const selectedShapeAsset = toolbarShapeAssets.find((asset) => asset.kind === selectedShapeKind) ?? toolbarShapeAssets[0];
-  const selectedShapeAppDefaults = shapeAssetDefaultDimensions(selectedShapeKind);
   const selectedShapeCustomization = workspace.shapeCustomizations[selectedShapeKind] ?? {};
+  // A Gridfinity tray (#837) starts at a tray's size, as a new one is made, not at the bin's.
+  const selectedShapeAppDefaults = selectedShapeKind === "gridfinity" && normalizeGridfinityType(selectedShapeCustomization.gridfinityType) === "tray" ? DEFAULT_GRIDFINITY_TRAY_SIZE : shapeAssetDefaultDimensions(selectedShapeKind);
   const selectedShapeEffectiveDimensions = {
     width: selectedShapeCustomization.width ?? selectedShapeAppDefaults.width,
     depth: selectedShapeCustomization.depth ?? selectedShapeAppDefaults.depth,

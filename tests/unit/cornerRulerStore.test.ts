@@ -41,6 +41,13 @@ describe("the framing square a design keeps (#829)", () => {
     expect(restored.cornerRulers).toEqual([square]);
   });
 
+  it("keeps that its measures of the bodies at the arms are shown only for the selection (#831)", async () => {
+    const restored = await importLylProject(await pack([{ ...square, selectedOnly: true }]));
+    expect(restored.cornerRulers?.[0].selectedOnly).toBe(true);
+    expect((await importLylProject(await pack([square]))).cornerRulers?.[0].selectedOnly).toBeUndefined();
+    expect(savedCornerRuler({ ...square, selectedOnly: true, id: "x" }).selectedOnly).toBe(true);
+  });
+
   it("is simply absent from a file saved without one", async () => {
     expect((await importLylProject(await pack(null))).cornerRulers).toBeUndefined();
   });
