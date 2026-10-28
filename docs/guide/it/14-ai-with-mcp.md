@@ -95,6 +95,7 @@ L’IA usa le stesse funzioni che hai a disposizione, attraverso lo stesso perco
 | `layerling_remove_reference_points` | Elimina i punti di riferimento indicati tramite ID oppure li elimina tutti. |
 | `layerling_inspect_errors` | Mostra l’ultimo messaggio e l’ultimo errore, oltre a tutti i messaggi e gli errori della sessione. |
 | `layerling_wrap_around_cylinder` | Avvolge attorno a un cilindro un corpo appoggiato in piano, per esempio un SVG o un testo, verso l’esterno oppure verso l’interno come incisione. |
+| `layerling_texture_surface` | Applica una texture di superficie a un corpo: scanalature, zigrinatura, nido d’ape o bugnature, per una presa migliore o per l’aspetto, e in seguito la modifica o la rimuove. |
 | `layerling_simplify_mesh` | Riduce il numero di triangoli di una mesh importata, mantenendo una percentuale o un numero preciso di triangoli. |
 | `layerling_save_custom_shape` | Salva i corpi come forma personalizzata, sul server o nel browser, per inserirli in altri progetti. |
 | `layerling_list_custom_shapes` | Elenca le forme personalizzate salvate sul server e nel browser. |

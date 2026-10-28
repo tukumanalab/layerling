@@ -25,6 +25,8 @@ const FEATURE_KINDS: Record<EdgeTreatmentFeature["kind"], ChangeKind> = {
   shell: "hollowed",
   offset: "offset",
   deleteFace: "facesDeleted",
+  // A texture is no treatment in the list; it is kept only in the history, for Change and Remove.
+  surfaceTexture: "edited",
 };
 
 const POSITION_FIELDS = new Set(["x", "z", "elevation"]);

@@ -42,6 +42,7 @@ export const GUIDE_SECTIONS = {
   colorCard: { chapter: "shapes", de: "farben-waehlen", en: "choosing-colours", nl: "kleuren-kiezen", ru: "vybor-tsveta", cs: "vyber-barev", es: "elegir-colores" },
   shapeSettings: { chapter: "shapes", de: "die-einstellungen-der-form", en: "the-shape-s-settings", nl: "de-instellingen-van-de-vorm", ru: "nastroyki-figury", cs: "nastaveni-tvaru", sl: "nastavitve-oblike", hu: "az-alakzat-beallitasai", es: "los-ajustes-de-la-forma" },
   wrapCylinder: { chapter: "shapes", de: "um-einen-zylinder-wickeln", en: "wrapping-around-a-cylinder", nl: "om-een-cilinder-wikkelen", ru: "oborachivanie-vokrug-tsilindra", cs: "obtoceni-kolem-valce", sl: "ovijanje-okoli-valja", hu: "hengerre-tekeres", es: "envolver-alrededor-de-un-cilindro" },
+  surfaceTexture: { chapter: "shapes", de: "eine-oberflaeche-aufbringen", en: "a-surface-texture", nl: "een-oppervlaktestructuur-aanbrengen", fr: "une-texture-de-surface", ru: "tekstura-poverkhnosti", cs: "povrchova-textura", sl: "povrsinska-tekstura" },
   textFill: { chapter: "text", de: "kontur-silhouette-und-breiter", en: "outline-silhouette-and-wider", nl: "contour-silhouet-en-breder", ru: "kontur-siluet-i-shire", cs: "obrys-silueta-a-rozsireni", sl: "kontura-silhueta-in-sirse", hu: "koervonal-sziluett-es-szelesebb", es: "contorno-silueta-y-mas-ancho" },
   textLayers: { chapter: "text", de: "schichten-und-namensschilder", en: "layers-and-name-tags", nl: "lagen-en-naambordjes", ru: "sloi-i-birki-s-imenem", cs: "vrstvy-a-jmenovky", sl: "plasti-in-napisi-z-imenom", hu: "retegek-es-nevcimkek", es: "capas-y-placas-con-nombre" },
   iconTag: { chapter: "text", de: "symbolschilder", en: "icon-tags", nl: "icoonbordjes", ru: "birki-so-znachkom", cs: "stitky-se-symbolem", sl: "simbolne-oznake", hu: "ikoncimkek", es: "placas-con-icono" },
@@ -60,7 +61,7 @@ export const GUIDE_SECTIONS = {
   splitting: { chapter: "solids", de: "teilen", en: "splitting", nl: "splitsen", "pt-br": "dividindo", ru: "razdelenie", cs: "rozdeleni", sl: "rezanje", hu: "kettevagas", es: "dividir" },
   edgeTreatment: { chapter: "edges", de: "kanten-fasen-und-verrunden", en: "chamfering-and-filleting-edges", nl: "randen-afschuinen-en-afronden", ru: "faska-i-skruglenie-kromok", cs: "zkoseni-a-zaobleni-hran", sl: "posnetje-in-zaokrozitev-robov", hu: "elek-letoerese-es-lekerekitese", es: "achaflanar-y-redondear-aristas" },
   hollowing: { chapter: "edges", de: "koerper-aushoehlen", en: "hollowing-bodies", nl: "lichamen-uithollen", ru: "sozdanie-obolochki", cs: "vytvareni-dutin", sl: "izdolbljenje-teles", hu: "testek-kiueregelese", es: "vaciar-cuerpos" },
-  cutOut: { chapter: "solids", de: "koerper-ausschneiden", en: "cutting-one-body-out-of-another", nl: "het-ene-lichaam-uit-het-andere-snijden", "pt-br": "recortando-um-corpo-de-outro", ru: "vyrezanie-odnogo-tela-iz-drugogo", cs: "vyriznuti-jednoho-telesa-z-druheho", sl: "izrezovanje-enega-telesa-iz-drugega", hu: "egy-test-kivagasa-egy-masikbol", es: "recortar-un-cuerpo-de-otro", fr: "decouper-un-corps-dans-un-autre" },
+  cutOut: { chapter: "solids", de: "koerper-ausschneiden", en: "cutting-one-body-out-of-another", nl: "het-ene-lichaam-uit-het-andere-snijden", "pt-br": "recortando-um-solido-de-outro", ru: "vyrezanie-odnogo-tela-iz-drugogo", cs: "vyriznuti-jednoho-telesa-z-druheho", sl: "izrezovanje-enega-telesa-iz-drugega", hu: "egy-test-kivagasa-egy-masikbol", es: "recortar-un-cuerpo-de-otro", fr: "decouper-un-corps-dans-un-autre" },
   offset: { chapter: "edges", de: "koerper-versetzen", en: "offsetting-bodies", nl: "lichamen-verschuiven", fr: "decaler-des-corps", ru: "smeshchenie-tela", cs: "odsazeni-teles", sl: "odmik-teles", es: "desfasar-cuerpos" },
   deleteFace: { chapter: "edges", de: "flaechen-loeschen", en: "deleting-faces", nl: "vlakken-verwijderen", fr: "supprimer-des-faces", ru: "udalenie-graney", cs: "mazani-ploch", sl: "brisanje-ploskev", es: "eliminar-caras" },
   threads: { chapter: "threads", de: "gewinde", en: "threads", nl: "schroefdraad", ru: "rezba", cs: "zavity", sl: "navoj", hu: "menetek", es: "roscas" },
@@ -68,6 +69,7 @@ export const GUIDE_SECTIONS = {
   springs: { chapter: "threads", de: "federn", en: "springs", nl: "veren", ru: "pruzhiny", cs: "pruziny", sl: "vzmeti", hu: "rugok", es: "muelles" },
   bentTubes: { chapter: "threads", de: "gebogene-rohre", en: "bent-tubes", nl: "gebogen-buizen", ru: "izognutye-truby", cs: "ohnute-trubky", sl: "ukrivljene-cevi", hu: "hajlitott-csoevek", es: "tubos-curvados" },
   loft: { chapter: "threads", de: "uebergang", en: "loft", nl: "loft", ru: "perekhod", cs: "propojeni-profilu", sl: "prehod", hu: "atmenet", es: "recubrimiento" },
+  vase: { chapter: "shapes", de: "eine-vase", en: "a-vase", nl: "een-vaas", fr: "un-vase", ru: "vaza", cs: "vaza", sl: "vaza" },
   gridfinity: { chapter: "threads", de: "gridfinity", en: "gridfinity", nl: "gridfinity", ru: "gridfinity", cs: "gridfinity", sl: "gridfinity", hu: "gridfinity", es: "gridfinity" },
   hinge: { chapter: "threads", de: "scharnier", en: "hinge", nl: "scharnier", ru: "petlya", cs: "pant", sl: "tecaj", hu: "zsaner", es: "bisagra" },
   knurl: { chapter: "threads", de: "raendelung", en: "knurling", nl: "kartel", ru: "nakatka", cs: "ryhovane-uchopy", sl: "narebricenje", hu: "recezes", es: "moleteado" },
@@ -171,6 +173,8 @@ export function guideSectionForShape(shape: GuideShape): GuideSection | undefine
       return "bentTubes";
     case "loft":
       return "loft";
+    case "vase":
+      return "vase";
     case "honeycomb":
       // No longer a shape of its own: the hole pattern tool took its place (#223).
       return "holePattern";

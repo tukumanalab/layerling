@@ -133,6 +133,7 @@ export {
   ToolbarCutOutIcon,
   ToolbarDeleteFaceIcon,
   ToolbarSimplifyIcon,
+  ToolbarSurfaceTextureIcon,
   ToolbarBundleIcon,
   ToolbarGroupIcon,
   ToolbarGuideIcon,

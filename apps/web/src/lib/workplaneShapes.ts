@@ -5,6 +5,7 @@ import { threadFootprintPatch } from "@/lib/threadGeometry";
 import { GRIDFINITY_PADDING_KEYS, gridfinityCompartmentLabelsEqual, gridfinityDividerPositionsEqual, gridfinityFootprintPatch, gridfinityOpeningsEqual, normalizeGridfinityPadding } from "@/lib/gridfinityGeometry";
 import { MCP_SHAPE_SETTING_KEYS } from "@/lib/mcpShapeSettings";
 import { bentTubeSegmentsEqual } from "@/lib/bentTubeGeometry";
+import { vaseSettingsEqual } from "@/lib/vaseSettings";
 import { qrSettingsEqual } from "@/lib/qrCode";
 import type { SketchStroke, WorkplaneShape } from "@/types/layerling";
 
@@ -129,7 +130,7 @@ export function shapeTaperDimensions(shape: WorkplaneShape) {
  * Wabe und Schwalbenschwanz sie an. Die Liste steht hier, damit das Merkmalsfeld, die
  * Vorschau und die MCP-Bruecke nicht je ihre eigene fuehren.
  */
-const SHAPES_WITHOUT_TAPER = new Set<WorkplaneShape["kind"]>(["gear", "thread", "spring", "pyramid", "ruler", "hinge", "counterbore", "countersink", "doubleCountersink", "teardrop", "bentTube", "loft", "gridfinity"]);
+const SHAPES_WITHOUT_TAPER = new Set<WorkplaneShape["kind"]>(["gear", "thread", "spring", "pyramid", "ruler", "hinge", "counterbore", "countersink", "doubleCountersink", "teardrop", "bentTube", "loft", "vase", "gridfinity"]);
 
 export function shapeSupportsTaper(kind: WorkplaneShape["kind"]) {
   return !SHAPES_WITHOUT_TAPER.has(kind);
@@ -665,6 +666,7 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.gridfinityPaddingLeft === b.gridfinityPaddingLeft &&
     a.gridfinityPaddingRight === b.gridfinityPaddingRight &&
     a.gridfinityCornerRadius === b.gridfinityCornerRadius &&
+    a.gridfinityBinCornerRadius === b.gridfinityBinCornerRadius &&
     a.gridfinityCompartmentsX === b.gridfinityCompartmentsX &&
     a.gridfinityCompartmentsZ === b.gridfinityCompartmentsZ &&
     a.gridfinityDividerThickness === b.gridfinityDividerThickness &&
@@ -717,6 +719,11 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.knurlAngle === b.knurlAngle &&
     a.knurlChamfer === b.knurlChamfer &&
     a.cylinderWrap?.inward === b.cylinderWrap?.inward &&
+    JSON.stringify(a.surfaceTexture ?? null) === JSON.stringify(b.surfaceTexture ?? null) &&
+    a.surfaceTextureMask === b.surfaceTextureMask &&
+    a.surfaceFillOf === b.surfaceFillOf &&
+    vaseSettingsEqual(a.vase, b.vase) &&
+    a.vasePartOf === b.vasePartOf &&
     a.textRadius === b.textRadius &&
     a.textSize === b.textSize &&
     a.textInward === b.textInward &&

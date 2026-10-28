@@ -4,7 +4,7 @@ import { displayY, displayYTurn, insideZ, insideZTurn } from "@/lib/displayAxes"
 import { GuideHelpLink } from "@/components/GuideHelpLink";
 import { guideChapterForShape, guideSectionForShape } from "@/lib/guideLinks";
 import { useInspectorCard } from "@/lib/inspectorCards";
-import { ChevronDown, ChevronUp, Cylinder, Eye, EyeOff, FolderOpen, Grid3x3, Layers, Link2, Lock, Minus, Pencil, Plus, RefreshCw, RotateCcw, Ruler, Split, Tags, Unlock } from "lucide-react";
+import { ChevronDown, ChevronUp, Cylinder, Eraser, Eye, EyeOff, FolderOpen, Grid3x3, ImageUp, Layers, Link2, Lock, Minus, Pencil, Plus, RefreshCw, RotateCcw, Ruler, Split, Tags, Unlock, Waves } from "lucide-react";
 import { createPortal } from "react-dom";
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import {
@@ -162,6 +162,14 @@ import { t, type MessageKey } from "@/lib/i18n";
 import { localizedError } from "@/lib/userErrors";
 import { displayShapeName, makeShapeFromAsset, renamedShapeName } from "@/lib/shapeCatalog";
 import { cylinderToEllipsePatch } from "@/lib/cylinderToEllipse";
+import { normalizeSurfaceTexture, SURFACE_TEXTURE_AXES, SURFACE_TEXTURE_CRACK_STARTS, SURFACE_TEXTURE_CRACK_STYLES, SURFACE_TEXTURE_DEFAULTS, SURFACE_TEXTURE_DETAILS, SURFACE_TEXTURE_DIRECTIONS, SURFACE_TEXTURE_IMAGES, SURFACE_TEXTURE_LIMITS, SURFACE_TEXTURE_MASK_MODES, SURFACE_TEXTURE_PATTERNS, SURFACE_TEXTURE_PROFILES, SURFACE_TEXTURE_PROJECTIONS, SURFACE_TEXTURE_STARTERS, SURFACE_TEXTURE_TILINGS, surfaceTextureImageTile, type SurfaceTextureMaskMode, type SurfaceTexturePattern, type SurfaceTextureSettings } from "@/lib/surfaceTexture";
+import { SURFACE_TEXTURE_OWN_IMAGE_SIZE, surfaceTextureOwnImage } from "@/lib/surfaceTextureImages";
+import { offersSurfaceTextureMask, SURFACE_TEXTURE_LABELS, surfacePatternLabel, surfaceTextureEntry } from "@/lib/surfaceTextureShape";
+import { LIMITS as VASE_LIMITS, MATERIALS as VASE_MATERIALS, type VaseChoiceKey, type VaseNumberKey } from "@/lib/vase/vase-geometry.mjs";
+import { normalizeVaseSettings, type VaseSettings } from "@/lib/vaseSettings";
+import { vaseShapePatch } from "@/lib/vaseShape";
+import { VaseDrawingWindow } from "@/components/workplane/VaseDrawingWindow";
+import { VasePrintReport } from "@/components/workplane/VasePrintReport";
 import { shapeDefaultsAsset, shapeDefaultsFromShape } from "@/lib/shapeDefaults";
 import { MAX_SCREW_HOLE_ANGLE, MIN_SCREW_HOLE_ANGLE, normalizeScrewHoleAngle, normalizeScrewHoleHeadDepth, normalizeScrewHoleShaft } from "@/lib/screwHoleGeometry";
 import { MAX_TEARDROP_TIP_ANGLE, MIN_TEARDROP_TIP_ANGLE, normalizeTeardropTipAngle, teardropHeightForTipAngle, teardropTipAngle } from "@/lib/teardropGeometry";
@@ -181,12 +189,14 @@ import { QR_BYTE_CAPACITY, qrByteLength, qrTextFits, type QrCodeSettings } from 
 import { ICON_TAG_LAYERS, iconTagFitCount, MAX_ICON_TAG_WIDTH, MAX_ICON_TAGS, MIN_ICON_TAG_WIDTH, normalizeIconTagCount, type IconLayerStack } from "@/lib/iconTag";
 import { PICTURE_FILE_ACCEPT } from "@/lib/pictureIcon";
 import { BUILT_IN_FONTS, builtInFontName, customFontList, textFontLabel } from "@/lib/textFonts";
+import { SURFACE_TEXT_FONTS } from "@/lib/surfaceTextOutline";
 import { MIN_SLOT_END_RATIO, normalizeSlotEndRatio, taperedSlotOutline } from "@/lib/slotGeometry";
 import { loftMeasures, loftShapePatch, loftTiltLimit, maxLoftWall, MAX_LOFT_SEGMENTS, MAX_LOFT_SIDES, MAX_LOFT_TWIST, MIN_LOFT_SEGMENTS, MIN_LOFT_SIDES, MIN_LOFT_SIZE, normalizeLoftOutline, type LoftMeasures } from "@/lib/loftGeometry";
 import { MAX_KNURL_ANGLE, MIN_KNURL_ANGLE, MIN_KNURL_COUNT, MIN_KNURL_DEPTH, knurlSettings, maxKnurlChamfer, maxKnurlCount, maxKnurlDepth, maxRoundKnurlDepth, normalizeKnurlAngle, normalizeKnurlChamfer, normalizeKnurlCount, normalizeKnurlDepth, normalizeKnurlPattern } from "@/lib/knurlGeometry";
 import {
   DEFAULT_GRIDFINITY_LABEL_CORNER,
   GRIDFINITY_BASEPLATE_RADIUS,
+  GRIDFINITY_BIN_RADIUS,
   GRIDFINITY_LABEL_WALL_KEYS,
   GRIDFINITY_OPEN_WALL_KEYS,
   GRIDFINITY_PADDING_KEYS,
@@ -217,6 +227,8 @@ import {
   gridfinityCompartmentLabelMaxWidth,
   gridfinityCompartmentMax,
   gridfinityCompartments,
+  gridfinityBinCornerFits,
+  gridfinityBinCornerRadius,
   gridfinityCornerRadius,
   gridfinityDividerFits,
   gridfinityDividerLimits,
@@ -340,6 +352,33 @@ const GEAR_TYPE_OPTIONS: Array<{ value: GearType; label: MessageKey }> = [
   { value: "internal", label: "gear.internal" },
   { value: "rack", label: "gear.rack" },
 ];
+/** The vase's choices, by the core's names for them. */
+const VASE_CHOICES: Partial<Record<VaseChoiceKey, Record<string, MessageKey>>> = {
+  profile: { flasche: "vase.profileBottle", bauchig: "vase.profileBellied", schale: "vase.profileBowl", fass: "vase.profileBarrel", zylinder: "vase.profileCylinder", trichter: "vase.profileFunnel", gezeichnet: "vase.profileDrawn" },
+  section: { kreis: "vase.sectionCircle", vieleck: "vase.sectionPolygon", welle: "vase.sectionWave", gezeichnet: "vase.sectionDrawn" },
+  sectionWaveStyle: { weich: "vase.waveSoft", spitz: "vase.wavePointed", bogen: "vase.waveArches", lamellen: "vase.waveFins" },
+  body: { voll: "vase.bodySolid", hohl: "vase.bodyHollow" },
+  innerShape: { folgt: "vase.innerFollows", rund: "vase.innerRound" },
+  effect: { keine: "vase.effectNone", rillen: "vase.effectGrooves", streifen: "vase.effectStripes", voronoi: "vase.effectVoronoi", lowpoly: "vase.effectFacets" },
+  ribShape: { rund: "vase.grooveRound", v: "vase.groovePointed", flach: "vase.grooveFlat" },
+  stripeStyle: { einfach: "vase.stripesOneWay", doppelt: "vase.stripesCrossed" },
+  quality: { entwurf: "vase.qualityDraft", standard: "vase.qualityStandard", fein: "vase.qualityFine" },
+  section2: { keiner: "vase.section2None", kreis: "vase.sectionCircle", vieleck: "vase.sectionPolygon", welle: "vase.sectionWave", gezeichnet: "vase.sectionDrawn" },
+  drawSymmetry: { halb: "vase.symHalf", viertel: "vase.symQuarter", windmuehle: "vase.symWindmill", frei: "vase.symFree" },
+  twistMode: { gleichmaessig: "vase.twistEven", kurve: "vase.twistCurve" },
+  section2WaveStyle: { weich: "vase.waveSoft", spitz: "vase.wavePointed", bogen: "vase.waveArches", lamellen: "vase.waveFins" },
+  twistAlong: { hoehe: "vase.twistAlongHeight", kontur: "vase.twistAlongContour" },
+  cutout: { keine: "vase.cutoutNone", voronoi: "vase.effectVoronoi", waben: "vase.cutoutHoneycomb", rauten: "vase.cutoutDiamonds", kreise: "vase.cutoutCircles" },
+  cutoutEdge: { anschneiden: "vase.cutoutCut", ganz: "vase.cutoutWhole" },
+  reinforce: { keine: "vase.reinforceNone", rippen: "vase.reinforceRibs", doppelwand: "vase.reinforceDouble" },
+  lamp: { keine: "vase.lampNone", haengend: "vase.lampHanging", stehend: "vase.lampStanding", puck: "vase.lampPuck" },
+  lampSocket: { e27: "vase.socketE27", e14: "vase.socketE14", eigen: "vase.socketCustom" },
+  legMode: { keine: "vase.legsNone", stecken: "vase.legsPlugIn", angeformt: "vase.legsMoulded", staender: "vase.legsStand" },
+  legShape: { kegel: "vase.legCone", zylinder: "vase.legCylinder", kantig: "vase.legSquare" },
+  saucerMode: { keine: "vase.saucerNone", schale: "vase.saucerBowl", versteckt: "vase.saucerHidden" },
+  insertMode: { keine: "vase.insertNone", pflanze: "vase.insertPlant", bewaesserung: "vase.insertWatering", stecker: "vase.insertFrog", roehrchen: "vase.insertTube" },
+  lidMode: { keiner: "vase.lidNone", stuelp: "vase.lidSlip", schnapp: "vase.lidSnap", schraube: "vase.lidScrew" },
+};
 const BENT_TUBE_PROFILE_OPTIONS: Array<{ value: BentTubeProfile; label: MessageKey }> = [
   { value: "round", label: "bentTube.profileRound" },
   { value: "square", label: "bentTube.profileSquare" },
@@ -443,7 +482,7 @@ const RELATIVE_SIZE_PROPERTY_IDS = new Set(["width", "height", "length", "diamet
 const ROTATION_PROPERTY_IDS = new Set(["rotateX", "rotateY", "rotateZ"]);
 
 function propertyUsesLengthUnit(key: string) {
-  return ["textLineWidth", "textEdgeSize", "letterSize", "iconWidth", "keyringDiameter", "keyringAlong", "positionX", "positionY", "positionZ", "pivotX", "pivotY", "pivotZ", "radius", "length", "width", "height", "bevel", "topRadius", "baseRadius", "thickness", "outerDiameter", "innerDiameter", "textRadius", "extrudeTopOffsetX", "extrudeTopOffsetZ", "toothSize", "toothWidth", "gearBacklash", "centerHole", "slotSmallEnd", "slotCentreDistance", "sketchLineWidth", "topLength", "topWidth", "bottomLength", "bottomWidth", "diameter", "pitch", "clearance", "axialClearance", "boltClearance", "threadDepth", "threadCoreDiameter", "threadLength", "headHeight", "chamfer", "chamferBottom", "headChamfer", "wire", "starOuterSize", "starInnerSize", "starOuterFillet", "starInnerFillet", "heartTipFillet", "crescentThickness", "crescentTipFillet", "honeycombCellSize", "honeycombWallThickness", "honeycombFrameWidth", "cornerFillet", "topBottomFillet", "bentTubeSize", "bentTubeWall", "bentTubeSegmentLength", "bentTubeBendRadius", "dovetailNeckWidth", "dovetailClearance", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "screwHoleShaft", "screwHoleHeadDepth", "knurlDepth", "knurlChamfer", "loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftOffsetX", "loftOffsetZ", "loftWall", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelBackWidth", "gridfinityLabelCornerSize", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelFrontWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelLeftWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelRightWidth", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityDrawerWidth", "gridfinityDrawerDepth", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityDividerThickness", "gridfinityDividerPositionX", "gridfinityDividerPositionZ", "gridfinityCompartmentLabelWidth", "gridfinityOpeningCornerSize", "gridfinityOpeningDepthBack", "gridfinityOpeningDepthFront", "gridfinityOpeningDepthLeft", "gridfinityOpeningDepthRight", "gridfinityOpeningWidthBack", "gridfinityOpeningWidthFront", "gridfinityOpeningWidthLeft", "gridfinityOpeningWidthRight", "gridfinityOpeningDistanceBack", "gridfinityOpeningDistanceFront", "gridfinityOpeningDistanceLeft", "gridfinityOpeningDistanceRight"].includes(key);
+  return ["textLineWidth", "textEdgeSize", "letterSize", "iconWidth", "keyringDiameter", "keyringAlong", "positionX", "positionY", "positionZ", "pivotX", "pivotY", "pivotZ", "radius", "length", "width", "height", "bevel", "topRadius", "baseRadius", "thickness", "outerDiameter", "innerDiameter", "textRadius", "extrudeTopOffsetX", "extrudeTopOffsetZ", "toothSize", "toothWidth", "gearBacklash", "centerHole", "slotSmallEnd", "slotCentreDistance", "sketchLineWidth", "topLength", "topWidth", "bottomLength", "bottomWidth", "diameter", "pitch", "clearance", "axialClearance", "boltClearance", "threadDepth", "threadCoreDiameter", "threadLength", "headHeight", "chamfer", "chamferBottom", "headChamfer", "wire", "starOuterSize", "starInnerSize", "starOuterFillet", "starInnerFillet", "heartTipFillet", "crescentThickness", "crescentTipFillet", "honeycombCellSize", "honeycombWallThickness", "honeycombFrameWidth", "cornerFillet", "topBottomFillet", "bentTubeSize", "bentTubeWall", "bentTubeSegmentLength", "bentTubeBendRadius", "dovetailNeckWidth", "dovetailClearance", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "screwHoleShaft", "screwHoleHeadDepth", "knurlDepth", "knurlChamfer", "loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftOffsetX", "loftOffsetZ", "loftWall", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelBackWidth", "gridfinityLabelCornerSize", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelFrontWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelLeftWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelRightWidth", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityDrawerWidth", "gridfinityDrawerDepth", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinityDividerThickness", "gridfinityDividerPositionX", "gridfinityDividerPositionZ", "gridfinityCompartmentLabelWidth", "gridfinityOpeningCornerSize", "gridfinityOpeningDepthBack", "gridfinityOpeningDepthFront", "gridfinityOpeningDepthLeft", "gridfinityOpeningDepthRight", "gridfinityOpeningWidthBack", "gridfinityOpeningWidthFront", "gridfinityOpeningWidthLeft", "gridfinityOpeningWidthRight", "gridfinityOpeningDistanceBack", "gridfinityOpeningDistanceFront", "gridfinityOpeningDistanceLeft", "gridfinityOpeningDistanceRight", "surfaceSpacing", "surfaceDepth", "surfaceFade", "surfaceCrackWidth", "surfaceCrackRecess", "surfaceTextSize", "vase.wall", "vase.bottom", "vase.ribDepth", "vase.stripeDepth", "vase.voronoiCell", "vase.voronoiGap", "vase.voronoiDepth", "vase.waveAmplitude", "vaseFloor.drainDiameter", "vaseFloor.floorSlope", "vaseFloor.footHeight", "vaseFloor.rubberFootDiameter", "vaseFloor.rubberFootDepth", "vaseFloor.cutoutSize", "vaseFloor.cutoutWeb", "vaseFloor.lampHole", "vaseFloor.puckDiameter", "vaseFloor.lampNotch", "vaseFloor.lampNotchHeight", "vaseFloor.reinforceDepth", "vaseFloor.slitWidth", "vaseFloor.lineWidth", "vasePrint.lineWidth", "vaseParts.legHeight", "vaseParts.legDiameter", "vaseParts.saucerHeight", "vaseParts.saucerGap", "vaseParts.saucerWall", "vaseParts.insertWall", "vaseParts.insertStandoff", "vaseParts.reservoirHeight", "vaseParts.frogHole", "vaseParts.tubeDiameter", "vaseParts.lidClearance", "vaseParts.lidThickness", "vaseParts.lidDepth", "vaseParts.threadPitch", "vaseParts.fitClearance"].includes(key);
 }
 
 /**
@@ -843,6 +882,9 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         onChange: (value) => update({ bentTubeWall: value }),
       });
     }
+    if (fields.bentTubeInnerProfile !== "none") {
+      properties.push({ type: "toggle" as const, id: "tubeBoreHole", label: t("prop.tubeBoreHole"), value: shape.tubeBoreHole === true, onChange: (value: boolean) => onUpdate({ tubeBoreHole: value || undefined }) });
+    }
     properties.push({
       id: "bentTubeQuality",
       label: t("prop.quality"),
@@ -963,6 +1005,169 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
     ];
   }
 
+  if (shape.kind === "vase") {
+    const vase = normalizeVaseSettings(shape.vase);
+    // A new choice can change the outline (a hexagon is narrower across its flats): the frame follows it.
+    const setVase = (patch: Partial<VaseSettings>) => onUpdate(vaseShapePatch({ width, depth, height: shape.height }, normalizeVaseSettings({ ...vase, ...patch })));
+    const limits = (key: VaseNumberKey): [number, number] => VASE_LIMITS[key] ?? [0, 100];
+    const range = (key: VaseNumberKey, label: MessageKey, step: number, hint?: MessageKey): ShapePropertyConfig => {
+      const [min, max] = limits(key);
+      return { id: `vase.${key}`, label: t(label), value: vase[key], min, max, step, hint: hint ? t(hint) : undefined, onChange: (value) => setVase({ [key]: value }) };
+    };
+    const percent = (key: VaseNumberKey, label: MessageKey): ShapePropertyConfig => {
+      const [min, max] = limits(key);
+      return { id: `vase.${key}`, label: t(label), value: Math.round(vase[key] * 100), min: min * 100, max: max * 100, step: 1, onChange: (value) => setVase({ [key]: value / 100 }) };
+    };
+    const choice = (key: VaseChoiceKey, label: MessageKey, hint?: MessageKey): ShapePropertyConfig => ({
+      type: "select",
+      id: `vase.${key}`,
+      label: t(label),
+      value: vase[key],
+      options: Object.entries(VASE_CHOICES[key] ?? {}).map(([value, option]) => ({ value, label: t(option) })),
+      hint: hint ? t(hint) : undefined,
+      onChange: (value) => setVase({ [key]: value }),
+    });
+    const size = Math.max(width, depth);
+    const properties: ShapePropertyConfig[] = [
+      {
+        id: "diameter",
+        label: t("prop.vaseDiameter"),
+        value: size,
+        min: MIN_SHAPE_SIZE,
+        max: 300,
+        // Both sides together, so an outline that is not round keeps its proportions.
+        onChange: (value) => onUpdate({ width: (width * value) / size, depth: (depth * value) / size, size: value }, { resizeAxis: "width" }),
+      },
+      { id: "height", label: t("prop.height"), value: shape.height, min: MIN_SHAPE_SIZE, max: 400, onChange: setHeight },
+      choice("profile", "prop.vaseProfile"),
+      choice("section", "prop.vaseSection"),
+    ];
+    if (vase.section === "vieleck") properties.push(range("polySides", "prop.vaseSides", 1), percent("polyRound", "prop.vaseCornerRound"));
+    if (vase.section === "welle") properties.push(range("sectionWaves", "prop.vaseWaves", 1), percent("sectionWaveAmp", "prop.vaseWaveDepth"), choice("sectionWaveStyle", "prop.vaseWaveStyle"));
+    properties.push(choice("section2", "prop.vaseSection2", "vase.section2Hint"));
+    if (vase.section2 === "vieleck") properties.push(range("section2Sides", "prop.vaseSides2", 1), percent("section2Round", "prop.vaseCornerRound2"));
+    if (vase.section2 === "welle") properties.push(range("section2Waves", "prop.vaseWaves2", 1), percent("section2WaveAmp", "prop.vaseWaveDepth2"), choice("section2WaveStyle", "prop.vaseWaveStyle2"));
+    if (vase.section2 !== "keiner") properties.push(range("section2From", "prop.vaseSection2From", 1), range("section2To", "prop.vaseSection2To", 1));
+    // A drawn cross-section: the symmetry that makes the whole outline of the part drawn (card Draw).
+    if (vase.section === "gezeichnet" || vase.section2 === "gezeichnet") {
+      properties.push(choice("drawSymmetry", "prop.vaseDrawSymmetry", "vase.drawSymmetryHint"));
+      if (vase.drawSymmetry === "windmuehle") properties.push(range("drawRepeat", "prop.vaseDrawRepeat", 1));
+    }
+    // A twist as a curve is drawn (card Draw); evenly, it comes from these sliders.
+    properties.push(choice("twistMode", "prop.vaseTwistMode"));
+    if (vase.twistMode !== "kurve") {
+      properties.push(range("twist", "prop.vaseTwist", 1), range("swayAngle", "prop.vaseSway", 1, "vase.swayHint"));
+      if (vase.swayAngle > 0) properties.push(range("swayCount", "prop.vaseSwayCount", 1));
+    }
+    if (vase.twistMode === "kurve" || vase.twist !== 0 || vase.swayAngle > 0) properties.push(choice("twistAlong", "prop.vaseTwistAlong"));
+    properties.push(choice("body", "prop.vaseBody", vase.body === "voll" ? "vase.bodySolidHint" : "vase.bodyHollowHint"));
+    if (vase.body === "hohl") properties.push(range("wall", "prop.vaseWall", 0.1), range("bottom", "prop.vaseBottom", 0.1), choice("innerShape", "prop.vaseInner"));
+    properties.push(choice("effect", "prop.vaseEffect", "vase.effectHint"));
+    if (vase.effect === "rillen") {
+      properties.push(range("ribCount", "prop.vaseGrooveCount", 1), range("ribDepth", "prop.vaseGrooveDepth", 0.1), percent("grooveWidth", "prop.vaseGrooveWidth"), choice("ribShape", "prop.vaseGrooveShape"), range("waveAmplitude", "prop.vaseGrooveWave", 0.5));
+      if (vase.waveAmplitude > 0) properties.push(range("waveCount", "prop.vaseGrooveWaves", 1));
+    }
+    if (vase.effect === "streifen") properties.push(range("stripeCount", "prop.vaseStripeCount", 1), range("stripeDepth", "prop.vaseStripeDepth", 0.1), percent("stripeWidth", "prop.vaseStripeWidth"), range("stripeTurn", "prop.vaseStripeTurn", 1), choice("stripeStyle", "prop.vaseStripeStyle"));
+    if (vase.effect === "voronoi") properties.push(range("voronoiCell", "prop.vaseCellSize", 0.5), range("voronoiGap", "prop.vaseCellGap", 0.1), range("voronoiDepth", "prop.vaseCellDepth", 0.1), range("voronoiSeed", "prop.vaseSeed", 1));
+    if (vase.effect === "lowpoly") properties.push(range("lowpolyAround", "prop.vaseFacetsAround", 1), range("lowpolyRows", "prop.vaseFacetRows", 1), percent("lowpolyJitter", "prop.vaseFacetJitter"), range("lowpolySeed", "prop.vaseSeed", 1));
+    if (vase.effect !== "keine" && vase.effect !== "lowpoly") properties.push(range("zoneFrom", "prop.vaseZoneFrom", 1), range("zoneTo", "prop.vaseZoneTo", 1));
+    properties.push(choice("quality", "prop.vaseQuality", "vase.qualityHint"));
+    // Bottom and wall, on a card of their own (ids "vaseFloor."): what the core builds into the body besides its form.
+    const floor = (config: ShapePropertyConfig): ShapePropertyConfig => ({ ...config, id: config.id.replace(/^vase\./, "vaseFloor.") });
+    const hollow = vase.body === "hohl";
+    properties.push(floor({
+      type: "toggle",
+      id: "vase.watertight",
+      label: t("prop.vaseWatertight"),
+      value: vase.watertight === "ja",
+      onChange: (value) => setVase({ watertight: value ? "ja" : "nein" }),
+    }));
+    if (hollow) {
+      properties.push(floor(range("drainHoles", "prop.vaseDrainHoles", 1, "vase.floorHint")));
+      if (vase.drainHoles > 0) properties.push(floor(range("drainDiameter", "prop.vaseDrainDiameter", 0.5)), floor(range("floorSlope", "prop.vaseFloorSlope", 0.1)));
+      if (vase.lamp !== "puck") properties.push(floor(range("footHeight", "prop.vaseFootHeight", 1)));
+    }
+    properties.push(floor(range("rubberFeet", "prop.vaseRubberFeet", 1)));
+    if (vase.rubberFeet > 0) properties.push(floor(range("rubberFootDiameter", "prop.vaseRubberFootDiameter", 0.5)), floor(range("rubberFootDepth", "prop.vaseRubberFootDepth", 0.1)));
+    if (hollow) {
+      properties.push(floor(choice("cutout", "prop.vaseCutout", "vase.cutoutHint")));
+      if (vase.cutout !== "keine") {
+        properties.push(
+          floor(range("cutoutSize", "prop.vaseCutoutSize", 0.5)),
+          floor(range("cutoutWeb", "prop.vaseCutoutWeb", 0.5)),
+          floor(range("cutoutFrom", "prop.vaseCutoutFrom", 1)),
+          floor(range("cutoutTo", "prop.vaseCutoutTo", 1)),
+          floor(range("cutoutAspect", "prop.vaseCutoutAspect", 0.05)),
+          floor(choice("cutoutEdge", "prop.vaseCutoutEdge")),
+        );
+        if (vase.cutout === "voronoi") properties.push(floor(range("cutoutSeed", "prop.vaseSeed", 1)));
+      }
+      properties.push(floor(choice("lamp", "prop.vaseLamp", "vase.lampHint")));
+      if (vase.lamp === "haengend" || vase.lamp === "stehend") {
+        properties.push(floor(choice("lampSocket", "prop.vaseLampSocket")));
+        if (vase.lampSocket === "eigen") properties.push(floor(range("lampHole", "prop.vaseLampHole", 0.5)));
+      }
+      if (vase.lamp === "puck") properties.push(floor(range("puckDiameter", "prop.vasePuckDiameter", 1)));
+      if (vase.lamp === "stehend" || vase.lamp === "puck") {
+        properties.push(floor(range("lampNotch", "prop.vaseLampNotch", 0.5)));
+        if (vase.lampNotch > 0) properties.push(floor(range("lampNotchHeight", "prop.vaseLampNotchHeight", 0.5)));
+      }
+    } else {
+      properties.push(floor(choice("reinforce", "prop.vaseReinforce", "vase.reinforceHint")));
+      if (vase.reinforce !== "keine") {
+        properties.push(
+          floor(range("reinforceCount", "prop.vaseReinforceCount", 1)),
+          floor(range("reinforceDepth", vase.reinforce === "rippen" ? "prop.vaseRibReach" : "prop.vaseWallGap", 0.5)),
+          floor(range("slitWidth", "prop.vaseSlitWidth", 0.01)),
+          floor(range("lineWidth", "prop.vaseLineWidth", 0.01)),
+        );
+      }
+    }
+    // Accessories, on a card of their own (ids "vaseParts."): the legs' sockets, a lid's groove or thread go into the body.
+    const part = (config: ShapePropertyConfig): ShapePropertyConfig => ({ ...config, id: config.id.replace(/^vase\./, "vaseParts.") });
+    const yesNo = (key: VaseChoiceKey, label: MessageKey): ShapePropertyConfig => part({
+      type: "toggle",
+      id: `vase.${key}`,
+      label: t(label),
+      value: vase[key] === "ja",
+      onChange: (value) => setVase({ [key]: value ? "ja" : "nein" }),
+    });
+    properties.push(part(choice("legMode", "prop.vaseLegs")));
+    if (vase.legMode !== "keine") {
+      properties.push(part(range("legCount", "prop.vaseLegCount", 1)), part(range("legHeight", "prop.vaseLegHeight", 1)), part(range("legDiameter", "prop.vaseLegDiameter", 0.5)), part(choice("legShape", "prop.vaseLegShape")), part(range("legSplay", "prop.vaseLegSplay", 1)));
+      if (vase.legMode !== "staender") properties.push(part(percent("legInset", "prop.vaseLegInset")));
+    }
+    properties.push(part(choice("saucerMode", "prop.vaseSaucer")));
+    if (vase.saucerMode === "schale") {
+      properties.push(part(range("saucerHeight", "prop.vaseSaucerHeight", 1)), part(range("saucerGap", "prop.vaseSaucerGap", 0.5)), part(range("saucerWall", "prop.vaseSaucerWall", 0.1)), yesNo("saucerRibs", "prop.vaseSaucerRibs"), yesNo("saucerSpout", "prop.vaseSaucerSpout"), yesNo("saucerGrip", "prop.vaseSaucerGrip"));
+    }
+    if (hollow) {
+      properties.push(part(choice("insertMode", "prop.vaseInsert")));
+      if (vase.insertMode === "pflanze" || vase.insertMode === "bewaesserung") properties.push(part(range("insertWall", "prop.vaseInsertWall", 0.1)), part(range("insertStandoff", "prop.vaseInsertStandoff", 0.5)));
+      if (vase.insertMode === "bewaesserung") properties.push(part(range("reservoirHeight", "prop.vaseReservoirHeight", 1)));
+      if (vase.insertMode === "stecker") properties.push(part(range("frogHole", "prop.vaseFrogHole", 0.5)));
+      if (vase.insertMode === "roehrchen") properties.push(part(range("tubeDiameter", "prop.vaseTubeDiameter", 0.5)));
+    }
+    properties.push(part(choice("lidMode", "prop.vaseLid", "vase.lidHint")));
+    if (vase.lidMode !== "keiner") {
+      properties.push(part(range("lidClearance", "prop.vaseLidClearance", 0.05)), part(range("lidThickness", "prop.vaseLidThickness", 0.1)), part(range("lidDepth", "prop.vaseLidDepth", 0.5)));
+      if (vase.lidMode === "schraube") properties.push(part(range("threadPitch", "prop.vaseThreadPitch", 0.1)));
+      properties.push(yesNo("lidGrip", "prop.vaseLidGrip"));
+    }
+    properties.push(part(range("fitClearance", "prop.vaseFitClearance", 0.05, "vase.fitHint")));
+    // Printing (ids "vasePrint."): the material weighs it, the line width counts in the slicer's vase mode.
+    properties.push({
+      type: "select",
+      id: "vasePrint.material",
+      label: t("prop.vaseMaterial"),
+      value: vase.material,
+      options: Object.entries(VASE_MATERIALS).map(([value, material]) => ({ value, label: material.label })),
+      onChange: (value) => setVase({ material: value }),
+    });
+    if (vase.body === "voll" && vase.reinforce === "keine") properties.push({ ...range("lineWidth", "prop.vaseLineWidth", 0.01), id: "vasePrint.lineWidth" });
+    return properties;
+  }
+
   if (shape.kind === "knurl") {
     const knurl = knurlSettings({ ...shape, width });
     const properties: ShapePropertyConfig[] = [
@@ -1068,6 +1273,10 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         ...(plan.lip ? [{ id: "gridfinityLipChamfer", label: t("prop.gridfinityLipChamfer"), value: gridfinityLipChamfer({ ...shape, depth }), min: 0, max: MAX_GRIDFINITY_LIP_CHAMFER, step: 0.05, hint: t("gridfinity.lipChamferHint"), onChange: (value: number) => onUpdate({ gridfinityLipChamfer: clamp(value, 0, MAX_GRIDFINITY_LIP_CHAMFER) }) }] : []),
         { type: "toggle", id: "gridfinityMagnets", label: t("prop.gridfinityMagnets"), value: plan.magnets, onChange: (value) => onUpdate({ gridfinityMagnets: value }) },
       );
+      // The outer corners above the feet (#856), down to square; no row where open sides leave every corner square.
+      if (gridfinityBinCornerFits({ ...shape, depth })) {
+        properties.push({ id: "gridfinityBinCornerRadius", label: t("prop.gridfinityCornerRadius"), value: gridfinityBinCornerRadius({ ...shape, depth }), min: 0, max: GRIDFINITY_BIN_RADIUS, step: 0.1, hint: t("gridfinity.binCornerRadiusHint"), onChange: (value) => onUpdate({ gridfinityBinCornerRadius: clamp(value, 0, GRIDFINITY_BIN_RADIUS) }) });
+      }
     }
     const fields = { ...shape, depth };
     if (gridfinityWallFits(fields)) {
@@ -2476,6 +2685,18 @@ function textFontProperty(shape: WorkplaneShape, onUpdate: ShapeInspectorUpdate)
   };
 }
 
+/** The fonts a text stuck on a surface can take: the built-in ones, then the fonts of one's own this browser keeps. */
+function surfaceTextFontOptions(current: string): SelectPropertyOption[] {
+  const builtIn = t("font.builtInGroup");
+  const own = t("font.customGroup");
+  const options: SelectPropertyOption[] = [
+    ...SURFACE_TEXT_FONTS.map((value) => ({ value, label: value, group: builtIn })),
+    ...customFontList().map((font) => ({ value: font.id, label: font.name, group: own })),
+  ];
+  if (!options.some((option) => option.value === current)) options.push({ value: current, label: textFontLabel(current) ?? t("font.missing"), group: own });
+  return options;
+}
+
 function getShapeProperties(shape: WorkplaneShape, onUpdate: ShapeInspectorUpdate, workspace: WorkplaneWorkspaceSettings): ShapePropertyConfig[] {
   const customLimit = workspace.shapeCustomizations[shape.kind]?.maxDimension;
   // A body turned by right angles names its measures by the way they run now (#230).
@@ -2512,6 +2733,11 @@ export function ShapeInspector({
   canSeparateParts = false,
   onSeparateParts,
   onWrapAroundCylinder,
+  onSurfaceTexture,
+  onRemoveSurfaceTexture,
+  surfaceTextureOpen,
+  onSurfaceTextureOpenChange,
+  onVaseAccessories,
   onLayerText,
   onTextTags,
   onFixKeyringTab,
@@ -2542,6 +2768,14 @@ export function ShapeInspector({
   onSeparateParts?: () => void;
   /** Wraps this body around a cylinder of the given diameter (#106). */
   onWrapAroundCylinder?: (diameter: number, inward: boolean) => void;
+  /** Lays a surface texture onto this body; resolves when it is on (or could not be made). */
+  onSurfaceTexture?: (settings: SurfaceTextureSettings) => Promise<void> | void;
+  onRemoveSurfaceTexture?: () => void;
+  /** Whether the surface texture card is open, when the editor holds it (the toolbar opens it too). */
+  surfaceTextureOpen?: boolean;
+  onSurfaceTextureOpenChange?: (open: boolean) => void;
+  /** Lays this vase's accessories out beside it, ready to print. */
+  onVaseAccessories?: () => void;
   /** Splits a text into layers, or builds a layered text again with new words, font or layers (#215). */
   onLayerText?: (patch: TextLayerPatch) => void;
   /** One tag like this text or stack per name, laid out in rows (#215). */
@@ -2605,7 +2839,14 @@ export function ShapeInspector({
   const showTaperCards = !shapeIgnoresTaper && !shape.layeredText;
   const threadRoleProperty = isThread ? findSelectProperty(properties, "threadRole") : null;
   const threadHeadProperty = isThread ? findSelectProperty(properties, "threadHead") : null;
-  const primaryProperties = shape.kind === "gear"
+  // A vase: its measures here, its form and pattern and its bottom and wall on cards of their own.
+  const vaseFormProperties = shape.kind === "vase" ? properties.filter((property) => property.id.startsWith("vase.")) : [];
+  const vaseFloorProperties = shape.kind === "vase" ? properties.filter((property) => property.id.startsWith("vaseFloor.")) : [];
+  const vasePrintProperties = shape.kind === "vase" ? properties.filter((property) => property.id.startsWith("vasePrint.")) : [];
+  const vasePartProperties = shape.kind === "vase" ? properties.filter((property) => property.id.startsWith("vaseParts.")) : [];
+  const primaryProperties = shape.kind === "vase"
+    ? properties.filter((property) => !property.id.startsWith("vase"))
+    : shape.kind === "gear"
     ? properties.filter((property) => ["centerHole", "length", "width", "height"].includes(property.id))
     : isThread
       ? properties.filter((property) => ["threadSize", "diameter", "threadLength", "headHeight", "headChamfer"].includes(property.id))
@@ -2754,12 +2995,23 @@ export function ShapeInspector({
   const [taperOpen, setTaperOpen] = useInspectorCard("taper", false);
   const [twistOpen, setTwistOpen] = useInspectorCard("twist", false);
   const [gearTeethOpen, setGearTeethOpen] = useInspectorCard("gearTeeth", true);
+  const [vaseFormOpen, setVaseFormOpen] = useInspectorCard("vaseForm", true);
+  const [vaseFloorOpen, setVaseFloorOpen] = useInspectorCard("vaseFloor", false);
+  const [vasePartsOpen, setVasePartsOpen] = useInspectorCard("vaseParts", false);
+  const [vasePrintOpen, setVasePrintOpen] = useInspectorCard("vasePrint", false);
+  // The window to draw the vase in; another body selected closes it.
+  const [vaseDrawOpen, setVaseDrawOpen] = useState(false);
+  useEffect(() => setVaseDrawOpen(false), [shape.id]);
   const [threadOpen, setThreadOpen] = useInspectorCard("thread", true);
   const [gearHelixOpen, setGearHelixOpen] = useInspectorCard("gearHelix", true);
   const [colorOpen, setColorOpen] = useState(false);
   const { colors: recentColors, remember: rememberColor } = useRecentColors(SOLID_COLORS);
   const { colors: keptColors, toggle: toggleKeptColor } = useKeptColors();
   const [minimized, setMinimized] = useState(false);
+  // The surface texture card opened from the toolbar is shown, not left in a folded panel.
+  useEffect(() => {
+    if (surfaceTextureOpen) setMinimized(false);
+  }, [surfaceTextureOpen]);
   // Renaming here works like the pencil in the object list.
   const [nameDraft, setNameDraft] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -2966,6 +3218,16 @@ export function ShapeInspector({
         </div>
       ) : null}
 
+      {shape.kind === "vase" ? (
+        <button className="edit-sketch-button" type="button" disabled={locked} aria-pressed={vaseDrawOpen} onClick={() => setVaseDrawOpen((open) => !open)}>
+          <Pencil size={17} strokeWidth={2.5} />
+          <span>{t("inspector.vaseDraw")}</span>
+        </button>
+      ) : null}
+      {shape.kind === "vase" && vaseDrawOpen ? (
+        <VaseDrawingWindow shape={shape} disabled={locked} onUpdate={onUpdate} onInteractionActiveChange={onInteractionActiveChange} onClose={() => setVaseDrawOpen(false)} />
+      ) : null}
+
       {shape.sketchProfile && onEditSketch ? (
         <button className="edit-sketch-button" type="button" disabled={locked} onClick={onEditSketch}>
           {t("inspector.editSketch")}
@@ -2998,6 +3260,42 @@ export function ShapeInspector({
           onWrap={onWrapAroundCylinder}
           onInteractionActiveChange={onInteractionActiveChange}
         />
+      ) : null}
+
+      {onSurfaceTexture ? (
+        <SurfaceTextureCard
+          key={`surface-${shape.id}`}
+          shape={shape}
+          workspace={workspace}
+          disabled={locked}
+          onApply={onSurfaceTexture}
+          onRemove={onRemoveSurfaceTexture}
+          open={surfaceTextureOpen}
+          onOpenChange={onSurfaceTextureOpenChange}
+          onInteractionActiveChange={onInteractionActiveChange}
+        />
+      ) : null}
+
+      {offersSurfaceTextureMask(shape) ? (
+        <div className="property-card">
+          <div className="property-list cylinder-wrap-body">
+            <SelectProperty
+              type="select"
+              label={t("inspector.surfaceMask")}
+              value={shape.surfaceTextureMask ?? "none"}
+              options={(["none", ...SURFACE_TEXTURE_MASK_MODES] as const).map((value) => ({ value, label: t(SURFACE_TEXTURE_LABELS.mask[value]) }))}
+              disabled={locked}
+              // A mask is a helper one looks through: it turns transparent on the way.
+              onChange={(value) => onUpdate(value === "none" ? { surfaceTextureMask: undefined } : { surfaceTextureMask: value as SurfaceTextureMaskMode, transparent: true })}
+            />
+            {shape.surfaceTextureMask ? (
+              <p className="cylinder-wrap-hint">
+                {t("inspector.surfaceMaskHint")}
+                <GuideHelpLink section="surfaceTexture" className="inspector-help-link" />
+              </p>
+            ) : null}
+          </div>
+        </div>
       ) : null}
 
       {onTextTags && shape.kind === "text" ? (
@@ -3086,7 +3384,7 @@ export function ShapeInspector({
                 onChange={threadHeadProperty.onChange}
               />
             ) : null}
-            {onProportionLockChange && primaryProperties.some((property) => property.id === "height") && primaryProperties.some((property) => ["width", "length", "diameter"].includes(property.id)) ? (
+            {onProportionLockChange && primaryProperties.some((property) => property.id === "height") && primaryProperties.some((property) => ["width", "length", "diameter", "outerDiameter"].includes(property.id)) ? (
               <ToggleProperty
                 label={t("inspector.keepProportions")}
                 value={proportionLock}
@@ -3240,6 +3538,64 @@ export function ShapeInspector({
             </div>
           ) : null}
         </div>
+      ) : null}
+      {shape.kind === "vase" ? (
+        <>
+          <div className={`property-card ${vaseFormOpen ? "" : "collapsed"}`}>
+            <button className="property-card-header" type="button" aria-expanded={vaseFormOpen} aria-controls={`vase-form-${shape.id}`} onClick={() => setVaseFormOpen((open) => !open)}>
+              <span>{t("inspector.vaseForm")}</span>
+              <ChevronUp className={vaseFormOpen ? "" : "collapsed"} size={25} strokeWidth={2.8} />
+            </button>
+            {vaseFormOpen ? (
+              <div className="property-list" id={`vase-form-${shape.id}`}>
+                <ShapePropertyRows properties={vaseFormProperties} workspace={workspace} disabled={locked} onInteractionActiveChange={onInteractionActiveChange} />
+              </div>
+            ) : null}
+          </div>
+          <div className={`property-card ${vaseFloorOpen ? "" : "collapsed"}`}>
+            <button className="property-card-header" type="button" aria-expanded={vaseFloorOpen} aria-controls={`vase-floor-${shape.id}`} onClick={() => setVaseFloorOpen((open) => !open)}>
+              <span>{t("inspector.vaseFloor")}</span>
+              <ChevronUp className={vaseFloorOpen ? "" : "collapsed"} size={25} strokeWidth={2.8} />
+            </button>
+            {vaseFloorOpen ? (
+              <div className="property-list" id={`vase-floor-${shape.id}`}>
+                <ShapePropertyRows properties={vaseFloorProperties} workspace={workspace} disabled={locked} onInteractionActiveChange={onInteractionActiveChange} />
+              </div>
+            ) : null}
+          </div>
+          <div className={`property-card ${vasePartsOpen ? "" : "collapsed"}`}>
+            <button className="property-card-header" type="button" aria-expanded={vasePartsOpen} aria-controls={`vase-parts-${shape.id}`} onClick={() => setVasePartsOpen((open) => !open)}>
+              <span>{t("inspector.vaseParts")}</span>
+              <ChevronUp className={vasePartsOpen ? "" : "collapsed"} size={25} strokeWidth={2.8} />
+            </button>
+            {vasePartsOpen ? (
+              <div className="property-list" id={`vase-parts-${shape.id}`}>
+                <ShapePropertyRows properties={vasePartProperties} workspace={workspace} disabled={locked} onInteractionActiveChange={onInteractionActiveChange} />
+                {onVaseAccessories ? (
+                  <>
+                    <p className="cylinder-wrap-hint">{t("inspector.vasePartsHint")}</p>
+                    <button className="inspector-action-button" type="button" disabled={locked} onClick={onVaseAccessories}>
+                      <Plus size={17} strokeWidth={2.5} />
+                      <span>{t("inspector.vasePartsMake")}</span>
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+          <div className={`property-card ${vasePrintOpen ? "" : "collapsed"}`}>
+            <button className="property-card-header" type="button" aria-expanded={vasePrintOpen} aria-controls={`vase-print-${shape.id}`} onClick={() => setVasePrintOpen((open) => !open)}>
+              <span>{t("inspector.vasePrint")}</span>
+              <ChevronUp className={vasePrintOpen ? "" : "collapsed"} size={25} strokeWidth={2.8} />
+            </button>
+            {vasePrintOpen ? (
+              <div className="property-list" id={`vase-print-${shape.id}`}>
+                <ShapePropertyRows properties={vasePrintProperties} workspace={workspace} disabled={locked} onInteractionActiveChange={onInteractionActiveChange} />
+                <VasePrintReport shape={shape} />
+              </div>
+            ) : null}
+          </div>
+        </>
       ) : null}
       {shape.kind === "gear" ? (
         <div className={`property-card ${gearTeethOpen ? "" : "collapsed"}`}>
@@ -4086,6 +4442,426 @@ function CylinderWrapCard({
   );
 }
 
+/** The shapes a bump can take, the half ball first. */
+const BUMP_SHAPES = ["dome", "pointed", "round", "flat"] as const;
+
+/** What the spacing and the width are called where they mean something else than a groove's. */
+const SURFACE_SPACING_LABEL: Partial<Record<SurfaceTexturePattern, MessageKey>> = {
+  cells: "inspector.surfaceSpacingCells",
+  knit: "inspector.surfaceSpacingKnit",
+  rope: "inspector.surfaceSpacingRope",
+  weave: "inspector.surfaceSpacingWeave",
+  grain: "inspector.surfaceSpacingGrain",
+  image: "inspector.surfaceSpacingImage",
+};
+const SURFACE_COVERAGE_LABEL: Partial<Record<SurfaceTexturePattern, MessageKey>> = {
+  cells: "inspector.surfaceCoverageCells",
+  knit: "inspector.surfaceCoverageKnit",
+  rope: "inspector.surfaceCoverageRope",
+  weave: "inspector.surfaceCoverageWeave",
+};
+
+/**
+ * The settings when another pattern is chosen. A pattern with values of its own to start from (cells, knitting, rope,
+ * weave, grain, an image) gets them, and leaving one gives the next the plain defaults back, so a knitted stitch's 5 mm
+ * do not become knurling's spacing. Bumps start as half balls: the V the grooves have by default would make them cones.
+ */
+function surfaceSettingsForPattern(current: SurfaceTextureSettings, pattern: SurfaceTexturePattern): Partial<SurfaceTextureSettings> {
+  const leaving = current.pattern === "bumps" ? null : SURFACE_TEXTURE_STARTERS[current.pattern];
+  const reset = leaving ? Object.fromEntries(Object.keys(leaving).map((key) => [key, SURFACE_TEXTURE_DEFAULTS[key as keyof SurfaceTextureSettings]])) : {};
+  const starter = pattern === "bumps" ? (current.profile === "pointed" ? { profile: "dome" as const } : {}) : SURFACE_TEXTURE_STARTERS[pattern] ?? {};
+  const tile = pattern === "image" ? { spacing: surfaceTextureImageTile(current.image), tileHeight: 0 } : {};
+  return { ...reset, ...starter, ...tile, pattern };
+}
+
+/** A picture file as one's own image for the texture: drawn small (SURFACE_TEXTURE_OWN_IMAGE_SIZE) and turned grey. */
+async function surfaceImageFromFile(file: File) {
+  const url = URL.createObjectURL(file);
+  try {
+    const picture = new Image();
+    picture.src = url;
+    await picture.decode();
+    // A drawing without a size of its own (an SVG) is drawn as large as one's image may be.
+    const width = picture.naturalWidth || SURFACE_TEXTURE_OWN_IMAGE_SIZE, height = picture.naturalHeight || SURFACE_TEXTURE_OWN_IMAGE_SIZE;
+    const scale = Math.min(1, SURFACE_TEXTURE_OWN_IMAGE_SIZE / Math.max(width, height));
+    const w = Math.max(2, Math.round(width * scale)), h = Math.max(2, Math.round(height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("no canvas");
+    context.drawImage(picture, 0, 0, w, h);
+    return surfaceTextureOwnImage(context.getImageData(0, 0, w, h).data, w, h);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * A surface texture on this body: the pattern, where it goes, and the button. Folded away until
+ * asked for, like wrapping: a step one takes, and undo takes it back. The card keeps its
+ * settings through that undo, so the next try starts from the last one.
+ */
+export function SurfaceTextureCard({
+  shape,
+  workspace,
+  disabled,
+  onApply,
+  onRemove,
+  open: openProp,
+  onOpenChange,
+  onInteractionActiveChange,
+}: {
+  shape: WorkplaneShape;
+  workspace: WorkplaneWorkspaceSettings;
+  disabled: boolean;
+  onApply: (settings: SurfaceTextureSettings) => Promise<void> | void;
+  /** Takes the texture off; given while the body keeps what was under it. */
+  onRemove?: () => void;
+  /** Open or closed as the editor holds it, so the button under "Modify" shows and changes the same; else the card's own. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onInteractionActiveChange?: (active: boolean) => void;
+}) {
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = openProp ?? ownOpen;
+  const setOpen = (next: boolean) => (onOpenChange ? onOpenChange(next) : setOwnOpen(next));
+  // Opened while it is on screen (from the toolbar, the panel scrolled elsewhere), the card comes into view.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const wasOpen = useRef(open);
+  useEffect(() => {
+    if (open && !wasOpen.current) cardRef.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    wasOpen.current = open;
+  }, [open]);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [settings, setSettings] = useState(() => normalizeSurfaceTexture(shape.surfaceTexture ?? {}));
+  const set = (patch: Partial<SurfaceTextureSettings>) => setSettings((current) => normalizeSurfaceTexture({ ...current, ...patch }));
+  const applied = shape.surfaceTexture;
+  // A texture made or changed elsewhere (by an assistant, by redo, in a project opened again) shows its own settings;
+  // one taken off leaves the card as it was, to apply again.
+  const appliedKey = applied
+    ? JSON.stringify({ ...applied, masks: applied.masks.length, textOutline: applied.textOutline.length, imageOwn: applied.imageOwn ? applied.imageOwn.data.length : 0 })
+    : "";
+  const [shownKey, setShownKey] = useState(appliedKey);
+  if (appliedKey !== shownKey) {
+    setShownKey(appliedKey);
+    if (applied) setSettings(normalizeSurfaceTexture(applied));
+  }
+  // A texture that keeps the body under it shows its settings to change; one that does not only says what it is.
+  const changeable = Boolean(applied && onRemove && surfaceTextureEntry(shape));
+  const options = <T extends string>(values: readonly T[], label: (value: T) => string) => values.map((value) => ({ value, label: label(value) }));
+  const range = (id: string, label: string, value: number, [min, max]: [number, number], step: number, onChange: (value: number) => void) => (
+    <RangeProperty
+      id={id}
+      label={label}
+      value={value}
+      min={min}
+      max={max}
+      step={step}
+      workspace={workspace}
+      disabled={disabled || busy}
+      onChange={onChange}
+      onInteractionActiveChange={onInteractionActiveChange}
+    />
+  );
+  const striped = settings.pattern === "grooves" || settings.pattern === "knurl";
+  const cracks = settings.pattern === "cracks";
+  // Grain lies in space: no projection, no axis. An image's grey values are its profile and width.
+  const grain = settings.pattern === "grain";
+  const image = settings.pattern === "image";
+  const imageInput = useRef<HTMLInputElement>(null);
+  const [imageError, setImageError] = useState("");
+  const loadImage = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const imageOwn = await surfaceImageFromFile(file);
+      setImageError("");
+      set({ image: "own", imageOwn, tileHeight: 0 });
+    } catch (error) {
+      setImageError(t("status.surfaceImageFailed", { error: error instanceof Error ? error.message : String(error) }));
+    }
+  };
+  // A text goes where it is put: what stays smooth for a pattern all over does not hold it back, so those fields go.
+  const text = settings.pattern === "text";
+  const percent = (id: string, label: string, value: number, onChange: (value: number) => void) => range(id, label, Math.round(value * 100), [0, 100], 1, (share) => onChange(share / 100));
+  const apply = async () => {
+    setBusy(true);
+    try {
+      await onApply(settings);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className={`property-card ${open ? "" : "collapsed"}`} ref={cardRef}>
+      <button
+        className="property-card-header"
+        type="button"
+        aria-expanded={open}
+        aria-controls={`surface-texture-${shape.id}`}
+        onClick={() => setOpen(!open)}
+      >
+        <span>{t("inspector.surfaceTexture")}</span>
+        <ChevronUp className={open ? "" : "collapsed"} size={25} strokeWidth={2.8} />
+      </button>
+      {open ? (
+        <div className="property-list cylinder-wrap-body" id={`surface-texture-${shape.id}`}>
+          {applied && !changeable ? (
+            <p className="cylinder-wrap-hint">
+              {t("inspector.surfaceApplied", { pattern: surfacePatternLabel(applied.pattern) })}
+              <GuideHelpLink section="surfaceTexture" className="inspector-help-link" />
+            </p>
+          ) : (
+            <>
+              <SelectProperty
+                type="select"
+                label={t("inspector.surfacePattern")}
+                value={settings.pattern}
+                options={options(SURFACE_TEXTURE_PATTERNS, (value) => t(SURFACE_TEXTURE_LABELS.pattern[value]))}
+                disabled={disabled || busy}
+                onChange={(value) => set(surfaceSettingsForPattern(settings, value as SurfaceTexturePattern))}
+              />
+              {cracks ? (
+                <>
+                  <SelectProperty
+                    type="select"
+                    label={t("inspector.surfaceCrackStyle")}
+                    value={settings.crackStyle}
+                    options={options(SURFACE_TEXTURE_CRACK_STYLES, (value) => t(SURFACE_TEXTURE_LABELS.crackStyle[value]))}
+                    disabled={disabled || busy}
+                    onChange={(value) => set({ crackStyle: value as SurfaceTextureSettings["crackStyle"] })}
+                  />
+                  <SelectProperty
+                    type="select"
+                    label={t("inspector.surfaceCrackStart")}
+                    value={settings.crackStart}
+                    options={options(SURFACE_TEXTURE_CRACK_STARTS, (value) => t(SURFACE_TEXTURE_LABELS.crackStart[value]))}
+                    disabled={disabled || busy}
+                    onChange={(value) => set({ crackStart: value as SurfaceTextureSettings["crackStart"] })}
+                  />
+                  {range("surfaceCrackCount", t("inspector.surfaceCrackCount"), settings.crackCount, [1, SURFACE_TEXTURE_LIMITS.crackCount[1]], 1, (crackCount) => set({ crackCount }))}
+                  {range("surfaceCrackLength", t("inspector.surfaceCrackLength"), settings.crackLength, [SURFACE_TEXTURE_LIMITS.crackLength[0], 150], 1, (crackLength) => set({ crackLength }))}
+                  {range("surfaceCrackWidth", t("inspector.surfaceCrackWidth"), settings.crackWidth, SURFACE_TEXTURE_LIMITS.crackWidth, 0.1, (crackWidth) => set({ crackWidth }))}
+                </>
+              ) : text ? (
+                <>
+                  <TextProperty type="text" label={t("inspector.surfaceTextContent")} value={settings.textContent} maxLength={200} disabled={disabled || busy} onChange={(textContent) => set({ textContent })} />
+                  <SelectProperty
+                    type="select"
+                    label={t("prop.font")}
+                    value={settings.textFont}
+                    options={surfaceTextFontOptions(settings.textFont)}
+                    disabled={disabled || busy}
+                    onChange={(textFont) => set({ textFont })}
+                  />
+                  {range("surfaceTextSize", t("inspector.surfaceTextSize"), settings.textSize, [SURFACE_TEXTURE_LIMITS.textSize[0], 60], 0.5, (textSize) => set({ textSize }))}
+                  {range("surfaceTextAround", t("inspector.surfaceTextAround"), settings.textAround, SURFACE_TEXTURE_LIMITS.textAround, 1, (textAround) => set({ textAround }))}
+                  {range("surfaceTextHeight", t("inspector.surfaceTextHeight"), settings.textHeight, SURFACE_TEXTURE_LIMITS.textHeight, 1, (textHeight) => set({ textHeight }))}
+                  {range("surfaceTextTurn", t("inspector.surfaceTextTurn"), settings.textTurn, SURFACE_TEXTURE_LIMITS.textTurn, 1, (textTurn) => set({ textTurn }))}
+                  <p className="cylinder-wrap-hint">{t("inspector.surfaceTextHint")}</p>
+                </>
+              ) : (
+                <>
+                  {image ? (
+                    <>
+                      <SelectProperty
+                        type="select"
+                        label={t("inspector.surfaceImage")}
+                        value={settings.image}
+                        // One's own image is there to choose again once it is loaded.
+                        options={options(
+                          SURFACE_TEXTURE_IMAGES.filter((value) => value !== "own" || settings.imageOwn),
+                          (value) => t(SURFACE_TEXTURE_LABELS.image[value]),
+                        )}
+                        disabled={disabled || busy}
+                        onChange={(value) => {
+                          const next = value as SurfaceTextureSettings["image"];
+                          set({ image: next, spacing: surfaceTextureImageTile(next), tileHeight: 0 });
+                        }}
+                      />
+                      <input
+                        ref={imageInput}
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={(event) => {
+                          void loadImage(event.target.files?.[0]);
+                          event.target.value = "";
+                        }}
+                      />
+                      <button className="inspector-action-button" type="button" disabled={disabled || busy} onClick={() => imageInput.current?.click()}>
+                        <ImageUp size={17} strokeWidth={2.5} />
+                        <span>{t("inspector.surfaceImageLoad")}</span>
+                      </button>
+                      {imageError ? <p className="cylinder-wrap-hint">{imageError}</p> : null}
+                    </>
+                  ) : null}
+                  {range(
+                    "surfaceSpacing",
+                    t(SURFACE_SPACING_LABEL[settings.pattern] ?? "inspector.surfaceSpacing"),
+                    settings.spacing,
+                    [SURFACE_TEXTURE_LIMITS.spacing[0], image ? SURFACE_TEXTURE_LIMITS.spacing[1] : 50],
+                    0.1,
+                    (spacing) => set({ spacing }),
+                  )}
+                  {image ? (
+                    <>
+                      {range("surfaceTileHeight", t("inspector.surfaceTileHeight"), settings.tileHeight, SURFACE_TEXTURE_LIMITS.tileHeight, 0.5, (tileHeight) => set({ tileHeight }))}
+                      <SelectProperty
+                        type="select"
+                        label={t("inspector.surfaceImageTiling")}
+                        value={settings.imageTiling}
+                        options={options(SURFACE_TEXTURE_TILINGS, (value) => t(SURFACE_TEXTURE_LABELS.tiling[value]))}
+                        disabled={disabled || busy}
+                        onChange={(value) => set({ imageTiling: value as SurfaceTextureSettings["imageTiling"] })}
+                      />
+                      <ToggleProperty label={t("inspector.surfaceImageInvert")} value={settings.imageInvert} disabled={disabled || busy} onChange={(imageInvert) => set({ imageInvert })} />
+                      <p className="cylinder-wrap-hint">{t("inspector.surfaceImageHint")}</p>
+                    </>
+                  ) : null}
+                  {settings.pattern === "cells" || grain ? (
+                    <>
+                      {range("surfaceSeed", t("inspector.surfaceSeed"), settings.seed, [1, 999], 1, (seed) => set({ seed }))}
+                      <p className="cylinder-wrap-hint">{t("inspector.surfaceSeedHint")}</p>
+                    </>
+                  ) : null}
+                </>
+              )}
+              {settings.pattern === "bumps" ? (
+                <SelectProperty
+                  type="select"
+                  label={t("inspector.surfaceBumpShape")}
+                  value={settings.profile}
+                  options={options(BUMP_SHAPES, (value) => t(SURFACE_TEXTURE_LABELS.bumpShape[value]))}
+                  disabled={disabled || busy}
+                  onChange={(value) => set({ profile: value as SurfaceTextureSettings["profile"] })}
+                />
+              ) : null}
+              {range("surfaceDepth", t("inspector.surfaceDepth"), settings.depth, SURFACE_TEXTURE_LIMITS.depth, 0.05, (depth) => set({ depth }))}
+              <SelectProperty
+                type="select"
+                label={t("inspector.surfaceDirection")}
+                value={settings.direction}
+                options={options(SURFACE_TEXTURE_DIRECTIONS, (value) => t(SURFACE_TEXTURE_LABELS.direction[value]))}
+                disabled={disabled || busy}
+                onChange={(value) => set({ direction: value as SurfaceTextureSettings["direction"] })}
+              />
+              {cracks ? (
+                <>
+                  {/* The gold: a part of its own in the notch, for a second filament. */}
+                  <ToggleProperty label={t("inspector.surfaceCrackGold")} value={settings.crackGold} disabled={disabled || busy} onChange={(crackGold) => set({ crackGold, ...(crackGold ? { direction: "inward" as const } : {}) })} />
+                  {settings.crackGold ? range("surfaceCrackRecess", t("inspector.surfaceCrackRecess"), settings.crackRecess, SURFACE_TEXTURE_LIMITS.crackRecess, 0.05, (crackRecess) => set({ crackRecess })) : null}
+                  {settings.crackGold ? <p className="cylinder-wrap-hint">{t("inspector.surfaceCrackGoldHint")}</p> : null}
+                </>
+              ) : text ? null : grain ? (
+                <p className="cylinder-wrap-hint">{t("inspector.surfaceGrainHint")}</p>
+              ) : (
+                <SelectProperty
+                  type="select"
+                  label={t("inspector.surfaceProjection")}
+                  value={settings.projection}
+                  options={options(SURFACE_TEXTURE_PROJECTIONS, (value) => t(SURFACE_TEXTURE_LABELS.projection[value]))}
+                  hint={t(SURFACE_TEXTURE_LABELS.projectionHint[settings.projection])}
+                  disabled={disabled || busy}
+                  onChange={(value) => set({ projection: value as SurfaceTextureSettings["projection"] })}
+                />
+              )}
+              {!grain && (cracks || text || settings.projection !== "allRound") ? (
+                <SelectProperty
+                  type="select"
+                  label={t("inspector.surfaceAxis")}
+                  value={settings.axis}
+                  options={options(SURFACE_TEXTURE_AXES, (value) => value.toUpperCase())}
+                  disabled={disabled || busy}
+                  onChange={(value) => set({ axis: value as SurfaceTextureSettings["axis"] })}
+                />
+              ) : null}
+              <button className="name-tag-more" type="button" aria-expanded={moreOpen} onClick={() => setMoreOpen((current) => !current)}>
+                <ChevronDown className={moreOpen ? "open" : ""} size={15} strokeWidth={2.6} />
+                <span>{t(moreOpen ? "inspector.less" : "inspector.more")}</span>
+              </button>
+              {moreOpen ? (
+                <>
+                  {cracks ? (
+                    <>
+                      {percent("surfaceCrackBranch", t("inspector.surfaceCrackBranch"), settings.crackBranch, (crackBranch) => set({ crackBranch }))}
+                      {percent("surfaceCrackJag", t("inspector.surfaceCrackJag"), settings.crackJag, (crackJag) => set({ crackJag }))}
+                      {percent("surfaceCrackRough", t("inspector.surfaceCrackRough"), settings.crackRough, (crackRough) => set({ crackRough }))}
+                      {range("surfaceCrackSeed", t("inspector.surfaceCrackSeed"), settings.crackSeed, [0, 999], 1, (crackSeed) => set({ crackSeed }))}
+                      <p className="cylinder-wrap-hint">{t("inspector.surfaceCrackSeedHint")}</p>
+                    </>
+                  ) : text || grain ? null : image ? (
+                    <>
+                      {range("surfaceImageTurn", t("inspector.surfaceImageTurn"), settings.imageTurn, SURFACE_TEXTURE_LIMITS.imageTurn, 1, (imageTurn) => set({ imageTurn }))}
+                      {range("surfaceImageBlur", t("inspector.surfaceImageBlur"), settings.imageBlur, SURFACE_TEXTURE_LIMITS.imageBlur, 1, (imageBlur) => set({ imageBlur }))}
+                    </>
+                  ) : (
+                    range(
+                      "surfaceCoverage",
+                      t(SURFACE_COVERAGE_LABEL[settings.pattern] ?? "inspector.surfaceCoverage"),
+                      Math.round(settings.width * 100),
+                      [SURFACE_TEXTURE_LIMITS.width[0] * 100, 100],
+                      1,
+                      (share) => set({ width: share / 100 }),
+                    )
+                  )}
+                  {text ? null : (
+                    <>
+                      {settings.pattern === "bumps" || grain || image ? null : (
+                        <SelectProperty
+                          type="select"
+                          label={t("inspector.surfaceProfile")}
+                          value={settings.profile}
+                          options={options(SURFACE_TEXTURE_PROFILES, (value) => t(SURFACE_TEXTURE_LABELS.profile[value]))}
+                          disabled={disabled || busy}
+                          onChange={(value) => set({ profile: value as SurfaceTextureSettings["profile"] })}
+                        />
+                      )}
+                      {striped ? range("surfaceAngle", t("inspector.surfaceAngle"), settings.angle, SURFACE_TEXTURE_LIMITS.angle, 1, (angle) => set({ angle })) : null}
+                      <ToggleProperty label={t("inspector.surfaceOutside")} value={settings.outside} disabled={disabled || busy} onChange={(outside) => set({ outside })} />
+                      <ToggleProperty label={t("inspector.surfaceInside")} value={settings.inside} disabled={disabled || busy} onChange={(inside) => set({ inside })} />
+                      {range("surfaceBottomFree", t("inspector.surfaceBottomFree"), settings.bottomFree, SURFACE_TEXTURE_LIMITS.bottomFree, 1, (bottomFree) => set({ bottomFree }))}
+                      {range("surfaceTopFree", t("inspector.surfaceTopFree"), settings.topFree, SURFACE_TEXTURE_LIMITS.topFree, 1, (topFree) => set({ topFree }))}
+                      {range("surfaceZoneFrom", t("inspector.surfaceZoneFrom"), settings.zoneFrom, SURFACE_TEXTURE_LIMITS.zoneFrom, 1, (zoneFrom) => set({ zoneFrom }))}
+                      {range("surfaceZoneTo", t("inspector.surfaceZoneTo"), settings.zoneTo, SURFACE_TEXTURE_LIMITS.zoneTo, 1, (zoneTo) => set({ zoneTo }))}
+                      <ToggleProperty label={t("inspector.surfaceKeepEdges")} value={settings.keepEdges} disabled={disabled || busy} onChange={(keepEdges) => set({ keepEdges })} />
+                    </>
+                  )}
+                  {range("surfaceFade", t("inspector.surfaceFade"), settings.fade, SURFACE_TEXTURE_LIMITS.fade, 0.1, (fade) => set({ fade }))}
+                  <SelectProperty
+                    type="select"
+                    label={t("inspector.surfaceDetail")}
+                    value={settings.detail}
+                    options={options(SURFACE_TEXTURE_DETAILS, (value) => t(SURFACE_TEXTURE_LABELS.detail[value]))}
+                    disabled={disabled || busy}
+                    onChange={(value) => set({ detail: value as SurfaceTextureSettings["detail"] })}
+                  />
+                  <p className="cylinder-wrap-hint">{t("inspector.surfaceMaskTip")}</p>
+                </>
+              ) : null}
+              <p className="cylinder-wrap-hint">
+                {applied ? t("inspector.surfaceChangeHint", { pattern: surfacePatternLabel(applied.pattern) }) : t("inspector.surfaceHint")}
+                <GuideHelpLink section="surfaceTexture" className="inspector-help-link" />
+              </p>
+              <button className="inspector-action-button" type="button" disabled={disabled || busy} onClick={apply}>
+                <Waves size={17} strokeWidth={2.5} />
+                <span>{t(busy ? "inspector.surfaceWorking" : applied ? "inspector.surfaceChange" : "inspector.surfaceApply")}</span>
+              </button>
+              {applied ? (
+                <button className="inspector-action-button" type="button" disabled={disabled || busy} onClick={onRemove}>
+                  <Eraser size={17} strokeWidth={2.5} />
+                  <span>{t("inspector.surfaceRemove")}</span>
+                </button>
+              ) : null}
+            </>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function BentTubeSegmentsCard({
   shape,
   workspace,
@@ -4879,7 +5655,7 @@ function RangeProperty({
  * field is uncontrolled: the shape's text is written into it only while it is not being edited,
  * and a word being composed (Japanese, Chinese, Korean) is committed once, when it is done.
  */
-function TextProperty({ label, value, disabled, onChange, onInteractionActiveChange }: Omit<TextPropertyConfig, "id"> & { id?: string } & { disabled?: boolean; onInteractionActiveChange?: (active: boolean) => void }) {
+function TextProperty({ label, value, disabled, maxLength = 24, onChange, onInteractionActiveChange }: Omit<TextPropertyConfig, "id"> & { id?: string } & { disabled?: boolean; maxLength?: number; onInteractionActiveChange?: (active: boolean) => void }) {
   const holdInteraction = useInteractionHold(onInteractionActiveChange);
   const field = useRef<HTMLInputElement>(null);
   const editing = useRef(false);
@@ -4895,7 +5671,7 @@ function TextProperty({ label, value, disabled, onChange, onInteractionActiveCha
         type="text"
         defaultValue={value}
         disabled={disabled}
-        maxLength={24}
+        maxLength={maxLength}
         spellCheck={false}
         onFocus={() => {
           editing.current = true;

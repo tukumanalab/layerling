@@ -9,7 +9,7 @@ import type { CadModifierKind, CadModifierQuality } from "@/lib/cadModifierTypes
 import { CAD_MODIFIER_MAX_SHARP_ANGLE, cadModifierUserErrorMessage, edgeModifierSelectionStatus } from "@/lib/cadModifierRuntime";
 import { t } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
-import type { WorkplaneWorkspaceSettings } from "@/types/layerling";
+import type { EdgeTreatmentFeature, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { selectWholeValue } from "@/lib/numberField";
 import { useWheelField } from "@/lib/useWheelField";
 import { wheelBaseStep, wheelNextValue } from "@/lib/wheelValueStep";
@@ -34,7 +34,7 @@ function formatSliderValue(value: number, accuracy: WorkplaneWorkspaceSettings["
 export type EdgeHistoryOption = {
   id: string;
   label: string;
-  kind: CadModifierKind;
+  kind: EdgeTreatmentFeature["kind"];
   amount: number;
   /** Only for a variable fillet (#687): the radius at the edge's end. */
   endAmount?: number;
@@ -54,6 +54,7 @@ function edgeHistoryLabel(option: EdgeHistoryOption) {
     : String(Number(option.amount.toFixed(2)));
   if (option.kind === "shell") return t("edge.revertShell", { size });
   if (option.kind === "offset") return t("edge.revertOffset", { size });
+  if (option.kind === "surfaceTexture") return t("edge.revertSurfaceTexture", { size });
   if (option.kind === "deleteFace") {
     return option.faceCount === 1 ? t("edge.revertDeleteFaceOne") : t("edge.revertDeleteFaceMany", { count: option.faceCount ?? 0 });
   }

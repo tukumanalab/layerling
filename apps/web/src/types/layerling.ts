@@ -30,6 +30,7 @@ export type ShapeKind =
   | "doubleCountersink"
   | "teardrop"
   | "loft"
+  | "vase"
   | "thread"
   | "spring"
   | "gridfinity"
@@ -276,6 +277,8 @@ export type ShapeCustomization = {
   gridfinityPaddingRight?: number;
   /** Gridfinity baseplate: the radius of its four outer corners in mm; missing is the specification's 4, at least 0 (square), at most 4; the sockets keep theirs (#856). */
   gridfinityCornerRadius?: number;
+  /** Gridfinity bin: the radius of its outer corners above the feet in mm; missing is the specification's 3.75, at least 0 (square), at most 3.75; the feet, the inside and the lip's slopes keep theirs (#856). */
+  gridfinityBinCornerRadius?: number;
   /** Gridfinity bin: compartments across, a whole number; missing is 1, a bin without dividers (#554). */
   gridfinityCompartmentsX?: number;
   /** Gridfinity bin: compartments deep, a whole number; missing is 1. */
@@ -646,8 +649,11 @@ export type ShellOpenings = "none" | "top" | "bottom" | "top-bottom" | ShellSide
 export type ShellEdges = "round" | "sharp";
 
 export type EdgeTreatmentFeature = {
-  /** "shell" hollows the body: `amount` is then the wall thickness. "deleteFace" deletes faces and closes the gap (#451). "offset" moves every face by `amount` (#919). */
-  kind: "fillet" | "chamfer" | "chamfillet" | "shell" | "deleteFace" | "offset";
+  /**
+   * "shell" hollows the body: `amount` is then the wall thickness. "deleteFace" deletes faces and closes the gap (#451). "offset" moves every face by `amount` (#919).
+   * "surfaceTexture" lays a relief onto the body: `amount` is its depth, and the entry keeps the body under it.
+   */
+  kind: "fillet" | "chamfer" | "chamfillet" | "shell" | "deleteFace" | "offset" | "surfaceTexture";
   amount: number;
   edgeCount: number;
   /** The edges picked, as the tool numbered them on the body before this treatment: "Edit" picks them again (#227). */
@@ -663,6 +669,8 @@ export type EdgeTreatmentFeature = {
   /** Only for "deleteFace": the faces deleted, as the tool numbered them on the body before. */
   faceIds?: number[];
   faceCount?: number;
+  /** Only for "surfaceTexture": the settings it was made with, masks included. */
+  surfaceTexture?: import("@/lib/surfaceTexture").SurfaceTextureSettings;
 };
 
 export type EdgeTreatmentHistoryEntry = {
@@ -935,6 +943,8 @@ export type WorkplaneShape = {
   gridfinityPaddingRight?: number;
   /** Gridfinity baseplate: the radius of its four outer corners in mm; missing is the specification's 4, at least 0 (square), at most 4; the sockets keep theirs (#856). */
   gridfinityCornerRadius?: number;
+  /** Gridfinity bin: the radius of its outer corners above the feet in mm; missing is the specification's 3.75, at least 0 (square), at most 3.75; the feet, the inside and the lip's slopes keep theirs (#856). */
+  gridfinityBinCornerRadius?: number;
   /** Gridfinity bin: compartments across, a whole number; missing is 1, a bin without dividers (#554). */
   gridfinityCompartmentsX?: number;
   /** Gridfinity bin: compartments deep, a whole number; missing is 1. */
@@ -1079,6 +1089,23 @@ export type WorkplaneShape = {
    * that box rather than the arc the mesh actually covers.
    */
   cylinderWrap?: { diameter: number; inward?: boolean };
+  /**
+   * Set on a body made by a surface texture (grooves, knurling, honeycomb, bumps): the
+   * settings it was made with. The body is a mesh with the relief; undo takes it back.
+   */
+  surfaceTexture?: import("@/lib/surfaceTexture").SurfaceTextureSettings;
+  /**
+   * A helper for another body's surface texture: where this convex body reaches into it, the
+   * texture stays away ("exclude") or goes only there ("only"). It counts when that body gets its
+   * texture, also while this one is hidden.
+   */
+  surfaceTextureMask?: import("@/lib/surfaceTexture").SurfaceTextureMaskMode;
+  /** The gold filling the cracks of this textured body (see surfaceTextureShape.ts): it goes when the texture is made anew or taken off. */
+  surfaceFillOf?: string;
+  /** Only for "vase": the vase tool's settings; the frame gives its height and widest diameter. */
+  vase?: import("@/lib/vase/vase-geometry.mjs").VaseSettings;
+  /** An accessory laid out for a vase (its id): laying them out again replaces it. */
+  vasePartOf?: string;
   importedMesh?: {
     positions: number[];
     normals?: number[];
