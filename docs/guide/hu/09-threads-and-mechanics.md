@@ -11,8 +11,9 @@ Válaszd az alakzattárban a {{ui:shape.thread}} alakzatot. A {{ui:inspector.thr
 
 - **{{ui:thread.rod}}:** menetes henger, például fej nélküli csavar.
 - **{{ui:thread.screw}}:** fejjel. Kiválasztod a {{ui:inspector.threadHead}} típusát: {{ui:thread.headCylinder}}, {{ui:thread.headCountersunk}} vagy {{ui:thread.headHex}}.
+  Lejjebb állítod be a {{ui:prop.headDiameter}} (hatlapfejnél a {{ui:prop.headAcrossFlats}}; süllyesztett fejnél az átmérő a magasságot követi) és a fejfelület {{ui:inspector.threadDrive}}: {{ui:thread.driveHex}}, {{ui:thread.driveTorx}}, {{ui:thread.drivePhillips}} vagy {{ui:thread.driveNone}} a kézzel vagy kulccsal hajtott csavarhoz. A {{ui:prop.driveSize}} a belső hatszög kulcsnyílása, a Torx csillag külső átmérője vagy a kereszt fesztávja; a {{ui:prop.driveDepth}} azt adja meg, milyen mélyre ér, legfeljebb a fej kilenc tizedéig, a 0 pedig elhagyja. Amíg nem változtatod meg őket, a mérethez igazodnak; a hatlapfej hajtás nélkül indul. A hajtás a pontos test része, így a STEP-exportba is bekerül.
 - **{{ui:thread.nut}}:** a hozzá illő anya.
-- **{{ui:thread.bore}}:** menetes furat. Ez lyuk. Húzd bele egy alkatrészbe, csoportosítsd a kettőt, és az alkatrészben belső menet lesz.
+- **{{ui:thread.bore}}:** menetes furat. Ez lyuk. Húzd bele egy alkatrészbe, csoportosítsd a kettőt, és az alkatrészben belső menet lesz. Olyan furathoz, amelybe csavart hajtasz, mindig a {{ui:thread.bore}} legyen: a {{ui:thread.rod}} vagy {{ui:thread.screw}} üregként a csavar teljes mérete, holtjáték nélkül, és túl szűk lesz. Ha mégis üregnek állítod, a layerling figyelmeztet, és a {{ui:inspector.threadMakeTappedHole}} gombbal {{ui:thread.bore}} lesz belőle.
 
 ![Egy hengeres fejű csavar. Jobbra: fajta és fejforma, lejjebb méret, menetemelkedés és profil.](shot:thread-screw)
 
@@ -153,9 +154,17 @@ A {{ui:shape.hinge}} egy darabban nyomtatódik, és utána mozog (print-in-place
 
 A {{ui:prop.hingeClearance}} a mozgó részek közötti rés: a csap körül, a csuklók között és a szárnyak előtt. 0,4 mm-rel egy jól beállított nyomtatón általában egy kis csavarással kiszabadul; ha a részek összeolvadnak, növeld, ha túlságosan lötyög, csökkentsd. A zsanért fekve nyomtasd, ahogy a tárgyasztalon megjelenik, támasz nélkül. A szárnyakba lyukakat tehetsz, vagy nagyobb alkatrészbe, például egy fedélbe csoportosíthatod őket.
 
-A zsanér {{ui:hinge.styleCone}} is készülhet (a {{ui:prop.hingeStyle}} alatt): ilyenkor minden második csuklószem kúpokban végződik, amelyek a szomszédos csuklószemek kúpos mélyedéseibe illeszkednek. Nincs csap és nincs hosszú híd, amely belóghatna, ezért fekve nyomtatható; a kúpok 45°-osak. Háló, így rajta a letörés és a lekerekítés nem működik, a STEP-export pedig háromszögeket tartalmaz; ahol a csuklószemek túl rövidek lennének egy kúphoz, kevesebbet készít. A csuklószemek száma helyett megadhatod a {{ui:prop.hingeKnuckleWidth}} értékét: a csuklószemek ekkor legfeljebb ilyen szélesek, számuk a hosszból adódik; ha számot írsz be, a szélesség megszűnik.
+A zsanér {{ui:hinge.styleCone}} is készülhet (a {{ui:prop.hingeStyle}} alatt): ilyenkor minden második csuklószem kúpokban végződik, amelyek a szomszédos csuklószemek kúpos mélyedéseibe illeszkednek. Nincs csap és nincs hosszú híd, amely belóghatna, ezért fekve nyomtatható; a kúpok 45°-osak. A többi típushoz hasonlóan ez is pontos test, így a letörés és a lekerekítés működik rajta, a STEP-export pedig a valódi kúpjait tartalmazza; ahol a csuklószemek túl rövidek lennének egy kúphoz, kevesebbet készít. A csuklószemek száma helyett megadhatod a {{ui:prop.hingeKnuckleWidth}} értékét: a csuklószemek ekkor legfeljebb ilyen szélesek, számuk a hosszból adódik; ha számot írsz be, a szélesség megszűnik.
 
 A {{ui:prop.hingeStyle}} három lehetőséget kínál: {{ui:hinge.stylePin}}, {{ui:prop.hingePinless}} (a furat saját csaphoz) és {{ui:hinge.styleCone}}. Kúpoknál a {{ui:prop.hingeConeSize}} adja meg, mekkorák a kúpok ott, ahol kinőnek a csuklószemből; a nagyobb kúpok jobban tartanak, és alapból akkorák, amekkora elfér. A kúpos zsanérnak nincs csapja és furata, ezért a szárnya olyan vastag lehet, mint az egész csuklószem: ha a {{ui:prop.hingeLeafThickness}} értékét a csuklószem átmérőjére állítod, a szárnyak egy síkban vannak a csuklószemekkel; az ilyen zsanér kb. 90°-ig nyílik, mert a vastag szárnyak egymásnak ütköznek.
+
+## Flexi csuklók
+
+A {{ui:editor.tool.flexi}} egy lapos testből mozgatható figurát készít, például halat, kígyót vagy sárkányt, amely egy darabban nyomtatódik (print-in-place). A testet te rajzolod vagy építed meg, például egy vázlatból vagy egy kihúzott SVG-ből. Az eszköz a hosszára merőlegesen tagokra vágja, és minden vágásba csuklót tesz: az egyik tag egy függőleges csapot hordoz, amely középen vastagabb, mint fent és lent, a következő hézaggal körülöleli. Így a csukló tart, de nem nő össze, és minden ferde felület 45°-os, tehát támasz nélkül nyomtatható. A tagok között nyitott ék marad, olyan széles, amennyire a tagoknak oldalra kell fordulniuk.
+
+Jelöld ki a testet (több rész egyesül, a bennük lévő lyukak kivonódnak), és kattints a {{ui:editor.tool.flexi}} gombra. Az ablakban beállítod, melyik oldal mentén vágjon ({{ui:flexi.axis.auto}} a hosszabbat veszi), hány csukló legyen ({{ui:flexi.joints}}), a {{ui:flexi.clearance}} értékét (többnyire 0,4 mm jó) és a {{ui:flexi.swing}} szögét. A csuklók mérete a testhez igazodik; {{ui:flexi.autoSize}} nélkül te adod meg a {{ui:flexi.size}} értékét. {{ui:flexi.evenLinks}} nélkül megadod, milyen messze legyen az első csukló az elejétől és az utolsó a végétől, hogy például a fej egy nagy darab maradjon. Ahol csukló van, a test legyen legalább kb. 6 mm magas és 12 mm széles; ha valamelyik nem fér el, az ablak megmondja, melyik.
+
+Az eredmény tagok kötege (hálók), amelyet úgy nyomtatsz ki, ahogy fekszik. Ha nem tetszik a felosztás, vond vissza, és próbálj más értékeket. Egy első próbanyomat két-három csuklóval megmutatja, hogy a hézag illik-e a nyomtatódhoz.
 
 ## Recézés
 
@@ -176,6 +185,12 @@ Egy oldalán fekvő lyuk tetején nyomtatáskor híd keletkezik, és a híd bel�
 Tedd lyukká a csepp alakú lyukat, és csoportosítsd az alkatrésszel. A hossza a mélység mentén fut, a csúcsa felfelé néz. Másik irányú lyukhoz forgasd el 90°-kal a függőleges tengely körül.
 
 Egy oldalán fekvő **menetes furat** teteje ugyanígy belóg. Adj neki saját cseppet: adj hozzá egy {{ui:shape.teardrop}} lyukat, amelynek az {{ui:prop.teardropDiameter}} értéke a menet magja, vagyis az az átmérő, amelyet a fogai szabadon hagynak (M10-nél nagyjából 8,4 mm), ugyanakkora hosszal, mint a menetes furat, és jelöld ki mindkettőt. Kattints az {{ui:editor.tool.align}} gombra, és igazítsd őket középen egy vonalba – a csepp közepe a kerek részének közepe, nem a csúcsos dobozáé, így a két kör egymásra kerül –, majd csoportosítsd mindkettőt az alkatrésszel. A menet a szokásos módon vágódik ki, a csúcs pedig megnyitja a lyuk tetejét, így támasz nélkül nyomtatható.
+
+## Csatlakozónyílások
+
+Egy elektronikai doboznak nyílás kell a kábelhez. A {{ui:shape.port}} pontosan ez: fekvő kivágás lekerekített sarkokkal. A {{ui:prop.portPreset}} mezőben válaszd ki az aljzatot - {{ui:port.usbC}}, {{ui:port.microUsb}} vagy {{ui:port.usbA}} -, és megkapja annak méretét, minden oldalon kb. 0,25 mm hézaggal. A {{ui:port.usbCPlug}} a fal mögött ülő aljzathoz való, ahol a dugó házának is be kell férnie. A szélesség, a magasság és a {{ui:prop.portCorner}} kézzel is állítható; ilyenkor a lista ezt mutatja: {{ui:port.custom}}. A {{ui:port.hdmi}}, {{ui:port.miniHdmi}}, {{ui:port.displayPort}} és {{ui:port.miniDisplayPort}} alsó sarkai az aljzathoz hasonlóan ferdén levágottak, DisplayPortnál csak a bal, a {{ui:port.rj45}} pedig hálózati aljzathoz való; ezek a méretek a gyártók ajánlott panelkivágásaiból és a VESA-rajzokból származnak.
+
+Kivágásként érkezik, előre nézve. A {{ui:prop.portDepth}} legyen kicsit nagyobb a fal vastagságánál, told oda, ahol az aljzat a panelen ül, és csoportosítsd a dobozzal. Oldalfalhoz forgasd el 90°-kal a függőleges tengely körül.
 
 ## Hengeres és kúpos süllyesztés
 

@@ -19,7 +19,7 @@ Depois, todos os seus projetos aparecem na página inicial com uma miniatura. El
 
 ![O editor com duas formas no plano de trabalho. A barra de opções no topo, os controles da câmera à esquerda, as configurações da forma selecionada à direita.](shot:editor-overview)
 
-- **No topo** fica a barra de opções. Ela é organizada por tarefa: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.group.modify}}, {{ui:editor.group.arrange}}, {{ui:editor.group.manage}} e {{ui:editor.group.help}}. Passe o mouse sobre um ícone para ver o nome dele. O pequeno ponto de interrogação, por exemplo nas configurações de uma forma, na biblioteca de formas ou nos painéis de ferramentas, leva direto ao capítulo correspondente deste guia.
+- **No topo** fica a barra de opções. Ela é organizada por tarefa: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.group.modify}}, {{ui:editor.group.arrange}} e {{ui:editor.group.manage}}; {{ui:editor.group.help}} fica acima dela, na barra de título, e a casinha ao lado das abas leva de volta à página inicial. Quando a janela é estreita demais para todos os grupos, os menos usados se recolhem num botão com o nome deles: aponte para o botão ou toque nele, e as ferramentas do grupo se abrem logo abaixo. Se preferir, a tachinha no canto superior direito, à esquerda da lupa, mantém todos os grupos abertos. Passe o mouse sobre um ícone, mesmo que esteja acinzentado, para ver o nome dele. Com a {{ui:interactiveHelp.title}} (o ponto de interrogação na área {{ui:editor.group.help}}, ou Shift+F1), você pode clicar em qualquer ícone para saber o que ele faz e acessar a seção correspondente deste guia. O pequeno ponto de interrogação, por exemplo nas configurações de uma forma, na biblioteca de formas ou nos painéis de ferramentas, leva direto ao capítulo correspondente deste guia.
 - **No centro** fica o plano de trabalho. É aqui que você posiciona as formas, dá forma a elas e vê o resultado.
 - **À direita** fica o **painel de propriedades**, com as configurações da forma selecionada: cor, dimensões, posição e tudo o mais que compõe a forma. Digitar números é mais exato do que arrastar.
 - **À esquerda** ficam os controles da câmera, com o cubo de visualização acima deles. Eles levam você pela cena; mais em [Vista e plano de trabalho](chapter:view-and-workplane).
@@ -35,7 +35,7 @@ Passe o mouse sobre um botão para ver o nome dele. Se não tiver certeza do que
 
 ### Excluir
 
-{{ui:common.delete}} ([[Delete]]) remove as formas selecionadas. {{ui:editor.tool.undo}} as traz de volta.
+{{ui:common.delete}} ([[Delete]]) exclui as formas selecionadas. {{ui:editor.tool.undo}} as traz de volta.
 
 ### Desagrupar
 
@@ -55,7 +55,7 @@ Passe o mouse sobre um botão para ver o nome dele. Se não tiver certeza do que
 
 ### Nome do projeto
 
-O nome do projeto ({{ui:confirm.projectName}}) fica bem no topo. Clique nele, digite, e [[Enter]] mantém o nome.
+O nome do projeto ({{ui:confirm.projectName}}) fica bem no topo. Clique nele, digite o novo nome e pressione [[Enter]] para confirmar.
 
 ### Opções de visibilidade
 
@@ -103,7 +103,7 @@ Por exemplo, vamos montar um cubo com um furo.
 
 ## Novidades desde a sua última visita
 
-Quando você abre o layerling de novo depois de uma atualização, um cartão na página inicial lista o que foi adicionado desde a sua última visita: cada versão desde então, a mais nova primeiro. Depois de muito tempo fora, você rola dentro do cartão. Abaixo delas, {{ui:whatsNew.earlier}} acrescenta também as versões de antes da sua última visita. Feche o cartão com {{ui:whatsNew.dismiss}} e ele não aparece mais até a próxima atualização. {{ui:whatsNew.footerLink}}, no rodapé da página inicial, mostra as últimas novidades de novo a qualquer momento. O navegador lembra a última versão que você viu, e nada sobre você sai dele.
+Quando você abre o layerling de novo depois de uma atualização, um cartão na página inicial lista o que foi adicionado desde a sua última visita: cada versão desde então, a mais nova primeiro. Depois de muito tempo sem abrir o layerling, você rola a lista dentro do cartão. Abaixo da lista, {{ui:whatsNew.earlier}} acrescenta também as versões de antes da sua última visita. Feche o cartão com {{ui:whatsNew.dismiss}} e ele não aparece mais até a próxima atualização. {{ui:whatsNew.footerLink}}, no rodapé da página inicial, mostra as últimas novidades de novo a qualquer momento. O navegador lembra a última versão que você viu, e nada sobre você sai dele.
 
 Numa cópia do layerling no seu próprio computador ou servidor, o aviso "Atualização disponível" tem um botão, {{ui:update.previewShow}}, que lista o que a atualização traz antes de você instalá-la. A lista só é buscada no GitHub quando você clica no botão.
 

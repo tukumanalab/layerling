@@ -77,9 +77,21 @@ Vytvořit dutinu lze i v tělese s kapsou, tedy kvádru se slepým otvorem vznik
 
 **Tělesa zakončená špičkou**, například kužel nebo rotační těleso z trojúhelníku, nemají nahoře rovinnou plochu, kterou by šlo otevřít. Nefunguje ani zcela uzavřená dutina, protože špičku nelze rovnoměrně odsadit dovnitř. I při stěně 1 mm se proto může zobrazit hlášení o příliš silné stěně. V takovém případě vytvořte stěnu už v profilu před rotací: obrys zkopírujte, kopii rovnoměrně zmenšete a vystřeďte v původním obrysu, odečtěte ji a výsledek otočte kolem osy. Viz kapitola Náčrty, část o rotaci. Odstup mezi obrysy určuje tloušťku stěny.
 
-Při pozdější změně velikosti se dutina ihned přepočítá. Zadaná tloušťka stěn zůstává zachovaná i u oblých těles. Válec protažený v jednom směru více než v druhém se změní na elipsu.
+Při pozdější změně velikosti se dutina ihned přepočítá. Zadaná tloušťka stěn zůstává zachovaná i u oblých těles. Válec protažený v jednom směru více než v druhém se změní na elipsu. Zaoblení a sražení, která jste přidali po vytvoření dutiny, se pak znovu použijí na stejné hrany.
 
 > **Tip:** Pro trysku 0,4 mm je vhodným výchozím rozsahem stěna 1,2 až 2 mm: šetří materiál a přitom poskytuje dostatečně pevný díl.
+
+## Víko pro otevřené těleso
+
+{{ui:editor.tool.lid}} vytvoří víko pro těleso otevřené nahoře: krabičku vydlabanou s otevřenou horní stranou, nádobu, misku. Vyber těleso a klikni na {{ui:editor.tool.lid}}. V okně zvolíš druh:
+
+- {{ui:lid.type.plug}}: deska velká jako těleso a pod ní límec, který zapadne do otvoru.
+- {{ui:lid.type.cap}}: deska o stěnu širší než těleso a pod ní okraj, který obejme vnějšek.
+- {{ui:lid.type.flat}}: jen deska, k položení nebo přilepení.
+
+Pak nastavíš {{ui:lid.thickness}}, {{ui:lid.fit}} ({{ui:lid.gap}} mezi víkem a tělesem: 0,1 mm těsné, 0,2 mm běžné, 0,3 mm volné, nebo jakákoli hodnota do 1 mm) a jak hluboko límec nebo okraj sahá a jak silná je jeho stěna. Klikni na {{ui:lid.apply}}: víko leží vedle tělesa, otočené deskou dolů, takže se tiskne bez podpěr. Těleso zůstane, jak je. Víko sleduje jakýkoli obrys, kulatý i hranatý, protože se odebírá ze samotného tělesa těsně pod jeho okrajem. Těleso bez otvoru nahoře dostane jen ploché víko; pro další dva druhy ho nejdřív vydlab s otevřenou horní stranou.
+
+> **Tip:** Jak těsně víko sedí, záleží na tiskárně. Nejdřív vytiskni malou krabičku s víkem; je-li víko příliš těsné, zvol další volnější uložení.
 
 ## Odsazení těles
 

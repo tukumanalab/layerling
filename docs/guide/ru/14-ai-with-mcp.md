@@ -68,6 +68,10 @@ Claude Desktop не читает файлы проекта. Впишите се�
 | `layerling_boolean_cut` | вырезает материал из тел отверстиями |
 | `layerling_intersect_objects` | оставляет только то, что есть общего у объектов (Пересечение) |
 | `layerling_hull_objects` | оборачивает объекты одним выпуклым телом, как термоплёнкой (Оболочка) |
+| `layerling_cookie_cutter` | makes a cookie cutter from the objects: a wall and a rim round the outline (Cookie cutter) |
+| `layerling_flexi_joints` | cuts a flat body into links with joints printed in place that swing to the sides (Flexi joints) |
+| `layerling_make_lid` | makes a lid for a body open at the top: pushed in, over the top or flat, with the fit you choose (Lid) |
+| `layerling_loft_sketches` | joins two sketch bodies into a loft from one outline to the other (Loft sketches) |
 | `layerling_separate_parts` | разделяет фигуру на её отдельные части, тело эскиза — на тело для каждого контура |
 | `layerling_split_objects` | разделяет тела или отверстия надвое плоскостью |
 | `layerling_list_edges` | перечисляет настоящие CAD-кромки объекта |
@@ -99,12 +103,13 @@ Claude Desktop не читает файлы проекта. Впишите се�
 | `layerling_delete_custom_shape` | удаляет собственную фигуру; вставленные тела остаются |
 | `layerling_show_workplane` | скрывает и показывает рабочую плоскость с её сеткой — например, чтобы снять деталь снизу (только вид) |
 | `layerling_set_section_view` | включает вид в разрезе вдоль плоскости, чтобы заглянуть внутрь (только вид: ничего не разделяется на части) |
-| `layerling_measurements` | показывает или скрывает измерения рулетки и перечисляет их с длинами |
+| `layerling_measurements` | показывает или скрывает измерения рулетки и перечисляет их с длинами, а также скрывает или показывает размеры вокруг выделения, как [[Q]] |
 | `layerling_saved_view` | сохраняет текущий вид под клавишей 7, 8, 9 или 0 и возвращается к нему, как Shift+клавиша и сама клавиша (только вид); также задаёт начальный вид новых проектов |
 | `layerling_clear_history` | удаляет все шаги отмены навсегда, как кнопка «Удалить историю» в панели истории; требует confirm: true |
 | `layerling_set_history_view` | показывает более раннее состояние проекта, как панель истории (сам проект остаётся нетронутым; инструменты правки ждут, пока она закрыта) |
 | `layerling_restore_from_history` | возвращает объекты (и детали внутри групп) из более раннего состояния в проект как копии, как кнопка «Вернуть в проект» в просмотре истории, - один шаг, который снимает отмена |
 | `layerling_export_section_svg` | возвращает контуры на плоскости сечения как SVG в масштабе 1:1, из тех же тел, что и при экспорте |
+| `layerling_sketch_from_section` | делает эскиз из контуров на плоскости сечения, лежащий на разрезе: открывает его в редакторе для правки или сразу строит из него тело заданной высоты |
 | `layerling_export_drawing` | строит чертёж для мастерской из экспорта «2D»: три вида в масштабе 1:1 на листе ISO, с габаритными размерами и таблицей круглых отверстий — как текст SVG или как PDF |
 | `layerling_export_mesh` | записывает файл окна экспорта как STL, 3MF, OBJ, SVG (вид сверху, след или видимые кромки) или DXF для лазерной резки из тех же тел; по пути на этом компьютере или как base64 |
 | `layerling_save_project` | сохраняет весь редактируемый проект как файл .lyl по пути на компьютере, где работает MCP-сервер, без диалога; существующий файл заменяется только с `overwrite`, запись идёт через временный файл, а цель Ctrl+S в редакторе не меняется |

@@ -4,6 +4,7 @@ import "./globals.css";
 import "./dashboard.css";
 import "./historyView.css";
 import "./notes.css";
+import "./tape.css";
 import "./myShapes.css";
 import "./attachments.css";
 import "./viewCube.css";
@@ -13,6 +14,7 @@ import "./sketchImage.css";
 import "./sketchLock.css";
 import "./dashboardSelect.css";
 import { DiagnoseStrip } from "@/components/DiagnoseStrip";
+import { HtmlSettingsRestore } from "@/components/HtmlSettingsRestore";
 import { NewVersionNotice } from "@/components/NewVersionNotice";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { DOM_MUTATION_GUARD_SCRIPT } from "@/lib/domMutationGuard";
@@ -118,6 +120,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: INSTALL_PROMPT_SCRIPT }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
+        <HtmlSettingsRestore />
         {children}
         <ServiceWorkerRegistration />
         <DiagnoseStrip />

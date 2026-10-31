@@ -23,6 +23,7 @@ With many parts it is easy to lose track in the view. The object list ({{ui:edit
 - The label shows whether a part is {{ui:outliner.solid}} or {{ui:outliner.hole}}.
 - Padlock and eye lock and hide single parts.
 - {{ui:outliner.rename}} gives a part a name of its own; the pencil beside the name at the top of the settings does the same for the selected shape. Sensible names help enormously in larger designs.
+- The A–Z button in the title bar ({{ui:outliner.sortByName}}) sorts the shapes you have named alphabetically, with numbers counted as numbers (Part 2 before Part 10). Shapes that still carry their default name stay below in the order you added them, the newest last, and parts inside groups are sorted the same way. Only the list changes, never the design. A second click shows everything in the order added again, and the browser remembers the choice.
 - The search field finds shapes by name and by kind, so also "cylinder" or "hole". It also looks inside groups, however deeply nested: a group holding a match stays in the list and folds open to show the matching parts and the groups that lead to them. A group found by its own name shows all its parts when you open it.
 - The arrow on the far left of the title bar folds the list down to its title bar and back.
 
@@ -30,7 +31,7 @@ The list sits docked just right of the view cube. Drag it by its title bar to pu
 
 ## Typing a position
 
-The card {{ui:inspector.position}} in the properties panel shows where the selected body stands, and you can type it: {{ui:prop.positionX}} and {{ui:prop.positionY}} are the middle of its box on the plate, with the same signs as the distances shown on the workplane, and {{ui:prop.positionZ}} is the height of its underside. X counts to the right, Y towards the back and Z up, by the right-hand rule as in Tinkercad and CAD programs; the axis arrows on the plate show the directions. The values go in the unit you set, and the sliders reach as far as dragging does.
+The card {{ui:inspector.position}} in the properties panel shows where the selected body stands, and you can type it: {{ui:prop.positionX}} and {{ui:prop.positionY}} are the middle of its box on the plate, with the same signs as the distances shown on the workplane, and {{ui:prop.positionZ}} is the height of its underside. With {{ui:inspector.positionFrom}} at the top of the card you switch to {{ui:inspector.positionEdge}}: X and Y then show the body's left and front edges, so you put an edge exactly on a measure. The setting stays until you switch back to {{ui:inspector.positionCentre}}. X counts to the right, Y towards the back and Z up, by the right-hand rule as in Tinkercad and CAD programs; the axis arrows on the plate show the directions. The values go in the unit you set, and the sliders reach as far as dragging does.
 
 ## Parking parts beside the plate
 
@@ -54,6 +55,12 @@ A shape turned at an angle, say by 45°, has its box round it to line up with, n
 
 The key is [[L]]. [[Esc]] cancels.
 
+### Matching sizes
+
+Hold [[Alt]] while aligning and the dots turn into squares: a click no longer moves the shapes but changes their size. A dot at a side stretches each shape to that side, its other side staying where it is, as if you had dragged its handle there. The dot in the middle leaves each shape in its place and gives it the width, length or height in that direction. That way you swap a box for a cylinder of the same size, say, or replace a broken piece of a mesh with a clean shape. Move over a dot with [[Alt]] held and you see beforehand how large the shapes become.
+
+The reference is the shape you clicked first; only the others change. Without one, the side dots stretch all shapes to the farthest side, and the middle dot gives them all the size of the largest. A cylinder stays round, so it grows in the other direction too. A shape turned at an angle stays as it is; shapes turned by 90° work.
+
 ## Mirroring
 
 {{ui:editor.tool.mirror}} ([[M]], or right-click the selection and choose it) flips the selection across a plane: {{ui:mirror.leftRight}}, {{ui:mirror.frontBack}} or {{ui:mirror.topBottom}}. Click the matching axis arrow. That is handy for symmetric parts: build one half, copy it and mirror the copy.
@@ -66,7 +73,7 @@ The angles stay with the body. In its settings, {{ui:inspector.rotation}} shows 
 
 ![A body turned about two axes: its angles stand under it, and the Rotation card in its settings takes them as numbers.](shot:rotation-card)
 
-With **one body** selected, the pivot belongs to that body: select other parts and come back, and it is still there. It moves, turns and scales with the body, is saved in the project and comes back with Undo. Under {{ui:inspector.position}} the pivot has its own X, Y and Z, which you can type or nudge, and {{ui:inspector.pivotRemove}} takes it away. You can also drag the pivot's red marker with the mouse: it slides over the surface of the bodies and snaps to corners, edge midpoints and edges, so a hinge pin lands exactly on a corner. With several bodies selected the pivot is only for that selection, and a new selection removes it.
+With **one body** selected, the pivot belongs to that body: select other parts and come back, and it is still there. It moves, turns and scales with the body, is saved in the project and comes back with Undo. Under {{ui:inspector.position}} the pivot has its own X, Y and Z, which you can type or nudge, and {{ui:inspector.pivotRemove}} takes it away. You can also drag the pivot's red marker with the mouse: it slides over the surface of the bodies and snaps to corners, edge midpoints and edges, so a hinge pin lands exactly on a corner. With several bodies selected the pivot is only for that selection, and a new selection removes it. Grouping or bundling them keeps it: the group takes the pivot as its own, with X, Y and Z under {{ui:inspector.position}}.
 
 ## Laying flat on a face
 
@@ -91,9 +98,12 @@ For hole grids, bolt circles and rings of teeth there is the {{ui:editor.tool.ar
 ![The pattern in "Circle" mode: the copies first appear as a preview.](shot:pattern-tool)
 
 - **{{ui:array.mode.row}}:** The selection is repeated at equal distances. The row steps along all three axes at once, with {{ui:array.spacingX}}, {{ui:array.spacingY}} and {{ui:array.spacingZ}}: one of them gives a straight row, two or three a diagonal row or a staircase. A negative spacing lays the row the other way.
+- **{{ui:array.fit}}:** For holes along a plate, a key holder or a coat rack. Put the first piece on or into the body, choose {{ui:array.fit.x}} or {{ui:array.fit.y}} and set the {{ui:array.fitGap}}: the original moves that far in from the nearer end (from the edge to the piece's side), and the last copy keeps the same gap to the far end. The spacing then follows the {{ui:array.count}}: five holes or nine, they always fill the plate evenly.
 - **{{ui:array.mode.circle}}:** The selection is spread around a centre. How many copies there are you set under {{ui:array.count}}, and the {{ui:array.angle}} is 360° for a full circle. Choose whether the copies turn along. {{ui:array.rise}} lifts every copy a little more than the one before (a screw or an ascending spiral), and {{ui:array.radiusChange}} moves it further from the centre or closer to it (a flat spiral); together they give a conical spiral. A spiral winds once around at most: an angle above 360° counts as a full circle, and there are at most 100 copies.
 
 Tip: first set the pivot on a face with {{ui:editor.tool.rotationPivot}}, then the centre of the circle lies exactly there.
+
+Afterwards the pieces keep the circle's centre as their pivot, also once grouped. That is where another part belongs, for example a ball in the middle of three legs: the middle of the pieces' box is not the centre, since three legs fill a box wider one way than the other. Right-click the pieces and choose {{ui:contextMenu.markPivot}}, and the centre of the part you drag snaps onto it.
 
 ![The pattern in "Circle" mode with a rise and a radius change per copy: the copies climb and widen like a spiral.](shot:pattern-spiral)
 
@@ -109,8 +119,9 @@ For vents, speaker grilles, baskets and enclosures the {{ui:holePattern.title}} 
 2. In the window, set how the holes look and lie:
    - **{{ui:holePattern.form}}:** {{ui:holePattern.form.round}}, {{ui:holePattern.form.square}}, {{ui:holePattern.form.rectangle}}, {{ui:holePattern.form.hexagon}} or {{ui:holePattern.form.slot}}.
    - **Size:** the {{ui:holePattern.size.diameter}} of a round hole, the {{ui:holePattern.size.side}} of a square one, {{ui:holePattern.size.width}} and {{ui:holePattern.size.height}} for a rectangle and a slot. For the hexagon the size is the {{ui:holePattern.size.corners}}.
-   - **{{ui:holePattern.spacing}}:** the distance from one hole's middle to the next. If it is smaller than the holes allow, layerling raises it to the smallest possible value so a wall stays between the holes.
-   - **{{ui:holePattern.wall}}:** the same distance said another way: the wall left between two neighbouring holes, which is the wall thickness in the print. Set it and the spacing centre to centre follows, and the other way round. For hexagons, rectangles and slots layerling measures the least distance between their edges.
+   - **{{ui:holePattern.spacing}}:** the distance from one hole's middle to the next. If it is smaller than the holes allow, layerling raises it to the smallest possible value so a wall stays between the holes. For rectangles and slots it counts along the row, from left to right.
+   - **{{ui:holePattern.rowSpacing}}:** rectangles and slots only: the distance from one row to the next. So narrow, tall holes stand close side by side while the rows keep apart. A hole 2 mm wide and 14 mm high needs 4 mm along the row and 16 mm from row to row with a 2 mm wall.
+   - **{{ui:holePattern.wall}}:** the same distance said another way: the wall left between two neighbouring holes, which is the wall thickness in the print. Set it and the spacing centre to centre follows (for rectangles and slots the row spacing too), and the other way round. For hexagons, rectangles and slots layerling measures the least distance between their edges.
    - **{{ui:holePattern.arrangement}}:** {{ui:holePattern.arrangement.grid}} puts the holes in rows and columns. {{ui:holePattern.arrangement.staggered}} shifts every second row by half a spacing and moves the rows closer, so every hole has neighbours at the same distance - with hexagons that makes a honeycomb.
    - **{{ui:holePattern.margin}}:** the clear distance between the holes and the edge of the face. Only holes that lie wholly inside the face minus this margin are made; anything that would reach beyond it is left out. The margin also holds around openings in the face.
    - **{{ui:holePattern.depth}}:** {{ui:holePattern.depth.through}} (the default) cuts through the whole wall. With {{ui:holePattern.depth.custom}} you give the depth in millimetres, for recesses, say.
@@ -158,11 +169,11 @@ The percentage field has the focus when the window opens, so from the keyboard i
 
 ## Undoing
 
-{{ui:editor.tool.undo}} ([[Ctrl]]+[[Z]]) and {{ui:editor.tool.redo}} ([[Ctrl]]+[[Shift]]+[[Z]] or [[Ctrl]]+[[Y]]) step through your history. How many steps travel with the saved design you set in the settings under {{ui:workspace.history}}.
+{{ui:editor.tool.undo}} ([[Ctrl]]+[[Z]]) and {{ui:editor.tool.redo}} ([[Ctrl]]+[[Shift]]+[[Z]] or [[Ctrl]]+[[Y]]) step through your history. How many steps travel with the saved design you set in the settings under {{ui:workspace.history}}. Point at either button and its tooltip names the step it would take back or bring again, with the measure where the step has one, such as "Rounded the edges of Box (5 mm)" or "Moved 3 objects (12 mm)"; the message after the step says the same. To go back several steps at once, use the history view below.
 
 ## Looking back: the history view
 
-{{ui:editor.tool.history}}, next to undo and redo, opens a view of your history without changing anything. The work area shows the design as it was, and a slider at the bottom runs through every undo step: all the way to the right is the current state, each step to the left is one undo earlier, and states you have undone sit to the right of the current one. The arrow keys step through the states, [[Esc]] returns to the current state. The mouse wheel over the slider does the same, one state per notch, up to an earlier one; [[Page Up]] and [[Page Down]] jump ten states, [[Home]] goes to the oldest state and [[End]] back to the current one. You can turn and zoom the view meanwhile and click objects to bring them back (see below), but nothing can be moved; the design itself stays exactly as it is. If the bar covers something, drag it away by its title bar; a double-click on it brings it back.
+{{ui:editor.tool.history}}, next to undo and redo, opens a view of your history without changing anything. The work area shows the design as it was, and a slider at the bottom runs through every undo step: all the way to the right is the current state, each step to the left is one undo earlier, and states you have undone sit to the right of the current one. The arrow keys step through the states, [[Esc]] returns to the current state. The mouse wheel over the slider does the same, one state per notch, up to an earlier one; [[Page Up]] and [[Page Down]] jump ten states, [[Home]] goes to the oldest state and [[End]] back to the current one. You can turn and zoom the view meanwhile and click objects to bring them back (see below), but nothing can be moved; the design itself stays exactly as it is. If the bar covers something, drag it away by its title bar; a double-click on it brings it back. The list button in the title bar shows every step by name in a list, the newest at the top: a click on a step goes to that state, the state the design is at is marked {{ui:historyView.listNow}}, and steps you have undone are grey. The list stays open the next time if you leave it open.
 
 Two things you can take along from an earlier state. {{ui:historyView.createProject}} puts that state into a new design in the overview, named after this one with the time of that state in brackets - a design saved before layerling recorded times says "copy" instead - and with the history up to that point, so undo keeps working there. {{ui:historyView.export}} opens the usual export with that state as the design, so you can save it as STL, 3MF, STEP, a picture or a LYL file with the history up to that state.
 

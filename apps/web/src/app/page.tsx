@@ -2,7 +2,7 @@
 
 import { requestPersistentStorage } from "@/lib/persistentStorage";
 import { keepShownSelection, localDesignKey, selectionHasStale, serverDesignKey, toggleDesignSelection } from "@/lib/designSelection";
-import { Archive, ArchiveRestore, ArrowLeft, Check, CheckSquare, Clock3, Copy, EllipsisVertical, Folder, FolderInput, FolderKanban, FolderPlus, FolderUp, Grid3X3, List, Pencil, Plus, RefreshCw, Search, Server, Shapes, ShieldAlert, SlidersHorizontal, Sparkles, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, Check, CheckSquare, Clock3, Copy, EllipsisVertical, Folder, FolderInput, FolderKanban, FolderPlus, FolderUp, Grid3X3, List, LoaderCircle, Pencil, Plus, RefreshCw, Search, Server, Shapes, SlidersHorizontal, Sparkles, Trash2, X } from "lucide-react";
 import { withBasePath } from "@/lib/basePath";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { AppFooter } from "@/components/AppFooter";
@@ -31,7 +31,7 @@ import {
   type DesignFolder,
 } from "@/lib/designFolders";
 import dynamic from "next/dynamic";
-import { importFailureSummary, importModelFiles } from "@/lib/modelImport";
+import { importFailureReason, importFailureSummary, importModelFiles } from "@/lib/modelImport";
 import { loadTextFonts } from "@/lib/textFonts";
 import { loadStoredCustomFonts } from "@/lib/customFontStore";
 import { fetchServerDefaults, type NewDesignsOnServerSetting } from "@/lib/serverDefaults";
@@ -994,6 +994,7 @@ export default function Home() {
   const [sharedProjectsLoading, setSharedProjectsLoading] = useState(false);
   const [sharedSearch, setSharedSearch] = useState<SharedSearchResult | null>(null);
   const [sharedSearchLoading, setSharedSearchLoading] = useState(false);
+  const [openingSharedKey, setOpeningSharedKey] = useState<string | null>(null);
   // Hochgezaehlt, wenn sich am Server etwas geaendert hat: Eine Trefferliste
   // muss dann neu gefragt werden, sie haengt an keinem Ordner.
   const [sharedSearchNonce, setSharedSearchNonce] = useState(0);
@@ -1797,6 +1798,8 @@ export default function Home() {
   }, [mounted]);
 
   const openSharedProject = useCallback(async (sharedProject: SharedProject) => {
+    const key = sharedProjectKey(sharedProject);
+    setOpeningSharedKey(key);
     setDashboardNotice(t("notice.openingShared", { name: sharedProject.name }));
     try {
       const response = await fetch(`${SHARED_PROJECTS_ENDPOINT}?${storeQuery(sharedProject.path ?? "", sharedProject.fileName)}`, { cache: "no-store" });
@@ -1809,6 +1812,8 @@ export default function Home() {
       await openLylProjectFromFile(file, { ...sharedProject, revision });
     } catch (error) {
       setDashboardNotice(error instanceof Error ? localizedError(error.message) : t("notice.openSharedFailed"));
+    } finally {
+      setOpeningSharedKey(null);
     }
   }, [openLylProjectFromFile]);
 
@@ -2269,47 +2274,57 @@ export default function Home() {
     }
   }, [projects, refreshSharedProjects, removeWorkingCopies]);
 
-  // Every design of this browser as its own .lyl, together in one ZIP, and
-  // the custom shapes of this browser in a folder beside them.
-  const backupAllProjects = useCallback(async () => {
+  // Designs of this browser, each as its own .lyl, together in one ZIP. "Back up all" takes every design
+  // and the custom shapes of this browser in a folder beside them; the chosen designs or one folder (#991)
+  // go without the shapes. Empty folders go along when all or a folder is backed up.
+  const backupProjects = useCallback(async (scope: { designIds: string[] } | { folderId: string } | null) => {
     // The browser's own designs: a design of the server kept here while open is the server's to back up.
-    const shapeEntries = await customShapesBackupEntries().catch(() => []);
+    const inFolder = (folderId: string, id: string | null | undefined) => folderTrail(designFolders, folderOfDesign(designFolders, id)).some((folder) => folder.id === folderId);
+    const designs = !scope
+      ? localDesigns
+      : "designIds" in scope
+        ? localDesigns.filter((project) => scope.designIds.includes(project.id))
+        : localDesigns.filter((project) => inFolder(scope.folderId, project.folderId));
+    const shapeEntries = scope ? [] : await customShapesBackupEntries().catch(() => []);
     const shapeCount = Math.max(0, shapeEntries.length - 1);
-    if (localDesigns.length === 0 && shapeCount === 0) {
+    if (designs.length === 0 && shapeCount === 0) {
       setDashboardNotice(t("notice.backupEmpty"));
       return;
     }
     try {
       // A design in a folder goes into the ZIP in that folder, so a restore puts it back there (#496).
-      const names = backupEntryPaths(localDesigns.map((project) => ({ name: project.name, folder: folderPathNames(designFolders, project.folderId) })), t("dashboard.backupFallbackName"));
+      const names = backupEntryPaths(designs.map((project) => ({ name: project.name, folder: folderPathNames(designFolders, project.folderId) })), t("dashboard.backupFallbackName"));
       // Each design goes into the file as it comes and is let go, instead of all of them and then the whole ZIP once
       // more in memory, where large designs made Safari reload the page without a word (#887).
       const writer = createBackupWriter();
       const skipped: string[] = [];
-      for (let index = 0; index < localDesigns.length; index += 1) {
-        setDashboardNotice(t("notice.backingUp", { index: index + 1, total: localDesigns.length }));
+      for (let index = 0; index < designs.length; index += 1) {
+        setDashboardNotice(t("notice.backingUp", { index: index + 1, total: designs.length }));
         // Noted before the design is read, so a page that is gone in the middle can say afterwards where it stopped.
-        writeBackupProgress({ index: index + 1, total: localDesigns.length, name: localDesigns[index].name });
+        writeBackupProgress({ index: index + 1, total: designs.length, name: designs[index].name });
         try {
-          writer.add(names[index], await projectPackageBytes(localDesigns[index]));
+          writer.add(names[index], await projectPackageBytes(designs[index]));
         } catch (error) {
           // One design that cannot be read does not cost the backup of the others; the message names it.
-          skipped.push(`${localDesigns[index].name} (${error instanceof Error ? localizedError(error.message) : String(error)})`);
+          skipped.push(`${designs[index].name} (${error instanceof Error ? localizedError(error.message) : String(error)})`);
           continue;
         }
         // The card picture goes along, so a restore shows it at once.
-        const thumbnail = await projectThumbnailPngBytes(localDesigns[index].thumbnailUrl).catch(() => null);
+        const thumbnail = await projectThumbnailPngBytes(designs[index].thumbnailUrl).catch(() => null);
         if (thumbnail) writer.add(backupThumbnailPath(names[index]), thumbnail);
       }
       shapeEntries.forEach((entry) => writer.add(entry.name, entry.bytes));
       // Folders with no design anywhere inside them go along as empty folders.
-      const holding = new Set(localDesigns.flatMap((project) => folderTrail(designFolders, folderOfDesign(designFolders, project.folderId)).map((folder) => folder.id)));
-      const emptyFolders = designFolders.filter((folder) => !holding.has(folder.id) && !designFolders.some((other) => other.parentId === folder.id));
+      const holding = new Set(designs.flatMap((project) => folderTrail(designFolders, folderOfDesign(designFolders, project.folderId)).map((folder) => folder.id)));
+      const foldersAlong = !scope ? designFolders : "folderId" in scope ? designFolders.filter((folder) => inFolder(scope.folderId, folder.id)) : [];
+      const emptyFolders = foldersAlong.filter((folder) => !holding.has(folder.id) && !designFolders.some((other) => other.parentId === folder.id));
       backupFolderPaths(emptyFolders.map((folder) => folderPathNames(designFolders, folder.id))).forEach((name) => writer.add(name, new Uint8Array()));
-      const fileName = backupFileName(new Date());
+      // A folder's backup is named after it, so several of them stay apart in the downloads.
+      const folder = scope && "folderId" in scope ? designFolders.find((entry) => entry.id === scope.folderId) : undefined;
+      const fileName = backupFileName(new Date(), folder ? `layerling-${folder.name.replace(/[\\/:*?"<>|\s]+/g, "-")}` : undefined);
       downloadBackup(writer.finish(), fileName);
       writeBackupProgress(null);
-      const saved = localDesigns.length - skipped.length;
+      const saved = designs.length - skipped.length;
       const done = shapeCount
         ? t("notice.backupDoneWithShapes", { count: saved, shapes: shapeCount, name: fileName })
         : t("notice.backupDone", { count: saved, name: fileName });
@@ -2319,6 +2334,7 @@ export default function Home() {
       setDashboardNotice(t("notice.backupFailed", { reason: error instanceof Error ? localizedError(error.message) : String(error) }));
     }
   }, [designFolders, localDesigns]);
+  const backupAllProjects = useCallback(() => backupProjects(null), [backupProjects]);
 
   // Every design of the server, in its folders, and its custom shapes, as the same kind of ZIP:
   // "Restore backup" brings it back, on this computer or another.
@@ -2413,9 +2429,12 @@ export default function Home() {
         const entry = projectShapeCacheEntry(now, restored.shapes, restored.history, restored.historyIndex, restored.assets, restored.attachments);
         await saveProjectShapes(local.id, entry, projectShapeSaveContext(local));
         let project = local;
+        const thumbnail = entries[index].thumbnail;
         if (toServer) {
           const where = await storeFolderPath(serverBase, entries[index].folder ?? []);
-          const outcome = await placeNewDesign(local, where);
+          // The picture from the backup goes up with the design: the server's card showed none until the design was
+          // next saved from the editor (Jürgen Keller, a browser backup restored into the Docker version).
+          const outcome = await placeNewDesign(thumbnail ? { ...local, thumbnailUrl: pngDataUrl(thumbnail) } : local, where);
           project = outcome.project;
           if (outcome.problem && !serverProblem) serverProblem = outcome.problem;
         }
@@ -2425,7 +2444,6 @@ export default function Home() {
         if (restored.tapeMeasurements) writeTape(project.id, restored.tapeMeasurements);
         restoredProjects.push(project);
         restoredEntries[project.id] = entry;
-        const thumbnail = entries[index].thumbnail;
         if (thumbnail) restoredThumbnails.push({ projectId: project.id, image: pngDataUrl(thumbnail), shapes: restored.shapes.length });
       } catch {
         failed += 1;
@@ -2500,7 +2518,7 @@ export default function Home() {
         setDashboardNotice(result.mtlOnly
           ? t("status.importMtlAlone")
           : failures.length === 1 && result.files.length <= 1
-            ? failures[0].reason
+            ? importFailureReason(failures[0])
             : t("status.importNoneFailed", { total: Math.max(result.files.length, failures.length), summary: failureSummary }));
         return;
       }
@@ -2873,8 +2891,11 @@ export default function Home() {
           onDuplicateSharedProject={(project) => void duplicateSharedProject(project)}
           onImportFile={() => void pickDashboardImport()}
           onBackupAll={() => void backupAllProjects()}
+          onBackupProjects={(designIds) => void backupProjects({ designIds })}
+          onBackupFolder={(folderId) => void backupProjects({ folderId })}
           onBackupAllServer={() => void backupAllServerDesigns()}
           onRestoreBackup={() => backupRestoreInputRef.current?.click()}
+          openingSharedKey={openingSharedKey}
           onOpenSharedProject={(project) => void openSharedProject(project)}
           onOpenProject={openEditor}
           onQueryChange={setQuery}
@@ -3089,8 +3110,11 @@ function Dashboard({
   onDuplicateSharedProject,
   onImportFile,
   onBackupAll,
+  onBackupProjects,
+  onBackupFolder,
   onBackupAllServer,
   onRestoreBackup,
+  openingSharedKey = null,
   newDesignsOnServer,
   newDesignsOnServerLocked,
   onNewDesignsOnServerChange,
@@ -3150,8 +3174,11 @@ function Dashboard({
   onDuplicateSharedProject: (project: SharedProject) => void;
   onImportFile: () => void;
   onBackupAll: () => void;
+  onBackupProjects: (designIds: string[]) => void;
+  onBackupFolder: (folderId: string) => void;
   onBackupAllServer: () => void;
   onRestoreBackup: () => void;
+  openingSharedKey?: string | null;
   newDesignsOnServer: boolean;
   newDesignsOnServerLocked: boolean;
   onNewDesignsOnServerChange: (on: boolean) => void;
@@ -3289,6 +3316,16 @@ function Dashboard({
       <strong role="status">{t("dashboard.selectedCount", { count: selectedCount })}</strong>
       <button type="button" onClick={() => setSelectedKeys(new Set(selectableKeys))}>{t("dashboard.selectAll")}</button>
       <button type="button" disabled={selectedCount === 0} onClick={() => setSelectedKeys(new Set())}>{t("dashboard.selectNone")}</button>
+      {activeSection === "shared" ? null : (
+        <button
+          type="button"
+          disabled={selectedCount === 0}
+          title={t("dashboard.backupSelectedTitle")}
+          onClick={() => onBackupProjects(selectedLocal.map((project) => project.id))}
+        >
+          {t("dashboard.backupSelected")}
+        </button>
+      )}
       <button className="delete" type="button" disabled={selectedCount === 0} onClick={() => setSelectionDeletePending(true)}>{t("common.delete")}</button>
       <button type="button" onClick={endSelecting}>{t("dashboard.selectDone")}</button>
     </div>
@@ -3826,13 +3863,15 @@ function Dashboard({
                   {shownSharedProjects.map((project, index) => {
                     const key = sharedProjectKey(project);
                     const where = project.path ?? "";
+                    const isOpening = openingSharedKey === key;
                     return (
                     <article
-                      className={`project-card shared-project-card${draggedSharedKey === key ? " dragging" : ""}${selecting ? " selectable" : ""}${selecting && selectedKeys.has(serverDesignKey(key)) ? " selected" : ""}`}
+                      className={`project-card shared-project-card${isOpening ? " is-opening" : ""}${draggedSharedKey === key ? " dragging" : ""}${selecting ? " selectable" : ""}${selecting && selectedKeys.has(serverDesignKey(key)) ? " selected" : ""}`}
                       key={key}
-                      draggable={!searchResults && !selecting}
+                      draggable={!searchResults && !selecting && !isOpening}
                       title={searchResults ? undefined : t("shared.dragHint")}
                       onDragStart={(event) => {
+                        if (isOpening) return;
                         event.dataTransfer.effectAllowed = "move";
                         event.dataTransfer.setData("text/plain", project.fileName);
                         setDraggedSharedKey(key);
@@ -3845,13 +3884,31 @@ function Dashboard({
                       <button
                         className="project-card-open"
                         type="button"
+                        disabled={Boolean(openingSharedKey)}
+                        aria-busy={isOpening ? "true" : undefined}
                         aria-pressed={selecting ? selectedKeys.has(serverDesignKey(key)) : undefined}
                         aria-label={selecting ? t("dashboard.selectDesign", { name: project.name }) : undefined}
-                        onClick={() => (selecting ? toggleSelected(serverDesignKey(key)) : onOpenSharedProject(project))}
+                        onClick={() => {
+                          if (openingSharedKey) return;
+                          if (selecting) {
+                            toggleSelected(serverDesignKey(key));
+                          } else {
+                            onOpenSharedProject(project);
+                          }
+                        }}
                       >
-                        <ProjectPreview accent={PROJECT_ACCENTS[index % PROJECT_ACCENTS.length]} thumbnailUrl={project.thumbnailUrl} />
+                        <ProjectPreview accent={PROJECT_ACCENTS[index % PROJECT_ACCENTS.length]} thumbnailUrl={project.thumbnailUrl} loading={isOpening} />
                         <span className="project-card-title" translate="no">{project.name}</span>
-                        <span className="project-card-meta">{formatUpdated(project.updatedAt, language)} - {formatFileSize(project.size)}</span>
+                        <span className="project-card-meta">
+                          {isOpening ? (
+                            <span className="project-card-meta-loading">
+                              <LoaderCircle size={13} className="project-preview-spinner" />
+                              <span>{t("notice.openingShared", { name: project.name })}</span>
+                            </span>
+                          ) : (
+                            `${formatUpdated(project.updatedAt, language)} - ${formatFileSize(project.size)}`
+                          )}
+                        </span>
                       </button>
                       {/* Ein Treffer sagt, wo er liegt - und der Ordner ist ein
                           Knopf, der genau dorthin fuehrt. Ohne das waere die
@@ -4065,6 +4122,18 @@ function Dashboard({
                                 >
                                   <Pencil size={16} />
                                   <span>{t("common.rename")}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  title={t("dashboard.backupFolderTitle")}
+                                  onClick={() => {
+                                    setOpenLocalFolderMenuId(null);
+                                    onBackupFolder(folder.id);
+                                  }}
+                                >
+                                  <Archive size={16} />
+                                  <span>{t("dashboard.backupSelected")}</span>
                                 </button>
                                 <button
                                   className="delete"
@@ -4597,7 +4666,7 @@ function Dashboard({
   );
 }
 
-function ProjectPreview({ accent, thumbnailUrl }: { accent: DashboardProject["accent"]; thumbnailUrl?: string | null }) {
+function ProjectPreview({ accent, thumbnailUrl, loading = false }: { accent: DashboardProject["accent"]; thumbnailUrl?: string | null; loading?: boolean }) {
   const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(null);
   const showThumbnail = Boolean(thumbnailUrl && thumbnailUrl !== failedThumbnailUrl);
 
@@ -4606,7 +4675,7 @@ function ProjectPreview({ accent, thumbnailUrl }: { accent: DashboardProject["ac
   }, [thumbnailUrl]);
 
   return (
-    <span className={`project-preview accent-${accent}`} aria-hidden="true">
+    <span className={`project-preview accent-${accent}${loading ? " is-loading" : ""}`} aria-hidden="true">
       {showThumbnail ? (
         <img className="project-thumbnail-image" src={thumbnailUrl ?? ""} alt="" onError={() => setFailedThumbnailUrl(thumbnailUrl ?? null)} />
       ) : (
@@ -4615,6 +4684,11 @@ function ProjectPreview({ accent, thumbnailUrl }: { accent: DashboardProject["ac
           <span className="preview-empty-mark">{t("dashboard.noSnapshot")}</span>
         </>
       )}
+      {loading ? (
+        <span className="project-preview-loading">
+          <LoaderCircle size={28} className="project-preview-spinner" />
+        </span>
+      ) : null}
     </span>
   );
 }

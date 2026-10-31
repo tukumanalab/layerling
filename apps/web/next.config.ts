@@ -7,6 +7,7 @@ const isStaticExport = process.env.STATIC_EXPORT === "true";
 // the export then requests every file under that folder. Empty at the root.
 const basePath = (process.env.LAYERLING_BASE_PATH ?? "").trim().replace(/\/+$/, "");
 if (basePath && !basePath.startsWith("/")) throw new Error(`LAYERLING_BASE_PATH must start with "/", got "${basePath}"`);
+const buildCpus = Math.max(0, Math.floor(Number(process.env.LAYERLING_BUILD_CPUS)) || 0);
 const extraAllowedDevOrigins = (process.env.LAYERLING_ALLOWED_DEV_ORIGINS ?? "")
   .split(",")
   .map((origin) => origin.trim())
@@ -68,6 +69,9 @@ const nextConfig: NextConfig = {
         trailingSlash: true,
       }
     : {}),
+  // How many workers the build may start; the release script leaves two threads free with it, so the machine
+  // stays usable while it builds. Left out, Next takes all cores but one.
+  ...(buildCpus ? { experimental: { cpus: buildCpus } } : {}),
 };
 
 export default nextConfig;

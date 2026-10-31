@@ -11,8 +11,9 @@ V knjižnici oblik izberi {{ui:shape.thread}}. Pod {{ui:inspector.threadRole}} s
 
 - **{{ui:thread.rod}}:** valj z navojem, na primer vijak brez glave.
 - **{{ui:thread.screw}}:** z glavo. {{ui:inspector.threadHead}} izbereš: {{ui:thread.headCylinder}}, {{ui:thread.headCountersunk}} ali {{ui:thread.headHex}}.
+  Nižje nastaviš {{ui:prop.headDiameter}} (pri šestrobi glavi {{ui:prop.headAcrossFlats}}; pri ugreznjeni glavi premer sledi višini) in {{ui:inspector.threadDrive}} v čelu glave: {{ui:thread.driveHex}}, {{ui:thread.driveTorx}}, {{ui:thread.drivePhillips}} ali {{ui:thread.driveNone}} za vijak, ki ga vrtiš z roko ali ključem. {{ui:prop.driveSize}} je velikost ključa notranjega šestroba, zunanji premer zvezde Torx ali razpon križa; {{ui:prop.driveDepth}} pove, kako globoko seže, največ devet desetin glave, 0 pa ga izpusti. Dokler jih ne spremeniš, sledijo velikosti; šestroba glava se začne brez pogona. Pogon je del natančnega telesa, zato pride tudi v izvoz STEP.
 - **{{ui:thread.nut}}:** ustrezna matica.
-- **{{ui:thread.bore}}:** navojna luknja. To je luknja. Povleci jo v del, oboje združi v skupino in del ima notranji navoj.
+- **{{ui:thread.bore}}:** navojna luknja. To je luknja. Povleci jo v del, oboje združi v skupino in del ima notranji navoj. Za luknjo, v katero se privije vijak, vedno uporabi {{ui:thread.bore}}: {{ui:thread.rod}} ali {{ui:thread.screw}} kot luknja ima polno mero vijaka brez zračnosti in je pretesna. Če jo vseeno nastaviš kot luknjo, te layerling opozori, {{ui:inspector.threadMakeTappedHole}} pa iz nje naredi {{ui:thread.bore}}.
 
 ![Vijak z valjasto glavo. Desno sta vrsta in oblika glave, nižje velikost, korak in profil.](shot:thread-screw)
 
@@ -153,9 +154,21 @@ Podstavek ima lahko pas, za predal, ki ni celo število enot mreže: {{ui:prop.g
 
 {{ui:prop.hingeClearance}} je razmik med premičnimi deli: okoli zatiča, med členi in pred listi. Z 0,4 mm se dobro nastavljen tiskalnik običajno sprosti z majhnim vrtljajem; če deli zrastejo skupaj, vzemi več, če se preveč maje, manj. Tečaj natisni ležeče, tako kot se pokaže na plošči, brez podpor. Liste lahko opremiš z izvrtinami ali združiš v večji del, na primer pokrov.
 
-Tečaj je mogoče narediti tudi {{ui:hinge.styleCone}} (pod {{ui:prop.hingeStyle}}): vsak drugi členek se potem konča s stožci, ki se prilegajo stožčastim vdolbinam sosednjih členkov. Ni trna in ni dolgega mostu, ki bi se povesil, zato se tiska ležeče; stožci so pod 45°. To je mreža, zato posnetja in zaokrožitve na njem ne delujejo, izvoz STEP pa vsebuje trikotnike; kjer bi bili členki za stožec prekratki, jih naredi manj. Namesto števila členkov lahko podaš {{ui:prop.hingeKnuckleWidth}}: členki so potem največ tako široki, njihovo število pa sledi iz dolžine; vpis števila členkov širino spet odstrani.
+Tečaj je mogoče narediti tudi {{ui:hinge.styleCone}} (pod {{ui:prop.hingeStyle}}): vsak drugi členek se potem konča s stožci, ki se prilegajo stožčastim vdolbinam sosednjih členkov. Ni trna in ni dolgega mostu, ki bi se povesil, zato se tiska ležeče; stožci so pod 45°. Kot druge vrste je tudi to natančno telo, zato posnetja in zaokrožitve na njem delujejo, izvoz STEP pa vsebuje njegove prave stožce; kjer bi bili členki za stožec prekratki, jih naredi manj. Namesto števila členkov lahko podaš {{ui:prop.hingeKnuckleWidth}}: členki so potem največ tako široki, njihovo število pa sledi iz dolžine; vpis števila členkov širino spet odstrani.
 
 {{ui:prop.hingeStyle}} ima tri možnosti: {{ui:hinge.stylePin}}, {{ui:prop.hingePinless}} (izvrtina za lasten trn) in {{ui:hinge.styleCone}}. Pri stožcih {{ui:prop.hingeConeSize}} določa, kako veliki so tam, kjer rastejo iz členka; večji stožci držijo bolje in so privzeto tako veliki, kot gre. Tečaj s stožci nima trna ne izvrtine, zato je lahko njegovo krilo tako debelo kot cel členek: nastavi {{ui:prop.hingeLeafThickness}} na premer členka in krila ležijo v ravnini s členki; tak tečaj se odpre okoli 90° in ne več, ker se debela krila srečata.
+
+Za privijačenje nastavite {{ui:prop.hingeScrewHoles}}: do šest lukenj vzdolž osi; njihovo velikost določa {{ui:prop.hingeScrewDiameter}}. Pod {{ui:prop.hingeScrewHead}} so privzeto {{ui:hinge.screwCountersunk}}, pod 90° za vijake z ugreznjeno glavo, na strani, ki je pri zaprtem tečaju obrnjena proti drugemu krilu, da glave ležijo poravnano; {{ui:hinge.screwStraight}} jih pusti brez vgreza. Brez drugih vrednosti se luknje enakomerno razporedijo po dolžini in sedijo na sredini vsakega krila; {{ui:prop.hingeScrewSpacing}} in {{ui:prop.hingeScrewAcross}} jih določita od središča do središča, na primer po kupljenem tečaju, ki ga nadomeščate. Vsaka luknja ohrani pol milimetra krila do robov, do členkov in do naslednje luknje; če jih gre manj, jih je manj, in polje to pove. {{ui:prop.hingeCornerRadius}} zaokroži štiri zunanje vogale kril. S trnom ali brez ostanejo luknje in vogali natančni v izvozu STEP in za orodje za robove.
+
+Pod {{ui:prop.hingeLeafStyle}} izbira {{ui:hinge.leafFingers}} da vsakemu členku svoj prst, širok kot členek, namesto krila na vsaki strani; prsti obeh strani se izmenjujejo kot dva glavnika. Ker noben prst ne leži pod členkom druge strani, se tečaj zavrti povsem naokoli, z izbiro {{ui:hinge.styleCone}} in prsti, debelimi kot členek ({{ui:prop.hingeLeafThickness}} do vrednosti {{ui:prop.hingeKnuckleDiameter}}), pa se zapre ravno, prsti ene strani med prsti druge. Prstov ene strani ne povezuje krilo: s tiskanim trnom visijo na njem, s stožci ali brez trna, dokler ni v njem vaš lastni, so to ločeni deli. Vsako stran povežite s svojim modelom, na primer en glavnik s škatlo in drugega s pokrovom, ali jih združite z njim. {{ui:prop.hingeCornerRadius}} nato zaokroži konice prstov; prsti nimajo lukenj za vijake.
+
+## Flexi zgibi
+
+Z orodjem {{ui:editor.tool.flexi}} iz ploščatega telesa narediš gibljivo figuro, na primer ribo, kačo ali zmaja, ki se natisne v enem kosu (print-in-place). Telo narišeš ali zgradiš sam, recimo iz skice ali SVG-ja, ki ga izvlečeš. Orodje ga prečno na dolžino razdeli v člene in pri vsakem rezu doda zgib: en člen nosi pokončen čep, ki je na sredini debelejši kot zgoraj in spodaj, naslednji ga objame z zračnostjo. Tako zgib drži in se ne zraste, vse poševnine pa so pod 45°, zato se tiska brez podpor. Med členi ostane odprt klin, tako širok, kot daleč naj se členi obračajo vstran.
+
+Izberi telo (več delov se združi, luknje v njih se odštejejo) in klikni {{ui:editor.tool.flexi}}. V oknu nastaviš, vzdolž katere stranice se deli ({{ui:flexi.axis.auto}} vzame daljšo), koliko bo zgibov ({{ui:flexi.joints}}), {{ui:flexi.clearance}} (običajno ustreza 0,4 mm) in kot za {{ui:flexi.swing}}. Velikost zgibov se ravna po telesu; brez {{ui:flexi.autoSize}} sam vneseš {{ui:flexi.size}}. Brez {{ui:flexi.evenLinks}} določiš, kako daleč je prvi zgib od začetka in zadnji od konca, da na primer glava ostane en velik kos. Kjer je zgib, naj bo telo vsaj približno 6 mm visoko in 12 mm široko; če kateri ne gre, okno pove, kateri.
+
+Rezultat je sveženj členov (mrež), ki ga natisneš, kot leži. Če ti razdelitev ni všeč, jo razveljavi in poskusi z drugimi vrednostmi. Prvi poskusni tisk z dvema ali tremi zgibi pokaže, ali zračnost ustreza tvojemu tiskalniku.
 
 ## Narebričenje
 
@@ -176,6 +189,12 @@ Luknja, ki leži vodoravno v delu, dobi pri tiskanju zgoraj most, ta pa se poves
 Kapljično izvrtino naredi za luknjo in jo združi v skupino z delom. Z dolžino leži v smeri globine, konica kaže navzgor. Za luknjo v drugi smeri jo zavrtiš za 90° okoli navpične osi.
 
 **Navojna luknja** na boku se zgoraj povesi na enak način. Daj ji lastno kapljico: dodaj luknjo {{ui:shape.teardrop}}, katere {{ui:prop.teardropDiameter}} je jedro navoja, premer, ki ga zobci pustijo prostega (za M10 približno 8,4 mm), z enako dolžino kot navojna luknja, in izberi obe. Klikni {{ui:editor.tool.align}} in ju poravnaj po sredini – sredina kapljice je sredina njenega okroglega dela, ne njenega okvirja s konico, zato se krožnici prekrivata – ter obe skupaj z delom združi v skupino. Navoj se izreže kot običajno, konica pa odpre vrh luknje, zato se natisne brez podpor.
+
+## Odprtine za priključke
+
+Ohišje za elektroniko potrebuje odprtino za kabel. {{ui:shape.port}} je prav to: ležeča izrezna oblika z zaobljenimi vogali. Pod {{ui:prop.portPreset}} izberi priključek - {{ui:port.usbC}}, {{ui:port.microUsb}} ali {{ui:port.usbA}} - in dobi njegovo mero z zračnostjo približno 0,25 mm na vsaki strani. {{ui:port.usbCPlug}} je za priključek, ki je za steno, kamor mora seči ohišje vtiča. Širino, višino in {{ui:prop.portCorner}} lahko spremeniš ročno; seznam takrat pokaže {{ui:port.custom}}. {{ui:port.hdmi}}, {{ui:port.miniHdmi}}, {{ui:port.displayPort}} in {{ui:port.miniDisplayPort}} imajo kot priključek poševno odrezane spodnje vogale, DisplayPort samo levega, {{ui:port.rj45}} pa je za omrežno vtičnico; mere izhajajo iz izrezov, ki jih priporočajo proizvajalci, in iz risb VESA.
+
+Pride kot izrezna oblika in gleda naprej. Nastavi {{ui:prop.portDepth}} nekoliko večjo od debeline stene, jo premakni tja, kjer je priključek na plošči, in jo združi z ohišjem. Za stransko steno jo zavrti za 90° okoli navpične osi.
 
 ## Stopničasta in udirna izvrtina
 

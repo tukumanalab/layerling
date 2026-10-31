@@ -11,8 +11,9 @@ summary: 相互配合的螺钉、螺母与螺纹孔，以及齿轮、弹簧、�
 
 - **{{ui:thread.rod}}：** 带螺纹的圆柱体，例如没有头的螺钉。
 - **{{ui:thread.screw}}：** 带头部。你可以选择 {{ui:inspector.threadHead}}：{{ui:thread.headCylinder}}、{{ui:thread.headCountersunk}} 或 {{ui:thread.headHex}}。
+  再往下可以设置{{ui:prop.headDiameter}}(六角头为{{ui:prop.headAcrossFlats}};沉头的直径随高度而定)以及头部端面的{{ui:inspector.threadDrive}}:{{ui:thread.driveHex}}、{{ui:thread.driveTorx}}、{{ui:thread.drivePhillips}},或用手或扳手拧的螺丝选{{ui:thread.driveNone}}。{{ui:prop.driveSize}}是内六角的对边宽度、梅花星形的外径或十字的跨度;{{ui:prop.driveDepth}}是它的深度,最多为头部的十分之九,0 表示不要。只要不改动,这些值就随尺寸变化;六角头默认没有驱动。驱动属于精确实体,因此也会出现在 STEP 导出中。
 - **{{ui:thread.nut}}：** 配套的螺母。
-- **{{ui:thread.bore}}：** 螺纹孔。它属于孔。把它拖进零件，将两者分组，零件就有内螺纹。
+- **{{ui:thread.bore}}：** 螺纹孔。它属于孔。把它拖进零件，将两者分组，零件就有内螺纹。 要做拧螺栓的孔，请始终使用{{ui:thread.bore}}：{{ui:thread.rod}}或{{ui:thread.screw}}作为孔时是螺栓的完整尺寸，没有间隙，会太紧。如果仍把它设为孔，layerling 会提示你，点击{{ui:inspector.threadMakeTappedHole}}即可改为{{ui:thread.bore}}。
 
 ![一个带圆柱头的螺钉。右侧：类型和头部形状，往下是规格、螺距和牙型。](shot:thread-screw)
 
@@ -143,9 +144,17 @@ G 规格是符合 ISO 228-1 的平行惠氏管螺纹，常见于水、燃气、�
 
 {{ui:prop.hingeClearance}} 是活动部件之间的间隙：销周围、铰链节之间以及叶片前方。0.4 mm 时，调校良好的打印机通常轻轻一扭就能松开；如果部件粘在一起，就加大；如果晃得太厉害，就减小。按平台上的姿态平放打印铰链，不要支撑。如果你更想用自己的销，例如一段耗材或铁丝，在小铰链上它比打印的销更光滑，就开启 {{ui:prop.hingePinless}}：打印的销被略去，孔径等于销直径加间隙，贯穿每个铰链节，包括两端。用 {{ui:prop.hingeAngle}} 你让第二片绕销折起，把铰链摆成设计中的姿态：0° 平躺如打印时，180° 为闭合。铰链节保持原位，铰链仍是一体；在就地打印前记得设回 0°。你可以给叶片加孔，或把它们分组进更大的零件，例如盖子。
 
-铰链也可以做成{{ui:hinge.styleCone}}（在{{ui:prop.hingeStyle}}下）：每隔一个关节的两端是圆锥，嵌入相邻关节的锥形凹坑。没有销，也没有可能下垂的长悬空桥，所以可以平放打印；圆锥为 45°。它是网格，因此倒角和圆角对它无效，STEP 导出包含的是三角形；关节对圆锥来说太短时，会做得更少。除了关节数量，也可以指定{{ui:prop.hingeKnuckleWidth}}：关节不会比它更宽，数量由长度决定；输入关节数量会取消宽度。
+铰链也可以做成{{ui:hinge.styleCone}}（在{{ui:prop.hingeStyle}}下）：每隔一个关节的两端是圆锥，嵌入相邻关节的锥形凹坑。没有销，也没有可能下垂的长悬空桥，所以可以平放打印；圆锥为 45°。和其他样式一样，它是精确实体，因此倒角和圆角对它有效，STEP 导出包含它真正的圆锥；关节对圆锥来说太短时，会做得更少。除了关节数量，也可以指定{{ui:prop.hingeKnuckleWidth}}：关节不会比它更宽，数量由长度决定；输入关节数量会取消宽度。
 
 {{ui:prop.hingeStyle}}有三个选项：{{ui:hinge.stylePin}}、{{ui:prop.hingePinless}}（为自备销留的孔）和{{ui:hinge.styleCone}}。选圆锥时，{{ui:prop.hingeConeSize}}决定圆锥从关节长出处的大小；圆锥越大越牢固，默认取能放下的最大值。带圆锥的铰链没有销也没有孔，所以它的翼板可以和整个关节一样厚：把{{ui:prop.hingeLeafThickness}}设为关节直径，翼板就与关节齐平；这样的铰链最多打开约 90°，因为厚翼板会相碰。
+
+## 弹性关节（Flexi）
+
+{{ui:editor.tool.flexi}} 把一个扁平的实体变成可以活动的小玩偶，例如鱼、蛇或龙，一次打印成型（print-in-place）。实体由你自己画或搭建，例如用草图或拉伸的 SVG。工具沿实体长度横向把它切成若干节，并在每个切口处加一个关节：一节带着一根竖直的轴，中间比上下两端粗，下一节带间隙地把它包住。这样关节既能卡住又不会粘连，所有斜面都是 45°，无需支撑即可打印。各节之间留出一道楔形缺口，宽度对应各节向两侧摆动的角度。
+
+选中实体（多个部件会合并，其中的孔会被减去），点击 {{ui:editor.tool.flexi}}。在窗口中设置沿哪一边切分（{{ui:flexi.axis.auto}} 取较长的一边）、{{ui:flexi.joints}} 的数量、{{ui:flexi.clearance}}（一般 0.4 mm 即可）以及 {{ui:flexi.swing}} 的角度。关节大小会按实体自动确定；取消 {{ui:flexi.autoSize}} 后可自己填写 {{ui:flexi.size}}。取消 {{ui:flexi.evenLinks}} 后可以设定第一个关节离起点、最后一个离终点的距离，比如让头部保持为一整块。关节所在处，实体至少应约 6 mm 高、12 mm 宽；放不下时，窗口会告诉你是哪一个。
+
+结果是一组关节节段（网格）的捆绑，按摆放的样子直接打印。如果不满意切分，撤销后换别的数值再试。先用两三个关节试打一次，就能看出间隙是否适合你的打印机。
 
 ## 滚花
 
@@ -166,6 +175,12 @@ G 规格是符合 ISO 228-1 的平行惠氏管螺纹，常见于水、燃气、�
 把泪滴孔设为孔，并与零件分组。其长度沿深度方向，尖端朝上。要在另一个方向开孔，就让它绕竖直轴旋转 90°。
 
 侧放的**螺纹孔**同样会在顶部下垂。给它配一个自己的泪滴孔：添加一个 {{ui:shape.teardrop}} 孔，其 {{ui:prop.teardropDiameter}} 为螺纹芯部，即齿让出的直径（M10 约为 8.4 mm），长度与螺纹孔相同，然后同时选中两者。点击 {{ui:editor.tool.align}}，让它们在中间对齐——泪滴孔的中心是其圆部的中心，而不是带尖端的外框中心，所以两个圆彼此重合——再把两者与零件分组。螺纹照常切出，尖端打开孔的顶部，因此无需支撑即可打印。
+
+## 接口开孔
+
+电子产品外壳需要给线缆留开孔。{{ui:shape.port}} 就是这种开孔：一个横放的、带圆角的挖空体。在 {{ui:prop.portPreset}} 中选择接口（{{ui:port.usbC}}、{{ui:port.microUsb}} 或 {{ui:port.usbA}}），它就会得到该接口的尺寸，并在每边多留约 0.25 mm 间隙。{{ui:port.usbCPlug}} 用于装在壁后面的接口，插头外壳需要伸进来。宽度、高度和 {{ui:prop.portCorner}} 都可以手动修改，此时列表显示 {{ui:port.custom}}。{{ui:port.hdmi}}、{{ui:port.miniHdmi}}、{{ui:port.displayPort}} 和 {{ui:port.miniDisplayPort}} 像接口本身一样把下方的角斜切掉，DisplayPort 只切左下角；{{ui:port.rj45}} 适用于网络接口。这些尺寸来自厂商推荐的面板开孔和 VESA 图纸。
+
+它默认是挖空体，朝向前方。把 {{ui:prop.portDepth}} 设得比壁厚稍大，移到电路板上接口所在的位置，再与外壳组合。用于侧壁时，绕竖直轴旋转 90°。
 
 ## 沉孔与锥形沉孔
 

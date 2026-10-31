@@ -9,10 +9,11 @@ import { t } from "@/lib/i18n";
 import { horizontalPlacementWorkplane, type PlacementWorkplane } from "@/lib/placementWorkplane";
 import { liftGeometryForFrame, type SelectionFrame } from "@/lib/liftGeometry";
 import { liftHandleScreenPoint } from "@/components/workplane/transformOverlayTypes";
-import { dimensionMarkScreenPush, isPointInsideTransformBounds, rotateHandleArrow, rotationPlaneDirectionSign, transformBoundsIntersectClipVolume, transformOverlayScreenPoint, type DimensionMark, type RotationAxis, type RotationPlaneView, type TransformOverlayState } from "@/components/workplane/TransformOverlay";
+import { dimensionMarkNeedsScreenLayout, dimensionMarkScreenPush, isPointInsideTransformBounds, screenSpaceDimensionMark, rotateHandleArrow, rotationPlaneDirectionSign, transformBoundsIntersectClipVolume, transformOverlayScreenPoint, type DimensionMark, type RotationAxis, type RotationPlaneView, type TransformOverlayState } from "@/components/workplane/TransformOverlay";
 import { cuboidCorners, pointAlongAxes } from "@/lib/alignFrame";
 import type { AlignAxis, AlignHandleStatus, AlignTarget, MeasurementAccuracy, WorkplaneShape } from "@/types/layerling";
 import { outwardFaceNormal } from "@/lib/layFlat";
+import { narrowEndWidth, normalizeSlopeSide, shapeSupportsNarrow, shapeSupportsSlope, slopeEndHeight } from "@/lib/slopeAlong";
 import { JOINED_FACE_REACH, nearestFaceTriangle, planarFaceTriangles } from "@/lib/rotationPivot";
 import { roundFaceTriangles } from "@/lib/roundFaceAxis";
 import { isReferenceImage, referenceImageFacingAxis } from "@/lib/referenceImage";
@@ -30,6 +31,18 @@ export const LIFT_HANDLE_MAX_OFFSET = 12;
 export const ALIGN_HANDLE_OFFSET = 3;
 
 /** How far the lift arrow stands over the face it belongs to; the overlay and the drag plane both use this. */
+/**
+ * The marks a lone selection shows without a handle hovered, by the handles they belong to: width, depth (not for a
+ * round footprint) and height, and the height above the workplane when the body does not stand on it, as Tinkercad
+ * shows it (#979); on the workplane that would only be a 0.
+ */
+export function alwaysVisibleDimensionKeysFor(circular: boolean, elevation: number, keys: { width: string; depth: string; height: string; lift: string }) {
+  return [
+    ...(circular ? [keys.width, keys.height] : [keys.width, keys.depth, keys.height]),
+    ...(Math.abs(elevation) > 0.005 ? [keys.lift] : []),
+  ];
+}
+
 export function liftHandleOffset(liftHeight: number) {
   return Math.max(2, Math.min(liftHeight * LIFT_HANDLE_HEIGHT_OFFSET_FRACTION, LIFT_HANDLE_MAX_OFFSET));
 }
@@ -148,7 +161,7 @@ export function makeDimensionMark(
   fromWorld: THREE.Vector3,
   toWorld: THREE.Vector3,
   outwardWorld: THREE.Vector3,
-  project: (point: THREE.Vector3) => { x: number; y: number },
+  project: (point: THREE.Vector3) => { x: number; y: number; visible?: boolean },
 ): DimensionMark {
   const from = project(fromWorld);
   const to = project(toWorld);
@@ -158,17 +171,28 @@ export function makeDimensionMark(
   const railOffset = 5.8;
   const extensionOverrun = 1.4;
   const labelOffset = 3.2;
-  const railFrom = project(fromWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset)));
-  const railTo = project(toWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset)));
-  const extensionFrom = project(fromWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset + extensionOverrun)));
-  const extensionTo = project(toWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset + extensionOverrun)));
-  const edgeMidpoint = project(fromWorld.clone().lerp(toWorld, 0.5));
-  const labelPoint = project(
-    fromWorld
-      .clone()
-      .lerp(toWorld, 0.5)
-      .add(outwardAxis.clone().multiplyScalar(railOffset + labelOffset)),
-  );
+  const midpointWorld = fromWorld.clone().lerp(toWorld, 0.5);
+  const edgeMidpoint = project(midpointWorld);
+  let railFrom: { x: number; y: number; visible?: boolean } = project(fromWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset)));
+  let railTo: { x: number; y: number; visible?: boolean } = project(toWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset)));
+  let extensionFrom: { x: number; y: number; visible?: boolean } = project(fromWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset + extensionOverrun)));
+  let extensionTo: { x: number; y: number; visible?: boolean } = project(toWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset + extensionOverrun)));
+  let labelPoint: { x: number; y: number; visible?: boolean } = project(midpointWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset + labelOffset)));
+  // Zoomed far in on a tiny part, the same world offset lands the mark off screen
+  // or behind the camera, where it flips back across the body (#989). Then take
+  // only the outward direction from a tiny world step and place the mark in pixels.
+  const offsetPointsVisible = [railFrom, railTo, extensionFrom, extensionTo, labelPoint].every((point) => point.visible !== false);
+  if (dimensionMarkNeedsScreenLayout(edgeMidpoint, labelPoint, offsetPointsVisible)) {
+    const step = Math.max(fromWorld.distanceTo(toWorld), 0.01) * 0.01;
+    const probe = project(midpointWorld.clone().add(outwardAxis.clone().multiplyScalar(step)));
+    const length = Math.hypot(probe.x - edgeMidpoint.x, probe.y - edgeMidpoint.y);
+    if (Number.isFinite(length) && length > 1e-6) {
+      const direction = { x: (probe.x - edgeMidpoint.x) / length, y: (probe.y - edgeMidpoint.y) / length };
+      ({ railFrom, railTo, extensionFrom, extensionTo, labelPoint } = screenSpaceDimensionMark(
+        from, to, edgeMidpoint, direction, { rail: railOffset, overrun: extensionOverrun, label: labelOffset },
+      ));
+    }
+  }
   // The world offset above shrinks to a few pixels when zoomed out, which puts
   // the label under a rotate handle. Lift the whole mark together so the label
   // keeps its distance without tearing away from its own rail.
@@ -364,6 +388,32 @@ export function syncTransformOverlay(
     left: project(footprintWorld.left),
   };
   const heightPoint = project(showLowerHandles ? lowerCenterWorld : upperCenterWorld);
+  // Slope along (slopeAlong.ts): a dot on the top of the lower end, dragged up and down like the height.
+  const slopeShape = frame.singleShape && shapeSupportsSlope(frame.singleShape) && typeof frame.singleShape.slopeEnd === "number" ? frame.singleShape : null;
+  const slopePoint = (() => {
+    if (!slopeShape) return { x: 0, y: 0, visible: false };
+    const side = normalizeSlopeSide(slopeShape.kind, slopeShape.slopeSide);
+    const y = frame.min.y + slopeEndHeight(slopeShape);
+    const world = side === "back" ? framePoint(frame, 0, y, frame.min.z)
+      : side === "front" ? framePoint(frame, 0, y, frame.max.z)
+        : side === "left" ? framePoint(frame, frame.min.x, y, 0)
+          : framePoint(frame, frame.max.x, y, 0);
+    return project(world);
+  })();
+  // Narrow along: a dot on the narrow end's side, dragged across like a width.
+  const narrowShape = frame.singleShape && shapeSupportsNarrow(frame.singleShape) && typeof frame.singleShape.narrowEnd === "number" ? frame.singleShape : null;
+  const narrowPoint = (() => {
+    if (!narrowShape) return { x: 0, y: 0, visible: false };
+    const side = normalizeSlopeSide(narrowShape.kind, narrowShape.narrowSide);
+    const half = narrowEndWidth({ ...narrowShape, narrowSide: side }) / 2;
+    // On a box halfway up its end; on a round roof at the foot, where its side meets the plate.
+    const y = frame.min.y + (narrowShape.kind === "roundRoof" ? 0 : (frame.max.y - frame.min.y) / 2);
+    const world = side === "back" ? framePoint(frame, half, y, frame.min.z)
+      : side === "front" ? framePoint(frame, half, y, frame.max.z)
+        : side === "left" ? framePoint(frame, frame.min.x, y, half)
+          : framePoint(frame, frame.max.x, y, half);
+    return project(world);
+  })();
   const liftBasePoint = project(liftBaseWorld);
   // A thin body puts the arrow a few pixels from the height handle; it keeps its distance on the screen.
   const liftPoint = liftHandleScreenPoint(liftBasePoint, project(liftHandle), showLowerLiftHandle);
@@ -418,7 +468,7 @@ export function syncTransformOverlay(
   // handle shows that single mark instead of a separate width and depth line
   // (which used to appear together at a corner handle, and independently
   // editable at all, letting the two drift apart).
-  const isCircularFootprint = frame.singleShape?.kind === "cylinder" || frame.singleShape?.kind === "star";
+  const isCircularFootprint = frame.singleShape?.kind === "cylinder" || frame.singleShape?.kind === "star" || frame.singleShape?.kind === "hirth";
   const footprintDimensionMarks = Object.fromEntries(
     footprintHandleKeys.map((handleKey) => {
       if (isCircularFootprint) {
@@ -546,6 +596,8 @@ export function syncTransformOverlay(
     { point: mid.far, handle: { key: "far-mid", className: "edge dark", kind: "scale" as const, x: mid.far.x, y: mid.far.y, title: t("transform.resize") } },
     { point: mid.left, handle: { key: "left-mid", className: "edge dark", kind: "scale" as const, x: mid.left.x, y: mid.left.y, title: t("transform.resize") } },
     { point: heightPoint, handle: { key: heightHandleKey, className: "height-top", kind: "height" as const, x: heightPoint.x, y: heightPoint.y, title: t("transform.height") } },
+    { point: slopePoint, handle: { key: "slope-end", className: "height-top slope-end", kind: "height" as const, x: slopePoint.x, y: slopePoint.y, title: t("transform.slope") } },
+    { point: narrowPoint, handle: { key: "narrow-end", className: "height-top slope-end", kind: "height" as const, x: narrowPoint.x, y: narrowPoint.y, title: t("transform.narrow") } },
     { point: liftPoint, handle: { key: liftHandleKey, className: showLowerLiftHandle ? "height-lift lower" : "height-lift", kind: "lift" as const, x: liftPoint.x, y: liftPoint.y, title: t("transform.lift"), angle: liftHandleAngle } },
   ].filter(({ point }) => point.visible).map(({ handle }) => handle);
   const rotationChromeVisible = !cameraInsideSelection && centerPoint.visible;
@@ -600,9 +652,7 @@ export function syncTransformOverlay(
   const widthMidHandleKey = cameraView.dot(xFootAxis) >= 0 ? "right-mid" : "left-mid";
   const depthMidHandleKey = cameraView.dot(zFootAxis) >= 0 ? "near-mid" : "far-mid";
   const alwaysVisibleDimensionKeys = dimensionsAlwaysVisible && frame.singleShape
-    ? isCircularFootprint
-      ? [widthMidHandleKey, heightHandleKey]
-      : [widthMidHandleKey, depthMidHandleKey, heightHandleKey]
+    ? alwaysVisibleDimensionKeysFor(isCircularFootprint, lift.elevation, { width: widthMidHandleKey, depth: depthMidHandleKey, height: heightHandleKey, lift: liftHandleKey })
     : [];
 
   const next = {

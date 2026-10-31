@@ -77,9 +77,21 @@ Een lichaam met een kamer, een blok met een gat dat niet helemaal doorloopt, gem
 
 **Lichamen die in een punt eindigen,** zoals een kegel of een omgewentelde driehoek, hebben bovenaan geen plat vlak dat open kan blijven. Een volledig gesloten holte lukt daar ook niet, omdat een punt niet naar binnen verschoven kan worden: zelfs met een wand van 1 mm krijg je de melding dat de wanden niet zo dik kunnen zijn. Teken de wand in plaats daarvan in het profiel voordat je het omwentelt: dupliceer de omtrek, schaal de kopie gelijkmatig kleiner, zet hem midden in de grote omtrek en snijd de grote ermee uit, en wentel daarna het geheel om (hoofdstuk Schetsen, sectie Omwentelen). De afstand tussen de twee omtrekken is de wanddikte.
 
-Verander je later de maat van een uitgehold lichaam, dan holt layerling het meteen opnieuw uit op de nieuwe maat. De wand blijft zo dik als je hebt gekozen, ook bij ronde lichamen. Een cilinder die je de ene kant verder uittrekt dan de andere wordt een ellips.
+Verander je later de maat van een uitgehold lichaam, dan holt layerling het meteen opnieuw uit op de nieuwe maat. De wand blijft zo dik als je hebt gekozen, ook bij ronde lichamen. Een cilinder die je de ene kant verder uittrekt dan de andere wordt een ellips. Afrondingen en afschuiningen die je na het uithollen hebt aangebracht, komen daarna weer op dezelfde randen.
 
 > **Tip:** Met een spuitmond van 0,4 mm is 1,2 tot 2 mm wand een goed begin: dun genoeg om materiaal te besparen, dik genoeg voor een stevig onderdeel.
+
+## Een deksel voor een open vorm
+
+{{ui:editor.tool.lid}} maakt het deksel voor een vorm die bovenaan open is: een doos die je met open bovenkant hebt uitgehold, een pot, een bakje. Selecteer de vorm en klik op {{ui:editor.tool.lid}}. In het venster kies je de soort:
+
+- {{ui:lid.type.plug}}: een plaat zo groot als de vorm met eronder een lip die in de opening grijpt.
+- {{ui:lid.type.cap}}: een plaat een wand breder dan de vorm met eronder een rand die om de buitenkant grijpt.
+- {{ui:lid.type.flat}}: alleen de plaat, om erop te leggen of te lijmen.
+
+Daarna stel je de {{ui:lid.thickness}} in, de {{ui:lid.fit}} (de {{ui:lid.gap}} tussen deksel en vorm: 0,1 mm strak, 0,2 mm normaal, 0,3 mm ruim, of elke waarde tot 1 mm) en hoe diep de lip of rand naar beneden reikt en hoe dik de wand is. Klik op {{ui:lid.apply}}: het deksel ligt naast de vorm, omgedraaid met de plaat naar beneden, zodat het zonder support print. De vorm blijft zoals hij is. Het deksel volgt elke omtrek, rond of hoekig, omdat het vlak onder de rand van de vorm zelf wordt afgenomen. Een vorm zonder opening bovenaan krijgt alleen een plat deksel; hol hem voor de andere twee eerst uit met de bovenkant open.
+
+> **Tip:** Hoe strak een deksel zit, hangt van de printer af. Print eerst een kleine doos met deksel; zit het te strak, neem dan de volgende ruimere passing.
 
 ## Lichamen verschuiven
 

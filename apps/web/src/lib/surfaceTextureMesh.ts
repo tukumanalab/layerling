@@ -668,11 +668,129 @@ export function sliceByField(mesh: SurfaceMesh, field: Float64Array, diff: Field
 }
 
 /**
+ * Delaunay flips among the triangles that `free` marks (by their parent) and that lie in one plane: the edge between two
+ * of them becomes the other diagonal of their quad when the corners opposite it see it under more than 180 degrees
+ * together. The mesh stays closed, the triangles keep their winding and each new triangle a parent of the two.
+ */
+export function flipPlanar(mesh: SurfaceMesh, free: Uint8Array, rounds = 12): SurfaceMesh {
+  const v = mesh.vertices;
+  const I = Uint32Array.from(mesh.indices);
+  const parents = Uint32Array.from(mesh.parents);
+  const T = I.length / 3;
+  const angle = (o: number, a: number, b: number) => {
+    const ux = v[a * 3] - v[o * 3], uy = v[a * 3 + 1] - v[o * 3 + 1], uz = v[a * 3 + 2] - v[o * 3 + 2];
+    const wx = v[b * 3] - v[o * 3], wy = v[b * 3 + 1] - v[o * 3 + 1], wz = v[b * 3 + 2] - v[o * 3 + 2];
+    return Math.atan2(Math.hypot(uy * wz - uz * wy, uz * wx - ux * wz, ux * wy - uy * wx), ux * wx + uy * wy + uz * wz);
+  };
+  for (let round = 0; round < rounds; round += 1) {
+    // Edges between exactly two free triangles: the first one's side, then -2 once the second has come.
+    const seen = new EdgeTable(T * 2);
+    const pairs: number[] = [];
+    for (let f = 0; f < T; f += 1) {
+      if (!free[parents[f]]) continue;
+      for (let k = 0; k < 3; k += 1) {
+        const a = I[f * 3 + k], b = I[f * 3 + ((k + 1) % 3)];
+        const known = seen.get(a, b, -1);
+        if (known === -1) seen.set(a, b, f * 3 + k);
+        else if (known >= 0) {
+          pairs.push(known, f * 3 + k);
+          seen.set(a, b, -2);
+        } else seen.set(a, b, -3);
+      }
+    }
+    const flipped = new Uint8Array(T);
+    let count = 0;
+    for (let k = 0; k < pairs.length; k += 2) {
+      const f = Math.floor(pairs[k] / 3), kf = pairs[k] % 3, g = Math.floor(pairs[k + 1] / 3), kg = pairs[k + 1] % 3;
+      if (flipped[f] || flipped[g]) continue;
+      const p = I[f * 3 + kf], q = I[f * 3 + ((kf + 1) % 3)], r = I[f * 3 + ((kf + 2) % 3)];
+      // A third triangle took the edge since (-3), or the two are wound against each other.
+      if (seen.get(p, q, -1) !== -2 || I[g * 3 + kg] !== q || I[g * 3 + ((kg + 1) % 3)] !== p) continue;
+      const s = I[g * 3 + ((kg + 2) % 3)];
+      const nf = faceCross(v, p, q, r), ng = faceCross(v, q, p, s);
+      const lf = Math.hypot(...nf), lg = Math.hypot(...ng);
+      if (lf === 0 || lg === 0 || (nf[0] * ng[0] + nf[1] * ng[1] + nf[2] * ng[2]) / (lf * lg) < 1 - 1e-10) continue;
+      if (angle(r, p, q) + angle(s, q, p) <= Math.PI + 1e-9) continue;
+      // The new diagonal r-s must cross p-q: p and q on either side of it.
+      const sp = faceCross(v, r, s, p), sq = faceCross(v, r, s, q);
+      const dp = sp[0] * nf[0] + sp[1] * nf[1] + sp[2] * nf[2], dq = sq[0] * nf[0] + sq[1] * nf[1] + sq[2] * nf[2];
+      if (!(dp * dq < 0) || Math.abs(dp) < 1e-12 * lf * lf || Math.abs(dq) < 1e-12 * lf * lf) continue;
+      I.set([p, s, r], f * 3);
+      I.set([s, q, r], g * 3);
+      flipped[f] = 1;
+      flipped[g] = 1;
+      count += 1;
+    }
+    if (!count) break;
+  }
+  return { vertices: v, indices: I, parents, limited: mesh.limited };
+}
+
+/**
+ * Whether any triangle `free` marks is a needle: longer than `ratio` times its height over the longest edge (a round top
+ * that CAD gives in long strips across). Others need no refining in their plane (see refinePlanar): its rim's points
+ * would only turn the side faces next to it into fans.
+ */
+export function hasNeedles(mesh: SurfaceMesh, free: Uint8Array, ratio = 8) {
+  const v = mesh.vertices, I = mesh.indices;
+  for (let f = 0; f < I.length / 3; f += 1) {
+    if (!free[mesh.parents[f]]) continue;
+    const a = I[f * 3], b = I[f * 3 + 1], c = I[f * 3 + 2];
+    const area2 = Math.hypot(...faceCross(v, a, b, c));
+    let longest = 0;
+    for (const [p, q] of [[a, b], [b, c], [c, a]]) longest = Math.max(longest, Math.hypot(v[p * 3] - v[q * 3], v[p * 3 + 1] - v[q * 3 + 1], v[p * 3 + 2] - v[q * 3 + 2]));
+    if (area2 > 0 && longest * longest > ratio * area2) return true;
+  }
+  return false;
+}
+
+/**
+ * Refine the triangles that `free` marks (by their parent), each lying in a plane like a round top, to edges of at most
+ * `maxEdge`: halving and flipping (see flipPlanar) by turns. Halving alone keeps a triangle's shape - a round top that
+ * CAD gives in long strips across came out in thousands of slivers per strip, and a pattern frayed along them.
+ */
+export function refinePlanar(mesh: SurfaceMesh, free: Uint8Array, maxEdge: number, maxTriangles: number): SurfaceMesh {
+  let cur = flipPlanar(mesh, free);
+  // The planes of the free triangles: only edges lying in one of them are split.
+  const planes: number[][] = [];
+  let longest = 0;
+  for (let f = 0; f < cur.indices.length / 3; f += 1) {
+    if (!free[cur.parents[f]]) continue;
+    const [a, b, c] = [cur.indices[f * 3], cur.indices[f * 3 + 1], cur.indices[f * 3 + 2]];
+    const n = faceCross(cur.vertices, a, b, c);
+    const l = Math.hypot(...n);
+    if (l === 0) continue;
+    const plane = [n[0] / l, n[1] / l, n[2] / l, (n[0] * cur.vertices[a * 3] + n[1] * cur.vertices[a * 3 + 1] + n[2] * cur.vertices[a * 3 + 2]) / l];
+    if (!planes.some((o) => o[0] * plane[0] + o[1] * plane[1] + o[2] * plane[2] > 1 - 1e-9 && Math.abs(o[3] - plane[3]) < 1e-6)) planes.push(plane);
+    for (const [p, q] of [[a, b], [b, c], [c, a]]) {
+      longest = Math.max(longest, Math.hypot(cur.vertices[p * 3] - cur.vertices[q * 3], cur.vertices[p * 3 + 1] - cur.vertices[q * 3 + 1], cur.vertices[p * 3 + 2] - cur.vertices[q * 3 + 2]));
+    }
+  }
+  const height = (plane: number[], verts: ArrayLike<number>, i: number) => plane[0] * verts[i * 3] + plane[1] * verts[i * 3 + 1] + plane[2] * verts[i * 3 + 2] - plane[3];
+  const inPlane = (verts: ArrayLike<number>, a: number, b: number) => planes.some((plane) => Math.abs(height(plane, verts, a)) < 1e-6 && Math.abs(height(plane, verts, b)) < 1e-6);
+  let edge = longest;
+  while (edge > maxEdge && !cur.limited) {
+    edge = Math.max(maxEdge, edge / 2);
+    const split = subdivide(cur, edge, maxTriangles, null, null, inPlane);
+    const before = cur;
+    cur = flipPlanar({ vertices: split.vertices, indices: split.indices, parents: Uint32Array.from(split.parents, (f) => before.parents[f]), limited: Boolean(before.limited || split.limited) }, free);
+  }
+  return cur;
+}
+
+/**
  * Point normals weighted by area and, per point, whether a face at it bends away by more than
  * half of `edgeAngle` (a sharp edge), how far the steepest face at it points down and up (so a
  * point on the rim of the bottom counts as bottom and stays on the bed).
+ *
+ * Given the body the mesh was refined from (`base`, and `parents` per triangle), the normals, the
+ * sharp edges and which way the faces point are all judged by the body's own faces: a thin refined
+ * triangle across a gentle edge of a cylinder's mantle (5.6 degrees with 64 sides) leant up to 22
+ * degrees out of it, one even pointed 67 degrees down, and a point a cut left a hair's breadth from
+ * another had only slivers round it and its normal turned inwards - the bumps there were left out as
+ * if they sat on a sharp edge, at the bottom or on an inner wall (issue #1030).
  */
-export function normalsAndCreases(v: Float64Array, I: Uint32Array, edgeAngle: number) {
+export function normalsAndCreases(v: Float64Array, I: Uint32Array, edgeAngle: number, base?: { vertices: Float64Array; indices: Uint32Array }, parents?: Uint32Array) {
   const n = v.length / 3;
   const vn = new Float64Array(n * 3);
   const fn = new Float64Array(I.length);
@@ -694,16 +812,50 @@ export function normalsAndCreases(v: Float64Array, I: Uint32Array, edgeAngle: nu
     vn[i + 1] /= l;
     vn[i + 2] /= l;
   }
+  // The faces the sharp edges are judged by, and the normal at each point they are measured against.
+  let cf = fn, cn = vn;
+  if (base && parents) {
+    cf = new Float64Array(I.length);
+    cn = new Float64Array(n * 3);
+    const own = new Float64Array(base.indices.length);
+    for (let f = 0; f < base.indices.length / 3; f += 1) {
+      const [x, y, z] = faceCross(base.vertices, base.indices[f * 3], base.indices[f * 3 + 1], base.indices[f * 3 + 2]);
+      const l = Math.hypot(x, y, z);
+      if (l === 0) continue;
+      own[f * 3] = x / l;
+      own[f * 3 + 1] = y / l;
+      own[f * 3 + 2] = z / l;
+    }
+    for (let t = 0; t < I.length; t += 3) {
+      const p = parents[t / 3] * 3;
+      const area = Math.hypot(fn[t], fn[t + 1], fn[t + 2]);
+      cf[t] = own[p] * area;
+      cf[t + 1] = own[p + 1] * area;
+      cf[t + 2] = own[p + 2] * area;
+      for (let k = 0; k < 3; k += 1) {
+        const id = I[t + k] * 3;
+        cn[id] += cf[t];
+        cn[id + 1] += cf[t + 1];
+        cn[id + 2] += cf[t + 2];
+      }
+    }
+    for (let i = 0; i < n * 3; i += 3) {
+      const l = Math.hypot(cn[i], cn[i + 1], cn[i + 2]) || 1;
+      cn[i] /= l;
+      cn[i + 1] /= l;
+      cn[i + 2] /= l;
+    }
+  }
   const minDot = new Float64Array(n).fill(1);
   const down = new Float64Array(n).fill(-1);
   const up = new Float64Array(n).fill(-1);
   for (let t = 0; t < I.length; t += 3) {
-    const l = Math.hypot(fn[t], fn[t + 1], fn[t + 2]);
-    if (l === 0) continue;
-    const fz = fn[t + 2] / l;
+    const lc = Math.hypot(cf[t], cf[t + 1], cf[t + 2]);
+    if (lc === 0) continue;
+    const fz = cf[t + 2] / lc;
     for (let k = 0; k < 3; k += 1) {
       const id = I[t + k];
-      const d = (fn[t] * vn[id * 3] + fn[t + 1] * vn[id * 3 + 1] + fn[t + 2] * vn[id * 3 + 2]) / l;
+      const d = (cf[t] * cn[id * 3] + cf[t + 1] * cn[id * 3 + 1] + cf[t + 2] * cn[id * 3 + 2]) / lc;
       if (d < minDot[id]) minDot[id] = d;
       if (-fz > down[id]) down[id] = -fz;
       if (fz > up[id]) up[id] = fz;
@@ -713,7 +865,7 @@ export function normalsAndCreases(v: Float64Array, I: Uint32Array, edgeAngle: nu
   const limit = Math.cos(((edgeAngle / 2) * Math.PI) / 180);
   const crease = new Uint8Array(n);
   for (let i = 0; i < n; i += 1) crease[i] = minDot[i] < limit ? 1 : 0;
-  return { normals: vn, crease, down, up };
+  return { normals: cn, crease, down, up };
 }
 
 export type Adjacency = { start: Uint32Array; nb: Uint32Array };
@@ -1169,6 +1321,129 @@ export function dropFins(indices: Uint32Array) {
   return Uint32Array.from(out);
 }
 
+/** Triangles round a point lie in one plane when their normals differ by less than this (about 0.001 degrees). */
+const FLAT_COS = 1 - 1e-10;
+/** A triangle made by merging flat points stays at least this high over its longest edge, mm. */
+const FLAT_MIN_HEIGHT = 0.01;
+
+/**
+ * Points in the middle of a flat piece (every triangle round them in one plane: a face kept smooth, the flat between
+ * bumps) pulled into a neighbour, nearest first, and points on a straight crease between two flat pieces (the facets of
+ * a cylinder's mantle) along the crease - as long as every triangle stays in its plane, does not turn over and does not
+ * get lower than FLAT_MIN_HEIGHT. No point moves, so the shape stays exactly as it was, with far fewer triangles where
+ * nothing happens. A closed mesh stays closed (link condition as in collapseShortEdges). The point list stays as it
+ * is; unused points do no harm.
+ */
+export function mergeFlatPoints(vertices: ArrayLike<number>, indices: Uint32Array) {
+  const n = vertices.length / 3;
+  const T = indices.length / 3;
+  const tris = Uint32Array.from(indices);
+  const alive = new Uint8Array(T).fill(1);
+  const stars: number[][] = Array.from({ length: n }, () => []);
+  for (let t = 0; t < T; t += 1) for (let k = 0; k < 3; k += 1) stars[tris[t * 3 + k]].push(t);
+  const has = (t: number, p: number) => tris[t * 3] === p || tris[t * 3 + 1] === p || tris[t * 3 + 2] === p;
+  const dist2 = (a: number, b: number) =>
+    (vertices[a * 3] - vertices[b * 3]) ** 2 + (vertices[a * 3 + 1] - vertices[b * 3 + 1]) ** 2 + (vertices[a * 3 + 2] - vertices[b * 3 + 2]) ** 2;
+  let merged = 0;
+  for (let pass = 0; pass < 4; pass += 1) {
+    let changed = 0;
+    for (let v = 0; v < n; v += 1) {
+      const star = stars[v].filter((t) => alive[t]);
+      stars[v] = star;
+      if (star.length < 3) continue;
+      // The planes round the point: one (inside a flat piece) or two meeting along a straight line through it (a crease
+      // between two flat pieces, as between a cylinder's facets). Triangles within FLAT_COS of a plane's normal lie in it.
+      const planes: number[] = [];
+      const planeOf = new Map<number, number>();
+      let flat = true;
+      for (const t of star) {
+        const [x, y, z] = faceCross(vertices, tris[t * 3], tris[t * 3 + 1], tris[t * 3 + 2]);
+        const l = Math.hypot(x, y, z);
+        if (l === 0) {
+          flat = false;
+          break;
+        }
+        let k = 0;
+        while (k < planes.length / 3 && (planes[k * 3] * x + planes[k * 3 + 1] * y + planes[k * 3 + 2] * z) / l < FLAT_COS) k += 1;
+        if (k === planes.length / 3) planes.push(x / l, y / l, z / l);
+        planeOf.set(t, k);
+      }
+      if (!flat || planes.length > 6) continue;
+      const ring = new Set<number>();
+      for (const t of star) for (let k = 0; k < 3; k += 1) ring.add(tris[t * 3 + k]);
+      ring.delete(v);
+      // On a crease the point may only go along it, to one of its two neighbours on the line.
+      let candidates = [...ring];
+      if (planes.length === 6) {
+        candidates = candidates.filter((x) => {
+          const sides = star.filter((t) => has(t, x)).map((t) => planeOf.get(t));
+          return sides.length === 2 && sides[0] !== sides[1];
+        });
+        if (candidates.length !== 2) continue;
+      }
+      const order = candidates.sort((a, b) => dist2(v, a) - dist2(v, b));
+      for (const u of order) {
+        // Inside the piece the edge has two triangles, and the points both ends see are just their tips.
+        let atEdge = 0;
+        for (const t of star) if (has(t, u)) atEdge += 1;
+        if (atEdge !== 2) continue;
+        let common = 0;
+        const seen = new Set<number>();
+        for (const t of stars[u]) {
+          if (!alive[t]) continue;
+          for (let k = 0; k < 3; k += 1) {
+            const x = tris[t * 3 + k];
+            if (x === u || x === v || seen.has(x)) continue;
+            seen.add(x);
+            if (ring.has(x)) common += 1;
+          }
+        }
+        if (common !== 2) continue;
+        // Every triangle keeps to its plane and its side, and does not get too low.
+        let ok = true;
+        for (const t of star) {
+          if (has(t, u)) continue;
+          const ids = [0, 1, 2].map((k) => (tris[t * 3 + k] === v ? u : tris[t * 3 + k]));
+          const [x, y, z] = faceCross(vertices, ids[0], ids[1], ids[2]);
+          const longest = Math.max(dist2(ids[0], ids[1]), dist2(ids[1], ids[2]), dist2(ids[2], ids[0]));
+          const k = planeOf.get(t)! * 3;
+          const l = Math.hypot(x, y, z);
+          if (l < FLAT_MIN_HEIGHT * Math.sqrt(longest) || (planes[k] * x + planes[k + 1] * y + planes[k + 2] * z) / l < FLAT_COS) {
+            ok = false;
+            break;
+          }
+        }
+        if (!ok) continue;
+        for (const t of star) {
+          if (has(t, u)) {
+            alive[t] = 0;
+            continue;
+          }
+          for (let k = 0; k < 3; k += 1) if (tris[t * 3 + k] === v) tris[t * 3 + k] = u;
+          stars[u].push(t);
+        }
+        stars[v] = [];
+        changed += 1;
+        break;
+      }
+    }
+    merged += changed;
+    if (changed === 0) break;
+  }
+  if (merged === 0) return { indices, merged };
+  let k = 0;
+  for (let t = 0; t < T; t += 1) k += alive[t];
+  const out = new Uint32Array(k * 3);
+  k = 0;
+  for (let t = 0; t < T; t += 1) {
+    if (!alive[t]) continue;
+    out[k++] = tris[t * 3];
+    out[k++] = tris[t * 3 + 1];
+    out[k++] = tris[t * 3 + 2];
+  }
+  return { indices: out, merged };
+}
+
 const FOLD_COS = Math.cos((75 * Math.PI) / 180);
 
 /**
@@ -1331,6 +1606,91 @@ export function interpolatedNormals(base: { vertices: Float64Array; indices: Uin
 
 /** How far a point on a sharp edge may move, in depths (as SVG's miter limit): a thin fin would send it far out. */
 const MITER_LIMIT = 3;
+
+/**
+ * The sides meeting at each point on a sharp edge (see creaseMoves): their unit normals, grouped within the crease angle,
+ * three numbers per side. Only points with two sides or more.
+ */
+export function creaseSides(base: { vertices: Float64Array; indices: Uint32Array }, mesh: SurfaceMesh, creaseAngle: number) {
+  const bv = base.vertices, BI = base.indices;
+  const fn = new Float64Array(BI.length);
+  for (let f = 0; f < BI.length / 3; f += 1) {
+    const [x, y, z] = faceCross(bv, BI[f * 3], BI[f * 3 + 1], BI[f * 3 + 2]);
+    const l = Math.hypot(x, y, z);
+    if (l > 0) {
+      fn[f * 3] = x / l;
+      fn[f * 3 + 1] = y / l;
+      fn[f * 3 + 2] = z / l;
+    }
+  }
+  const limit = Math.cos((creaseAngle * Math.PI) / 180);
+  const I = mesh.indices;
+  const sums = new Map<number, number[]>();
+  for (let t = 0; t < I.length; t += 1) {
+    const i = I[t], P = mesh.parents[(t - (t % 3)) / 3];
+    let list = sums.get(i);
+    if (!list) sums.set(i, (list = []));
+    let k = 0;
+    for (; k < list.length; k += 4) {
+      const R = list[k];
+      if (fn[P * 3] * fn[R * 3] + fn[P * 3 + 1] * fn[R * 3 + 1] + fn[P * 3 + 2] * fn[R * 3 + 2] >= limit) break;
+    }
+    if (k >= list.length) list.push(P, 0, 0, 0);
+    list[k + 1] += fn[P * 3];
+    list[k + 2] += fn[P * 3 + 1];
+    list[k + 3] += fn[P * 3 + 2];
+  }
+  const out = new Map<number, Float64Array>();
+  for (const [i, list] of sums) {
+    if (list.length < 8) continue;
+    const normals = new Float64Array((list.length / 4) * 3);
+    for (let k = 0; k < list.length; k += 4) {
+      const l = Math.hypot(list[k + 1], list[k + 2], list[k + 3]) || 1;
+      normals[(k / 4) * 3] = list[k + 1] / l;
+      normals[(k / 4) * 3 + 1] = list[k + 2] / l;
+      normals[(k / 4) * 3 + 2] = list[k + 3] / l;
+    }
+    out.set(i, normals);
+  }
+  return out;
+}
+
+/**
+ * Where a point on a sharp edge goes when each side moves by its own amount along its normal (`moves`, one per side of
+ * `normals`): where the moved sides meet (least squares, as creaseMoves for equal moves), at most MITER_LIMIT times the
+ * largest move away. null when the sides do not pin it down.
+ */
+export function creaseMeet(normals: Float64Array, moves: number[]) {
+  let a00 = 1e-9, a01 = 0, a02 = 0, a11 = 1e-9, a12 = 0, a22 = 1e-9, b0 = 0, b1 = 0, b2 = 0;
+  let most = 0;
+  for (let k = 0; k < moves.length; k += 1) {
+    const x = normals[k * 3], y = normals[k * 3 + 1], z = normals[k * 3 + 2], d = moves[k];
+    a00 += x * x;
+    a01 += x * y;
+    a02 += x * z;
+    a11 += y * y;
+    a12 += y * z;
+    a22 += z * z;
+    b0 += x * d;
+    b1 += y * d;
+    b2 += z * d;
+    most = Math.max(most, Math.abs(d));
+  }
+  const c00 = a11 * a22 - a12 * a12, c01 = a02 * a12 - a01 * a22, c02 = a01 * a12 - a02 * a11;
+  const det = a00 * c00 + a01 * c01 + a02 * c02;
+  if (!(Math.abs(det) > 1e-18)) return null;
+  const c11 = a00 * a22 - a02 * a02, c12 = a01 * a02 - a00 * a12, c22 = a00 * a11 - a01 * a01;
+  let mx = (c00 * b0 + c01 * b1 + c02 * b2) / det;
+  let my = (c01 * b0 + c11 * b1 + c12 * b2) / det;
+  let mz = (c02 * b0 + c12 * b1 + c22 * b2) / det;
+  const ml = Math.hypot(mx, my, mz);
+  if (ml > MITER_LIMIT * most) {
+    mx *= (MITER_LIMIT * most) / ml;
+    my *= (MITER_LIMIT * most) / ml;
+    mz *= (MITER_LIMIT * most) / ml;
+  }
+  return [mx, my, mz];
+}
 
 /**
  * How far and where each point moves for a depth of 1: its direction (see interpolatedNormals), but on a sharp edge or

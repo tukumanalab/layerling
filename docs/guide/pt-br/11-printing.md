@@ -5,7 +5,7 @@ summary: Como escolher a sua impressora, ser avisado quando algo não cabe e dei
 
 ## Escolhendo a sua impressora
 
-Abra as configurações (a engrenagem na área {{ui:editor.group.manage}} da barra de opções, {{ui:editor.workspaceSettings}}) e vá para a área {{ui:workspace.workplane}}. Em {{ui:workspace.printer}} você escolhe a sua impressora numa lista de mais de 220 modelos comuns, entre eles Bambu Lab, Prusa, Creality, Anycubic, Elegoo e muitos outros.
+Abra as configurações (a engrenagem na área {{ui:editor.group.manage}} da barra de opções, {{ui:editor.workspaceSettings}}) e vá para a área {{ui:workspace.workplane}}. Em {{ui:workspace.printer}} você escolhe a sua impressora numa lista de mais de 230 modelos comuns, entre eles Bambu Lab, Prusa, Creality, Anycubic, Elegoo e muitos outros.
 
 ![As configurações do plano de trabalho com uma impressora escolhida. A mesa de impressão e a altura máxima de impressão vêm do perfil do fatiador.](shot:settings-workplane)
 
@@ -17,6 +17,8 @@ Três coisas acontecem:
 
 Os perfis de impressora vêm do OrcaSlicer, então são os mesmos que o seu fatiador conhece. Se preferir trabalhar sem impressora, escolha {{ui:workspace.printerNone}}. Você também pode definir o tamanho do plano de trabalho à mão.
 
+Impressoras delta, como as da FLSun ou da SeeMeCNC ou a Anycubic Predator, imprimem sobre uma mesa redonda. Com uma delas, o plano de trabalho também fica redondo e tão largo quanto a mesa, e um sólido é grande demais assim que passa da borda. Um sólido redondo é medido pelo próprio contorno, não pela caixa em volta dele, então cabe até um cilindro quase tão largo quanto a mesa.
+
 ## Quando algo não cabe
 
 Um sólido que passa da borda da mesa de impressão fica marcado. Uma mensagem diz quais lados passam e quanto. O mesmo vale se a peça for **alta demais**: a altura conta a partir do sólido mais baixo, do mesmo jeito que o fatiador apoia o modelo na mesa.
@@ -25,7 +27,7 @@ Um sólido que passa da borda da mesa de impressão fica marcado. Uma mensagem d
 
 O aviso não impede você de continuar trabalhando. É uma dica, para você não descobrir só no fatiador que a peça é grande demais. Uma peça grande demais muitas vezes pode ser dividida: corte-a em duas com {{ui:editor.tool.split}} e imprima as duas metades separadamente.
 
-Se você deixa peças ao lado da mesa de propósito, clique no pequeno X da mensagem. O aviso some então para exatamente esses sólidos. Se um deles voltar a caber e depois você o tirar de novo, ou se outro sólido passar da borda, a mensagem volta. Sólidos ocultos nunca contam, então ocultar as peças deixadas ao lado também funciona.
+Se você deixa peças ao lado da mesa de propósito, clique no pequeno X da mensagem. O aviso então some só para esses sólidos. Se um deles voltar a caber e depois você o tirar da mesa de novo, ou se outro sólido passar da borda, a mensagem volta. Sólidos ocultos nunca contam, então ocultar as peças deixadas ao lado também funciona.
 
 ## Deitando a peça do jeito certo
 

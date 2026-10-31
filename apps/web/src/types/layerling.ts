@@ -21,6 +21,7 @@ export type ShapeKind =
   | "heart"
   | "crescent"
   | "gear"
+  | "hirth"
   | "honeycomb"
   | "hinge"
   | "knurl"
@@ -29,6 +30,7 @@ export type ShapeKind =
   | "countersink"
   | "doubleCountersink"
   | "teardrop"
+  | "port"
   | "loft"
   | "vase"
   | "thread"
@@ -40,6 +42,9 @@ export type ShapeKind =
   | "icosahedron"
   | "ruler"
   | "mesh";
+
+/** Outline of a port opening (portGeometry.ts): rounded corners, or the lower corners cut as on these sockets. */
+export type PortProfile = "rounded" | "hdmi" | "miniHdmi" | "displayPort" | "miniDisplayPort";
 
 /** Cross-section of a bent tube; the inner one may also be "none" for a solid tube. */
 export type BentTubeProfile = "round" | "square" | "hexagon" | "octagon";
@@ -158,6 +163,11 @@ export type ShapeCustomization = {
   /** The chamfer at the bottom end; without it the bottom end has the same chamfer as the top. */
   threadChamferBottom?: number;
   threadHeadChamfer?: number;
+  /** Screw only (#1052): the head diameter (across flats on a hex head), the drive in its free face, and the drive's size and depth. Unset = the standard measure. */
+  threadHeadDiameter?: number;
+  threadDrive?: ThreadDrive;
+  threadDriveSize?: number;
+  threadDriveDepth?: number;
   springTurns?: number;
   springWire?: number;
   springHand?: ThreadHand;
@@ -195,6 +205,20 @@ export type ShapeCustomization = {
   hingePinless?: boolean;
   /** Hinge: the second leaf folded up about the pin, in degrees; 0 lies flat, 180 is closed. */
   hingeAngle?: number;
+  /** Hinge: screw holes in each leaf along the axis, 0 to 6; left out, none. */
+  hingeScrewHoles?: number;
+  /** Hinge: the screw holes' diameter in mm. */
+  hingeScrewDiameter?: number;
+  /** Hinge: from one screw hole's middle to the next along the axis in mm; left out, they share the length evenly. */
+  hingeScrewSpacing?: number;
+  /** Hinge: from the hole in one leaf to the hole in the other, across the axis, in mm; left out, each in the middle of its leaf. */
+  hingeScrewAcross?: number;
+  /** Hinge: false for straight screw holes; otherwise countersunk on the side that faces the other leaf when closed. */
+  hingeScrewCountersink?: boolean;
+  /** Hinge: the leaves' outer corners rounded with this radius in mm. */
+  hingeCornerRadius?: number;
+  /** Hinge: "fingers" gives each knuckle its own finger instead of a leaf each side, the two sides' alternating like combs; left out, plates. */
+  hingeLeafStyle?: "plate" | "fingers";
   /** Gridfinity: a bin or the baseplate it stands in, whose size counts grid units of 42 mm (height units of 7 mm), or a tray of any size in mm (#837). */
   gridfinityType?: GridfinityType;
   /** Gridfinity bin: the stacking lip on top of the wall; missing means on. */
@@ -326,6 +350,8 @@ export type ShapeCustomization = {
   loftSegments?: number;
   /** Capsule: the small end's diameter as a share of the large one, 1 or missing for equal ends (#206). */
   slotEndRatio?: number;
+  /** Torus: how thick the tube is seen from above, as a share of the outer size; the height only squashes it (#981). */
+  torusTubeRatio?: number;
   /** Transition: degrees the top end tilts about the x axis and about the z axis (#205). */
   loftTiltX?: number;
   loftTiltZ?: number;
@@ -335,6 +361,8 @@ export type ShapeCustomization = {
   screwHoleHeadDepth?: number;
   /** Countersink and double countersink: opening angle of the cone in degrees. */
   screwHoleAngle?: number;
+  /** Port opening: rounded corners, or the lower ones cut off as on an HDMI or DisplayPort socket. */
+  portProfile?: PortProfile;
   bentTubeProfile?: BentTubeProfile;
   bentTubeInnerProfile?: BentTubeInnerProfile;
   bentTubeSize?: number;
@@ -437,6 +465,12 @@ export type WorkplaneWorkspaceSettings = {
   /** A turned body shows its angles about X, Y and Z beside it while it is selected. */
   showRotationAngles: boolean;
   zoomSpeed: number;
+  /**
+   * Which mouse buttons steer the view (#1013): layerling's own (right turns, middle shifts, a left drag on empty space draws
+   * a selection box) or as in Bambu Studio and OrcaSlicer (a left drag on empty space turns, the right button shifts,
+   * Shift and a left drag draws the box).
+   */
+  mouseScheme: MouseScheme;
   units: string;
   /** With Imperial: inches as fractions (1⅝, like similar tools) or decimals (1.625). */
   inchFormat: InchFormat;
@@ -452,6 +486,8 @@ export type WorkplaneWorkspaceSettings = {
 
 export type InchFormat = "fraction" | "decimal";
 
+export type MouseScheme = "layerling" | "slicer";
+
 export type AlignAxis = "x" | "y" | "z";
 export type AlignTarget = "min" | "center" | "max";
 export type AlignHandleStatus = {
@@ -460,6 +496,8 @@ export type AlignHandleStatus = {
   disabled: boolean;
   aligned: boolean;
   title: string;
+  /** The same dot with Alt held: it stretches the parts to the reference instead of moving them (#998). */
+  size?: { disabled: boolean; aligned: boolean; title: string };
 };
 
 export type SketchPoint = {
@@ -506,8 +544,11 @@ export type SketchImage = {
 export type SketchStrokeAlign = "center" | "inside" | "outside" | "grow" | "shrink";
 export type SketchStrokeJoin = "miter" | "round" | "bevel";
 export type SketchStrokeCap = "flat" | "square" | "round";
-/** A sketch drawn as a line of this width instead of a filled area (#154). */
-export type SketchStroke = { width: number; align: SketchStrokeAlign; join: SketchStrokeJoin; cap: SketchStrokeCap };
+/**
+ * A sketch drawn as a line of this width instead of a filled area (#154). `edge` makes the wall a cutting edge (#982): its top
+ * runs in to that width with a 45° chamfer on both sides; only for a line inside, outside or centred, and narrower than the line.
+ */
+export type SketchStroke = { width: number; align: SketchStrokeAlign; join: SketchStrokeJoin; cap: SketchStrokeCap; edge?: number };
 /** Where a name tag's key ring hole sits, seen from above (#215). */
 export type TextKeyringSide = "left" | "right" | "top";
 /**
@@ -611,6 +652,8 @@ export type GridfinityOpening = {
 /** Was aus dem Gewinde wird: Stange, Schraube, Mutter oder das Loch dafuer. */
 export type ThreadRole = "rod" | "screw" | "nut" | "bore";
 export type ThreadHead = "cylinder" | "countersunk" | "hex";
+/** What drives a screw: a recess in its free head face (#1052). */
+export type ThreadDrive = "hex" | "torx" | "phillips" | "none";
 export type ThreadHand = "right" | "left";
 /**
  * Die Zahnform: scharfe ISO-Spitze, flache Trapezflanke, rundes Profil oder
@@ -709,6 +752,17 @@ export type CadBrepFrame = {
 };
 
 /**
+ * Where an extruded sketch body's sketch lay once an edge treatment or hollowing baked its turn and place into its exact
+ * body (#1006): `transform` takes sketch points (y up from the sketch) into the exact body's own coordinates, `height`
+ * is the extrusion's and `anchor` the point of the outline under the body's middle, as it was before.
+ */
+export type SketchPose = {
+  transform: number[];
+  height: number;
+  anchor: { x: number; z: number };
+};
+
+/**
  * Was ein Koerper war, bevor eine Drehung ihn in ein Netz gebacken hat.
  *
  * Gedreht wird um die Mitte des Rahmens, und danach muss der Rahmen neu
@@ -735,6 +789,13 @@ export type ParametricSource = {
   extrudeTwist?: number;
   extrudeTopOffsetX?: number;
   extrudeTopOffsetZ?: number;
+  slopeEnd?: number;
+  slopeSide?: "back" | "front" | "left" | "right";
+  slopeCurve?: number;
+  narrowEnd?: number;
+  narrowSide?: "back" | "front" | "left" | "right";
+  narrowCurve?: number;
+  narrowStart?: number;
 };
 
 export type CadPrimitiveFrame = {
@@ -794,6 +855,26 @@ export type WorkplaneShape = {
   extrudeTopOffsetX?: number;
   /** Shifts the top face along the shape's local Z axis, in mm. */
   extrudeTopOffsetZ?: number;
+  /**
+   * Slope along: the height of the top at the far end, in mm. The kept
+   * end stays at the body's height; missing or equal to the height means no slope.
+   */
+  slopeEnd?: number;
+  /** Slope along: which end goes down ("back" unless set; a round roof or a wedge slopes front or back). */
+  slopeSide?: "back" | "front" | "left" | "right";
+  /** Slope along: -1 to 1, 0 a straight top, above 0 bulging up, below 0 sagging. */
+  slopeCurve?: number;
+  /**
+   * Narrow along: seen from above, the width of the narrow end in mm,
+   * both long sides running in evenly. Missing or the full width means no narrowing.
+   */
+  narrowEnd?: number;
+  /** Narrow along: which end narrows ("back" unless set; a round roof or a wedge narrows front or back). */
+  narrowSide?: "back" | "front" | "left" | "right";
+  /** Narrow along: -1 to 1, 0 straight sides, above 0 bulging out, below 0 drawn in. */
+  narrowCurve?: number;
+  /** Narrow along: 0 to 0.95, the share of the length from the wide end where the narrowing starts. */
+  narrowStart?: number;
   teeth?: number;
   toothSize?: number;
   toothWidth?: number;
@@ -828,6 +909,11 @@ export type WorkplaneShape = {
   /** The chamfer at the bottom end; without it the bottom end has the same chamfer as the top. */
   threadChamferBottom?: number;
   threadHeadChamfer?: number;
+  /** Screw only (#1052): the head diameter (across flats on a hex head), the drive in its free face, and the drive's size and depth. Unset = the standard measure. */
+  threadHeadDiameter?: number;
+  threadDrive?: ThreadDrive;
+  threadDriveSize?: number;
+  threadDriveDepth?: number;
   springTurns?: number;
   springWire?: number;
   springHand?: ThreadHand;
@@ -865,6 +951,20 @@ export type WorkplaneShape = {
   hingePinless?: boolean;
   /** Hinge: the second leaf folded up about the pin, in degrees; 0 lies flat, 180 is closed. */
   hingeAngle?: number;
+  /** Hinge: screw holes in each leaf along the axis, 0 to 6; left out, none. */
+  hingeScrewHoles?: number;
+  /** Hinge: the screw holes' diameter in mm. */
+  hingeScrewDiameter?: number;
+  /** Hinge: from one screw hole's middle to the next along the axis in mm; left out, they share the length evenly. */
+  hingeScrewSpacing?: number;
+  /** Hinge: from the hole in one leaf to the hole in the other, across the axis, in mm; left out, each in the middle of its leaf. */
+  hingeScrewAcross?: number;
+  /** Hinge: false for straight screw holes; otherwise countersunk on the side that faces the other leaf when closed. */
+  hingeScrewCountersink?: boolean;
+  /** Hinge: the leaves' outer corners rounded with this radius in mm. */
+  hingeCornerRadius?: number;
+  /** Hinge: "fingers" gives each knuckle its own finger instead of a leaf each side, the two sides' alternating like combs; left out, plates. */
+  hingeLeafStyle?: "plate" | "fingers";
   /** Gridfinity: a bin or the baseplate it stands in, whose size counts grid units of 42 mm (height units of 7 mm), or a tray of any size in mm (#837). */
   gridfinityType?: GridfinityType;
   /** Gridfinity bin: the stacking lip on top of the wall; missing means on. */
@@ -1004,6 +1104,8 @@ export type WorkplaneShape = {
   loftSegments?: number;
   /** Capsule: the small end's diameter as a share of the large one, 1 or missing for equal ends (#206). */
   slotEndRatio?: number;
+  /** Torus: how thick the tube is seen from above, as a share of the outer size; the height only squashes it (#981). */
+  torusTubeRatio?: number;
   /** Transition: degrees the top end tilts about the x axis and about the z axis (#205). */
   loftTiltX?: number;
   loftTiltZ?: number;
@@ -1013,6 +1115,8 @@ export type WorkplaneShape = {
   screwHoleHeadDepth?: number;
   /** Countersink and double countersink: opening angle of the cone in degrees. */
   screwHoleAngle?: number;
+  /** Port opening: rounded corners, or the lower ones cut off as on an HDMI or DisplayPort socket. */
+  portProfile?: PortProfile;
   cornerFillet?: number;
   topBottomFillet?: number;
   roundedBoxQuality?: number;
@@ -1048,6 +1152,11 @@ export type WorkplaneShape = {
    * proportions and are fitted into the box, centred.
    */
   textStretch?: boolean;
+  /**
+   * The letters stacked top to bottom (#981), each centred on one upright line, instead of side by side. Curved text
+   * runs them as a column along the circle at its left side (its right side with textInward), the letters upright.
+   */
+  textVertical?: boolean;
   /**
    * Text only (#594): the space between the letters, in per cent of the letter size on top of the typeface's own
    * advance - 0 or left out as the font has it, above it wider, below it (down to -50) tighter. Straight and curved text.
@@ -1153,6 +1262,7 @@ export type WorkplaneShape = {
   edgeResizeMode?: "scale" | "preserve";
   cadBrep?: string;
   cadBrepFrame?: CadBrepFrame;
+  sketchPose?: SketchPose;
   // The finest tessellation deflection any edge treatment on this body has
   // needed so far. Carried forward as a floor for the next one, so a later
   // fillet with a larger radius cannot re-tessellate an already finely
@@ -1169,7 +1279,7 @@ export type WorkplaneShape = {
    * them together: no cutting, every part keeps its colour and goes out as
    * its own body.
    */
-  groupOperation?: "group" | "intersection" | "hull" | "bundle";
+  groupOperation?: "group" | "intersection" | "hull" | "bundle" | "loft";
   /**
    * The point this body turns about, kept with the body: a fraction of its
    * width, height and depth from its centre, in its own frame, so it moves,

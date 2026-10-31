@@ -1,6 +1,8 @@
 import { buildsDiffer, BUILD_ID, isBuildMessage, reportWorkerBuild } from "@/lib/buildStamp";
 import { buildGroupedShapeFromSelection, exportSolidVolume, faceReadJoins, faceReadPositions, splitShapeIfCrossed, splitShapesByPlane, type ExportSolidVolume, type GroupBuildResult, type SplitShapesOutcome } from "@/lib/editorBooleans";
 import { packValue, packedTransfer, unpackValue } from "@/lib/geometryTransfer";
+import { articulateShapes, type FlexiOptions, type FlexiShapesResult } from "@/lib/flexiJoints";
+import { lidForShapes, type LidOptions, type LidShapeResult } from "@/lib/lidTool";
 import { resultMeshes, type GeometryTask, type GeometryWorkerRequest, type GeometryWorkerResponse } from "@/lib/geometryWorkerTypes";
 import { rememberPreparedDisplay } from "@/lib/importedMeshDisplay";
 import { getLanguage, t } from "@/lib/i18n";
@@ -8,6 +10,8 @@ import type { ModelSplitPlane } from "@/lib/modelSplit";
 import { simplifyTrianglePositions, type SimplifiedMesh } from "@/lib/meshSimplify";
 import { importedShapesFromObj, type ObjImportResult } from "@/lib/objImport";
 import { importedShapeFromStl } from "@/lib/stlImport";
+import { importedShapesFromStepFile, type StepFileImport } from "@/lib/stepFileImport";
+import type { StepExportResult } from "@/lib/stepExport";
 import type { WorkplaneShape } from "@/types/layerling";
 
 /**
@@ -257,6 +261,20 @@ export function splitShapesByPlaneOffThread(targets: readonly WorkplaneShape[], 
   return splitShapesByPlane(targets, plane, stillCurrent, (shape, shapePlane) => splitShapeOffThread(shape, shapePlane, signal));
 }
 
+/** articulateShapes (lib/flexiJoints.ts) off the page: the links of a flexi body. */
+export function articulateShapesOffThread(targets: readonly WorkplaneShape[], options: FlexiOptions, signal?: AbortSignal): Promise<FlexiShapesResult> {
+  const onPage = () => articulateShapes([...targets], options);
+  if (containsText([...targets])) return onPage();
+  return runGeometryTask<FlexiShapesResult>("flexi", { targets: [...targets], options }, onPage, () => ({ links: null, error: t("status.computeTimedOut") }), signal);
+}
+
+/** lidForShapes (lib/lidTool.ts) off the page: the lid for a body open at the top (#1009). */
+export function lidForShapesOffThread(targets: readonly WorkplaneShape[], options: LidOptions, signal?: AbortSignal): Promise<LidShapeResult> {
+  const onPage = () => lidForShapes([...targets], options);
+  if (containsText([...targets])) return onPage();
+  return runGeometryTask<LidShapeResult>("lid", { targets: [...targets], options }, onPage, () => ({ lid: null, error: t("status.computeTimedOut") }), signal);
+}
+
 /**
  * An STL file read off the page (importedShapeFromStl in lib/stlImport.ts): reading a 300,000-triangle
  * file held the page for over a second. The import window shows its own progress, so this says
@@ -266,6 +284,32 @@ export function importedShapeFromStlOffThread(fileName: string, buffer: ArrayBuf
   return runGeometryTask("stl", { fileName, buffer }, async () => importedShapeFromStl(fileName, buffer), () => {
     throw new Error(t("status.computeTimedOut"));
   }, undefined, true);
+}
+
+/**
+ * A STEP file read off the page (importedShapesFromStepFile in lib/stepFileImport.ts): the kernel reads, meshes and writes
+ * every part in one go, and a file of 390 parts held the page for over 4 seconds. The import window shows its progress.
+ */
+export function importedShapesFromStepOffThread(fileName: string, buffer: ArrayBuffer): Promise<StepFileImport> {
+  return runGeometryTask("step", { fileName, buffer }, async () => importedShapesFromStepFile(fileName, buffer), () => {
+    throw new Error(t("status.computeTimedOut"));
+  }, undefined, true);
+}
+
+/**
+ * A STEP file written off the page (exportShapesToStep in lib/stepExport.ts): reading every part back into the kernel
+ * and writing the file held the page for about 3 s at 390 parts. A design with nothing STEP can carry still rejects
+ * with a StepExportEmptyError by name.
+ */
+export async function exportShapesToStepOffThread(shapes: readonly WorkplaneShape[]): Promise<StepExportResult> {
+  const result = await runGeometryTask<{ text: string; exportedCount: number; skipped: StepExportResult["skipped"] }>("stepExport", { shapes: [...shapes] }, async () => {
+    const { exportShapesToStep } = await import("@/lib/stepExport");
+    const { blob, exportedCount, skipped } = await exportShapesToStep([...shapes]);
+    return { text: await blob.text(), exportedCount, skipped };
+  }, () => {
+    throw new Error(t("status.computeTimedOut"));
+  }, undefined, true);
+  return { blob: new Blob([result.text], { type: "application/STEP" }), exportedCount: result.exportedCount, skipped: result.skipped };
 }
 
 /** An OBJ file read off the page (importedShapesFromObj in lib/objImport.ts). */

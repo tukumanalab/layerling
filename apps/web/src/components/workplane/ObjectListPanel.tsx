@@ -2,12 +2,21 @@
 
 import { GuideHelpLink } from "@/components/GuideHelpLink";
 import { useMemo, useState, useRef, useEffect, type KeyboardEvent, type MouseEvent, type ReactElement } from "react";
-import { ChevronDown, ChevronRight, ChevronUp, Eye, EyeOff, FolderOpen, ListTree, Lock, Pencil, Search, Unlock, X } from "lucide-react";
+import { ArrowDownAZ, ChevronDown, ChevronRight, ChevronUp, Eye, EyeOff, FolderOpen, ListTree, Lock, Pencil, Search, Unlock, X } from "lucide-react";
+import { ToolbarBundleIcon, ToolbarGroupIcon } from "@/components/toolbarIcons";
 import { useLanguage } from "@/lib/useLanguage";
 import { useMovablePanel, type MovablePanelOptions } from "@/lib/useMovablePanel";
-import { t, type MessageKey } from "@/lib/i18n";
-import { displayShapeName } from "@/lib/shapeCatalog";
-import { hasMatchingPart as partMatchesSearch, normalizeObjectListQuery, shapeMatchesSearch, showInObjectList } from "@/lib/objectListSearch";
+import { getLanguage, t, type MessageKey } from "@/lib/i18n";
+import { displayShapeName, hasOwnShapeName } from "@/lib/shapeCatalog";
+import {
+  hasMatchingPart as partMatchesSearch,
+  isObjectListOrder,
+  normalizeObjectListQuery,
+  shapeMatchesSearch,
+  showInObjectList,
+  sortObjectList,
+  type ObjectListOrder,
+} from "@/lib/objectListSearch";
 import type { WorkplaneShape } from "@/types/layerling";
 
 export interface ObjectListPanelProps {
@@ -27,6 +36,7 @@ export interface ObjectListPanelProps {
 }
 
 const COLLAPSED_STORAGE_KEY = "layerling.editor.objectListCollapsed";
+const ORDER_STORAGE_KEY = "layerling.editor.objectListOrder";
 
 /** Docked just right of the view cube - where .outliner-panel puts it in globals.css. */
 const OBJECT_LIST_PANEL: MovablePanelOptions = {
@@ -57,15 +67,28 @@ export function ObjectListPanel({
   const editInputRef = useRef<HTMLInputElement>(null);
   const movable = useMovablePanel("layerling.editor.objectListPosition", OBJECT_LIST_PANEL);
   const [collapsed, setCollapsed] = useState(false);
+  const [order, setOrder] = useState<ObjectListOrder>("added");
 
   // Remembered in this browser, like the panel's position; read after mounting so the first render matches the server's.
   useEffect(() => {
     try {
       setCollapsed(window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true");
+      const storedOrder = window.localStorage.getItem(ORDER_STORAGE_KEY);
+      if (isObjectListOrder(storedOrder)) setOrder(storedOrder);
     } catch {
-      // Blocked storage: the panel starts expanded.
+      // Blocked storage: the panel starts expanded, in the order the shapes were added.
     }
   }, []);
+
+  const toggleOrder = () => {
+    const next: ObjectListOrder = order === "name" ? "added" : "name";
+    setOrder(next);
+    try {
+      window.localStorage.setItem(ORDER_STORAGE_KEY, next);
+    } catch {
+      // Blocked storage: the choice holds until the panel closes.
+    }
+  };
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -105,7 +128,9 @@ export function ObjectListPanel({
 
   const getShapeKindSubtitle = (shape: WorkplaneShape): string => {
     if (shape.groupedShapes?.length) {
-      return t("outliner.children", { count: shape.groupedShapes.length });
+      // Says which it is even after a rename: a group (merged) or a bundle (parts stay what they are).
+      const kindName = t(shape.groupOperation === "bundle" ? "shape.bundle" : "shape.group");
+      return `${kindName} · ${t("outliner.children", { count: shape.groupedShapes.length })}`;
     }
     const key = `shape.${shape.kind}` as MessageKey;
     const translated = t(key);
@@ -156,12 +181,16 @@ export function ObjectListPanel({
     return shapes.filter((shape) => showInObjectList(shape, query, searchLabels));
   }, [shapes, query]);
 
+  // Sorted on every render, as the shown names follow the interface language.
+  const sortShapes = (list: WorkplaneShape[]) => sortObjectList(list, order, hasOwnShapeName, getShapeDisplayName, getLanguage());
+  const listedShapes = sortShapes(filteredShapes);
+
   /**
    * A group's parts; while searching, only the matches and the groups that lead to them, nested as deep as needed.
    * A group found by its own name shows all its parts, or opening it would show nothing.
    */
   const renderGroupParts = (parts: WorkplaneShape[], depth: number, showAll: boolean): ReactElement[] =>
-    parts.flatMap((child, index) => {
+    sortShapes(parts).flatMap((child, index) => {
       const leadsToMatch = hasMatchingPart(child);
       if (!showAll && !shapeMatches(child) && !leadsToMatch) return [];
       const childDisplayName = getShapeDisplayName(child);
@@ -213,6 +242,18 @@ export function ObjectListPanel({
           <span className="outliner-count-badge">{shapes.length}</span>
         </div>
         <div className="outliner-header-actions">
+          {collapsed ? null : (
+            <button
+              className={`outliner-close-button outliner-sort-button ${order === "name" ? "active" : ""}`}
+              type="button"
+              aria-pressed={order === "name"}
+              aria-label={t(order === "name" ? "outliner.sortAsAdded" : "outliner.sortByName")}
+              title={t(order === "name" ? "outliner.sortAsAdded" : "outliner.sortByName")}
+              onClick={toggleOrder}
+            >
+              <ArrowDownAZ size={16} />
+            </button>
+          )}
           <GuideHelpLink section="objectList" className="outliner-help-link" />
           <button
             className="outliner-close-button"
@@ -250,13 +291,13 @@ export function ObjectListPanel({
 
       {collapsed ? null : (
         <div className="outliner-list-wrap">
-          {filteredShapes.length === 0 ? (
+          {listedShapes.length === 0 ? (
             <div className="outliner-empty-state">
               <span>{filterText ? t("outliner.noMatches") : t("outliner.empty")}</span>
             </div>
           ) : (
             <ul className="outliner-list" role="listbox" aria-multiselectable="true">
-              {filteredShapes.map((shape) => {
+              {listedShapes.map((shape) => {
                 const isSelected = selectedSet.has(shape.id);
                 const isGroup = Boolean(shape.groupedShapes && shape.groupedShapes.length > 0);
                 // A search that finds parts inside a group opens it to show them.
@@ -312,6 +353,12 @@ export function ObjectListPanel({
                         ) : (
                           <div className="outliner-label-group" onDoubleClick={(e) => startRename(shape, e)}>
                             <span className="outliner-shape-name" title={displayName}>
+                              {isGroup ? (
+                                // The marks of the toolbar buttons that made it, so the list and the ribbon agree.
+                                shape.groupOperation === "bundle"
+                                  ? <ToolbarBundleIcon className="outliner-kind-icon" />
+                                  : <ToolbarGroupIcon className="outliner-kind-icon" />
+                              ) : null}
                               {displayName}
                             </span>
                             <span className="outliner-shape-kind">{subtitle}</span>
@@ -330,8 +377,8 @@ export function ObjectListPanel({
                           <button
                             type="button"
                             className="outliner-action-btn open-group-btn"
-                            title={t("group.edit")}
-                            aria-label={t("group.edit")}
+                            title={t(shape.groupOperation === "bundle" ? "group.editBundle" : "group.edit")}
+                            aria-label={t(shape.groupOperation === "bundle" ? "group.editBundle" : "group.edit")}
                             onClick={(e) => {
                               e.stopPropagation();
                               onOpenGroup(shape.id);

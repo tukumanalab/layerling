@@ -20,10 +20,18 @@ const MORE = [
   ["welcome.moreDeleteFaceTitle", "welcome.moreDeleteFaceBody"],
   ["welcome.moreSplitTitle", "welcome.moreSplitBody"],
   ["welcome.moreHullTitle", "welcome.moreHullBody"],
+  ["welcome.moreCookieCutterTitle", "welcome.moreCookieCutterBody"],
+  ["welcome.moreFlexiTitle", "welcome.moreFlexiBody"],
+  ["welcome.moreLidTitle", "welcome.moreLidBody"],
+  ["welcome.moreSlopeTitle", "welcome.moreSlopeBody"],
+  ["welcome.moreLoftSketchesTitle", "welcome.moreLoftSketchesBody"],
   ["welcome.moreSketchTitle", "welcome.moreSketchBody"],
   ["welcome.moreLibraryTitle", "welcome.moreLibraryBody"],
   ["welcome.morePatternTitle", "welcome.morePatternBody"],
   ["welcome.moreHolePatternTitle", "welcome.moreHolePatternBody"],
+  ["welcome.moreOffsetTitle", "welcome.moreOffsetBody"],
+  ["welcome.moreTextureTitle", "welcome.moreTextureBody"],
+  ["welcome.moreVaseTitle", "welcome.moreVaseBody"],
   ["welcome.moreBundleTitle", "welcome.moreBundleBody"],
   ["welcome.moreWorkplaneTitle", "welcome.moreWorkplaneBody"],
   ["welcome.morePlaceTitle", "welcome.morePlaceBody"],
@@ -47,6 +55,7 @@ const MORE = [
   ["welcome.moreHistoryTitle", "welcome.moreHistoryBody"],
   ["welcome.moreDrawingTitle", "welcome.moreDrawingBody"],
   ["welcome.moreLookTitle", "welcome.moreLookBody"],
+  ["welcome.moreControlsTitle", "welcome.moreControlsBody"],
 ] as const satisfies ReadonlyArray<readonly [MessageKey, MessageKey]>;
 
 /** What andere Programme cannot do: the short list that follows the switch note. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applySurfaceTexture, insideToScreenPositions, isRoundBody, normalizeSurfaceTexture, surfaceFalloff } from "@/lib/surfaceTexture";
-import { prepareSurfaceBase } from "@/lib/surfaceTextureMesh";
+import { faceCross, prepareSurfaceBase } from "@/lib/surfaceTextureMesh";
 import { analyzeTriangleSoup } from "@/lib/svgImport";
 
 /** A box standing on the bed, as the editor hands it over (inside frame: y up). */
@@ -97,6 +97,139 @@ describe("bumps: half balls and cones, cut out and laid anew", () => {
   }, 120_000);
 });
 
+describe("bumps under a tight triangle budget", () => {
+  // A 40 mm box away from the middle with room for few triangles: the bumps' rims get few points (see sliceBumps).
+  const w = 40, at = [-25.8, -12.6];
+  const moved = (positions: number[]) => positions.map((value, i) => value + (i % 3 === 0 ? at[0] : i % 3 === 2 ? at[1] : 0));
+  const result = applySurfaceTexture(moved(box(w)), { pattern: "bumps" }, { maxTriangles: 80_000 });
+  // The four sides: the axis across them, where they lie, which way they face.
+  const sides = [[0, at[0] + w / 2, 1], [0, at[0] - w / 2, -1], [2, at[1] + w / 2, 1], [2, at[1] - w / 2, -1]] as const;
+
+  it("turn no triangle over in a flat side", () => {
+    const v = result.vertices, I = result.indices;
+    let turned = 0, flat = 0;
+    for (let t = 0; t < I.length; t += 3) {
+      const n = faceCross(v, I[t], I[t + 1], I[t + 2]);
+      for (const [axis, plane, sign] of sides) {
+        if (![0, 1, 2].every((k) => Math.abs(v[I[t + k] * 3 + axis] - plane) < 1e-6)) continue;
+        flat += 1;
+        if (n[axis] * sign < 0) turned += 1;
+      }
+    }
+    expect(flat).toBeGreaterThan(1000);
+    expect(turned).toBe(0);
+  });
+
+  it("leave no bump out in the middle of a side", () => {
+    // Bump middles: the points at the full depth. Each one away from the border has its six neighbours one spacing off.
+    const spacing = result.stats.spacing, depth = 0.6;
+    let checked = 0, lonely = 0;
+    for (const [axis, plane, sign] of sides) {
+      const across = axis === 0 ? 2 : 0;
+      const middles: number[][] = [];
+      for (const i of new Set(result.indices)) {
+        const p = [result.vertices[i * 3], result.vertices[i * 3 + 1], result.vertices[i * 3 + 2]];
+        if (Math.abs((plane - p[axis]) * sign - depth) < 1e-3) middles.push([p[across], p[1]]);
+      }
+      const lo = (across === 0 ? at[0] : at[1]) - w / 2;
+      for (const [a, b] of middles) {
+        // Away from the border (fade 1 mm, a bump's radius) by two spacings.
+        if (Math.min(a - lo, lo + w - a, b, w - b) < 1 + 2 * spacing) continue;
+        checked += 1;
+        const neighbours = middles.filter(([c, d]) => Math.abs(Math.hypot(c - a, d - b) - spacing) < 0.05).length;
+        if (neighbours < 6) lonely += 1;
+      }
+    }
+    expect(checked).toBeGreaterThan(100);
+    expect(lonely).toBe(0);
+  });
+});
+
+describe("bumps round a cylinder (issue #1030)", () => {
+  // A cylinder 30 mm wide and 60 high with half balls 3 mm deep: thin triangles across the mantle's gentle edges and
+  // points a cut left a hair's breadth apart leant or turned their normals, and bumps here and there were left out; a
+  // facet edge running just inside a rim left a sliver out of the bump, which kept its grid and looked broken.
+  const radius = 15, depth = 3;
+  const turn = 2 * Math.PI * radius;
+
+  /** Each bump's middle (u round the cylinder, v up it) and how deep it goes, gathered round the seam too. */
+  function bumpMiddles(settings: Record<string, unknown>) {
+    const r = applySurfaceTexture(prism(radius, 60, 64), { pattern: "bumps", spacing: 5, depth, ...settings });
+    // Points well inside a bump, on a grid of half millimetres: per cell the deepest.
+    const cells = new Map<string, [number, number, number]>();
+    for (let i = 0; i < r.vertices.length / 3; i += 1) {
+      const x = r.vertices[i * 3], y = r.vertices[i * 3 + 1], z = r.vertices[i * 3 + 2];
+      const off = radius - Math.hypot(x, z);
+      if (off < depth * 0.7 || off > depth + 0.1) continue;
+      const u = ((Math.atan2(z, x) * radius) % turn + turn) % turn;
+      const key = `${Math.floor(u * 2)}|${Math.floor(y * 2)}`;
+      if (off > (cells.get(key)?.[2] ?? 0)) cells.set(key, [u, y, off]);
+    }
+    const columns = Math.ceil(turn * 2);
+    const seen = new Set<string>();
+    const bumps: { u: number; v: number; deepest: number }[] = [];
+    for (const key of cells.keys()) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const stack = [key];
+      let bottom = cells.get(key)!;
+      while (stack.length) {
+        const [cu, cv] = stack.pop()!.split("|").map(Number);
+        const here = cells.get(`${cu}|${cv}`)!;
+        if (here[2] > bottom[2]) bottom = here;
+        for (const [du, dv] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const next = `${(((cu + du) % columns) + columns) % columns}|${cv + dv}`;
+          if (cells.has(next) && !seen.has(next)) {
+            seen.add(next);
+            stack.push(next);
+          }
+        }
+      }
+      bumps.push({ u: bottom[0], v: bottom[1], deepest: bottom[2] });
+    }
+    return { r, bumps };
+  }
+
+  /** The bumps by row, the rows `rise` apart. */
+  function perRow(bumps: { v: number }[], rise: number) {
+    const rows = new Map<number, number>();
+    for (const bump of bumps) {
+      const row = Math.round(bump.v / rise);
+      rows.set(row, (rows.get(row) ?? 0) + 1);
+    }
+    return rows;
+  }
+
+  it("leave none out in any row, and every one goes to its full depth", () => {
+    const { r, bumps } = bumpMiddles({});
+    // Staggered, the rows lie spacing × √3/2 apart; each has as many as go round.
+    const rows = perRow(bumps, r.stats.spacing * (Math.sqrt(3) / 2));
+    expect(r.stats.around).toBe(19);
+    expect(rows.size).toBeGreaterThan(10);
+    for (const [row, count] of rows) expect(count, `row ${row}`).toBe(19);
+    // A bump laid anew has its middle as a point at the full depth; one that kept its grid falls short of it.
+    expect(bumps.filter((bump) => bump.deepest < depth - 1e-3)).toEqual([]);
+  }, 120_000);
+
+  it("line up in straight rows and columns when asked", () => {
+    const { r, bumps } = bumpMiddles({ bumpGrid: "straight" });
+    const spacing = r.stats.spacing;
+    // Straight, the rows lie a whole spacing apart, and every bump sits on one of the 19 columns round (each a 19th of
+    // the turn: the spacing is measured on the radius fitted to the 64 sides, a little short of the corners' 15 mm).
+    const rows = perRow(bumps, spacing);
+    expect(r.stats.around).toBe(19);
+    expect(rows.size).toBeGreaterThan(9);
+    for (const [row, count] of rows) expect(count, `row ${row}`).toBe(19);
+    for (const { u, v } of bumps) {
+      const k = ((u - bumps[0].u) / turn) * 19, m = (v - bumps[0].v) / spacing;
+      // A middle on a flat side moves along that side's normal, a little off its angle; staggered would be half a spacing.
+      expect(Math.abs(k - Math.round(k)) * spacing, `column at ${u}`).toBeLessThan(0.25);
+      expect(Math.abs(m - Math.round(m)) * spacing, `row at ${v}`).toBeLessThan(1e-3);
+    }
+    expect(bumps.filter((bump) => bump.deepest < depth - 1e-3)).toEqual([]);
+  }, 120_000);
+});
+
 describe("laid on as the body asks", () => {
   it("knows a round body from an angular one", () => {
     const round = (positions: number[]) => isRoundBody(prepareSurfaceBase(insideToScreenPositions(positions)), "z");
@@ -106,10 +239,16 @@ describe("laid on as the body asks", () => {
     expect(round(prism(10, 20, 6))).toBe(false);
   });
 
-  it("chooses around the axis on a cylinder and all round on a cube when left to itself", () => {
+  it("chooses around the axis on a cylinder and a cube (along its outline), all round on a body that is no prism", () => {
     expect(applySurfaceTexture(prism(10, 20, 64), { pattern: "grooves" }).stats.projection).toBe("cylinder");
-    expect(applySurfaceTexture(box(20), { pattern: "grooves" }).stats.projection).toBe("allRound");
-    expect(applySurfaceTexture(box(20), { pattern: "grooves", projection: "cylinder" }).stats.projection).toBe("cylinder");
+    expect(applySurfaceTexture(box(20), { pattern: "grooves" }).stats.projection).toBe("cylinder");
+    expect(applySurfaceTexture(box(20), { pattern: "grooves", projection: "allRound" }).stats.projection).toBe("allRound");
+    // A pyramid's sides lean: no outline to run along.
+    const tip = [0, 20, 0], corners = [[-10, 0, -10], [10, 0, -10], [10, 0, 10], [-10, 0, 10]];
+    const pyramid: number[] = [];
+    for (let k = 0; k < 4; k += 1) pyramid.push(...corners[k], ...tip, ...corners[(k + 1) % 4]);
+    pyramid.push(...corners[0], ...corners[1], ...corners[2], ...corners[0], ...corners[2], ...corners[3]);
+    expect(applySurfaceTexture(pyramid, { pattern: "grooves" }).stats.projection).toBe("allRound");
   }, 60_000);
 
   it("cuts every pattern on a cube's flat sides and stays closed", () => {

@@ -2,12 +2,13 @@
 
 import * as THREE from "three";
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from "three-mesh-bvh";
-import { groupShowsPartColors } from "@/lib/groupColors";
+import { groupDisplayMergeable, groupShowsPartColors } from "@/lib/groupColors";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { type ResolvedAppTheme } from "@/lib/appTheme";
 import { createGearGeometry } from "@/lib/gearGeometry";
+import { createHirthGeometry } from "@/lib/hirthGeometry";
 import { createStarGeometry } from "@/lib/starGeometry";
 import { createHeartGeometry } from "@/lib/heartGeometry";
 import { createCrescentGeometry } from "@/lib/crescentGeometry";
@@ -20,6 +21,7 @@ import { createGridfinityGeometry } from "@/lib/gridfinityGeometry";
 import { createKnurlGeometry } from "@/lib/knurlGeometry";
 import { createVaseGeometry, fittedVaseMesh } from "@/lib/vaseShape";
 import { createTeardropGeometry } from "@/lib/teardropGeometry";
+import { createPortGeometry } from "@/lib/portGeometry";
 import { createScrewHoleGeometry } from "@/lib/screwHoleGeometry";
 import { createHoneycombGeometry } from "@/lib/honeycombGeometry";
 import { createRoundedBoxGeometry } from "@/lib/roundedBoxGeometry";
@@ -27,7 +29,8 @@ import { createBentTubeGeometry, createBentTubeSegmentGeometry } from "@/lib/ben
 import { createThreadGeometry } from "@/lib/threadGeometry";
 import { createSpringGeometry } from "@/lib/springGeometry";
 import { textDisplayGeometry } from "@/lib/textFill";
-import { manifoldRevision } from "@/lib/manifoldHandle";
+import { loadedManifoldRuntime, manifoldRevision, requestManifoldRuntime } from "@/lib/manifoldHandle";
+import { buildGroupDisplayMesh } from "@/lib/editorBooleans";
 import { customFontRevision } from "@/lib/textFonts";
 import { rulerTicks } from "@/lib/rulerDimensions";
 import { horizontalPlacementWorkplane, placementWorkplaneIsBase, placementWorkplaneQuaternion, type PlacementWorkplane } from "@/lib/placementWorkplane";
@@ -36,11 +39,13 @@ import { regularPolygonFootprintScale } from "@/lib/regularPolygonFootprint";
 import { roundSideCount } from "@/lib/roundSideCount";
 import { createPyramidGeometry } from "@/lib/pyramidGeometry";
 import { positionsForTwist, twistBandCount } from "@/lib/heightSlices";
-import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { toCreasedNormals } from "@/lib/creasedNormals";
+import { shapeHasAlongDeform, slopePositions } from "@/lib/slopeAlong";
 import { DEFAULT_EDGE_LINE_COLOR } from "@/lib/workplaneGrid";
 import { deformsAboutOrigin, mirroredAxisCount, mirrorSign, preservesEdgeTreatmentSize, resizedImportedCoordinates, resizedImportedMeshPositions, shapeDepth, shapeExtrudeDeformAt, shapeHasExtrudeDeform, shapeHasShapeDeform, shapeHasTaper, shapeSupportsTaper, shapeTaperDimensions, shapeTaperScaleAt, shapeWidth } from "@/lib/workplaneShapes";
 import { sphereTessellation } from "@/lib/sphereTessellation";
 import { torusTessellation } from "@/lib/torusTessellation";
+import { torusRadii, torusTubeRatio } from "@/lib/torusShape";
 import type { WorkplaneShape } from "@/types/layerling";
 import { OVERHANG_PLATE_TOLERANCE, overhangDownwardLimit } from "@/lib/overhangLimits";
 import type { CadModifierEdge } from "@/lib/cadModifierTypes";
@@ -61,6 +66,113 @@ export const importedGeometryCache = new WeakMap<
   { geometry: THREE.BufferGeometry; edges: Map<number, THREE.EdgesGeometry> }
 >();
 export const preservedImportedGeometryCache = new WeakMap<WorkplaneShape, THREE.BufferGeometry>();
+// Display-only group meshes, one per group (#1029). They are deliberately kept out of WorkplaneShape and therefore
+// never become part of a saved project.
+type GroupDisplayMesh = NonNullable<WorkplaneShape["importedMesh"]>;
+type GroupDisplayEntry = { key: string; mesh: GroupDisplayMesh | null; round: number };
+const displayGroupMeshes = new Map<string, GroupDisplayEntry>();
+const DISPLAY_GROUP_MESH_LIMIT = 512;
+/**
+ * A group is merged this long after its last change, not while it is drawn: the union took 219 ms for 40 cylinders
+ * and the part colours 2.6 s more, so a group being stretched or reshaped shows its separate parts and becomes
+ * one body once it rests. Moving or turning it keeps the merged body, which is built round the group's centre.
+ */
+const DISPLAY_GROUP_MERGE_DELAY_MS = 250;
+const pendingGroupMerges = new Map<string, { key: string; shape: WorkplaneShape }>();
+let groupMergeTimer: ReturnType<typeof setTimeout> | undefined;
+let groupDisplayRound = 0;
+const groupDisplayListeners = new Set<() => void>();
+
+/** The viewport draws again when a group has become one body. */
+export function onGroupDisplayReady(listener: () => void) {
+  groupDisplayListeners.add(listener);
+  return () => {
+    groupDisplayListeners.delete(listener);
+  };
+}
+
+/** For a group's signature: changes when its merged body (or its colours) is ready, so only that group is built again. */
+function groupDisplayRoundOf(shape: WorkplaneShape) {
+  return displayGroupMeshes.get(shape.id)?.round ?? 0;
+}
+
+/** What the merged body depends on. The Multicolor switch is left out: it changes the colouring, not the union. */
+function groupDisplayKey(shape: WorkplaneShape) {
+  return JSON.stringify({
+    width: shapeWidth(shape), depth: shapeDepth(shape), height: shape.height,
+    children: (shape.groupedShapes ?? []).map((child) => ({
+      id: child.id, hidden: child.hidden, width: shapeWidth(child), depth: shapeDepth(child), height: child.height,
+      transform: shapeTransformSignature(child), geometry: shapeGeometrySignature(child),
+    })),
+  });
+}
+
+function partColorsReady(mesh: GroupDisplayMesh, parts: WorkplaneShape[] | undefined) {
+  return !parts || mesh.triangleCount > PART_COLOR_TRIANGLE_LIMIT || Boolean(partColoredGeometryCache.get(mesh)?.has(parts));
+}
+
+function scheduleGroupMerge(shape: WorkplaneShape, key: string) {
+  pendingGroupMerges.set(shape.id, { key, shape });
+  if (groupMergeTimer !== undefined) clearTimeout(groupMergeTimer);
+  groupMergeTimer = setTimeout(runGroupMerges, DISPLAY_GROUP_MERGE_DELAY_MS);
+}
+
+/** One group per turn, so the page answers in between when several wait (a design just opened). */
+function runGroupMerges() {
+  groupMergeTimer = undefined;
+  if (!mergeNextGroup()) return;
+  groupDisplayListeners.forEach((listener) => listener());
+  if (pendingGroupMerges.size > 0) groupMergeTimer = setTimeout(runGroupMerges, 0);
+}
+
+function mergeNextGroup() {
+  const next = pendingGroupMerges.entries().next();
+  if (next.done) return false;
+  const [id, { key, shape }] = next.value;
+  pendingGroupMerges.delete(id);
+  const known = displayGroupMeshes.get(id);
+  const mesh = known?.key === key ? known.mesh : buildGroupDisplayMesh(shape);
+  // The part colours are the slow half: worked out here as well, not while the group is drawn.
+  if (mesh && groupShowsPartColors(shape)) getPartColoredMeshGeometry({ ...shape, importedMesh: mesh });
+  displayGroupMeshes.delete(id);
+  displayGroupMeshes.set(id, { key, mesh, round: ++groupDisplayRound });
+  while (displayGroupMeshes.size > DISPLAY_GROUP_MESH_LIMIT) {
+    const oldest = displayGroupMeshes.keys().next().value;
+    if (oldest === undefined) break;
+    displayGroupMeshes.delete(oldest);
+  }
+  return true;
+}
+
+/** Merges every group that waits, at once: for tests, which draw without waiting. */
+export function flushGroupDisplayMerges() {
+  if (groupMergeTimer !== undefined) clearTimeout(groupMergeTimer);
+  groupMergeTimer = undefined;
+  while (mergeNextGroup()) { /* next group */ }
+}
+
+function displayMeshForGroup(shape: WorkplaneShape): GroupDisplayMesh | null {
+  if (!loadedManifoldRuntime()) {
+    // Asking for the kernel can throw where it cannot be fetched (no window, as in a unit test): the group stays drawn
+    // as separate parts, as it is until the kernel arrives.
+    try { requestManifoldRuntime(); } catch { /* keep the separate-part view */ }
+    return null;
+  }
+  if (!groupDisplayMergeable(shape)) return null;
+  const key = groupDisplayKey(shape);
+  const known = displayGroupMeshes.get(shape.id);
+  if (known?.key !== key) {
+    scheduleGroupMerge(shape, key);
+    return null;
+  }
+  if (!known.mesh) return null;
+  // Multicolor switched on after the merge: the separate parts show the colours until they are worked out.
+  if (groupShowsPartColors(shape) && !partColorsReady(known.mesh, shape.groupedShapes)) {
+    scheduleGroupMerge(shape, key);
+    return null;
+  }
+  return known.mesh;
+}
 /**
  * Shared by every solid's material: switching overhangs on or changing the
  * angle only changes these values, no material is rebuilt.
@@ -127,6 +239,7 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     radius: shape.radius,
     steps: shape.steps,
     sides: shape.sides,
+    torusTubeRatio: shape.torusTubeRatio,
     bevel: shape.bevel,
     segments: shape.segments,
     topRadius: shape.topRadius,
@@ -142,6 +255,13 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     extrudeTwist: shape.extrudeTwist,
     extrudeTopOffsetX: shape.extrudeTopOffsetX,
     extrudeTopOffsetZ: shape.extrudeTopOffsetZ,
+    slopeEnd: shape.slopeEnd,
+    slopeSide: shape.slopeSide,
+    slopeCurve: shape.slopeCurve,
+    narrowEnd: shape.narrowEnd,
+    narrowSide: shape.narrowSide,
+    narrowCurve: shape.narrowCurve,
+    narrowStart: shape.narrowStart,
     teeth: shape.teeth,
     toothSize: shape.toothSize,
     toothWidth: shape.toothWidth,
@@ -165,6 +285,10 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     threadChamfer: shape.threadChamfer,
     threadChamferBottom: shape.threadChamferBottom,
     threadHeadChamfer: shape.threadHeadChamfer,
+    threadHeadDiameter: shape.threadHeadDiameter,
+    threadDrive: shape.threadDrive,
+    threadDriveSize: shape.threadDriveSize,
+    threadDriveDepth: shape.threadDriveDepth,
     springTurns: shape.springTurns,
     springWire: shape.springWire,
     springHand: shape.springHand,
@@ -195,6 +319,13 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     hingeClearance: shape.hingeClearance,
     hingePinless: shape.hingePinless,
     hingeAngle: shape.hingeAngle,
+    hingeScrewHoles: shape.hingeScrewHoles,
+    hingeScrewDiameter: shape.hingeScrewDiameter,
+    hingeScrewSpacing: shape.hingeScrewSpacing,
+    hingeScrewAcross: shape.hingeScrewAcross,
+    hingeScrewCountersink: shape.hingeScrewCountersink,
+    hingeCornerRadius: shape.hingeCornerRadius,
+    hingeLeafStyle: shape.hingeLeafStyle,
     gridfinityType: shape.gridfinityType,
     gridfinityLip: shape.gridfinityLip,
     gridfinityMagnets: shape.gridfinityMagnets,
@@ -276,6 +407,7 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     screwHoleShaft: shape.screwHoleShaft,
     screwHoleHeadDepth: shape.screwHoleHeadDepth,
     screwHoleAngle: shape.screwHoleAngle,
+    portProfile: shape.portProfile,
     // A dovetail cut-out grows by its clearance, so body and socket differ.
     dovetailHole: shape.kind === "dovetail" ? Boolean(shape.hole) : undefined,
     cornerFillet: shape.cornerFillet,
@@ -294,6 +426,7 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     textStroke: shape.textStroke,
     textSilhouette: shape.textSilhouette,
     textStretch: shape.textStretch,
+    textVertical: shape.textVertical,
     textSpacing: shape.textSpacing,
     textKeyring: shape.textKeyring,
     textEdge: shape.textEdge,
@@ -391,8 +524,12 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
   // Twist/lean reshape the mesh the same way taper does, so a change to
   // either has to bust this signature - otherwise the cached geometry from
   // before the twist stays on screen.
-  const deform = shapeHasExtrudeDeform(shape)
-    ? { twist: shape.extrudeTwist, offsetX: shape.extrudeTopOffsetX, offsetZ: shape.extrudeTopOffsetZ }
+  // A slope along (slopeAlong.ts) rebuilds the mesh per vertex too, worked out in millimetres.
+  const slope = shapeHasAlongDeform(shape)
+    ? { end: shape.slopeEnd, side: shape.slopeSide, curve: shape.slopeCurve, narrow: [shape.narrowEnd, shape.narrowSide, shape.narrowCurve, shape.narrowStart] }
+    : null;
+  const deform = shapeHasExtrudeDeform(shape) || slope
+    ? { twist: shape.extrudeTwist, offsetX: shape.extrudeTopOffsetX, offsetZ: shape.extrudeTopOffsetZ, slope }
     : null;
   if (shape.groupedShapes?.length && !shape.importedMesh) {
     return JSON.stringify({
@@ -400,6 +537,10 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
       width: shapeWidth(shape),
       depth: shapeDepth(shape),
       height: shape.height,
+      // A group drawn as separate parts is built again when the kernel has loaded and when its merged body is ready.
+      displayMerge: groupDisplayMergeable(shape) ? [manifoldRevision(), groupDisplayRoundOf(shape)] : 0,
+      // Changing Multicolor changes whether the merged mesh needs vertex colours, so the viewport object must be rebuilt.
+      partColors: groupShowsPartColors(shape) ? shapeResourceId(shape.groupedShapes) : 0,
       taper,
       deform,
     }) + nestedSignatures(
@@ -449,6 +590,7 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     radius: shape.radius,
     steps: shape.steps,
     sides: shape.sides,
+    torusTubeRatio: shape.torusTubeRatio,
     bevel: shape.bevel,
     segments: shape.segments,
     topRadius: shape.topRadius,
@@ -464,6 +606,13 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     extrudeTwist: shape.extrudeTwist,
     extrudeTopOffsetX: shape.extrudeTopOffsetX,
     extrudeTopOffsetZ: shape.extrudeTopOffsetZ,
+    slopeEnd: shape.slopeEnd,
+    slopeSide: shape.slopeSide,
+    slopeCurve: shape.slopeCurve,
+    narrowEnd: shape.narrowEnd,
+    narrowSide: shape.narrowSide,
+    narrowCurve: shape.narrowCurve,
+    narrowStart: shape.narrowStart,
     teeth: shape.teeth,
     toothSize: shape.toothSize,
     toothWidth: shape.toothWidth,
@@ -487,6 +636,10 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     threadChamfer: shape.threadChamfer,
     threadChamferBottom: shape.threadChamferBottom,
     threadHeadChamfer: shape.threadHeadChamfer,
+    threadHeadDiameter: shape.threadHeadDiameter,
+    threadDrive: shape.threadDrive,
+    threadDriveSize: shape.threadDriveSize,
+    threadDriveDepth: shape.threadDriveDepth,
     springTurns: shape.springTurns,
     springWire: shape.springWire,
     springHand: shape.springHand,
@@ -517,6 +670,13 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     hingeClearance: shape.hingeClearance,
     hingePinless: shape.hingePinless,
     hingeAngle: shape.hingeAngle,
+    hingeScrewHoles: shape.hingeScrewHoles,
+    hingeScrewDiameter: shape.hingeScrewDiameter,
+    hingeScrewSpacing: shape.hingeScrewSpacing,
+    hingeScrewAcross: shape.hingeScrewAcross,
+    hingeScrewCountersink: shape.hingeScrewCountersink,
+    hingeCornerRadius: shape.hingeCornerRadius,
+    hingeLeafStyle: shape.hingeLeafStyle,
     gridfinityType: shape.gridfinityType,
     gridfinityLip: shape.gridfinityLip,
     gridfinityMagnets: shape.gridfinityMagnets,
@@ -598,6 +758,7 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     screwHoleShaft: shape.screwHoleShaft,
     screwHoleHeadDepth: shape.screwHoleHeadDepth,
     screwHoleAngle: shape.screwHoleAngle,
+    portProfile: shape.portProfile,
     // A dovetail cut-out grows by its clearance, so body and socket differ.
     dovetailHole: shape.kind === "dovetail" ? Boolean(shape.hole) : undefined,
     cornerFillet: shape.cornerFillet,
@@ -616,6 +777,7 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     textStroke: shape.textStroke,
     textSilhouette: shape.textSilhouette,
     textStretch: shape.textStretch,
+    textVertical: shape.textVertical,
     textSpacing: shape.textSpacing,
     textKeyring: shape.textKeyring,
     textEdge: shape.textEdge,
@@ -803,7 +965,9 @@ export function syncShapeObjectAppearance(object: THREE.Group, shape: WorkplaneS
   const surface = object.children.find((child): child is THREE.Mesh => child instanceof THREE.Mesh && Boolean(child.userData.shapeSurface));
   if (!surface) return;
   if (updateSurfaceMaterial) {
-    const material = sharedShapeMaterial(shape);
+    // A group merged into one mesh shows its parts' colours through the colours of its vertices: the
+    // material has to keep reading them, or the whole group turns into one colour on the next sync.
+    const material = sharedShapeMaterial(shape, Boolean(surface.geometry.getAttribute("color")) && !shape.hole);
     const nextMaterial = shape.kind === "box" && shape.imagePlate && !shape.hole
       ? createImagePlateMaterials(shape, material, onTextureReady)
       : material;
@@ -1054,28 +1218,63 @@ export function rebuildModifierEdges(
   const selected = new Set(selectedIds);
   const highlighted = new Set(highlightedIds);
   const failed = new Set(failedIds);
+  // Drawn as if no edge were under the pointer; the one that is gets its own lines from
+  // setModifierEdgeHover, so moving the pointer onto another edge leaves these thousands alone.
   edges.forEach((edge) => {
     if (edge.points.length < 6) return;
     const active = selected.has(edge.id);
-    const hovered = hoverId === edge.id;
-    const belowThreshold = !active && !hovered && !highlighted.has(edge.id);
-    const style = modifierEdgeMaterialStyle(active, hovered, previewActive, belowThreshold, failed.has(edge.id));
-    if (hovered || (active && failed.has(edge.id))) {
-      if (hovered) {
-        state.modifierLayer.add(wideModifierEdgeLine(state, edge.points, MODIFIER_EDGE_HALO_COLOR, 1002.5, MODIFIER_EDGE_HALO_PX, 0.85));
-      }
-      state.modifierLayer.add(wideModifierEdgeLine(state, edge.points, style.color, hovered ? 1003 : 1002));
+    const belowThreshold = !active && !highlighted.has(edge.id);
+    const style = modifierEdgeMaterialStyle(active, false, previewActive, belowThreshold, failed.has(edge.id));
+    if (active && failed.has(edge.id)) {
+      const wide = wideModifierEdgeLine(state, edge.points, style.color, 1002);
+      wide.userData.modifierEdgeId = edge.id;
+      state.modifierLayer.add(wide);
       return;
     }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(edge.points, 3));
     const line = new THREE.Line(geometry, modifierEdgeMaterial(style, onlyVisible));
     line.userData.modifierEdgeId = edge.id;
-    line.renderOrder = hovered ? 1003 : active ? 1002 : 1001;
+    line.renderOrder = active ? 1002 : 1001;
     setObjectRenderLayer(line, RENDER_LAYER_MODIFIERS);
     freezeStaticObjectMatrices(line);
     state.modifierLayer.add(line);
   });
+  setModifierEdgeHover(state, edges, hoverId, selectedIds, previewActive, failedIds);
+}
+
+/**
+ * The edge under the pointer: a halo and a wide line in its hovered colour, and its own line from
+ * rebuildModifierEdges hidden meanwhile. Only these two lines are made again when the pointer moves.
+ */
+export function setModifierEdgeHover(
+  state: ThreeState | null,
+  edges: CadModifierEdge[],
+  hoverId: number | null,
+  selectedIds: number[],
+  previewActive = false,
+  failedIds: number[] = [],
+) {
+  if (!state) return;
+  const layer = state.modifierLayer;
+  layer.children
+    .filter((child) => child.userData.modifierEdgeHover)
+    .forEach((child) => {
+      layer.remove(child);
+      disposeObject(child);
+    });
+  layer.children.forEach((child) => {
+    if (typeof child.userData.modifierEdgeId === "number") child.visible = child.userData.modifierEdgeId !== hoverId;
+  });
+  const edge = hoverId === null ? undefined : edges.find((candidate) => candidate.id === hoverId);
+  if (edge && edge.points.length >= 6) {
+    const style = modifierEdgeMaterialStyle(selectedIds.includes(edge.id), true, previewActive, false, failedIds.includes(edge.id));
+    const halo = wideModifierEdgeLine(state, edge.points, MODIFIER_EDGE_HALO_COLOR, 1002.5, MODIFIER_EDGE_HALO_PX, 0.85);
+    const core = wideModifierEdgeLine(state, edge.points, style.color, 1003);
+    halo.userData.modifierEdgeHover = true;
+    core.userData.modifierEdgeHover = true;
+    layer.add(halo, core);
+  }
   state.needsRender = true;
 }
 
@@ -1443,11 +1642,30 @@ export function replaceObjectMaterials(object: THREE.Mesh, materials: THREE.Mate
   trimSharedShapeMaterialCache();
 }
 
-export function enableAcceleratedMeshPicking(mesh: THREE.Mesh, geometry: THREE.BufferGeometry, force = false) {
+function geometryTriangleCount(geometry: THREE.BufferGeometry) {
   const position = geometry.getAttribute("position");
-  const triangles = geometry.getIndex()?.count
+  return geometry.getIndex()?.count
     ? Math.floor((geometry.getIndex()?.count ?? 0) / 3)
     : Math.floor((position?.count ?? 0) / 3);
+}
+
+/** From this size a treated body's mesh gets a picking tree: a ray then costs 0.01 ms instead of 1 ms and up (14 ms at 400,000). */
+export const TREATED_BVH_TRIANGLE_THRESHOLD = 20_000;
+
+/**
+ * A body with edge treatments is rebuilt for every preview and every change, so it gets no tree up front.
+ * A large one builds it the first time a ray is cast against it (the tape measure, placing a shape on it).
+ */
+export function enableLazyMeshPicking(mesh: THREE.Mesh, geometry: THREE.BufferGeometry) {
+  if (geometryTriangleCount(geometry) < TREATED_BVH_TRIANGLE_THRESHOLD) return;
+  mesh.raycast = function lazyAcceleratedRaycast(this: THREE.Mesh, raycaster, intersects) {
+    if (!(geometry as THREE.BufferGeometry & { boundsTree?: unknown }).boundsTree) computeImportedBoundsTree(geometry);
+    acceleratedRaycast.call(this, raycaster, intersects);
+  };
+}
+
+export function enableAcceleratedMeshPicking(mesh: THREE.Mesh, geometry: THREE.BufferGeometry, force = false) {
+  const triangles = geometryTriangleCount(geometry);
   mesh.raycast = acceleratedRaycast;
   const bvhGeometry = geometry as THREE.BufferGeometry & { boundsTree?: unknown };
   if ((force || triangles >= BVH_PICKING_TRIANGLE_THRESHOLD) && !bvhGeometry.boundsTree) {
@@ -1477,6 +1695,20 @@ export function createShapeObject(
   group.scale.set(mirrorSign(shape.mirrorX), mirrorSign(shape.mirrorY), mirrorSign(shape.mirrorZ));
 
   if (shape.groupedShapes?.length && !shape.importedMesh) {
+    // A plain group is drawn as one derived solid when the geometry kernel is ready. The original group and its
+    // children remain untouched; until then (or if merging is unsupported) the established separate-part view stays.
+    if (shape.groupOperation !== "bundle" && shape.groupOperation !== "hull" && !shape.hole) {
+      const visibleParts = shape.groupedShapes.filter((part) => !part.hidden);
+      const displayMesh = visibleParts.length === shape.groupedShapes.length ? displayMeshForGroup(shape) : null;
+      if (displayMesh) {
+        const allPartsTransparent = visibleParts.length > 0 && visibleParts.every((part) => part.transparent);
+        return createShapeObject({
+          ...shape,
+          transparent: shape.transparent ?? (allPartsTransparent ? true : undefined),
+          importedMesh: displayMesh,
+        }, showEdges, onTextureReady, acceleratedPicking);
+      }
+    }
     const content = new THREE.Group();
     content.userData.groupedShapeContent = true;
     shape.groupedShapes
@@ -1571,6 +1803,9 @@ export function createShapeObject(
     case "teardrop":
       addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createTeardropGeometry({ width, depth, height, sides: roundSideCount(shape.sides, width, depth) })), material, shape);
       break;
+    case "port":
+      addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createPortGeometry({ width, depth, height, cornerFillet: shape.cornerFillet, portProfile: shape.portProfile })), material, shape);
+      break;
     case "knurl":
       addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createKnurlGeometry({ width, height, knurlPattern: shape.knurlPattern, knurlCount: shape.knurlCount, knurlDepth: shape.knurlDepth, knurlAngle: shape.knurlAngle, knurlChamfer: shape.knurlChamfer })), material, shape);
       break;
@@ -1591,6 +1826,13 @@ export function createShapeObject(
         hingeClearance: shape.hingeClearance,
         hingePinless: shape.hingePinless,
         hingeAngle: shape.hingeAngle,
+        hingeScrewHoles: shape.hingeScrewHoles,
+        hingeScrewDiameter: shape.hingeScrewDiameter,
+        hingeScrewSpacing: shape.hingeScrewSpacing,
+        hingeScrewAcross: shape.hingeScrewAcross,
+        hingeScrewCountersink: shape.hingeScrewCountersink,
+        hingeCornerRadius: shape.hingeCornerRadius,
+        hingeLeafStyle: shape.hingeLeafStyle,
         sides: shape.sides,
       })), material, shape);
       break;
@@ -1759,6 +2001,9 @@ export function createShapeObject(
         gearBacklash: shape.gearBacklash,
       })), material, shape);
       break;
+    case "hirth":
+      addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createHirthGeometry(width, height, depth, shape)), material, shape);
+      break;
     case "honeycomb":
       addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createHoneycombGeometry({
         width,
@@ -1813,6 +2058,10 @@ export function createShapeObject(
         threadChamfer: shape.threadChamfer,
         threadChamferBottom: shape.threadChamferBottom,
         threadHeadChamfer: shape.threadHeadChamfer,
+        threadHeadDiameter: shape.threadHeadDiameter,
+        threadDrive: shape.threadDrive,
+        threadDriveSize: shape.threadDriveSize,
+        threadDriveDepth: shape.threadDriveDepth,
       })), material, shape);
       break;
     case "spring":
@@ -2058,7 +2307,17 @@ export function taperGeometryForShape(geometry: THREE.BufferGeometry, shape: Wor
     position.setXYZ(index, localX, y, localZ);
   }
   position.needsUpdate = true;
-  if (bands > 1 && !shape.imagePlate) {
+  // A slope along (slopeAlong.ts) lowers the top towards one end, after the taper and the twist.
+  const sloped = shapeHasAlongDeform(shape) && !shape.imagePlate;
+  if (sloped) {
+    const flat = tapered.index ? tapered.toNonIndexed() : tapered;
+    const next = new THREE.BufferGeometry();
+    next.setAttribute("position", new THREE.BufferAttribute(slopePositions(flat.getAttribute("position").array, shape), 3));
+    if (flat !== tapered) flat.dispose();
+    if (!tapered.userData.cached) tapered.dispose();
+    tapered = next;
+  }
+  if ((bands > 1 || sloped) && !shape.imagePlate) {
     // Smooth across the small folds between the bands, sharp at the body's own edges - judged in
     // millimetres: a unit body stretched afterwards would show its folds steeper or flatter.
     // The body stays in millimetres from here on, so its edge lines are judged there too;
@@ -2145,8 +2404,9 @@ export function addMesh(
   mesh.userData.shapeSurface = true;
   retainSharedShapeGeometry(mesh, prepared);
   retainSharedShapeMaterials(mesh, material);
-  if (group.userData.acceleratedPicking !== false && !shape.edgeTreatments?.length) {
-    enableAcceleratedMeshPicking(mesh, prepared, Boolean(shape.importedMesh));
+  if (group.userData.acceleratedPicking !== false) {
+    if (shape.edgeTreatments?.length) enableLazyMeshPicking(mesh, prepared);
+    else enableAcceleratedMeshPicking(mesh, prepared, Boolean(shape.importedMesh));
   }
   mesh.castShadow = true;
   mesh.receiveShadow = false;
@@ -2171,7 +2431,7 @@ export function addShapeEdgeDecorations(group: THREE.Group, mesh: THREE.Mesh, pr
   const complexEdges =
     shape.kind === "mesh" ||
     Boolean(shape.importedMesh) ||
-    ["cone", "pyramid", "roof", "roundRoof", "halfSphere", "paraboloid", "torus", "tube", "ring", "star", "gear", "wedge", "polygon", "heart", "crescent", "slot", "dovetail", "hinge", "gridfinity", "knurl", "teardrop", "counterbore", "countersink", "doubleCountersink", "honeycomb", "loft"].includes(shape.kind);
+    ["cone", "pyramid", "roof", "roundRoof", "halfSphere", "paraboloid", "torus", "tube", "ring", "star", "gear", "hirth", "wedge", "polygon", "heart", "crescent", "slot", "dovetail", "hinge", "gridfinity", "knurl", "teardrop", "port", "counterbore", "countersink", "doubleCountersink", "honeycomb", "loft"].includes(shape.kind);
   const importedTriangleCount = shape.importedMesh?.triangleCount ?? 0;
   // A vase's relief has an edge at every rib: drawn like a heavy imported mesh, without the lines.
   const skipHeavyImportedEdges = (Boolean(shape.importedMesh) && importedTriangleCount > IMPORTED_SELECTED_EDGE_TRIANGLE_LIMIT)
@@ -2196,11 +2456,14 @@ export function addShapeEdgeDecorations(group: THREE.Group, mesh: THREE.Mesh, pr
       // bei einem runden Koerper wird jede Facette zu einem Strich. Er zeigt
       // deshalb nur seine echten Kanten, etwa Deckel- und Bodenrand.
       // A twisted side folds a little at every band (#184): only its real edges get a line, as on a thread.
-      const twisted = Math.abs(shape.extrudeTwist ?? 0) > 1e-6;
+      // A slope along folds its curved top in short pieces the same way.
+      const twisted = Math.abs(shape.extrudeTwist ?? 0) > 1e-6 || shapeHasAlongDeform(shape);
       const selectedThreshold = shape.importedMesh ? NORMAL_IMPORTED_SELECTION_EDGE_ANGLE : shape.kind === "thread" || twisted || (shape.transparent && !shape.hole) ? 25 : 1;
+      // A part-coloured group's surface can carry extra corners for its colour boundaries; its lines follow the plain mesh.
+      const edgeSource = (prepared.userData.edgesSource as THREE.BufferGeometry | undefined) ?? prepared;
       const edgesGeometry = !selectedOutline && allEdgeLines
-        ? calmEdgesGeometry(shape, prepared)
-        : getEdgesGeometry(shape, prepared, selectedOutline ? selectedThreshold : twisted ? 25 : complexEdges ? 14 : 25);
+        ? calmEdgesGeometry(shape, edgeSource)
+        : getEdgesGeometry(shape, edgeSource, selectedOutline ? selectedThreshold : twisted ? 25 : complexEdges ? 14 : 25);
       const edges = new THREE.LineSegments(edgesGeometry, sharedLineMaterial(edgeColor, edgeOpacity));
       edges.userData.complexEdge = complexEdges;
       edges.userData.shapeDecoration = true;
@@ -2274,10 +2537,9 @@ export const PART_COLOR_TRIANGLE_LIMIT = 300_000;
 export const PART_COLOR_PROBE_DIRECTION = new THREE.Vector3(0.5774, 0.5773, 0.5775).normalize();
 
 /**
- * The mesh of a group that was cut into one body, with every triangle in the
- * colour of the part it came from. Each triangle is looked up behind its own
- * face: the point lies inside the material it belongs to, so a face left by a
- * hole takes the colour of the body it was cut into.
+ * The mesh of a group drawn as one body, with each exposed triangle coloured
+ * by the source part whose surface contributes that boundary. The probe checks
+ * the source surfaces near the face before using a stable geometric fallback.
  */
 export function getPartColoredMeshGeometry(shape: WorkplaneShape): THREE.BufferGeometry | null {
   const mesh = shape.importedMesh;
@@ -2300,10 +2562,9 @@ export function buildPartColoredMeshGeometry(
 ): THREE.BufferGeometry | null {
   // The parts in the frame of the mesh: both are stored around the group's
   // centre, standing on its lowest point.
-  const solids: Array<{ probe: THREE.Mesh; box: THREE.Box3; color: THREE.Color }> = [];
-  parts
-    .filter((part) => !part.hole && !part.hidden)
-    .forEach((part) => {
+  const solids: PartColorSolid[] = [];
+  parts.forEach((part) => {
+      if (part.hole || part.hidden) return;
       const object = createShapeObject(part, false, undefined, false);
       object.updateMatrixWorld(true);
       object.traverse((node) => {
@@ -2318,7 +2579,7 @@ export function buildPartColoredMeshGeometry(
         const probe = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
         probe.raycast = acceleratedRaycast;
         const color = material instanceof THREE.MeshStandardMaterial ? material.color.clone() : new THREE.Color(part.color);
-        solids.push({ probe, box: geometry.boundingBox ?? new THREE.Box3(), color });
+        solids.push({ probe, box: geometry.boundingBox ?? new THREE.Box3(), color, partKey: part.id, mirrored: node.matrixWorld.determinant() < 0 });
       });
       disposeObject(object);
     });
@@ -2340,26 +2601,53 @@ export function buildPartColoredMeshGeometry(
   // The plate stands the mesh on y = 0; the parts were placed against the
   // stored positions, which may sit a hair higher or lower.
   const offsetY = lowestY(mesh.positions);
+  // When the same point lies inside several parts, prefer the part whose actual surface
+  // contributes the rendered boundary. Selection order is deliberately not a colour rule.
+  const stablePartOrder = (left: (typeof solids)[number], right: (typeof solids)[number]) => left.partKey < right.partKey ? -1 : left.partKey > right.partKey ? 1 : 0;
   const insideOf = (point: THREE.Vector3) => {
-    for (const solid of solids) {
-      if (!solid.box.containsPoint(point)) continue;
+    const containing = solids.filter((solid) => {
+      if (!solid.box.containsPoint(point)) return false;
       raycaster.set(point, PART_COLOR_PROBE_DIRECTION);
-      if (raycaster.intersectObject(solid.probe, false).length % 2 === 1) return solid;
-    }
-    return null;
+      return raycaster.intersectObject(solid.probe, false).length % 2 === 1;
+    });
+    return containing.sort(stablePartOrder)[0] ?? null;
   };
-  const nearestTo = (point: THREE.Vector3) => {
-    let best = solids[0];
-    let bestDistance = Number.POSITIVE_INFINITY;
+  const nearestTo = (point: THREE.Vector3) => solids.reduce((best, solid) => {
+    const distance = solid.box.distanceToPoint(point);
+    const bestDistance = best.box.distanceToPoint(point);
+    return distance < bestDistance - 1e-8 || (Math.abs(distance - bestDistance) <= 1e-8 && stablePartOrder(solid, best) < 0) ? solid : best;
+  }, solids[0]);
+  const surfaceOwnerOf = (point: THREE.Vector3, faceNormal: THREE.Vector3) => {
+    const probeOffset = Math.max(1e-3, inset * 2);
+    const origin = point.clone().addScaledVector(faceNormal, probeOffset);
+    raycaster.set(origin, faceNormal.clone().negate());
+    let best: (typeof solids)[number] | null = null;
+    let bestError = Number.POSITIVE_INFINITY;
     for (const solid of solids) {
-      const distance = solid.box.distanceToPoint(point);
-      if (distance < bestDistance) {
+      if (!solid.box.containsPoint(point) && solid.box.distanceToPoint(point) > probeOffset * 2) continue;
+      const hit = raycaster.intersectObject(solid.probe, false)[0];
+      if (!hit) continue;
+      const error = Math.abs(hit.distance - probeOffset);
+      if (error < bestError - 1e-7 || (Math.abs(error - bestError) <= 1e-7 && best && stablePartOrder(solid, best) < 0)) {
         best = solid;
-        bestDistance = distance;
+        bestError = error;
       }
     }
-    return best;
+    // A genuine contributor should have a source surface at the output triangle. If mesh tolerances
+    // prevent that match, fall back to a stable geometric probe rather than source triangle IDs.
+    return best && bestError <= Math.max(0.01, probeOffset * 1.5) ? best : insideOf(point.clone().addScaledVector(faceNormal, -inset)) ?? nearestTo(point);
   };
+  const planeTolerance = Math.max(1e-3, size * 2e-5);
+  const baseNormals = base.getAttribute("normal");
+  const aP = new THREE.Vector3();
+  const bP = new THREE.Vector3();
+  const cP = new THREE.Vector3();
+  const e1 = new THREE.Vector3();
+  const e2 = new THREE.Vector3();
+  const rel = new THREE.Vector3();
+  const triangleBox = new THREE.Box3();
+  // Triangles whose face is shared by parts of different colours, cut along the edges of those parts' own faces.
+  const splitPieces = new Map<number, Array<{ corners: number[]; normals: number[]; color: THREE.Color }>>();
   for (let triangle = 0; triangle < triangleCount; triangle += 1) {
     const offset = triangle * 3;
     a.fromBufferAttribute(positions, offset);
@@ -2369,8 +2657,35 @@ export function buildPartColoredMeshGeometry(
     normal.subVectors(b, a).cross(edge.subVectors(c, a)).normalize();
     probePoint.addVectors(a, b).add(c).multiplyScalar(1 / 3);
     probePoint.y += offsetY;
-    probePoint.addScaledVector(normal, -inset);
-    const solid = insideOf(probePoint) ?? nearestTo(probePoint);
+    // Where two parts have faces in the same plane, the kernel merges them and re-triangulates the joint face, so one
+    // triangle can cover ground that belongs to one part and ground that belongs to another. A single colour per
+    // triangle cannot be right there: cut it along the edges of those faces first.
+    aP.copy(a); aP.y += offsetY;
+    bP.copy(b); bP.y += offsetY;
+    cP.copy(c); cP.y += offsetY;
+    let solid: PartColorSolid | null = null;
+    if (solids.length > 1) {
+      const pieces = splitTriangleByPartFaces(solids, aP, bP, cP, normal, planeTolerance, triangleBox, e1, e2, rel, stablePartOrder, (point) => surfaceOwnerOf(point, normal));
+      if (pieces?.uniform) solid = pieces.uniform;
+      else if (pieces) {
+        const pieceNormals = (point: THREE.Vector3) => {
+          if (!baseNormals) return [normal.x, normal.y, normal.z];
+          const [la, lb, lc] = barycentricWeights(point, aP, bP, cP);
+          const x = baseNormals.getX(offset) * la + baseNormals.getX(offset + 1) * lb + baseNormals.getX(offset + 2) * lc;
+          const y = baseNormals.getY(offset) * la + baseNormals.getY(offset + 1) * lb + baseNormals.getY(offset + 2) * lc;
+          const z = baseNormals.getZ(offset) * la + baseNormals.getZ(offset + 1) * lb + baseNormals.getZ(offset + 2) * lc;
+          const length = Math.hypot(x, y, z) || 1;
+          return [x / length, y / length, z / length];
+        };
+        splitPieces.set(triangle, pieces.cells.map((cell) => ({
+          corners: cell.corners.flatMap((corner) => [corner.x, corner.y - offsetY, corner.z]),
+          normals: cell.corners.flatMap((corner) => pieceNormals(corner)),
+          color: cell.solid.color,
+        })));
+        solid = pieces.cells[0].solid;
+      }
+    }
+    solid ??= surfaceOwnerOf(probePoint, normal);
     for (let corner = 0; corner < 3; corner += 1) {
       colors[(offset + corner) * 3] = solid.color.r;
       colors[(offset + corner) * 3 + 1] = solid.color.g;
@@ -2384,14 +2699,210 @@ export function buildPartColoredMeshGeometry(
   });
 
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", positions);
   const normals = base.getAttribute("normal");
-  if (normals) geometry.setAttribute("normal", normals);
-  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  if (splitPieces.size === 0) {
+    geometry.setAttribute("position", positions);
+    if (normals) geometry.setAttribute("normal", normals);
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  } else {
+    // Rebuilt triangle by triangle: the untouched ones are copied, the cut ones become their pieces.
+    const outPositions: number[] = [];
+    const outNormals: number[] = [];
+    const outColors: number[] = [];
+    for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+      const offset = triangle * 3;
+      const pieces = splitPieces.get(triangle);
+      if (!pieces) {
+        for (let corner = 0; corner < 3; corner += 1) {
+          outPositions.push(positions.getX(offset + corner), positions.getY(offset + corner), positions.getZ(offset + corner));
+          if (normals) outNormals.push(normals.getX(offset + corner), normals.getY(offset + corner), normals.getZ(offset + corner));
+          outColors.push(colors[(offset + corner) * 3], colors[(offset + corner) * 3 + 1], colors[(offset + corner) * 3 + 2]);
+        }
+        continue;
+      }
+      for (const piece of pieces) {
+        const cornerCount = piece.corners.length / 3;
+        for (let fan = 1; fan < cornerCount - 1; fan += 1) {
+          for (const index of [0, fan, fan + 1]) {
+            outPositions.push(piece.corners[index * 3], piece.corners[index * 3 + 1], piece.corners[index * 3 + 2]);
+            outNormals.push(piece.normals[index * 3], piece.normals[index * 3 + 1], piece.normals[index * 3 + 2]);
+            outColors.push(piece.color.r, piece.color.g, piece.color.b);
+          }
+        }
+      }
+    }
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(outPositions, 3));
+    if (normals) geometry.setAttribute("normal", new THREE.Float32BufferAttribute(outNormals, 3));
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(outColors, 3));
+    // The cuts only add corners along the edges of the joint face: the neighbouring triangles do not have them. The
+    // edge lines keep reading the uncut mesh, or every such corner would show as a stray stroke.
+    geometry.userData.edgesSource = base;
+    geometry.userData.splitTriangleCount = splitPieces.size;
+  }
   geometry.boundingBox = base.boundingBox?.clone() ?? null;
   geometry.boundingSphere = base.boundingSphere?.clone() ?? null;
   geometry.userData.cached = true;
   return geometry;
+}
+
+type PartColorSolid = { probe: THREE.Mesh; box: THREE.Box3; color: THREE.Color; partKey: string; mirrored: boolean };
+type Point2 = [number, number];
+
+/** Weights of a point in the plane of a triangle, for the corners a, b and c. */
+function barycentricWeights(point: THREE.Vector3, a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3): [number, number, number] {
+  const triangle = new THREE.Triangle(a, b, c);
+  const target = new THREE.Vector3();
+  triangle.getBarycoord(point, target);
+  return [target.x, target.y, target.z];
+}
+
+function polygonArea(polygon: Point2[]) {
+  let area = 0;
+  for (let index = 0; index < polygon.length; index += 1) {
+    const [x1, y1] = polygon[index];
+    const [x2, y2] = polygon[(index + 1) % polygon.length];
+    area += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(area) / 2;
+}
+
+/** A convex polygon cut by the line through (px, py) and (qx, qy). Corners on the line belong to both halves. */
+function splitConvexPolygon(polygon: Point2[], px: number, py: number, qx: number, qy: number, tolerance: number): [Point2[], Point2[]] {
+  const length = Math.hypot(qx - px, qy - py);
+  const side = (point: Point2) => ((qx - px) * (point[1] - py) - (qy - py) * (point[0] - px)) / length;
+  const left: Point2[] = [];
+  const right: Point2[] = [];
+  for (let index = 0; index < polygon.length; index += 1) {
+    const from = polygon[index];
+    const to = polygon[(index + 1) % polygon.length];
+    const fromSide = side(from);
+    const toSide = side(to);
+    if (fromSide >= -tolerance) left.push(from);
+    if (fromSide <= tolerance) right.push(from);
+    if ((fromSide > tolerance && toSide < -tolerance) || (fromSide < -tolerance && toSide > tolerance)) {
+      const t = fromSide / (fromSide - toSide);
+      const crossing: Point2 = [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
+      left.push(crossing);
+      right.push(crossing);
+    }
+  }
+  return [left, right];
+}
+
+const PART_COLOR_CELL_LIMIT = 96;
+const PART_COLOR_LINE_LIMIT = 72;
+
+/**
+ * Cuts one triangle of the merged mesh along the edges of every part face lying in the same plane, facing the same
+ * way. Each piece then sits wholly inside or outside each of those faces, so one colour is true for all of it.
+ * Returns null when no part other than the triangle's own colour shares its plane (nothing to cut), a `uniform`
+ * part when every piece comes out as the same part, and otherwise the pieces with their colours.
+ */
+function splitTriangleByPartFaces(
+  solids: PartColorSolid[],
+  a: THREE.Vector3,
+  b: THREE.Vector3,
+  c: THREE.Vector3,
+  normal: THREE.Vector3,
+  planeTolerance: number,
+  triangleBox: THREE.Box3,
+  e1: THREE.Vector3,
+  e2: THREE.Vector3,
+  rel: THREE.Vector3,
+  stableOrder: (left: PartColorSolid, right: PartColorSolid) => number,
+  fallbackOwner: (point: THREE.Vector3) => PartColorSolid,
+): { uniform?: PartColorSolid; cells: Array<{ corners: THREE.Vector3[]; solid: PartColorSolid }> } | null {
+  triangleBox.setFromPoints([a, b, c]).expandByScalar(planeTolerance);
+  // Cheap exit: a triangle only one part reaches has nothing to share.
+  const reaching = solids.filter((solid) => solid.box.intersectsBox(triangleBox));
+  if (reaching.length < 2) return null;
+
+  e1.subVectors(b, a).normalize();
+  e2.crossVectors(normal, e1);
+  const project = (point: THREE.Vector3): Point2 => {
+    rel.subVectors(point, a);
+    return [rel.dot(e1), rel.dot(e2)];
+  };
+  const lift = (point: Point2) => a.clone().addScaledVector(e1, point[0]).addScaledVector(e2, point[1]);
+
+  const faces: Array<{ solid: PartColorSolid; corners: [Point2, Point2, Point2] }> = [];
+  const corner = new THREE.Vector3();
+  const faceNormal = new THREE.Vector3();
+  for (const solid of reaching) {
+    const tree = solid.probe.geometry.boundsTree;
+    if (!tree) continue;
+    tree.shapecast({
+      intersectsBounds: (box) => box.intersectsBox(triangleBox),
+      intersectsTriangle: (triangle) => {
+        triangle.getNormal(faceNormal);
+        if (solid.mirrored) faceNormal.negate();
+        if (faceNormal.dot(normal) < 0.999) return false;
+        for (const vertex of [triangle.a, triangle.b, triangle.c]) {
+          corner.copy(vertex).sub(a);
+          if (Math.abs(corner.dot(normal)) > planeTolerance) return false;
+        }
+        faces.push({ solid, corners: [project(triangle.a), project(triangle.b), project(triangle.c)] });
+        return false;
+      },
+    });
+  }
+  if (new Set(faces.map((face) => face.solid)).size < 2) return null;
+
+  const cornerA = project(a);
+  const cornerB = project(b);
+  const cornerC = project(c);
+  let cells: Point2[][] = [[cornerA, cornerB, cornerC]];
+  const cuts = new Set<string>();
+  const lineTolerance = planeTolerance * 0.01;
+  for (const face of faces) {
+    for (let index = 0; index < 3; index += 1) {
+      const [px, py] = face.corners[index];
+      const [qx, qy] = face.corners[(index + 1) % 3];
+      const length = Math.hypot(qx - px, qy - py);
+      if (length < 1e-9) continue;
+      // The same line comes from every face that shares the edge: cut once.
+      let nx = -(qy - py) / length;
+      let ny = (qx - px) / length;
+      if (nx < -1e-9 || (Math.abs(nx) <= 1e-9 && ny < 0)) { nx = -nx; ny = -ny; }
+      const key = `${Math.round(nx * 1e4)}:${Math.round(ny * 1e4)}:${Math.round((nx * px + ny * py) * 1e3)}`;
+      if (cuts.has(key)) continue;
+      cuts.add(key);
+      if (cuts.size > PART_COLOR_LINE_LIMIT) return null;
+      const next: Point2[][] = [];
+      for (const cell of cells) {
+        const [left, right] = splitConvexPolygon(cell, px, py, qx, qy, lineTolerance);
+        const halves = [left, right].filter((half) => half.length >= 3 && polygonArea(half) > 1e-10);
+        // A cell the line only touches stays as it was.
+        if (halves.length === 2) next.push(...halves);
+        else next.push(cell);
+      }
+      cells = next;
+      if (cells.length > PART_COLOR_CELL_LIMIT) return null;
+    }
+  }
+
+  const inside = (point: Point2, face: [Point2, Point2, Point2]) => {
+    let sign = 0;
+    for (let index = 0; index < 3; index += 1) {
+      const [px, py] = face[index];
+      const [qx, qy] = face[(index + 1) % 3];
+      const cross = (qx - px) * (point[1] - py) - (qy - py) * (point[0] - px);
+      if (Math.abs(cross) < 1e-12) continue;
+      if (sign === 0) sign = Math.sign(cross);
+      else if (Math.sign(cross) !== sign) return false;
+    }
+    return true;
+  };
+  const owned = cells.map((cell) => {
+    const centre: Point2 = [0, 0];
+    for (const point of cell) { centre[0] += point[0] / cell.length; centre[1] += point[1] / cell.length; }
+    const owners = faces.filter((face) => inside(centre, face.corners)).map((face) => face.solid);
+    const solid = owners.length > 0 ? owners.reduce((best, candidate) => (stableOrder(candidate, best) < 0 ? candidate : best)) : fallbackOwner(lift(centre));
+    return { corners: cell.map(lift), solid };
+  });
+  const first = owned[0].solid;
+  if (owned.every((cell) => cell.solid === first || cell.solid.color.equals(first.color))) return { uniform: first, cells: owned };
+  return { cells: owned };
 }
 
 export function lowestY(positions: ArrayLike<number>) {
@@ -2483,14 +2994,12 @@ export function createWedgeGeometry(width: number, height: number, depth: number
   return geometry.toNonIndexed();
 }
 
-export function createTorusGeometry(width: number, height: number, depth: number, shape: Pick<WorkplaneShape, "sides" | "steps">) {
-  const tubeRadius = Math.max(0.1, height / 2);
-  const majorRadius = Math.max(0.2, Math.min(width, depth) / 2 - tubeRadius);
+export function createTorusGeometry(width: number, height: number, depth: number, shape: Pick<WorkplaneShape, "sides" | "steps" | "torusTubeRatio">) {
+  const { tubeRadius, majorRadius, outerDiameter, verticalScale } = torusRadii(width, depth, height, torusTubeRatio({ ...shape, width, depth, height }));
   const { ringSides, tubeSteps } = torusTessellation(shape, width, depth, height);
   const geometry = new THREE.TorusGeometry(majorRadius, tubeRadius, tubeSteps, ringSides);
   geometry.rotateX(Math.PI / 2);
-  const outerDiameter = (majorRadius + tubeRadius) * 2;
-  geometry.scale(width / outerDiameter, 1, depth / outerDiameter);
+  geometry.scale(width / outerDiameter, verticalScale, depth / outerDiameter);
   return geometry.toNonIndexed();
 }
 
