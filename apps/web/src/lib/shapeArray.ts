@@ -33,7 +33,40 @@ export type ArraySettings = {
    * on above ARRAY_AUTO_GROUP_ABOVE. Once the person ticks or unticks the box, their choice stays.
    */
   groupCopies?: boolean;
+  /**
+   * Row: spread over a body (#1037) - the plate the holes go into. The row runs along X or Y to the body's far end and
+   * leaves the same gap there as the original has at its own end; the spacing follows the count. Null: the spacings count.
+   */
+  fit?: ArrayFit | null;
 };
+
+export type ArrayFit = { axis: "x" | "y"; bodyId: string };
+
+/** Where a piece or a body reaches along one axis. */
+export type ArraySpan = { min: number; max: number };
+
+/** The piece's gap to the body's nearer end, and whether that end is the start (min) of the axis. */
+export function arrayFitGap(piece: ArraySpan, body: ArraySpan) {
+  const start = piece.min - body.min;
+  const end = body.max - piece.max;
+  return start <= end + 1e-9 ? { gap: start, fromStart: true } : { gap: end, fromStart: false };
+}
+
+/**
+ * The step from piece to piece that ends the row as far from the body's far end as the original stands from its near
+ * one: 5 holes of 8 mm, 20 mm in from both ends of a 150 mm plate, are 25.5 mm apart. Negative runs towards the start.
+ */
+export function arrayFitStep(count: number, piece: ArraySpan, body: ArraySpan) {
+  const { gap, fromStart } = arrayFitGap(piece, body);
+  const free = body.max - body.min - (piece.max - piece.min) - 2 * gap;
+  return (fromStart ? 1 : -1) * free / (clampArrayCount(count) - 1);
+}
+
+/** How far the piece moves along the axis for its gap to the nearer end to become `gap`. */
+export function arrayFitShift(piece: ArraySpan, body: ArraySpan, gap: number) {
+  const current = arrayFitGap(piece, body);
+  return current.fromStart ? gap - current.gap : current.gap - gap;
+}
 
 /** A pattern of more pieces than this is grouped unless the person says otherwise. */
 export const ARRAY_AUTO_GROUP_ABOVE = 5;
@@ -53,6 +86,19 @@ export function arrayFollowingPivot(settings: ArraySettings, pivot: { x: number;
   return settings.centerX === centerX && settings.centerY === centerY ? settings : { ...settings, centerX, centerY };
 }
 
+/**
+ * Where a circle pattern turned its pieces, as the pivot they keep (#990): the circle's centre, at the height of a pivot that
+ * stood there already, or else halfway up the pieces (`bottom` to `top`, scene y). The middle of the pieces' box is not it:
+ * three legs round a ball fill a box wider one way than the other. Null for a row.
+ */
+export function arrayCirclePivot(settings: Pick<ArraySettings, "mode" | "centerX" | "centerY">, bottom: number, top: number, pivot?: { x: number; y: number; z: number } | null) {
+  if (settings.mode !== "circle") return null;
+  const x = settings.centerX;
+  const z = -settings.centerY || 0;
+  const onCentre = pivot && Math.abs(pivot.x - x) < 1e-6 && Math.abs(pivot.z - z) < 1e-6;
+  return { x, y: onCentre ? pivot.y : (bottom + top) / 2, z };
+}
+
 export const ARRAY_MIN_COUNT = 2;
 export const ARRAY_MAX_COUNT = 100;
 
@@ -68,6 +114,24 @@ export function singleAxisSpacing(direction: ArrayDirection, spacing: number) {
     spacingY: direction === "y" ? spacing : 0,
     spacingZ: direction === "z" ? spacing : 0,
   };
+}
+
+/**
+ * The row's spacings with a fit to a body worked out (pieces and body in scene coordinates): along the chosen axis only,
+ * the step from arrayFitStep. Without a fit, or for a circle, the settings as they are.
+ */
+export function arrayWithFit<T extends Pick<ArraySettings, "mode" | "count" | "spacingX" | "spacingY" | "spacingZ" | "fit">>(
+  settings: T,
+  pieces: { minX: number; maxX: number; minZ: number; maxZ: number },
+  body: { minX: number; maxX: number; minZ: number; maxZ: number } | null,
+): T {
+  if (settings.mode !== "row" || !settings.fit || !body) return settings;
+  if (settings.fit.axis === "x") {
+    return { ...settings, ...singleAxisSpacing("x", arrayFitStep(settings.count, { min: pieces.minX, max: pieces.maxX }, { min: body.minX, max: body.maxX })) };
+  }
+  // Y points to the back, -z in the scene: a step towards +z is a negative Y spacing.
+  const step = arrayFitStep(settings.count, { min: pieces.minZ, max: pieces.maxZ }, { min: body.minZ, max: body.maxZ });
+  return { ...settings, ...singleAxisSpacing("y", -step || 0) };
 }
 
 /** Scene offset of the copy at `index` (1 = first copy) in a row. */

@@ -79,9 +79,21 @@ A body with a pocket - a block with a hole that does not go all the way through,
 
 **Bodies that end in a point,** such as a cone or a revolved triangle, have no flat face on top that could stay open. A fully closed cavity does not work there either, because a point cannot be offset inwards: even with a 1 mm wall you get the message that the walls cannot be this thick. Draw the wall into the profile before revolving instead: duplicate the outline, scale the copy down evenly, put it in the middle of the large outline and cut the large one with it, then revolve the whole (chapter Sketches, section Revolve). The distance between the two outlines is the wall thickness.
 
-If you resize a hollowed body later, layerling hollows it again at the new size right away. The wall stays as thick as you chose, round bodies included. A cylinder you pull further one way than the other becomes an ellipse.
+If you resize a hollowed body later, layerling hollows it again at the new size right away. The wall stays as thick as you chose, round bodies included. A cylinder you pull further one way than the other becomes an ellipse. Fillets and chamfers you laid on it after the hollowing go on again at the same edges.
 
 > **Tip:** With a 0.4 mm nozzle, 1.2 to 2 mm of wall is a good start: thin enough to save material, thick enough for a sturdy part.
+
+## A lid for an open body
+
+{{ui:editor.tool.lid}} makes the lid for a body that is open at the top: a box you hollowed with its top open, a pot, a tray. Select the body and click {{ui:editor.tool.lid}}. In the window you choose the kind:
+
+- {{ui:lid.type.plug}}: a plate as large as the body with a lip below it that goes into the opening.
+- {{ui:lid.type.cap}}: a plate a wall wider than the body with a rim below it that goes over the outside.
+- {{ui:lid.type.flat}}: only the plate, to lay on top or glue on.
+
+Then you set the {{ui:lid.thickness}}, the {{ui:lid.fit}} (the {{ui:lid.gap}} between lid and body: 0.1 mm tight, 0.2 mm normal, 0.3 mm loose, or any value up to 1 mm) and how deep the lip or rim reaches down and how thick its wall is. Click {{ui:lid.apply}}: the lid lies beside the body, turned over with its plate down, so it prints without support. The body stays as it is. The lid follows any outline, round or angular, because it is taken from the body itself just below its rim. A body without an opening at the top only gets a flat lid; for the other two, hollow it with the top open first.
+
+> **Tip:** How tight a lid sits depends on the printer. Print a small box with its lid first; if the lid is too tight, take the next looser fit.
 
 ## Offsetting bodies
 
@@ -94,6 +106,8 @@ Every face of a body can be moved by the same distance, out or in. That is what 
 5. Click {{ui:offset.apply}}.
 
 Without the tick the body itself is offset. It becomes a fixed exact body, like after a chamfer: the list at the top of the panel takes the offset back, and {{ui:edge.editAction}} opens the tool again with the old distance. Only bodies that are exact CAD bodies can be offset - boxes, cylinders and the other shapes, groups of them, imported STEP parts. A body that is only a triangle mesh, such as many STL imports, often cannot be. A distance that is too big for the body, for example a shrink beyond its thinnest wall, is refused.
+
+A text whose letters the kernel cannot offset as a body - in some fonts an A, B, M, N, W or 9 - is offset through its outlines instead: it gets the fill {{ui:prop.textWider}} by the distance (narrower when it shrinks) and grows by as much at the top and the bottom. It stays a text you can go on editing. This works for a text with filled letters and no rounding; one that already has a fill mode is refused as before.
 
 ## Deleting faces
 

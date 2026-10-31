@@ -39,6 +39,11 @@ export const GUIDE_SECTIONS = {
   viewCube: { chapter: "view", de: "der-ansichtswuerfel", en: "the-view-cube", nl: "de-weergavekubus", ru: "kub-orientatsii", cs: "orientacni-krychle", sl: "orientacijska-kocka", hu: "a-nezetkocka", es: "el-cubo-de-vista" },
   cameraBar: { chapter: "view", de: "die-kameraleiste", en: "the-camera-bar", nl: "de-camerabalk", ru: "panel-kamery", cs: "lista-pohledu", sl: "vrstica-kamere", hu: "a-kamerasav", es: "la-barra-de-camara" },
   gridAndSnapping: { chapter: "view", de: "gitter-und-raster", en: "grid-and-snapping", nl: "raster-en-vastklikken", ru: "setka-i-privyazka", cs: "mrizka-a-prichytavani", sl: "mreza-in-pripenjanje", hu: "racs-es-illesztes", es: "cuadricula-y-ajuste" },
+  // The tabs of the settings window. Languages whose chapter explains the window in one go, under
+  // "Grid and snapping", land there.
+  settingsAppearance: { chapter: "view", de: "darstellung-thema-leiste-und-ansichtswuerfel", en: "appearance-theme-toolbar-and-view-cube", nl: "raster-en-vastklikken", ru: "setka-i-privyazka", cs: "mrizka-a-prichytavani", sl: "mreza-in-pripenjanje", hu: "racs-es-illesztes", es: "aspecto-tema-barra-de-herramientas-y-cubo-de-vista" },
+  settingsMeasurement: { chapter: "view", de: "masse-einheiten-massstab-und-rasterschritte", en: "measurement-units-scale-and-snap-steps", nl: "raster-en-vastklikken", ru: "setka-i-privyazka", cs: "mrizka-a-prichytavani", sl: "mreza-in-pripenjanje", hu: "racs-es-illesztes", es: "medidas-unidades-escala-y-pasos-de-ajuste" },
+  settingsWorkplane: { chapter: "view", de: "arbeitsebene-platte-und-drucker", en: "workplane-plate-and-printer", nl: "raster-en-vastklikken", ru: "setka-i-privyazka", cs: "mrizka-a-prichytavani", sl: "mreza-in-pripenjanje", hu: "racs-es-illesztes", es: "plano-de-trabajo-placa-e-impresora" },
   colorCard: { chapter: "shapes", de: "farben-waehlen", en: "choosing-colours", nl: "kleuren-kiezen", ru: "vybor-tsveta", cs: "vyber-barev", es: "elegir-colores" },
   shapeSettings: { chapter: "shapes", de: "die-einstellungen-der-form", en: "the-shape-s-settings", nl: "de-instellingen-van-de-vorm", ru: "nastroyki-figury", cs: "nastaveni-tvaru", sl: "nastavitve-oblike", hu: "az-alakzat-beallitasai", es: "los-ajustes-de-la-forma" },
   wrapCylinder: { chapter: "shapes", de: "um-einen-zylinder-wickeln", en: "wrapping-around-a-cylinder", nl: "om-een-cilinder-wikkelen", ru: "oborachivanie-vokrug-tsilindra", cs: "obtoceni-kolem-valce", sl: "ovijanje-okoli-valja", hu: "hengerre-tekeres", es: "envolver-alrededor-de-un-cilindro" },
@@ -61,6 +66,7 @@ export const GUIDE_SECTIONS = {
   splitting: { chapter: "solids", de: "teilen", en: "splitting", nl: "splitsen", "pt-br": "dividindo", ru: "razdelenie", cs: "rozdeleni", sl: "rezanje", hu: "kettevagas", es: "dividir" },
   edgeTreatment: { chapter: "edges", de: "kanten-fasen-und-verrunden", en: "chamfering-and-filleting-edges", nl: "randen-afschuinen-en-afronden", ru: "faska-i-skruglenie-kromok", cs: "zkoseni-a-zaobleni-hran", sl: "posnetje-in-zaokrozitev-robov", hu: "elek-letoerese-es-lekerekitese", es: "achaflanar-y-redondear-aristas" },
   hollowing: { chapter: "edges", de: "koerper-aushoehlen", en: "hollowing-bodies", nl: "lichamen-uithollen", ru: "sozdanie-obolochki", cs: "vytvareni-dutin", sl: "izdolbljenje-teles", hu: "testek-kiueregelese", es: "vaciar-cuerpos" },
+  lid: { chapter: "edges", de: "ein-deckel-fuer-einen-offenen-koerper", en: "a-lid-for-an-open-body", nl: "een-deksel-voor-een-open-vorm", fr: "un-couvercle-pour-un-corps-ouvert", ru: "kryshka-dlya-otkrytogo-tela", cs: "viko-pro-otevrene-teleso", sl: "pokrov-za-odprto-telo", hu: "fedel-nyitott-testhez", es: "una-tapa-para-un-cuerpo-abierto" },
   cutOut: { chapter: "solids", de: "koerper-ausschneiden", en: "cutting-one-body-out-of-another", nl: "het-ene-lichaam-uit-het-andere-snijden", "pt-br": "recortando-um-solido-de-outro", ru: "vyrezanie-odnogo-tela-iz-drugogo", cs: "vyriznuti-jednoho-telesa-z-druheho", sl: "izrezovanje-enega-telesa-iz-drugega", hu: "egy-test-kivagasa-egy-masikbol", es: "recortar-un-cuerpo-de-otro", fr: "decouper-un-corps-dans-un-autre" },
   offset: { chapter: "edges", de: "koerper-versetzen", en: "offsetting-bodies", nl: "lichamen-verschuiven", fr: "decaler-des-corps", ru: "smeshchenie-tela", cs: "odsazeni-teles", sl: "odmik-teles", es: "desfasar-cuerpos" },
   deleteFace: { chapter: "edges", de: "flaechen-loeschen", en: "deleting-faces", nl: "vlakken-verwijderen", fr: "supprimer-des-faces", ru: "udalenie-graney", cs: "mazani-ploch", sl: "brisanje-ploskev", es: "eliminar-caras" },
@@ -72,15 +78,18 @@ export const GUIDE_SECTIONS = {
   vase: { chapter: "shapes", de: "eine-vase", en: "a-vase", nl: "een-vaas", fr: "un-vase", ru: "vaza", cs: "vaza", sl: "vaza" },
   gridfinity: { chapter: "threads", de: "gridfinity", en: "gridfinity", nl: "gridfinity", ru: "gridfinity", cs: "gridfinity", sl: "gridfinity", hu: "gridfinity", es: "gridfinity" },
   hinge: { chapter: "threads", de: "scharnier", en: "hinge", nl: "scharnier", ru: "petlya", cs: "pant", sl: "tecaj", hu: "zsaner", es: "bisagra" },
+  flexi: { chapter: "threads", de: "flexi-gelenke", en: "flexi-joints", nl: "flexi-scharnieren", ru: "fleksi-sharniry", cs: "flexi-klouby", sl: "flexi-zgibi", hu: "flexi-csuklok", es: "articulaciones-flexi", fr: "articulations-flexi" },
   knurl: { chapter: "threads", de: "raendelung", en: "knurling", nl: "kartel", ru: "nakatka", cs: "ryhovane-uchopy", sl: "narebricenje", hu: "recezes", es: "moleteado" },
   dovetail: { chapter: "threads", de: "schwalbenschwanz", en: "dovetail", nl: "zwaluwstaart", ru: "lastochkin-khvost", cs: "rybinovy-spoj", sl: "lastovicji-rep", hu: "fecskefark", es: "cola-de-milano" },
   teardrop: { chapter: "threads", de: "tropfenbohrung", en: "teardrop-hole", nl: "druppelgat", ru: "kaplevidnoe-otverstie", cs: "kapkovity-otvor", sl: "kapljicna-izvrtina", hu: "csepp-alaku-lyuk", es: "orificio-en-lagrima" },
+  ports: { chapter: "threads", de: "anschlussoeffnungen", en: "port-openings", nl: "aansluitopeningen", ru: "otverstiya-pod-razemy", cs: "otvory-pro-konektory", sl: "odprtine-za-prikljucke", hu: "csatlakozonyilasok", es: "aberturas-para-conectores", fr: "ouvertures-de-connecteur", it: "aperture-per-connettori", pl: "otwory-na-zlacza", da: "stikabninger", ar: "port-openings" },
   screwHoles: { chapter: "threads", de: "stufen-und-senkbohrung", en: "counterbore-and-countersink", nl: "verzinkboring-en-verzinking", ru: "tsekovka-i-zenkovka", cs: "valcove-a-kuzelove-zahloubeni", sl: "stopnicasta-in-udirna-izvrtina", hu: "hengeres-es-kupos-suellyesztes", es: "escariado-y-avellanado" },
   ruler: { chapter: "measuring", de: "das-lineal", en: "the-ruler", nl: "de-liniaal", ru: "lineyka", cs: "pravitko", sl: "ravnilo", hu: "a-vonalzo", es: "la-regla" },
   printer: { chapter: "printing", de: "den-drucker-waehlen", en: "choosing-your-printer", nl: "je-printer-kiezen", "pt-br": "escolhendo-a-sua-impressora", ru: "vybor-printera", cs: "vyber-tiskarny", sl: "izbira-tiskalnika", hu: "a-nyomtatod-kivalasztasa", es: "elegir-tu-impresora" },
   designFolders: { chapter: "files", de: "ordner-fuer-deine-entwuerfe", en: "folders-for-your-designs", nl: "mappen-voor-je-ontwerpen", fr: "des-dossiers-pour-vos-dessins", ru: "papki-dlya-proektov", cs: "slozky-pro-projekty", sl: "mape-za-tvoje-projekte", es: "carpetas-para-tus-disenos" },
   backingUp: { chapter: "files", de: "sichern-und-weitergeben", en: "backing-up-and-passing-on", nl: "back-up-maken-en-doorgeven", ru: "rezervnye-kopii-i-peredacha", cs: "zalohovani-a-predavani", sl: "varnostno-kopiranje-in-deljenje", hu: "biztonsagi-mentes-es-tovabbadas", es: "hacer-copias-de-seguridad-y-compartir" },
   exporting: { chapter: "files", de: "exportieren", en: "exporting", nl: "exporteren", ru: "eksport", cs: "export", sl: "izvoz", hu: "exportalas", es: "exportar" },
+  attachments: { chapter: "files", de: "anhaenge", en: "attachments", nl: "bijlagen", ru: "vlozheniya", cs: "prilohy", sl: "priloge" },
   importing: { chapter: "files", de: "importieren", en: "importing", nl: "importeren", ru: "import", cs: "import", sl: "uvoz", hu: "importalas", es: "importar" },
   simplifyMesh: { chapter: "files", de: "ein-importiertes-netz-vereinfachen", en: "simplifying-an-imported-mesh", nl: "een-geimporteerde-mesh-vereenvoudigen", ru: "uproshchenie-importirovannoy-setki", cs: "zjednoduseni-importovane-site", sl: "poenostavitev-uvozene-mreze", hu: "importalt-halo-egyszerusitese", es: "simplificar-una-malla-importada" },
   tapeMeasure: { chapter: "measuring", de: "das-massband", en: "the-tape-measure", nl: "het-meetlint", ru: "ruletka", cs: "mereni-vzdalenosti", sl: "merilni-trak", hu: "a-meroszalag", es: "la-cinta-metrica" },
@@ -150,7 +159,8 @@ export function guideSectionForShape(shape: GuideShape): GuideSection | undefine
   if (shape.imagePlate) return "referenceImage";
   if (shape.groupedShapes?.length) {
     if (shape.groupOperation === "bundle") return "bundling";
-    if (shape.groupOperation === "intersection" || shape.groupOperation === "hull") return "intersection";
+    // A loft between two sketches is explained next to the hull and the cookie cutter.
+    if (shape.groupOperation === "intersection" || shape.groupOperation === "hull" || shape.groupOperation === "loft") return "intersection";
     return "grouping";
   }
   // A body made from a sketch, or a file brought in, is explained where it was made.
@@ -166,6 +176,7 @@ export function guideSectionForShape(shape: GuideShape): GuideSection | undefine
     case "thread":
       return "threads";
     case "gear":
+    case "hirth":
       return "gears";
     case "spring":
       return "springs";
@@ -188,6 +199,8 @@ export function guideSectionForShape(shape: GuideShape): GuideSection | undefine
       return "dovetail";
     case "teardrop":
       return "teardrop";
+    case "port":
+      return "ports";
     case "counterbore":
     case "countersink":
     case "doubleCountersink":
@@ -211,6 +224,7 @@ export function guideChapterForShape(shape: GuideShape): GuideChapter {
     case "thread":
     case "spring":
     case "gear":
+    case "hirth":
     case "bentTube":
     case "loft":
     case "gridfinity":
@@ -218,6 +232,7 @@ export function guideChapterForShape(shape: GuideShape): GuideChapter {
     case "knurl":
     case "dovetail":
     case "teardrop":
+    case "port":
     case "counterbore":
     case "countersink":
     case "doubleCountersink":

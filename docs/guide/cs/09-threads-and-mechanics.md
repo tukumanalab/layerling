@@ -11,8 +11,9 @@ Vložte {{ui:shape.thread}} a v {{ui:inspector.threadRole}} zvolte:
 
 - **{{ui:thread.rod}}:** válec se závitem, například šroub bez hlavy.
 - **{{ui:thread.screw}}:** šroub s hlavou {{ui:inspector.threadHead}} typu {{ui:thread.headCylinder}}, {{ui:thread.headCountersunk}} nebo {{ui:thread.headHex}}.
+  Níže nastavíte {{ui:prop.headDiameter}} (u šestihranné hlavy {{ui:prop.headAcrossFlats}}; u zápustné hlavy se průměr řídí výškou) a {{ui:inspector.threadDrive}} v čele hlavy: {{ui:thread.driveHex}}, {{ui:thread.driveTorx}}, {{ui:thread.drivePhillips}} nebo {{ui:thread.driveNone}} pro šroub, který se točí rukou nebo klíčem. {{ui:prop.driveSize}} je rozměr přes plochy vnitřního šestihranu, vnější průměr hvězdy Torx nebo rozpětí kříže; {{ui:prop.driveDepth}} udává, jak hluboko sahá, nejvýše devět desetin hlavy, a 0 ho vynechá. Dokud je nezměníte, řídí se velikostí; šestihranná hlava začíná bez pohonu. Pohon je součástí přesného tělesa, a tak se dostane i do exportu STEP.
 - **{{ui:thread.nut}}:** odpovídající matice.
-- **{{ui:thread.bore}}:** závitový výřez. Zasuňte jej do dílu a slučte, aby vznikl vnitřní závit.
+- **{{ui:thread.bore}}:** závitový výřez. Zasuňte jej do dílu a slučte, aby vznikl vnitřní závit. Pro otvor, do kterého se šroubuje šroub, vždy použijte {{ui:thread.bore}}: {{ui:thread.rod}} nebo {{ui:thread.screw}} jako otvor má plnou velikost šroubu bez vůle a vyjde příliš těsný. Pokud ji přesto nastavíte jako otvor, layerling na to upozorní a {{ui:inspector.threadMakeTappedHole}} z ní udělá {{ui:thread.bore}}.
 
 ![Šroub s válcovou hlavou. Vpravo jsou typ dílu, hlava, velikost, stoupání a profil.](shot:thread-screw)
 
@@ -153,9 +154,21 @@ Nosná deska může mít pruh, pro zásuvku, která nemá celý počet jednotek 
 
 {{ui:prop.hingeClearance}} je mezera kolem čepu, mezi klouby a před křídly. Při 0,4 mm dobře seřízená tiskárna obvykle vytvoří pant uvolnitelný lehkým pootočením. Při slepení vůli zvětšete, při viklání zmenšete. Tiskněte naležato jako v náhledu a bez podpěr. Do křídel lze přidat otvory nebo je začlenit do většího dílu, například víka.
 
-Pant lze vyrobit i {{ui:hinge.styleCone}} (pod {{ui:prop.hingeStyle}}): každý druhý kloub pak končí kužely, které zapadají do kuželových důlků sousedních kloubů. Není tu čep ani dlouhý most, který by se mohl prověsit, takže se tiskne vleže; kužely mají sklon 45°. Je to síť, takže na něm nefungují zkosení a zaoblení a export STEP obsahuje trojúhelníky; kde by klouby byly na kužel příliš krátké, vytvoří jich méně. Místo počtu kloubů lze zadat {{ui:prop.hingeKnuckleWidth}}: klouby jsou pak nejvýše tak široké a jejich počet vyplyne z délky; zadání počtu kloubů šířku opět zruší.
+Pant lze vyrobit i {{ui:hinge.styleCone}} (pod {{ui:prop.hingeStyle}}): každý druhý kloub pak končí kužely, které zapadají do kuželových důlků sousedních kloubů. Není tu čep ani dlouhý most, který by se mohl prověsit, takže se tiskne vleže; kužely mají sklon 45°. Stejně jako ostatní provedení je to přesné těleso, takže na něm fungují zkosení i zaoblení a export STEP obsahuje jeho skutečné kužely; kde by klouby byly na kužel příliš krátké, vytvoří jich méně. Místo počtu kloubů lze zadat {{ui:prop.hingeKnuckleWidth}}: klouby jsou pak nejvýše tak široké a jejich počet vyplyne z délky; zadání počtu kloubů šířku opět zruší.
 
 {{ui:prop.hingeStyle}} nabízí tři možnosti: {{ui:hinge.stylePin}}, {{ui:prop.hingePinless}} (otvor pro vlastní čep) a {{ui:hinge.styleCone}}. U kuželů určuje {{ui:prop.hingeConeSize}}, jak velké jsou tam, kde vyrůstají z kloubu; větší kužely drží lépe a ve výchozím stavu jsou tak velké, jak se vejdou. Pant s kužely nemá čep ani otvor, proto smí být jeho list tak silný jako celý kloub: nastavíte-li {{ui:prop.hingeLeafThickness}} na průměr kloubu, listy lícují s klouby; takový pant se otevře asi o 90° a dál ne, protože se silné listy dotknou.
+
+Pro přišroubování nastavte {{ui:prop.hingeScrewHoles}}: až šest otvorů podél osy; jejich velikost určuje {{ui:prop.hingeScrewDiameter}}. V poli {{ui:prop.hingeScrewHead}} jsou ve výchozím stavu {{ui:hinge.screwCountersunk}}, pod 90° pro šrouby se zápustnou hlavou, na straně, která po zavření míří k druhému křídlu, aby hlavy ležely zapuštěné; {{ui:hinge.screwStraight}} je nechá bez zahloubení. Bez dalších hodnot se otvory rozloží rovnoměrně po délce a sedí uprostřed každého křídla; {{ui:prop.hingeScrewSpacing}} a {{ui:prop.hingeScrewAcross}} je určí ze středu do středu, například podle koupeného pantu, který nahrazujete. Každý otvor si nechá půl milimetru křídla k okrajům, ke kloubům i k dalšímu otvoru; vejde-li se jich méně, bude jich méně a pole to řekne. {{ui:prop.hingeCornerRadius}} zaoblí čtyři vnější rohy křídel. S čepem i bez něj zůstanou otvory a rohy přesné v exportu STEP i pro nástroj hran.
+
+V poli {{ui:prop.hingeLeafStyle}} dá volba {{ui:hinge.leafFingers}} každému kloubu vlastní prst, široký jako kloub, místo křídla na každé straně; prsty obou stran se střídají jako dva hřebeny. Protože žádný prst neleží pod kloubem druhé strany, pant se otočí úplně dokola a s volbou {{ui:hinge.styleCone}} a prsty tlustými jako kloub ({{ui:prop.hingeLeafThickness}} až do hodnoty {{ui:prop.hingeKnuckleDiameter}}) se zavře naplocho, prsty jedné strany mezi prsty druhé. Prsty jedné strany nespojuje žádné křídlo: s tištěným čepem na něm visí, s kužely nebo bez čepu, dokud v něm není váš vlastní, jsou to volné díly. Spojte každou stranu se svým modelem, například jeden hřeben s krabičkou a druhý s víkem, nebo je s ním seskupte. {{ui:prop.hingeCornerRadius}} pak zaoblí špičky prstů; prsty nedostávají otvory pro šrouby.
+
+## Flexi klouby
+
+Nástrojem {{ui:editor.tool.flexi}} uděláš z plochého tělesa pohyblivou figurku, třeba rybu, hada nebo draka, která se vytiskne vcelku (print-in-place). Těleso si nakreslíš nebo postavíš sám, například ze skici nebo z SVG, které vytáhneš. Nástroj ho rozdělí napříč délky na články a do každého řezu vloží kloub: jeden článek nese svislý čep, který je uprostřed silnější než nahoře a dole, další ho obepíná s vůlí. Kloub tak drží a nesroste, a všechny šikminy jsou pod 45°, takže se tiskne bez podpor. Mezi články zůstane otevřený klín, tak široký, jak daleko se mají články natáčet do stran.
+
+Vyber těleso (víc dílů se sloučí, otvory v nich se odečtou) a klikni na {{ui:editor.tool.flexi}}. V okně nastavíš, podél které strany se dělí ({{ui:flexi.axis.auto}} vezme delší), kolik bude kloubů ({{ui:flexi.joints}}), {{ui:flexi.clearance}} (obvykle sedí 0,4 mm) a úhel pro {{ui:flexi.swing}}. Velikost kloubů se řídí tělesem; bez {{ui:flexi.autoSize}} zadáš {{ui:flexi.size}} sám. Bez {{ui:flexi.evenLinks}} určíš, jak daleko je první kloub od začátku a poslední od konce, aby třeba hlava zůstala jedním velkým kusem. Tam, kde je kloub, má být těleso aspoň zhruba 6 mm vysoké a 12 mm široké; když se některý nevejde, okno řekne který.
+
+Výsledkem je svazek článků (sítí), který tiskneš tak, jak leží. Když se ti rozdělení nelíbí, vrať ho zpět a zkus jiné hodnoty. První zkušební tisk se dvěma nebo třemi klouby ukáže, jestli vůle sedí tvé tiskárně.
 
 ## Rýhované úchopy
 
@@ -176,6 +189,12 @@ Vodorovný kruhový otvor vytváří nahoře most, který může prověsit. {{ui
 Tvar přepněte na výřez a slučte s dílem. Délka směřuje podél hloubky a špička vzhůru. Pro kolmý směr otočte o 90° kolem svislé osy.
 
 Stejně se prověšuje vodorovný **závitový otvor**. Přidejte {{ui:shape.teardrop}} s {{ui:prop.teardropDiameter}} podle průměru jádra závitu, tedy volného prostoru mezi zuby, například asi 8,4 mm pro M10. Délka odpovídá závitovému otvoru. Vyberte oba a přes {{ui:editor.tool.align}} zarovnejte středy. Střed kapkovitého otvoru odpovídá středu kruhové části, nikoli obálce se špičkou. Pak oba slučte s tělesem. Závit se vyřízne běžně a hrot otevře horní část pro tisk bez podpěr.
+
+## Otvory pro konektory
+
+Krabička pro elektroniku potřebuje otvor pro kabel. {{ui:shape.port}} je přesně takový otvor: ležící výřez se zaoblenými rohy. V poli {{ui:prop.portPreset}} vyberte konektor - {{ui:port.usbC}}, {{ui:port.microUsb}} nebo {{ui:port.usbA}} - a otvor dostane jeho rozměr s vůlí asi 0,25 mm na každé straně. {{ui:port.usbCPlug}} je pro konektor, který sedí za stěnou, takže do otvoru musí zasahovat pouzdro zástrčky. Šířku, výšku a {{ui:prop.portCorner}} lze změnit ručně; seznam pak ukáže {{ui:port.custom}}. {{ui:port.hdmi}}, {{ui:port.miniHdmi}}, {{ui:port.displayPort}} a {{ui:port.miniDisplayPort}} mají jako konektor šikmo seříznuté spodní rohy, DisplayPort jen levý, a {{ui:port.rj45}} se hodí pro síťovou zásuvku; tyto rozměry pocházejí z výřezů doporučených výrobci a z výkresů VESA.
+
+Otvor přichází jako výřez a míří dopředu. Nastavte {{ui:prop.portDepth}} o něco větší, než je tloušťka stěny, posuňte ho tam, kde konektor sedí na desce, a seskupte ho s krabičkou. Pro boční stěnu ho otočte o 90° kolem svislé osy.
 
 ## Válcové a kuželové zahloubení
 

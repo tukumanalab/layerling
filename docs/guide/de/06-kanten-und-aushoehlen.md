@@ -79,9 +79,21 @@ Auch ein Körper mit einer Tasche lässt sich aushöhlen, etwa ein Block mit ein
 
 **Körper, die in einer Spitze enden,** etwa ein Kegel oder ein gedrehtes Dreieck, haben oben keine ebene Fläche, die offen bleiben könnte. Auch ein ganz geschlossener Hohlraum gelingt dort nicht, denn eine Spitze lässt sich nicht nach innen versetzen: Selbst mit 1 mm Wand kommt die Meldung, dass die Wände nicht so dick sein können. Zeichne die Wand dann vor dem Drehen ins Profil: Dupliziere den Umriss, verkleinere die Kopie gleichmäßig, setze sie in die Mitte des großen Umrisses und schneide mit ihr den großen aus, dann dreh das Ganze (Kapitel Skizzen, Abschnitt Rotieren). Der Abstand der beiden Umrisse ist die Wandstärke.
 
-Änderst du später die Größe des ausgehöhlten Körpers, höhlt layerling ihn in der neuen Größe gleich noch einmal aus. Die Wand bleibt so dick, wie du sie gewählt hast, auch bei runden Körpern. Ein Zylinder, den du dabei in eine Richtung mehr ziehst als in die andere, wird zur Ellipse.
+Änderst du später die Größe des ausgehöhlten Körpers, höhlt layerling ihn in der neuen Größe gleich noch einmal aus. Die Wand bleibt so dick, wie du sie gewählt hast, auch bei runden Körpern. Ein Zylinder, den du dabei in eine Richtung mehr ziehst als in die andere, wird zur Ellipse. Verrundungen und Fasen, die du nach dem Aushöhlen angebracht hast, kommen danach wieder an dieselben Kanten.
 
 > **Tipp:** Bei einer 0,4-mm-Düse sind 1,2 bis 2 mm Wandstärke ein guter Anfang: dünn genug, um Material zu sparen, dick genug für ein stabiles Teil.
+
+## Ein Deckel für einen offenen Körper
+
+{{ui:editor.tool.lid}} macht den Deckel für einen Körper, der oben offen ist: eine Kiste, die du mit offener Oberseite ausgehöhlt hast, einen Topf, eine Schale. Wähle den Körper und klicke auf {{ui:editor.tool.lid}}. Im Fenster wählst du die Art:
+
+- {{ui:lid.type.plug}}: eine Platte so groß wie der Körper, darunter eine Lippe, die in die Öffnung greift.
+- {{ui:lid.type.cap}}: eine Platte eine Wand breiter als der Körper, darunter ein Rand, der außen herum greift.
+- {{ui:lid.type.flat}}: nur die Platte, zum Auflegen oder Ankleben.
+
+Dann stellst du die {{ui:lid.thickness}} ein, die {{ui:lid.fit}} (den {{ui:lid.gap}} zwischen Deckel und Körper: 0,1 mm stramm, 0,2 mm normal, 0,3 mm locker, oder jeden Wert bis 1 mm) und wie tief Lippe oder Rand nach unten reichen und wie dick ihre Wand ist. Klicke auf {{ui:lid.apply}}: Der Deckel liegt neben dem Körper, umgedreht mit der Platte nach unten, so druckt er ohne Stützen. Der Körper bleibt, wie er ist. Der Deckel folgt jedem Umriss, rund oder eckig, weil er dem Körper selbst knapp unter seinem Rand abgenommen wird. Ein Körper ohne Öffnung oben bekommt nur einen flachen Deckel; für die beiden anderen höhle ihn zuerst mit offener Oberseite aus.
+
+> **Tipp:** Wie stramm ein Deckel sitzt, hängt vom Drucker ab. Drucke zuerst eine kleine Kiste mit Deckel; sitzt er zu fest, nimm die nächst lockerere Passung.
 
 ## Körper versetzen
 
@@ -94,6 +106,8 @@ Jede Fläche eines Körpers lässt sich um dieselbe Strecke nach außen oder inn
 5. Klicke auf {{ui:offset.apply}}.
 
 Ohne den Haken wird der Körper selbst versetzt. Er wird zu einem festen exakten Körper, wie nach einer Fase: Die Liste oben im Fenster nimmt den Versatz zurück, und {{ui:edge.editAction}} öffnet das Werkzeug wieder mit dem alten Abstand. Versetzen lassen sich nur exakte CAD-Körper - Quader, Zylinder und die anderen Formen, Gruppen davon, importierte STEP-Teile. Ein Körper, der nur ein Dreiecksnetz ist, wie viele STL-Importe, lässt sich oft nicht versetzen. Ein Abstand, der für den Körper zu groß ist, etwa ein Verkleinern über die dünnste Wand hinaus, wird abgelehnt.
+
+Ein Text, dessen Buchstaben der Kern nicht als Körper versetzen kann - in manchen Schriften ein A, B, M, N, W oder 9 -, wird stattdessen über seine Umrisse versetzt: Er bekommt die Füllung {{ui:prop.textWider}} um den Abstand (beim Verkleinern schmaler) und wird oben und unten um ebenso viel höher. Er bleibt ein Text, den du weiter bearbeiten kannst. Das gilt für einen Text mit gefüllten Buchstaben ohne Rundung; einer, der schon eine Füllart hat, wird wie bisher abgelehnt.
 
 ## Flächen löschen
 

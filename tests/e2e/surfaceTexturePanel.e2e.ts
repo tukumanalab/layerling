@@ -3,7 +3,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { ShapeInspector } from "@/components/workplane/ShapeInspector";
-import { normalizeSurfaceTexture, type SurfaceTextureSettings } from "@/lib/surfaceTexture";
+import { normalizeSurfaceTexture, type SurfaceTextureFace, type SurfaceTextureSettings } from "@/lib/surfaceTexture";
 import { surfaceTexturedShape, surfaceTextureInput, textureSurfacePositions } from "@/lib/surfaceTextureShape";
 import { DEFAULT_SNAP_GRID, DEFAULT_WORKPLANE_WORKSPACE } from "@/lib/workplaneSettings";
 import { canonicalizeShape } from "@/lib/workplaneShapes";
@@ -37,15 +37,18 @@ const cylinder = canonicalizeShape({
   size: 30, width: 30, depth: 30, height: 20, rotation: 0,
 });
 
-type Calls = { applied: SurfaceTextureSettings[]; removed: number; updates: Array<Partial<WorkplaneShape>> };
+type Calls = { applied: SurfaceTextureSettings[]; removed: number; updates: Array<Partial<WorkplaneShape>>; picks: Array<SurfaceTextureFace[] | null> };
 
-/** The settings panel for this shape, with the surface texture card open as the editor holds it. */
+/**
+ * The settings panel for this shape, with the surface texture card open as the editor holds it. `render` draws it again
+ * with the editor's face picking as given.
+ */
 function mount(shape: WorkplaneShape) {
-  const calls: Calls = { applied: [], removed: 0, updates: [] };
+  const calls: Calls = { applied: [], removed: 0, updates: [], picks: [] };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => {
+  const render = (picking: { surfaceFacePicking?: boolean; surfacePickedFaces?: SurfaceTextureFace[] | null } = {}) => act(() => {
     root!.render(createElement(ShapeInspector, {
       shape,
       snap: DEFAULT_SNAP_GRID,
@@ -62,9 +65,14 @@ function mount(shape: WorkplaneShape) {
       },
       surfaceTextureOpen: true,
       onSurfaceTextureOpenChange: () => {},
+      onSurfaceFacePick: (faces: SurfaceTextureFace[] | null) => {
+        calls.picks.push(faces);
+      },
+      ...picking,
     }));
   });
-  return { panel: container, calls };
+  render();
+  return { panel: container, calls, render };
 }
 
 const card = (panel: HTMLElement) => panel.querySelector<HTMLElement>("[id^=surface-texture-]")!;
@@ -82,13 +90,23 @@ function choose(select: HTMLSelectElement, value: string) {
 }
 
 describe("the surface texture card in a shape's settings", () => {
-  it("lists the twelve patterns, knurling first chosen", () => {
+  it("lists the sixteen patterns, knurling first chosen", () => {
     const { panel } = mount(cylinder);
     const pattern = selectWith(panel, "knurl")!;
     expect(pattern.value).toBe("knurl");
     expect([...pattern.options].map((option) => option.textContent)).toEqual([
-      "Grooves", "Knurling", "Honeycomb", "Bumps", "Cells", "Knitting", "Rope", "Basket weave", "Grain", "Image", "Cracks (kintsugi)", "Text (stuck on)",
+      "Grooves", "Knurling", "Honeycomb", "Bumps", "Cells", "Bricks", "Knitting", "Rope", "Basket weave", "Bark", "Wood grain", "Carbon (twill)", "Grain", "Image", "Cracks (kintsugi)", "Text (stuck on)",
     ]);
+  });
+
+  it("lays carbon in twill: its weave, the bands' widths, and what Apply hands on", async () => {
+    const { panel, calls } = mount(cylinder);
+    choose(selectWith(panel, "knurl")!, "carbon");
+    expect(rangeNamed(panel, "Band width")?.value).toBe("2.50");
+    expect(rangeNamed(panel, "Crossing band width")).toBeTruthy();
+    choose(selectWith(panel, "twill22")!, "twill21");
+    await act(async () => button(panel, "Apply texture")!.click());
+    expect(calls.applied[0]).toMatchObject({ pattern: "carbon", carbonWeave: "twill21", carbonCross: 0, spacing: 2.5, depth: 0.4, width: 0.95, direction: "outward" });
   });
 
   it("starts a pattern from its own values, and hands the settings to the editor", async () => {
@@ -113,6 +131,55 @@ describe("the surface texture card in a shape's settings", () => {
     expect(button(panel, "Load your own image…")).toBeDefined();
   });
 
+  it("lays bricks in a bond, with a course's height and the joint's width in mm", async () => {
+    const { panel, calls } = mount(cylinder);
+    choose(selectWith(panel, "knurl")!, "bricks");
+    const bond = selectWith(panel, "flemish")!;
+    expect(bond.value).toBe("running");
+    expect([...bond.options].map((option) => option.textContent)).toEqual(["Running bond", "Stack bond", "English bond", "English cross bond", "Flemish bond"]);
+    expect(rangeNamed(panel, "Brick length")?.value).toBe("12.00");
+    expect(rangeNamed(panel, "Course height")?.value).toBe("4.00");
+    expect(rangeNamed(panel, "Joint width")?.value).toBe("0.80");
+    choose(bond, "english");
+    await act(async () => button(panel, "Apply texture")!.click());
+    expect(calls.applied[0]).toMatchObject({ pattern: "bricks", brickBond: "english", spacing: 12, brickHeight: 4, brickJoint: 0.8, depth: 0.6, profile: "flat" });
+    // Leaving bricks gives the next pattern its own spacing and profile back.
+    choose(selectWith(panel, "bricks")!, "knurl");
+    expect(rangeNamed(panel, "Spacing")?.value).toBe("3.00");
+  });
+
+  it("starts a bark at its tree's size and depth, with the annual rings on the ends", () => {
+    const { panel } = mount(cylinder);
+    choose(selectWith(panel, "knurl")!, "bark");
+    const tree = selectWith(panel, "birch")!;
+    expect(tree.value).toBe("oak");
+    expect([...tree.options].map((option) => option.textContent)).toEqual(["Oak", "Pine", "Spruce", "Birch", "Beech"]);
+    expect(rangeNamed(panel, "Bark size")?.value).toBe("8.00");
+    expect(rangeNamed(panel, "Depth")?.value).toBe("1.50");
+    expect(rangeNamed(panel, "Ring width")?.value).toBe("3.00");
+    choose(tree, "birch");
+    expect(rangeNamed(panel, "Bark size")?.value).toBe("10.00");
+    expect(rangeNamed(panel, "Depth")?.value).toBe("0.60");
+    // Leaving bark gives knurling its own spacing and depth back.
+    choose(selectWith(panel, "bark")!, "knurl");
+    expect(rangeNamed(panel, "Spacing")?.value).toBe("3.00");
+    expect(rangeNamed(panel, "Depth")?.value).toBe("0.60");
+  });
+
+  it("lays wood grain by wood, cut and ring width, and hands them to the editor", async () => {
+    const { panel, calls } = mount(cylinder);
+    choose(selectWith(panel, "knurl")!, "wood");
+    const wood = selectWith(panel, "walnut")!;
+    expect([...wood.options].map((option) => option.textContent)).toEqual(["Oak", "Ash", "Beech", "Pine", "Walnut"]);
+    expect(selectWith(panel, "flatSawn")?.value).toBe("log");
+    expect(rangeNamed(panel, "Ring width")?.value).toBe("3.00");
+    choose(wood, "pine");
+    expect(rangeNamed(panel, "Ring width")?.value).toBe("4.00");
+    choose(selectWith(panel, "flatSawn")!, "flatSawn");
+    await act(async () => button(panel, "Apply texture")!.click());
+    expect(calls.applied[0]).toMatchObject({ pattern: "wood", woodType: "pine", woodCut: "flatSawn", ringWidth: 4, topFree: 0, bottomFree: 0 });
+  });
+
   it("shows a textured body's settings, to change or to remove", async () => {
     const grooves = normalizeSurfaceTexture({ pattern: "grooves", spacing: 4, depth: 0.5, angle: 0 });
     const textured = surfaceTexturedShape(cylinder, textureSurfacePositions(surfaceTextureInput(cylinder), grooves, 150_000).positions, grooves)!;
@@ -123,6 +190,31 @@ describe("the surface texture card in a shape's settings", () => {
     expect(calls.applied[0]).toMatchObject({ pattern: "grooves", spacing: 4, depth: 0.5 });
     act(() => button(panel, "Remove texture")!.click());
     expect(calls.removed).toBe(1);
+  });
+
+  it("picks faces in the view: the editor gets the clicks, the card the faces, and only they get the pattern", async () => {
+    const { panel, calls, render } = mount(cylinder);
+    expect(card(panel).textContent).toContain("The pattern goes on every face.");
+    act(() => button(panel, "Pick faces")!.click());
+    expect(calls.picks).toEqual([[]]);
+    // A click on the top in the view comes back from the editor as the faces picked so far.
+    const top: SurfaceTextureFace = { at: [0.5, 1, 0.5], normal: [0, 1, 0] };
+    render({ surfaceFacePicking: true, surfacePickedFaces: [top] });
+    expect(card(panel).textContent).toContain("Picked faces: 1. Only they get the pattern.");
+    expect(button(panel, "Done picking")).toBeDefined();
+    // Picked faces say where it goes: the smooth top and bottom and the height band leave the card.
+    act(() => button(panel, "More")!.click());
+    expect(rangeNamed(panel, "Top smooth to (°)")).toBeUndefined();
+    expect(rangeNamed(panel, "Fade in over")).toBeDefined();
+    await act(async () => button(panel, "Apply texture")!.click());
+    expect(calls.picks.at(-1)).toBeNull();
+    expect(calls.applied[0].faces).toEqual([top]);
+    // Every face again: none picked, and picking starts over from none.
+    render({ surfaceFacePicking: true, surfacePickedFaces: [top] });
+    act(() => button(panel, "Every face again")!.click());
+    expect(calls.picks.at(-1)).toEqual([]);
+    render({ surfaceFacePicking: false, surfacePickedFaces: null });
+    expect(card(panel).textContent).toContain("The pattern goes on every face.");
   });
 
   it("lets a box be a texture mask, which turns it transparent", () => {
