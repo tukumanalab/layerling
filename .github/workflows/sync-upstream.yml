@@ -88,3 +88,31 @@ jobs:
           gh pr merge "${{ steps.pr.outputs.number }}" --repo "$REPO" --auto --merge \
             || gh pr view "${{ steps.pr.outputs.number }}" --repo "$REPO" --json autoMergeRequest --jq '
                  if .autoMergeRequest then "auto-merge was already on" else error("could not turn auto-merge on") end'
+
+      - name: Say so on the pull request when it conflicts
+        # A conflict starts no CI, so auto-merge waits for ever and nobody hears of it. GitHub
+        # works mergeable out in the background and answers UNKNOWN until it has, so ask a few
+        # times. The label marks that the comment was made, so it is left only once; it comes
+        # off again once the pull request can merge.
+        if: steps.diff.outputs.ahead != '0'
+        env:
+          NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          mergeable=UNKNOWN
+          for attempt in 1 2 3 4 5 6; do
+            mergeable=$(gh pr view "$NUMBER" --repo "$REPO" --json mergeable --jq .mergeable)
+            [ "$mergeable" != "UNKNOWN" ] && break
+            sleep 10
+          done
+          labelled=$(gh pr view "$NUMBER" --repo "$REPO" --json labels --jq '[.labels[].name] | index("sync-conflict") != null')
+          echo "#$NUMBER is $mergeable"
+          if [ "$mergeable" = "CONFLICTING" ] && [ "$labelled" != "true" ]; then
+            gh pr edit "$NUMBER" --repo "$REPO" --add-label sync-conflict
+            gh pr comment "$NUMBER" --repo "$REPO" --body "$(cat <<BODY
+          \`$MIRROR\` と \`$FORK\` がコンフリクトしています。コンフリクト中は CI が走らないので、このまま待っても自動ではマージされません。
+          FORK.md の「自動で済まないとき」の手順で、手元でマージしてください。
+          BODY
+          )"
+          elif [ "$mergeable" = "MERGEABLE" ] && [ "$labelled" = "true" ]; then
+            gh pr edit "$NUMBER" --repo "$REPO" --remove-label sync-conflict
+          fi
