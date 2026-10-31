@@ -1440,6 +1440,7 @@ export const MESSAGES_JA: Partial<Record<MessageKey, string>> = {
   "status.packagingShared": "サーバー用にデザインをパッケージ化しています…",
   "workshop.saving": "保存中…",
   "workshop.saved": "保存しました",
+  "workshop.savedWithoutHistory": "履歴を入れると大きすぎたため、履歴なしで保存しました",
   "workshop.saveFailed": "保存できませんでした。",
   "workshop.loadFailed": "デザインを開けませんでした。",
   "status.serverSaved": "サーバーに保存しました",

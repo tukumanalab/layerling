@@ -1491,6 +1491,7 @@ export const MESSAGES_EN = {
   "status.packagingShared": "Packaging design for the server…",
   "workshop.saving": "Saving…",
   "workshop.saved": "Saved",
+  "workshop.savedWithoutHistory": "Saved without the history: with it the design was too large.",
   "workshop.saveFailed": "Could not save.",
   "workshop.loadFailed": "Could not open the design.",
   "status.serverSaved": "Saved on the server",

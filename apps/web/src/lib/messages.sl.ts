@@ -1180,6 +1180,7 @@ export const MESSAGES_SL: Partial<Record<MessageKey, string>> = {
   "status.packagingShared": "Pakiranje projekta za strežnik…",
   "workshop.saving": "Shranjevanje …",
   "workshop.saved": "Shranjeno",
+  "workshop.savedWithoutHistory": "Shranjeno brez zgodovine: z njo je bil model prevelik.",
   "workshop.saveFailed": "Shranjevanje ni uspelo.",
   "workshop.loadFailed": "Načrta ni bilo mogoče odpreti.",
   "status.serverSaved": "Shranjeno na strežniku",

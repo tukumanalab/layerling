@@ -1485,6 +1485,7 @@ export const MESSAGES_RU: Partial<Record<MessageKey, string>> = {
   "status.packagingShared": "Упаковка проекта для сервера…",
   "workshop.saving": "Сохранение…",
   "workshop.saved": "Сохранено",
+  "workshop.savedWithoutHistory": "Сохранено без истории: с ней проект оказался слишком большим.",
   "workshop.saveFailed": "Не удалось сохранить.",
   "workshop.loadFailed": "Не удалось открыть проект.",
   "status.serverSaved": "Сохранено на сервере",

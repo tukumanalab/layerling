@@ -128,7 +128,7 @@ import { buildSketchRevolveMesh, DEFAULT_SKETCH_REVOLVE_SETTINGS, normalizeSketc
 import { AppFooter } from "@/components/AppFooter";
 import { useFileAccept } from "@/lib/fileAccept";
 import { exportLylProject, LYL_CREATED_WITH_VERSION, LYL_MEDIA_TYPE } from "@/lib/lylProject";
-import { pngBlobFromDataUrl, type WorkshopClient, type WorkshopSaveHandlerResult } from "@/lib/workshopBridge";
+import { pngBlobFromDataUrl, WorkshopError, type WorkshopClient, type WorkshopSaveHandlerResult } from "@/lib/workshopBridge";
 import { isBuildMessage, reportWorkerBuild } from "@/lib/buildStamp";
 import { ensureLylFileWritable, forgetLylFile, forgetStlFile, linkedLylFile, linkedStlFile, lylFileAccessSupported, pickLylFileToOpen, pickLylFileToSave, pickStlFileToSave, rememberLylFile, rememberStlFile, writeLylFile, type LylFileHandle } from "@/lib/lylFileAccess";
 import { clipboardShape, displayShapeName, iconTagAsset, qrCodeAsset, makeShapeFromAsset, nameTagAsset, shapeAssetLabel, toolbarShapeAssets } from "@/lib/shapeCatalog";
@@ -12092,9 +12092,10 @@ export function LayerlingEditor({
   }, [onSaveSharedProject, placementElevation, placementWorkplane, projectCreatedAt, projectModifiedAt, projectName, lylExporting, snapGrid]);
 
   /**
-   * Workshop mode: the design as a .lyl with the current state only (no undo history, which can
-   * be most of a file's size) plus its card picture, to the workshop service. `explicit` is a click
-   * or Ctrl+S; the page asking before it closes only saves when something changed.
+   * Workshop mode: the design as a .lyl with as much undo history as the settings keep, so closing
+   * and opening it again leaves undo and the history view as they were, plus its card picture, to the
+   * workshop service. When the service finds that too large it gets the current state only. `explicit`
+   * is a click or Ctrl+S; the page asking before it closes only saves when something changed.
    */
   const [workshopSaving, setWorkshopSaving] = useState(false);
   const workshopSavedRef = useRef<{ projectId: string | null; fingerprint: string } | null>(null);
@@ -12113,27 +12114,36 @@ export function LayerlingEditor({
       setNotice(t("workshop.saving"), true);
       try {
         const thumbnail = pngBlobFromDataUrl(await (window.layerlingCaptureCanvasAsync?.() ?? Promise.resolve("")));
-        const history = editorHistoryForExport(historyRef.current, historyIndexRef.current, 0);
-        const bytes = await exportLylProject({
-          projectId: projectInfoRef.current.projectId,
-          projectName,
-          createdAt: projectCreatedAt,
-          modifiedAt: Date.now(),
-          shapes: shapesRef.current,
-          notes: notesRef.current,
-          history: history.entries,
-          historyIndex: history.index,
-          assets: projectAssetsRef.current,
-          attachments: projectAttachmentsRef.current,
-          workspace: workspaceSettingsRef.current,
-          snapGrid,
-          placementElevation,
-          placementWorkplane,
-          sketchPlacementWorkplane: placementWorkplane,
-        });
-        await workshop.save({ bytes, thumbnail, title: projectName });
+        const exportWithHistory = (historyLimit: LylHistoryLimit) => {
+          const history = editorHistoryForExport(historyRef.current, historyIndexRef.current, historyLimit);
+          return exportLylProject({
+            projectId: projectInfoRef.current.projectId,
+            projectName,
+            createdAt: projectCreatedAt,
+            modifiedAt: Date.now(),
+            shapes: shapesRef.current,
+            notes: notesRef.current,
+            history: history.entries,
+            historyIndex: history.index,
+            assets: projectAssetsRef.current,
+            attachments: projectAttachmentsRef.current,
+            workspace: workspaceSettingsRef.current,
+            snapGrid,
+            placementElevation,
+            placementWorkplane,
+            sketchPlacementWorkplane: placementWorkplane,
+          });
+        };
+        let withoutHistory = false;
+        try {
+          await workshop.save({ bytes: await exportWithHistory(workspaceSettingsRef.current.historyLimit), thumbnail, title: projectName });
+        } catch (error) {
+          if (!(error instanceof WorkshopError && error.status === 413)) throw error;
+          await workshop.save({ bytes: await exportWithHistory(0), thumbnail, title: projectName });
+          withoutHistory = true;
+        }
         workshopSavedRef.current = { projectId: projectInfoRef.current.projectId ?? null, fingerprint };
-        setNotice(t("workshop.saved"));
+        setNotice(t(withoutHistory ? "workshop.savedWithoutHistory" : "workshop.saved"));
         return { ok: true, saved: true };
       } catch (error) {
         setNotice(`${t("workshop.saveFailed")} ${error instanceof Error ? localizedError(error.message) : ""}`.trim(), true);

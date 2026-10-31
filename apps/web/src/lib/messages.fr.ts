@@ -1478,6 +1478,7 @@ export const MESSAGES_FR: Partial<Record<MessageKey, string>> = {
   "status.packagingShared": "Conception du packaging pour le serveur…",
   "workshop.saving": "Enregistrement…",
   "workshop.saved": "Enregistré",
+  "workshop.savedWithoutHistory": "Enregistré sans l'historique : avec lui, le design était trop volumineux.",
   "workshop.saveFailed": "Impossible d'enregistrer.",
   "workshop.loadFailed": "Impossible d'ouvrir le design.",
   "status.serverSaved": "Enregistré sur le serveur",

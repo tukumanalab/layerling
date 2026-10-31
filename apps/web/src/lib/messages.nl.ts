@@ -1490,6 +1490,7 @@ export const MESSAGES_NL: Record<MessageKey, string> = {
   "status.packagingShared": "Ontwerp inpakken voor de server…",
   "workshop.saving": "Opslaan…",
   "workshop.saved": "Opgeslagen",
+  "workshop.savedWithoutHistory": "Opgeslagen zonder geschiedenis: daarmee was het ontwerp te groot.",
   "workshop.saveFailed": "Opslaan is niet gelukt.",
   "workshop.loadFailed": "Het ontwerp kon niet worden geopend.",
   "status.serverSaved": "Op de server opgeslagen",

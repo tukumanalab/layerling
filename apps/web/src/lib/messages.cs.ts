@@ -1554,6 +1554,7 @@ export const MESSAGES_CS: Record<MessageKey, string> = {
   "status.packagingShared": "Příprava projektu pro server…",
   "workshop.saving": "Ukládání…",
   "workshop.saved": "Uloženo",
+  "workshop.savedWithoutHistory": "Uloženo bez historie: s ní byl návrh příliš velký.",
   "workshop.saveFailed": "Uložení se nepodařilo.",
   "workshop.loadFailed": "Projekt se nepodařilo otevřít.",
   "status.serverSaved": "Uloženo na serveru",

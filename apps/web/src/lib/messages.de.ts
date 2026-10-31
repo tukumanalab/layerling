@@ -1490,6 +1490,7 @@ export const MESSAGES_DE: Record<MessageKey, string> = {
   "status.packagingShared": "Entwurf wird für den Server gepackt …",
   "workshop.saving": "Wird gespeichert…",
   "workshop.saved": "Gespeichert",
+  "workshop.savedWithoutHistory": "Ohne Verlauf gespeichert: mit ihm war das Design zu groß.",
   "workshop.saveFailed": "Speichern fehlgeschlagen.",
   "workshop.loadFailed": "Das Design konnte nicht geöffnet werden.",
   "status.serverSaved": "Auf dem Server gespeichert",
