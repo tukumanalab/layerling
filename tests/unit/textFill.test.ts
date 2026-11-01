@@ -193,6 +193,18 @@ describe("offsetting a text through its outlines (Discussion #1037)", () => {
     expect(shrunk.elevation).toBeCloseTo(0.5, 9);
   });
 
+  it("keeps the height and place when only the sides move (Discussion #1057)", () => {
+    const shape = text({ text: "ABMNW9", elevation: 2, height: 10 });
+    const grown = textOffsetAsFill(shape, 0.2, false, "round", true)!;
+    expect(grown.textStroke?.align).toBe("grow");
+    expect(grown.height).toBe(10);
+    expect(grown.elevation).toBe(2);
+    expect(grown.width).toBeCloseTo(shape.width + 0.4, 6);
+    const shrunk = textOffsetAsFill(shape, 0.5, true, "round", true)!;
+    expect(shrunk.height).toBe(10);
+    expect(shrunk.elevation).toBe(2);
+  });
+
   it("leaves texts with a fill or rounded lettering, other shapes and too small or large distances alone", () => {
     expect(textOffsetAsFill(text({ textStroke: stroke("outside") }), 0.2, false, "round")).toBeNull();
     expect(textOffsetAsFill(text({ bevel: 0.5 }), 0.2, false, "round")).toBeNull();

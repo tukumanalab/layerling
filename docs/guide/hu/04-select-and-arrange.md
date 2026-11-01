@@ -25,7 +25,7 @@ Sok résznél a nézetben könnyű elveszíteni a fonalat. Az objektumlista ({{u
 - A keresőmező név és fajta szerint is megtalálja az alakzatokat, így a „henger” vagy a „lyuk” szóra is. A csoportokon belül is keres, akármilyen mélyen vannak egymásba ágyazva: egy találatot tartalmazó csoport a listában marad, és kinyílik, hogy megmutassa az egyező részeket és a hozzájuk vezető csoportokat. A saját neve alapján megtalált csoport megnyitáskor az összes részét mutatja.
 - A címsor bal szélén lévő nyíl a címsoráig összecsukja a listát, majd újra kinyitja.
 
-A lista a nézetkockától közvetlenül jobbra van rögzítve. A címsoránál fogva húzd bárhová a munkasíkon; a nézetkocka és a kamerasáv alatt halad el. Ejtsd vissza a nézetkocka mellé, vagy kattints duplán a címsorra, és újra rögzül. Hogy hol volt, és hogy össze volt-e csukva, ebben a böngészőben megmarad.
+A lista a nézetkockától közvetlenül jobbra van rögzítve. A címsoránál fogva húzd bárhová a munkasíkon; a nézetkocka és a nézetsáv alatt halad el. Ejtsd vissza a nézetkocka mellé, vagy kattints duplán a címsorra, és újra rögzül. Hogy hol volt, és hogy össze volt-e csukva, ebben a böngészőben megmarad.
 
 ## Helyzet begépelése
 
@@ -65,15 +65,15 @@ A szögek a testtel maradnak. A beállításaiban az {{ui:inspector.rotation}} m
 
 ![Két tengely körül elforgatott test: a szögei alatta állnak, a beállításaiban lévő Elforgatás kártya pedig számként fogadja őket.](shot:rotation-card)
 
-Ha **egy test** van kijelölve, a forgatási pont ahhoz a testhez tartozik: jelölj ki más részeket, térj vissza, és még mindig ott van. Mozog, fordul és méreteződik a testtel, a projektben mentődik, és a Visszavonással is visszajön. A {{ui:inspector.position}} alatt a forgatási pontnak saját X, Y és Z értéke van, amelyet begépelhetsz vagy léptethetsz, az {{ui:inspector.pivotRemove}} pedig eltávolítja. A forgatási pont piros jelölőjét egérrel is húzhatod: a testek felületén csúszik, és a sarkokhoz, élfelezőkhöz és élekhez illeszkedik, így egy zsanércsap pontosan egy sarokra kerül. Több kijelölt testnél a forgatási pont csak arra a kijelölésre érvényes, és egy új kijelölés eltávolítja. Ha csoportosítod vagy kötegbe fogod őket, megmarad: a csoport saját forgáspontként veszi át, X, Y és Z értékkel a {{ui:inspector.position}} alatt.
+Ha **egy test** van kijelölve, a forgatási pont ahhoz a testhez tartozik: jelölj ki más részeket, térj vissza, és még mindig ott van. Mozog, fordul és méreteződik a testtel, a projektben mentődik, és a Visszavonással is visszajön. A {{ui:inspector.position}} alatt a forgatási pontnak saját X, Y és Z értéke van, amelyet begépelhetsz vagy léptethetsz, az {{ui:inspector.pivotRemove}} pedig eltávolítja. A forgatási pont piros jelölőjét egérrel is húzhatod: a testek felületén csúszik, és a sarkokhoz, élfelezőkhöz és élekhez illeszkedik, így egy zsanércsap pontosan egy sarokra kerül. Több kijelölt testnél a forgatási pont csak arra a kijelölésre érvényes, és egy új kijelölés eltávolítja. Ha csoportosítod vagy kötegbe fogod őket, megmarad: a csoport saját forgáspontként veszi át, X, Y és Z értékkel a {{ui:inspector.position}} alatt. Húzás közben a Shiftet nyomva tartva ehelyett a mutató alatti lap közepéhez illeszkedik – egy kerek lap tengelyéhez, egy sík lap közepéhez vagy egy kúp csúcsához –, és átlát az átlátszó testeken.
 
 ## Lapra fektetés
 
 Nyomtatáshoz egy alkatrésznek a legjobb oldalán kellene feküdnie? Jelöld ki, kattints a {{ui:editor.tool.layFlat}} gombra, majd arra a lapra, amelyik lefelé kerüljön. Amíg a mutatót az alkatrész fölött mozgatod, az alatta lévő lap kivilágosodik, így látod, melyiket fogod kiválasztani; a többi oldal ellenőrzéséhez forgasd el a nézetet. Az alkatrész úgy fordul, hogy ez a lap feküdjön a munkasíkon.
 
-Két alkatrésznek lappal lapra kellene illeszkednie, vagy egy síkba kerülnie? Jelöld ki a mozgatandó alkatrészt, kattints a {{ui:editor.tool.mateFaces}} gombra, majd kattints a lapjára, azután a másik alkatrész lapjára. A panelen a {{ui:mate.mode.against}} egymásnak fordítja a lapokat (háttal egymásnak, érintkezve), az {{ui:mate.mode.flush}} egy síkba fekteti őket egymás mellett; a {{ui:mate.gap}} helyet hagy közöttük, például hézagnak. Az {{ui:mate.apply}} elmozdítja az alkatrészt: a legrövidebb úton fordul, amíg a lapok párhuzamosak nem lesznek – egyáltalán nem, ha már azok –, majd csak a másik lap felé csúszik, így oldalirányban megtartja a helyét. A másik alkatrész a helyén marad, és egyetlen Visszavonás mindent visszavesz.
+Két alkatrésznek lappal lapra kellene illeszkednie, vagy egy síkba kerülnie? Jelöld ki a mozgatandó alkatrészt, kattints a {{ui:editor.tool.mateFaces}} gombra, majd kattints a lapjára, azután a másik alkatrész lapjára. Az ablakban a {{ui:mate.mode.against}} egymásnak fordítja a lapokat (háttal egymásnak, érintkezve), az {{ui:mate.mode.flush}} egy síkba fekteti őket egymás mellett; a {{ui:mate.gap}} helyet hagy közöttük, például hézagnak. Az {{ui:mate.apply}} elmozdítja az alkatrészt: a legrövidebb úton fordul, amíg a lapok párhuzamosak nem lesznek – egyáltalán nem, ha már azok –, majd csak a másik lap felé csúszik, így oldalirányban megtartja a helyét. A másik alkatrész a helyén marad, és egyetlen Visszavonás mindent visszavesz.
 
-![A Lapok igazítása panel: a mozgó alkatrész ki van választva, következik a másik alkatrész egy lapja, aztán laptól lapig vagy egy síkba, és egy tetszőleges hézag.](shot:mate-faces)
+![A Lapok igazítása ablak: a mozgó alkatrész ki van választva, következik a másik alkatrész egy lapja, aztán laptól lapig vagy egy síkba, és egy tetszőleges hézag.](shot:mate-faces)
 
 **Furatok egy tengelyen:** {{ui:mate.mode.concentric}} ehelyett kerek lapokat igazít: furatot furat fölé, csapot furatba, csavart a menet nélküli furatába. Válaszd ki, mielőtt a lapokra kattintasz. Aztán kattints a mozgó alkatrészen egy furat kerek belsejére (vagy egy csap külsejére), majd a másik alkatrész egy kerek lapjára; az egész kerek lap kivilágosodik, amíg rámutatsz. Az {{ui:mate.apply}} a legrövidebb úton elforgatja az alkatrészt, amíg a két tengely párhuzamos nem lesz, majd keresztben a másik tengelyre tolja. A tengely mentén ott marad, ahol volt, így egy csap megtartja a magasságát; utána told be. Importált hálókon is működik, ha a furat egy tengely körüli lapokból áll.
 
@@ -101,7 +101,7 @@ A másolatok előbb előnézetként jelennek meg. Csak a {{ui:array.apply}} hozz
 
 ## Lyukminta egy lapon
 
-Szellőzőkhöz, hangszórórácsokhoz, kosarakhoz és dobozokhoz a {{ui:holePattern.title}} egyenletesen elosztja a lyukakat egy sík lapon. Többé nem kell egy lyukat elkészítened, megismételned és a falra tenned. Jelölj ki pontosan egy testet, és kattints az eszköztár {{ui:editor.group.modify}} csoportjában az ismétlés melletti {{ui:holePattern.title}} gombra. Jobb kattintással is elérheted a testen, vagy megkeresheted a [[Ctrl]]+[[K]] billentyűvel.
+Szellőzőkhöz, hangszórórácsokhoz, kosarakhoz és dobozokhoz a {{ui:holePattern.title}} egyenletesen elosztja a lyukakat egy sík lapon. Többé nem kell egy lyukat elkészítened, megismételned és a falra tenned. Jelölj ki pontosan egy testet, és kattints a szalag {{ui:editor.group.modify}} csoportjában az ismétlés melletti {{ui:holePattern.title}} gombra. Jobb kattintással is elérheted a testen, vagy megkeresheted a [[Ctrl]]+[[K]] billentyűvel.
 
 1. Kattints a test egyik sík lapjára. A kattintás körüli teljes sík lap számít, nem csak a mutató alatti háromszög. Görbe lap nem működik: kapsz egy figyelmeztetést, és helyette egy sík lapra kattintasz.
 2. Az ablakban állítsd be, milyenek legyenek a lyukak, és hogyan helyezkedjenek el:
@@ -118,6 +118,24 @@ Szellőzőkhöz, hangszórórácsokhoz, kosarakhoz és dobozokhoz a {{ui:holePat
 A lyukak közönséges lyukak, a testtel csoportosítva, pont mint a {{ui:editor.tool.group}} után: semmi sincs „beégetve”. A {{ui:editor.tool.ungroup}} újra feloldja a csoportot, és minden lyukat felszabadít, amelyeket ezután egyenként mozgathatsz, módosíthatsz vagy törölhetsz. Az egész egyetlen lépés a {{ui:editor.tool.undo}} számára. Az eszköz egyszerre legfeljebb 400 lyukat készít; ilyenkor legyenek nagyobbak a lyukak, vagy nagyobb a távolság.
 
 Egy MI ugyanezt az MCP-hídon keresztül is meg tudja tenni a `layerling_perforate_face` paranccsal (lásd az [MI MCP-vel](chapter:ai-with-mcp) fejezetet).
+
+## Lap kitolása vagy benyomása
+
+Vastagabb falhoz, egy lapra emelt párnához vagy egy belevágott zsebhez a {{ui:faceTool.title}} eszköz egyetlen sík lapon dolgozik. Importált STL-en is működik, ahol nincs módosítható vázlat. Jelölj ki pontosan egy testet, és kattints a szalag {{ui:editor.group.modify}} csoportjában a {{ui:faceTool.title}} gombra, a lyukminta mellett. A testre jobb gombbal is kattinthatsz, vagy megkeresheted a [[Ctrl]]+[[K]] billentyűkkel.
+
+1. Kattints a test egy sík lapjára. A lyukmintához hasonlóan a kattintás körüli teljes sík lap számít; görbe lap nem működik. Csoporton vagy kötegen a lap átfut az összeérő részeken, mint a lyukmintánál.
+2. Az ablakban:
+   - **{{ui:faceTool.direction}}:** válaszd a {{ui:faceTool.direction.out}} lehetőséget a lapon álló anyaghoz, vagy a {{ui:faceTool.direction.in}} lehetőséget egy belevágott zsebhez. Egy zseb nem megy mélyebbre, mint a lap mögötti test; üreges testen elérheti az üreget.
+   - **{{ui:faceTool.inset}}:** mennyivel marad az új körvonal a lap szélén belül. Kifelé a 0 az egész lapot veszi, ami vastagabbá tesz egy falat. A lapon lévő nyílások ugyanennyivel nőnek.
+   - **{{ui:faceTool.radius}}:** a körvonal minden sarkát lekerekíti, a belsőket is, így egy éles csúcs ívben végződik. A sugár kétszeresénél keskenyebb bevágás bezárul, és a lapnak az a része, amely a beljebb húzás és a sugár együttes kétszeresénél keskenyebb, kimarad.
+   - **{{ui:faceTool.depth}}:** mennyire áll ki az új rész a lapból, vagy milyen mély a zseb.
+   - **{{ui:faceTool.separate}}:** bekapcsolt kapcsolóval az új rész (vagy egy zseb lyuka) önálló test a test mellett, nem csoport vele, így azonnal átméretezheted, mozgathatod vagy vágásra használhatod.
+3. Az eredmény azonnal előnézetként látszik, és minden értéket követ. A {{ui:faceTool.repick}} másik lapot választ, az [[Esc]] bezárja az eszközt.
+4. Csak a {{ui:faceTool.apply}} hozza létre.
+
+Amit az eszköz hozzáad, az egy közönséges vázlattest, a testtel csoportosítva, hacsak a {{ui:faceTool.separate}} nincs bekapcsolva (ekkor a {{ui:group.edit}} gombnak nincs mit megnyitnia, és a rész szabad): semmi sincs beégetve. A {{ui:group.edit}} megnyitja a csoportot, és az új részen a {{ui:inspector.editSketch}} megmutatja a körvonalat, amelyet követ. Egy egyszerű vázlattest tetején vagy alján (egy terület, nem csoportosított, nem tükrözött, nem kúposított, nem csavart, nem dőlt, és nincs körvonala, kulcstartó-füle, lekerekítése vagy letörése) ez a test saját körvonala, építéskor beljebb húzva, így vonalai és ívei pontosak maradnak, ahol a CAD-kernel be tudja húzni őket, az élszerszámokhoz és a STEP-exporthoz. Később átméretezve a rész megtartja a beljebb húzását. Minden más lapon, és egy importált háló minden lapján, a körvonal a lap háromszögeit követi, és egy görbe rövid egyenes darabokból áll. Az egész egyetlen lépés a {{ui:editor.tool.undo}} számára. A beljebb húzás vagy a sugár későbbi módosításához vond vissza, és futtasd újra az eszközt. A felső él utólagos lekerekítéséhez használd a {{ui:editor.tool.fillet}} eszközt a {{ui:edge.topEdges}} beállítással a csoporton utolsó lépésként: mint minden élkezelés egy csoporton, egyetlen testté egyesíti a csoportot.
+
+Egy MI ugyanezt az MCP-hídon át a `layerling_push_face` eszközzel teheti meg (lásd a [MI MCP-vel](chapter:ai-with-mcp) fejezetet).
 
 ## Több rész módosítása egyszerre
 

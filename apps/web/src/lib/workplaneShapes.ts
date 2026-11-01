@@ -658,6 +658,9 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.springWire === b.springWire &&
     a.springHand === b.springHand &&
     a.springQuality === b.springQuality &&
+    a.springForm === b.springForm &&
+    a.springPattern === b.springPattern &&
+    a.springEnds === b.springEnds &&
     a.starPoints === b.starPoints &&
     a.starInnerSize === b.starInnerSize &&
     a.starOuterFillet === b.starOuterFillet &&
@@ -688,10 +691,13 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.hingeScrewCountersink === b.hingeScrewCountersink &&
     a.hingeCornerRadius === b.hingeCornerRadius &&
     a.hingeLeafStyle === b.hingeLeafStyle &&
+    a.hingeScrewHead === b.hingeScrewHead &&
+    a.hingeNutWidth === b.hingeNutWidth &&
     a.gridfinityType === b.gridfinityType &&
     a.gridfinityLip === b.gridfinityLip &&
     a.gridfinityMagnets === b.gridfinityMagnets &&
     a.gridfinityHalfGrid === b.gridfinityHalfGrid &&
+    a.gridfinityLargePlate === b.gridfinityLargePlate &&
     a.gridfinityLabelBack === b.gridfinityLabelBack &&
     a.gridfinityLabelFront === b.gridfinityLabelFront &&
     a.gridfinityLabelLeft === b.gridfinityLabelLeft &&
@@ -755,6 +761,8 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.loftTwist === b.loftTwist &&
     a.loftSmooth === b.loftSmooth &&
     a.loftSegments === b.loftSegments &&
+    JSON.stringify(a.loftSections ?? null) === JSON.stringify(b.loftSections ?? null) &&
+    a.loftThrough === b.loftThrough &&
     a.slotEndRatio === b.slotEndRatio &&
     a.torusTubeRatio === b.torusTubeRatio &&
     a.loftTiltX === b.loftTiltX &&

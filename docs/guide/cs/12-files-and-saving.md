@@ -34,7 +34,7 @@ Jeden projekt uložíte v editoru přes {{ui:editor.export}}, formát **LYL** a 
 
 ## Přílohy
 
-Návod, seznam dílů, poznámky, fotka nebo katalogový list mohou zůstat u projektu jako soubory. {{ui:editor.attachments}} v liště {{ui:editor.group.manage}}, sponka, otevře seznam; malá tečka na sponce ukazuje, že projekt nějaké má.
+Návod, seznam dílů, poznámky, fotka nebo katalogový list mohou zůstat u projektu jako soubory. {{ui:editor.attachments}} v liště {{ui:editor.group.file}}, sponka, otevře seznam; malá tečka na sponce ukazuje, že projekt nějaké má.
 
 - **{{ui:attachments.upload}}:** Vyberte jeden nebo více souborů: `.md` (Markdown) nebo `.txt` jako prostý text (UTF-8), obrázky `.png`, `.jpg`, `.jpeg` nebo `.webp`, nebo dokumenty `.pdf`. Soubor se kontroluje podle obsahu, takže soubor, který není tím, co říká jeho název, se odmítne, a jiné typy, mezi nimi `.svg`, připojit nelze. Textový soubor smí mít nejvýše 2 MB, obrázek 16 MB a PDF 32 MB; projekt pojme až 32 souborů a dohromady 64 MB.
 - **Seznam:** Šipka stáhne soubor tak, jak byl nahrán. Koš ho odebere; řádek se předtím ještě jednou zeptá a odebraný soubor se zpět nevrátí, protože přílohy nejsou součástí historie kroků zpět.
@@ -82,7 +82,7 @@ Promítání vychází z práce WC3D na výkresech projektu Cadverix-3D.
 
 ### Kolik filamentu bude potřeba?
 
-U STL, 3MF, OBJ a STEP ukazuje {{ui:export.estimateTitle}} objem, hmotnost a délku filamentu o průměru 1,75 mm. Počítají se viditelná tělesa, výřezy jsou odečtené a překryvy jen jednou. Vpravo vyberete PLA, PETG, ABS, ASA, TPU nebo PA, tedy nylon; hmotnost odpovídá hustotě materiálu. Objem je skutečný geometrický objem tělesa. Hmotnost a filament jsou hrubým odhadem se stěnami a výplní. Nastavte {{ui:export.estimateInfillLabel}}, výchozí 15 %, a {{ui:export.estimateWallsLabel}}, výchozí 2. Panel uvede použité hodnoty i hmotnost při plném tisku. Skutečnost určuje nastavení sliceru. Odhad slouží k porovnání návrhů a posouzení, zda vystačí cívka. Při 100% výplni se počítá plné těleso, tedy horní mez spotřeby.
+U STL, 3MF, OBJ a STEP ukazuje {{ui:export.estimateTitle}} objem, hmotnost a délku filamentu o průměru 1,75 mm. Počítají se viditelná tělesa, výřezy jsou odečtené a překryvy jen jednou. Vpravo vyberete PLA, PETG, ABS, ASA, TPU nebo PA, tedy nylon; hmotnost odpovídá hustotě materiálu. Objem je skutečný geometrický objem tělesa. Hmotnost a filament jsou hrubým odhadem se stěnami a výplní. Nastavte {{ui:export.estimateInfillLabel}}, výchozí 15 %, a {{ui:export.estimateWallsLabel}}, výchozí 2. Okno uvede použité hodnoty i hmotnost při plném tisku. Skutečnost určuje nastavení sliceru. Odhad slouží k porovnání návrhů a posouzení, zda vystačí cívka. Při 100% výplni se počítá plné těleso, tedy horní mez spotřeby.
 
 ## Import
 

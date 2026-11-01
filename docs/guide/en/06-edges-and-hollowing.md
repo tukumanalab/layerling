@@ -14,11 +14,11 @@ Sharp edges rarely look good on a printed part, and they are not particularly st
 
 ![The "Fillet edges" tool: all sharp edges are selected, the picture shows the preview with a 4 mm radius.](shot:fillet-preview)
 
-The panel sits at the top right. If it covers edges you want to click, drag it away by its title bar; it opens there next time too, and so do {{ui:editor.tool.hollow}} and {{ui:editor.tool.array}}. Double-click the title bar to put it back.
+The tool window sits at the top right. If it covers edges you want to click, drag it away by its title bar; it opens there next time too, and so do {{ui:editor.tool.hollow}} and {{ui:editor.tool.array}}. Double-click the title bar to put it back.
 
-Picking a shape from the shape list while the panel is open closes it without applying anything, and the edges you clicked are forgotten. The click then places the new shape instead of picking edges.
+Picking a shape from the shape list while the tool window is open closes it without applying anything, and the edges you clicked are forgotten. The click then places the new shape instead of picking edges.
 
-In the panel you find:
+In the tool window you find:
 
 - {{ui:edge.allSharpEdges}} selects every edge at once, {{ui:edge.clear}} empties the selection.
 - **{{ui:edge.radius}}** for the fillet. For the chamfer you set {{ui:edge.distance}} or {{ui:edge.angle}}.
@@ -29,21 +29,23 @@ In the panel you find:
 - {{ui:edge.bottomEdges}} picks only the edges along the very bottom of the body, the mirror of {{ui:edge.topEdges}}. It is the quick way to round or chamfer only the foot of a part.
 - {{ui:edge.chamfillet}}, chosen at the top of the chamfer window next to {{ui:editor.tool.chamfer}}, makes the printable foot of a part: a chamfer at the plate that blends tangentially into a fillet toward the wall, so the first layers need no support and the edge still ends soft. {{ui:edge.distance}} is the height the foot takes up, {{ui:edge.angle}} (15° to 75°) the steepness of the chamfer at the plate. Pick the edges with {{ui:edge.bottomEdges}}.
 - {{ui:edge.onlyVisibleEdges}} hides the edges that lie behind the body from where you look. By default every edge shows through the body, which gets confusing on a busy part; with the switch on you see, and can click, only the edges facing you. Turn the view to reach the others. An edge drawn in red (see below) always shows.
-- {{ui:edge.tangentChains}}: a click then also picks edges that flow smoothly into each other, for example all edges around a face with rounded corners. The switch only decides what a click picks: the CAD kernel always carries a chamfer or fillet on along such smoothly continuing edges. The panel tells you along how many more edges that happens.
+- {{ui:edge.tangentChains}}: a click then also picks edges that flow smoothly into each other, for example all edges around a face with rounded corners. The switch only decides what a click picks: the CAD kernel always carries a chamfer or fillet on along such smoothly continuing edges. The tool window tells you along how many more edges that happens.
 - {{ui:edge.keepSize}} keeps the chamfer or fillet as large as it is, even if you scale the body later.
 - {{ui:edge.previewQuality}} ({{ui:edge.draft}}, {{ui:edge.standard}} or {{ui:edge.fine}}) decides how finely the preview is calculated. For difficult parts {{ui:edge.draft}} is faster.
 
 While you adjust the size, layerling recalculates the preview. It can take a moment. You may keep adjusting; the last value you chose is what gets calculated.
 
-If the size is too large for the edge, layerling says so and suggests a smaller value. Often one or two millimetres less will do. At sharp angles a fillet needs more room than its radius suggests. On a small screen the panel scrolls down by itself so the message is in view.
+If the size is too large for the edge, layerling says so and suggests a smaller value. Often one or two millimetres less will do. At sharp angles a fillet needs more room than its radius suggests. On a small screen the tool window scrolls down by itself so the message is in view.
 
 When a selection that worked fails after you click one more edge, that edge turns red and is drawn wider: it is the one that cannot be treated together with the others at this size. Click it again to take it out, or make the size smaller. If you click more edges while the message stands, the first one stays red. When there is no earlier selection that worked - the very first click, or a size you just raised - the edges that fail even on their own turn red, or all of them if it is only their combination.
 
 The edge under the pointer is drawn wider too, so you can see which one a click will pick.
 
+A hole takes {{ui:editor.tool.chamfer}} and {{ui:editor.tool.fillet}} as well, and so do {{ui:editor.tool.hollow}}, {{ui:editor.tool.offset}} and {{ui:editor.tool.deleteFace}}: it stays a hole and cuts with its new shape. Rounding the four upright edges of a box hole cuts a pocket with round inside corners, and a hole grown with {{ui:editor.tool.offset}} cuts with that much more room. To break the edge where a hole meets the part, treat the finished group instead: that edge belongs to it.
+
 ### Taking an edge treatment back
 
-A treated body can always be treated again. Select it again and open the tool - Fillet, Chamfer or Hollow, each shows the list: under {{ui:edge.featureHistory}} you see what is already on it. {{ui:edge.revertAction}} takes back a single treatment. Note: if newer treatments lie on top, they go with it, and the panel tells you how many.
+A treated body can always be treated again. Select it again and open the tool - Fillet, Chamfer or Hollow, each shows the list: under {{ui:edge.featureHistory}} you see what is already on it. {{ui:edge.revertAction}} takes back a single treatment. Note: if newer treatments lie on top, they go with it, and the tool window tells you how many.
 
 Next to a chamfer, a fillet or a hollowing there is also {{ui:edge.editAction}}. It takes the treatment back the same way, but opens the tool again at once with the same edges and the old value. You change the value and apply it again: a 3 mm fillet becomes a 5 mm one without clicking the edges once more. If newer treatments lie on top, they go with it here too. This holds for edge treatments you make from now on; older ones only offer taking back, and so do single parts of a group.
 
@@ -59,11 +61,11 @@ Boxes, cups, cases and covers have one thing in common: they are empty inside, w
 
 1. Select the body and click {{ui:editor.tool.hollow}}, or right-click the body and pick it from the menu.
 2. Set the {{ui:shell.wall}}.
-3. Under {{ui:shell.openings}}, switch on the sides that stay open: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} or {{ui:shell.side.right}}, as many as you like - {{ui:shell.side.front}} alone makes a slot for a drawer, {{ui:shell.side.left}} and {{ui:shell.side.right}} a tunnel. With no side switched on the body stays closed all round, with a cavity in the middle. {{ui:shell.side.closed}} switches every side off in one click. {{ui:shell.side.top}} is already on when the panel opens; a click on it closes the top again. A body closed all round looks unchanged from outside: the section view shows the cavity.
+3. Under {{ui:shell.openings}}, switch on the sides that stay open: {{ui:shell.side.top}}, {{ui:shell.side.bottom}}, {{ui:shell.side.front}}, {{ui:shell.side.back}}, {{ui:shell.side.left}} or {{ui:shell.side.right}}, as many as you like - {{ui:shell.side.front}} alone makes a slot for a drawer, {{ui:shell.side.left}} and {{ui:shell.side.right}} a tunnel. With no side switched on the body stays closed all round, with a cavity in the middle. {{ui:shell.side.closed}} switches every side off in one click. {{ui:shell.side.top}} is already on when the tool window opens; a click on it closes the top again. A body closed all round looks unchanged from outside: the section view shows the cavity.
 4. Decide whether the {{ui:shell.edges}} should be {{ui:shell.edges.round}} or {{ui:shell.edges.sharp}}.
 5. Click {{ui:shell.apply}}.
 
-![The hollowing panel with wall thickness, a switch for each side that stays open, and the inner edges.](shot:hollow-panel)
+![The hollowing tool window with wall thickness, a switch for each side that stays open, and the inner edges.](shot:hollow-panel)
 
 The walls grow inward. The outside stays as it is.
 
@@ -89,9 +91,10 @@ If you resize a hollowed body later, layerling hollows it again at the new size 
 
 - {{ui:lid.type.plug}}: a plate as large as the body with a lip below it that goes into the opening.
 - {{ui:lid.type.cap}}: a plate a wall wider than the body with a rim below it that goes over the outside.
+- {{ui:lid.type.both}}: a plate a wall wider than the body with both: a lip into the opening and a rim over the outside. The body's wall sits in a groove between them, like on a food container.
 - {{ui:lid.type.flat}}: only the plate, to lay on top or glue on.
 
-Then you set the {{ui:lid.thickness}}, the {{ui:lid.fit}} (the {{ui:lid.gap}} between lid and body: 0.1 mm tight, 0.2 mm normal, 0.3 mm loose, or any value up to 1 mm) and how deep the lip or rim reaches down and how thick its wall is. Click {{ui:lid.apply}}: the lid lies beside the body, turned over with its plate down, so it prints without support. The body stays as it is. The lid follows any outline, round or angular, because it is taken from the body itself just below its rim. A body without an opening at the top only gets a flat lid; for the other two, hollow it with the top open first.
+Then you set the {{ui:lid.thickness}}, the {{ui:lid.fit}} (the {{ui:lid.gap}} between lid and body: 0.1 mm tight, 0.2 mm normal, 0.3 mm loose, or any value up to 1 mm) and how deep the lip or rim reaches down and how thick its wall is. Click {{ui:lid.apply}}: the lid lies beside the body, turned over with its plate down, so it prints without support. The body stays as it is. The lid follows any outline, round or angular, because it is taken from the body itself just below its rim. A body without an opening at the top only gets a flat lid; for the others, hollow it with the top open first.
 
 > **Tip:** How tight a lid sits depends on the printer. Print a small box with its lid first; if the lid is too tight, take the next looser fit.
 
@@ -105,7 +108,9 @@ Every face of a body can be moved by the same distance, out or in. That is what 
 4. Tick {{ui:offset.copy}} to keep the part as it is and get the grown body as a copy that already is a hole. Group that hole with the mating part and it cuts exactly the clearance you chose.
 5. Click {{ui:offset.apply}}.
 
-Without the tick the body itself is offset. It becomes a fixed exact body, like after a chamfer: the list at the top of the panel takes the offset back, and {{ui:edge.editAction}} opens the tool again with the old distance. Only bodies that are exact CAD bodies can be offset - boxes, cylinders and the other shapes, groups of them, imported STEP parts. A body that is only a triangle mesh, such as many STL imports, often cannot be. A distance that is too big for the body, for example a shrink beyond its thinnest wall, is refused.
+Tick {{ui:offset.sideways}} when only the outline should grow or shrink: the sides move by the distance, while every flat top and bottom stays at its height. A sign gets a border all round, a base gets wider, and the body does not get taller. On a stepped body each step keeps its own height. A text that is offset through its outlines keeps its height then too.
+
+Without the tick the body itself is offset. It becomes a fixed exact body, like after a chamfer: the list at the top of the tool window takes the offset back, and {{ui:edge.editAction}} opens the tool again with the old distance. Only bodies that are exact CAD bodies can be offset - boxes, cylinders and the other shapes, groups of them, imported STEP parts. A body that is only a triangle mesh, such as many STL imports, often cannot be. A distance that is too big for the body, for example a shrink beyond its thinnest wall, is refused.
 
 A text whose letters the kernel cannot offset as a body - in some fonts an A, B, M, N, W or 9 - is offset through its outlines instead: it gets the fill {{ui:prop.textWider}} by the distance (narrower when it shrinks) and grows by as much at the top and the bottom. It stays a text you can go on editing. This works for a text with filled letters and no rounding; one that already has a fill mode is refused as before.
 
@@ -114,7 +119,7 @@ A text whose letters the kernel cannot offset as a body - in some fonts an A, B,
 A fillet in the way, a hole in the wrong place, a boss you no longer need: {{ui:editor.tool.deleteFace}} takes it off the body again, without building the body anew.
 
 1. Select the body and click {{ui:editor.tool.deleteFace}}, or right-click the body and pick it from the menu.
-2. Click every face of what should go: the faces of a rounded edge, the wall of a hole, the side and the top of a boss. A picked face lights up; another click takes it out again. The panel counts the faces.
+2. Click every face of what should go: the faces of a rounded edge, the wall of a hole, the side and the top of a boss. A picked face lights up; another click takes it out again. The tool window counts the faces.
 3. Click {{ui:deleteFace.apply}} or press [[Delete]]. [[Esc]] closes the tool without changing anything.
 
 The faces around the deleted ones grow until the gap is closed. A box with rounded top edges gets its sharp edges back, a hole is filled, a boss is gone. The body stays exact, so it can be filleted and chamfered again and the STEP export keeps its true faces. [[Ctrl]]+[[Z]] takes the deletion back in one step. It is also listed under {{ui:edge.featureHistory}} with the fillets and chamfers, where {{ui:edge.revertAction}} takes it back; there is no {{ui:edge.editAction}} for it. On a group, the result is a single body, as with an edge treatment.

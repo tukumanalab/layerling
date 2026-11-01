@@ -59,7 +59,7 @@ export const LYL_FILE_TYPES_FORMAT_VERSION = 4;
 /** The newest format this layerling reads. */
 export const LYL_NEWEST_READABLE_FORMAT_VERSION = LYL_FILE_TYPES_FORMAT_VERSION;
 export const LYL_OLDEST_READABLE_FORMAT_VERSION = 1;
-export const LYL_CREATED_WITH_VERSION = "1.125.0";
+export const LYL_CREATED_WITH_VERSION = "1.129.1";
 export const LYL_MEDIA_TYPE = "application/vnd.layerling.project+zip";
 
 export const LYL_LIMITS = {
@@ -1506,7 +1506,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
       const threadHeadChamfer = finiteNumber(definition.threadHeadChamfer, `${label}.threadHeadChamfer`);
       if (threadHeadChamfer < 0 || threadHeadChamfer > 480) throw new Error(`${label}.threadHeadChamfer is outside the supported range`);
     }
-    if (definition.threadDrive !== undefined && !["hex", "torx", "phillips", "none"].includes(definition.threadDrive as string)) {
+    if (definition.threadDrive !== undefined && !["hex", "torx", "phillips", "slot", "robertson", "none"].includes(definition.threadDrive as string)) {
       throw new Error(`${label}.threadDrive is invalid`);
     }
     for (const field of ["threadHeadDiameter", "threadDriveSize", "threadDriveDepth"] as const) {
@@ -1537,6 +1537,15 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     }
     if (definition.springHand !== undefined && definition.springHand !== "right" && definition.springHand !== "left") {
       throw new Error(`${label}.springHand is invalid`);
+    }
+    if (definition.springForm !== undefined && definition.springForm !== "coil" && definition.springForm !== "flat") {
+      throw new Error(`${label}.springForm is invalid`);
+    }
+    if (definition.springPattern !== undefined && !["round", "zigzag", "square"].includes(definition.springPattern as string)) {
+      throw new Error(`${label}.springPattern is invalid`);
+    }
+    if (definition.springEnds !== undefined && !["eye", "tab", "none"].includes(definition.springEnds as string)) {
+      throw new Error(`${label}.springEnds is invalid`);
     }
     if (definition.springQuality !== undefined) {
       const springQuality = finiteNumber(definition.springQuality, `${label}.springQuality`);
@@ -1661,7 +1670,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.gridfinityType !== undefined && definition.gridfinityType !== "bin" && definition.gridfinityType !== "baseplate" && definition.gridfinityType !== "tray") {
       throw new Error(`${label}.gridfinityType is invalid`);
     }
-    for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityOpenBack", "gridfinityOpenFront", "gridfinityOpenLeft", "gridfinityOpenRight", "hingePinless"] as const) {
+    for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLargePlate", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityOpenBack", "gridfinityOpenFront", "gridfinityOpenLeft", "gridfinityOpenRight", "hingePinless"] as const) {
       if (definition[key] !== undefined && typeof definition[key] !== "boolean") throw new Error(`${label}.${key} must be true or false`);
     }
     for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityOpeningCornerSize", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
@@ -1728,7 +1737,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "hinge") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["hingeKnuckles", "hingeKnuckleWidth", "hingeConeSize", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeAngle", "hingeScrewHoles", "hingeScrewDiameter", "hingeScrewSpacing", "hingeScrewAcross", "hingeCornerRadius"] as const) {
+    for (const key of ["hingeKnuckles", "hingeKnuckleWidth", "hingeConeSize", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeAngle", "hingeScrewHoles", "hingeScrewDiameter", "hingeScrewSpacing", "hingeScrewAcross", "hingeCornerRadius", "hingeNutWidth"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       if (value < 0 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
@@ -1755,6 +1764,24 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
       if (value !== undefined && value !== "round" && value !== "rectangle" && value !== "polygon") {
         throw new Error(`${label}.${key} must be round, rectangle or polygon`);
       }
+    }
+    // Sections between the ends (#1034): a list of plain sections; the geometry sorts and clamps them.
+    if (definition.loftSections !== undefined) {
+      if (!Array.isArray(definition.loftSections)) throw new Error(`${label}.loftSections must be a list`);
+      definition.loftSections.forEach((section: unknown, index: number) => {
+        const at = `${label}.loftSections[${index}]`;
+        if (!section || typeof section !== "object") throw new Error(`${at} must be an object`);
+        const entry = section as Record<string, unknown>;
+        if (entry.outline !== "round" && entry.outline !== "rectangle" && entry.outline !== "polygon") throw new Error(`${at}.outline must be round, rectangle or polygon`);
+        for (const key of ["at", "width", "depth", "corner", "sides", "offsetX", "offsetZ"]) {
+          if (entry[key] === undefined && key !== "at" && key !== "width" && key !== "depth") continue;
+          const value = finiteNumber(entry[key], `${at}.${key}`);
+          if (Math.abs(value) > 1e6) throw new Error(`${at}.${key} is outside the supported range`);
+        }
+      });
+    }
+    if (definition.loftThrough !== undefined && definition.loftThrough !== "smooth" && definition.loftThrough !== "straight") {
+      throw new Error(`${label}.loftThrough must be smooth or straight`);
     }
   }
   if (kind === "dovetail") {

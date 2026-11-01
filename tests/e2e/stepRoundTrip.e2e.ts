@@ -118,6 +118,22 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
     }
   });
 
+  it("exports a lift-off hinge and nut pockets, turned, folded and mirrored, with the display mesh's volume", async () => {
+    const { hingeTriangles } = await import("@/lib/hingeGeometry");
+    const volume = (fields: Parameters<typeof hingeTriangles>[0]) => hingeTriangles(fields).reduce(
+      (sum, [a, b, c]) => sum + (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6,
+      0,
+    );
+    for (const [hingeStyle, hingeScrewHead, hingeAngle, mirrorY] of [["liftOff", "countersunk", 0, false], ["liftOff", "countersunkNut", 120, false], ["pin", "nut", 60, true], ["pinless", "nut", 0, false]] as const) {
+      const fields = { width: 50, depth: 44, height: 10, sides: 96, hingeStyle, hingeLeafThickness: 2.5, hingeScrewHoles: 2, hingeScrewHead, hingeCornerRadius: 4, hingeAngle };
+      const hinge = shape({ kind: "hinge", name: "Hinge", size: 50, rotation: 30, x: 12, z: -7, elevation: 3, mirrorY, ...fields });
+      const { blob, exportedCount, skipped } = await exportShapesToStep([hinge]);
+      expect(skipped).toEqual([]);
+      expect(exportedCount).toBe(1);
+      expect(near(await reimportVolume(blob), volume(fields), 0.01)).toBe(true);
+    }
+  });
+
   it("exports a hinge with cones as its exact parts, each recess cut, with the display mesh's volume (#1007)", async () => {
     const { hingePlan, hingeTriangles } = await import("@/lib/hingeGeometry");
     const volume = (fields: Parameters<typeof hingeTriangles>[0]) => hingeTriangles(fields).reduce(
@@ -285,6 +301,47 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
     expect(near(await reimportVolume(blob), expected, 1e-4)).toBe(true);
   });
 
+  it("exports a loft through more sections, smooth, straight and with a wall, as its exact body (#1034)", async () => {
+    const { createLoftGeometry, loftFrameSize, loftStoredMeasures } = await import("@/lib/loftGeometry");
+    const loft = (extra: Partial<WorkplaneShape>) => {
+      const base = shape({
+        kind: "loft", name: "Loft", height: 100,
+        loftBottomOutline: "round", loftTopOutline: "round", loftBottomWidth: 10, loftBottomDepth: 10, loftTopWidth: 10, loftTopDepth: 10,
+        loftBottomCorner: 0, loftTopCorner: 0, loftOffsetX: 0, loftOffsetZ: 0, loftWall: 0,
+        loftSections: [{ at: 0.5, outline: "round", width: 30, depth: 30 }],
+        ...extra,
+      });
+      const frame = loftFrameSize(loftStoredMeasures(base));
+      return { ...base, width: frame.width, depth: frame.depth, size: Math.max(frame.width, frame.depth) };
+    };
+    const meshVolume = (source: WorkplaneShape) => {
+      const p = createLoftGeometry(source).getAttribute("position");
+      let total = 0;
+      for (let i = 0; i + 2 < p.count; i += 3) {
+        const [ax, ay, az] = [p.getX(i), p.getY(i), p.getZ(i)];
+        const [bx, by, bz] = [p.getX(i + 1), p.getY(i + 1), p.getZ(i + 1)];
+        const [cx, cy, cz] = [p.getX(i + 2), p.getY(i + 2), p.getZ(i + 2)];
+        total += (ax * (by * cz - bz * cy) + ay * (bz * cx - bx * cz) + az * (bx * cy - by * cx)) / 6;
+      }
+      return total;
+    };
+    const straight = loft({ loftThrough: "straight" });
+    const smooth = loft({ x: 50, loftSections: [{ at: 0.3, outline: "rectangle", width: 24, depth: 18, corner: 4 }, { at: 0.7, outline: "round", width: 30, depth: 26, offsetZ: 3 }] });
+    const walled = loft({ x: 100, loftWall: 1.5 });
+    for (const source of [straight, smooth, walled]) {
+      const { blob, exportedCount, skipped } = await exportShapesToStep([source]);
+      expect(skipped).toEqual([]);
+      expect(exportedCount).toBe(1);
+      const volume = await reimportVolume(blob);
+      if (source === straight) {
+        // Two frustums, radius 5 to 15 and back, 50 high each.
+        expect(near(volume, 2 * ((PI * 50) / 3) * (5 * 5 + 5 * 15 + 15 * 15), 1e-4)).toBe(true);
+      } else {
+        expect(near(volume, meshVolume(source), 5e-3)).toBe(true);
+      }
+    }
+  });
+
   it("exports a tapered, a leaning and (since #184) a twisted box as they are drawn, not as plain boxes", async () => {
     // 30 x 20 at the bottom to 12 x 8 at the top over 15: (h/3)(A1 + A2 + sqrt(A1 A2)) for similar ends.
     const frustum = shape({ kind: "box", name: "Frustum", x: -40, width: 30, depth: 20, height: 15, taperTopWidth: 12, taperTopDepth: 8 });
@@ -386,6 +443,27 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
       : kernel.getVolume(helicalGearPartSolid(kernel, cadModifierHelicalGearForShape(source)!));
     const expected = volume(helical) + volume(bevel) + 40 * 40 * 6 - volume(pocket);
     expect(near(await reimportVolume(blob), expected, 1e-4)).toBe(true);
+  });
+
+  it("exports a herringbone gear and a herringbone pocket as their exact bodies, each side in two halves (#1007)", async () => {
+    const { cadModifierHelicalGearForShape } = await import("@/lib/cadProfileExtrusion");
+    const { helicalGearPartSolid } = await import("@/lib/gearSolid");
+    const { occtKernel } = await import("@/lib/brepKernel");
+    const gear = (overrides: Partial<WorkplaneShape>) => shape({ kind: "gear", gearType: "herringbone", width: 30, depth: 30, size: 30, height: 6, teeth: 12, toothSize: 2.5, centerHoleSize: 6, helixAngle: 22.5, ...overrides });
+    const herringbone = gear({ name: "Herringbone", x: -40, rotation: 20 });
+    const block = shape({ kind: "box", name: "Block", x: 50, width: 40, depth: 40, height: 6 });
+    const pocket = gear({ name: "Pocket", x: 50, hole: true, helixAngle: -15 });
+
+    const { blob, exportedCount, skipped } = await exportShapesToStep([herringbone, block, pocket]);
+    expect(skipped).toEqual([]);
+    expect(exportedCount).toBe(2);
+    const kernel = occtKernel()!;
+    const volume = (source: WorkplaneShape) => kernel.getVolume(helicalGearPartSolid(kernel, cadModifierHelicalGearForShape(source)!));
+    expect(near(await reimportVolume(blob), volume(herringbone) + 40 * 40 * 6 - volume(pocket), 1e-4)).toBe(true);
+    // A helical gear would have the same volume; its 48 sides are one face each, the herringbone's two.
+    const alone = await exportShapesToStep([herringbone]);
+    const faces = kernel.getSubShapes(kernel.importStep(await alone.blob.text()), "face").length;
+    expect(faces).toBe(2 * 48 + 3);
   });
 
   it("exports a Gridfinity bin and baseplate as their exact bodies", async () => {

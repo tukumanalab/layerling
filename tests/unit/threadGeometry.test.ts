@@ -24,6 +24,7 @@ import {
   threadDriveFields,
   threadDriveOutline,
   threadDriveOutlinePoints,
+  threadDriveRadius,
   threadDriveSizeLimits,
   threadFootprintPatch,
 } from "@/lib/threadGeometry";
@@ -676,7 +677,7 @@ function outlineArea(points: Array<[number, number]>) {
 }
 
 describe("screw drives and head diameter (#1052)", () => {
-  const drives: ThreadDrive[] = ["hex", "torx", "phillips"];
+  const drives: ThreadDrive[] = ["hex", "torx", "phillips", "slot", "robertson"];
 
   it("stays closed for every drive in every head, chamfered or not", () => {
     for (const threadHead of ["cylinder", "countersunk", "hex"]) {
@@ -745,6 +746,37 @@ describe("screw drives and head diameter (#1052)", () => {
     const radii = points.map(([x, z]) => Math.hypot(x, z));
     expect(Math.max(...radii)).toBeCloseTo(5, 6);
     expect(Math.min(...radii)).toBeCloseTo(3.6, 6);
+    expect(points[points.length - 1]).toEqual(points[0]);
+  });
+
+  it("runs a slot as far across the head as it fits, a fifth as wide as long", () => {
+    // M6 with a 10 mm cylinder head: a tenth of the head stays standing round the slot's corners.
+    const settings = threadSettings({ threadRole: "screw", threadHead: "cylinder", threadDiameter: 6, threadPitch: 1, threadDrive: "slot" });
+    expect(settings.driveSize).toBeCloseTo(4.5 / Math.hypot(0.5, 0.1), 6);
+    const points = threadDriveOutlinePoints(threadDriveOutline("slot", settings.driveSize)!);
+    const xs = points.map(([x]) => x);
+    const zs = points.map(([, z]) => z);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(settings.driveSize, 6);
+    expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(settings.driveSize / 5, 6);
+    expect(Math.max(...points.map(([x, z]) => Math.hypot(x, z)))).toBeCloseTo(4.5, 6);
+    // A shorter slot stays as set, and a slot is stored like any other drive.
+    expect(threadSettings({ threadRole: "screw", threadDiameter: 6, threadPitch: 1, threadDrive: "slot", threadDriveSize: 6 }).driveSize).toBeCloseTo(6, 6);
+    const head = { role: "screw", head: "cylinder", diameter: 6, pitch: 1, headHeight: 6 } as const;
+    expect(threadDriveFields({ threadDrive: "slot" }, head)).toEqual({ threadHeadDiameter: undefined, threadDrive: "slot", threadDriveSize: undefined, threadDriveDepth: undefined });
+  });
+
+  it("gives a Robertson drive the square of the bit that fits the size", () => {
+    const square = (threadDiameter: number, threadPitch: number) =>
+      threadSettings({ threadRole: "screw", threadHead: "cylinder", threadDiameter, threadPitch, threadDrive: "robertson" }).driveSize;
+    // #0 on M3, #2 (red) on M4 and M5, #3 on M6, #4 on M8.
+    expect(square(3, 0.5)).toBeCloseTo(1.79, 6);
+    expect(square(4, 0.7)).toBeCloseTo(2.84, 6);
+    expect(square(5, 0.8)).toBeCloseTo(2.84, 6);
+    expect(square(6, 1)).toBeCloseTo(3.36, 6);
+    expect(square(8, 1.25)).toBeCloseTo(4.83, 6);
+    const points = threadDriveOutlinePoints(threadDriveOutline("robertson", 4)!);
+    expect(outlineArea(points)).toBeCloseTo(16, 6);
+    expect(Math.max(...points.map(([x, z]) => Math.hypot(x, z)))).toBeCloseTo(threadDriveRadius("robertson", 4), 6);
     expect(points[points.length - 1]).toEqual(points[0]);
   });
 

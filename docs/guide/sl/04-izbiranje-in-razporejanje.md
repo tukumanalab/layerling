@@ -25,7 +25,7 @@ Pri mnogih delih v pogledu zlahka izgubiš pregled. Seznam objektov ({{ui:editor
 - Iskalno polje najde oblike po imenu in po vrsti, torej tudi »valj« ali »luknja«. Išče tudi v skupinah, ne glede na to, kako globoko so ugnezdene: skupina z zadetkom ostane na seznamu in se razpre, tako da so vidni ustrezni deli in skupine na poti do njih. Če ime same skupine ustreza, pokaže razpro vse svoje dele.
 - Puščica čisto levo v naslovni vrstici zloži seznam do naslovne vrstice in ga spet razpre.
 
-Seznam je zasidran desno ob orientacijski kocki. Za naslovno vrstico ga povlečeš na katerokoli mesto delovne površine; pri tem drsi pod orientacijsko kocko in vrstico kamere. Če ga odložiš ob orientacijski kocki ali dvokliknes naslovno vrstico, se spet zasidra. Kje je stal in ali je bil zložen, si brskalnik zapomni.
+Seznam je zasidran desno ob orientacijski kocki. Za naslovno vrstico ga povlečeš na katerokoli mesto delovne površine; pri tem drsi pod orientacijsko kocko in vrstico pogleda. Če ga odložiš ob orientacijski kocki ali dvokliknes naslovno vrstico, se spet zasidra. Kje je stal in ali je bil zložen, si brskalnik zapomni.
 
 ## Vpiši lego
 
@@ -65,13 +65,13 @@ Koti ostanejo na telesu. V njegovih nastavitvah jih {{ui:inspector.rotation}} ka
 
 ![Telo, zavrteno okoli dveh osi: njegovi koti so pod njim, kartica »Vrtenje« v njegovih nastavitvah pa jih sprejme kot številke.](shot:rotation-card)
 
-Če je izbrano **eno telo**, vrtišče spada k temu telesu: izberi druge dele in se vrni in še vedno je tam. Premika se, vrti in spreminja velikost s telesom, shrani se v projekt in se vrne z »Razveljavi«. Pod {{ui:inspector.position}} ima vrtišče lastne vrednosti za X, Y in Z, ki jih lahko vpišeš ali premakneš, {{ui:inspector.pivotRemove}} pa ga odstrani. Rdečo oznako vrtišča lahko tudi povlečeš z miško: drsi po površini teles in se zaskoči na oglišča, sredine robov in robove, tako da zatič tečaja pride natanko na oglišče. Če je izbranih več teles, vrtišče velja samo za ta izbor, nov izbor pa ga odpravi. Če jih združiš ali povežeš, ostane: skupina ga prevzame kot svoje vrtišče, z X, Y in Z pod {{ui:inspector.position}}.
+Če je izbrano **eno telo**, vrtišče spada k temu telesu: izberi druge dele in se vrni in še vedno je tam. Premika se, vrti in spreminja velikost s telesom, shrani se v projekt in se vrne z »Razveljavi«. Pod {{ui:inspector.position}} ima vrtišče lastne vrednosti za X, Y in Z, ki jih lahko vpišeš ali premakneš, {{ui:inspector.pivotRemove}} pa ga odstrani. Rdečo oznako vrtišča lahko tudi povlečeš z miško: drsi po površini teles in se zaskoči na oglišča, sredine robov in robove, tako da zatič tečaja pride natanko na oglišče. Če je izbranih več teles, vrtišče velja samo za ta izbor, nov izbor pa ga odpravi. Če jih združiš ali povežeš, ostane: skupina ga prevzame kot svoje vrtišče, z X, Y in Z pod {{ui:inspector.position}}. Če med vlečenjem držiš Shift, se namesto tega pripne na sredino ploskve pod kazalcem - os okrogle ploskve, sredino ravne ali konico stožca - in pri tem gleda skozi prozorna telesa.
 
 ## Polaganje na ploskev
 
 Del naj za tisk leži na svoji najboljši strani? Izberi ga, klikni {{ui:editor.tool.layFlat}} in nato ploskev, ki naj gre navzdol. Ko s kazalcem zapelješ čez del, se ploskev pod njim posveti, torej vnaprej vidiš, katero boš vzel; zavrti pogled in preveri druge strani. Del se zavrti tako, da ta ploskev leži na delovni ravnini.
 
-Dva dela naj ležita ploskev ob ploskvi ali naj se končata poravnano? Izberi del, ki naj se premakne, klikni {{ui:editor.tool.mateFaces}}, nato njegovo ploskev in zatem ploskev drugega dela. V plošči {{ui:mate.mode.against}} položi ploskvi druga ob drugo (hrbet ob hrbet, dotikanje), {{ui:mate.mode.flush}} ju položi poleg druga druge v isto ravnino; {{ui:mate.gap}} pusti prostor vmes, na primer kot zračnost. {{ui:mate.apply}} del premakne: zavrti se po najkrajši poti, dokler nista ploskvi vzporedni – sploh ne, če že sta – in se potem samo pomakne proti drugi ploskvi, zato obdrži svojo stransko lego. Drugi del ostane, kjer je, »Razveljavi« pa vse vrne.
+Dva dela naj ležita ploskev ob ploskvi ali naj se končata poravnano? Izberi del, ki naj se premakne, klikni {{ui:editor.tool.mateFaces}}, nato njegovo ploskev in zatem ploskev drugega dela. V oknu {{ui:mate.mode.against}} položi ploskvi druga ob drugo (hrbet ob hrbet, dotikanje), {{ui:mate.mode.flush}} ju položi poleg druga druge v isto ravnino; {{ui:mate.gap}} pusti prostor vmes, na primer kot zračnost. {{ui:mate.apply}} del premakne: zavrti se po najkrajši poti, dokler nista ploskvi vzporedni – sploh ne, če že sta – in se potem samo pomakne proti drugi ploskvi, zato obdrži svojo stransko lego. Drugi del ostane, kjer je, »Razveljavi« pa vse vrne.
 
 ![Okno »Poravnaj ploskve«: del, ki se premakne, je izbran, naslednja je ploskev drugega dela, nato »Drugo proti drugemu« ali »Poravnano« in razmik, če želiš.](shot:mate-faces)
 

@@ -50,13 +50,14 @@ export function textLineSettingsInView(textStroke: unknown): boolean {
  * does with the letters' own outlines, and the text as much taller (lower) at both ends, about its
  * middle. Sharp edges give mitred corners, round ones round corners. Null for any other shape, a text
  * that already has a fill mode or rounded lettering, and a distance too small for a fill or too large
- * for the text's height.
+ * for the text's height. Sideways only (#1057), the text keeps its height and place.
  */
-export function textOffsetAsFill(shape: WorkplaneShape, distance: number, shrink: boolean, edges: ShellEdges): WorkplaneShape | null {
+export function textOffsetAsFill(shape: WorkplaneShape, distance: number, shrink: boolean, edges: ShellEdges, sideways = false): WorkplaneShape | null {
   if (shape.kind !== "text" || normalizeSketchStroke(shape.textStroke) || (shape.bevel ?? 0) > 0) return null;
-  const height = shape.height + (shrink ? -2 : 2) * distance;
+  const grownBy = sideways ? 0 : distance;
+  const height = shape.height + (shrink ? -2 : 2) * grownBy;
   if (distance < MIN_SKETCH_STROKE_WIDTH || height <= 0) return null;
   const textStroke: SketchStroke = { width: distance, align: shrink ? "shrink" : "grow", join: edges === "sharp" ? "miter" : "round", cap: "flat" };
-  return { ...shape, ...textFillPatch(shape, { textStroke }), height, elevation: (shape.elevation ?? 0) + (shrink ? distance : -distance) };
+  return { ...shape, ...textFillPatch(shape, { textStroke }), height, elevation: (shape.elevation ?? 0) + (shrink ? grownBy : -grownBy) };
 }
 

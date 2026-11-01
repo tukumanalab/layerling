@@ -172,6 +172,10 @@ export type ShapeCustomization = {
   springWire?: number;
   springHand?: ThreadHand;
   springQuality?: number;
+  /** A flat spring (#1076) instead of the coil: a band that runs in waves across the plate, `height` thick. Unset = the coil. */
+  springForm?: SpringForm;
+  springPattern?: FlatSpringPattern;
+  springEnds?: FlatSpringEnds;
   starPoints?: number;
   starInnerSize?: number;
   starOuterFillet?: number;
@@ -194,7 +198,7 @@ export type ShapeCustomization = {
   /** Hinge, cone style: the diameter of the cones at their root in mm; left out, the largest that fits (#907). */
   hingeConeSize?: number;
   /** Hinge: "pin" (default) or "cone": cones on every other knuckle that nest into the others, printing without bridges (#907). */
-  hingeStyle?: "pin" | "pinless" | "cone";
+  hingeStyle?: "pin" | "pinless" | "cone" | "liftOff";
   /** Hinge: diameter of the pin in mm; the other part's bore is wider by the clearance. */
   hingePinDiameter?: number;
   /** Hinge: thickness of the two leaves in mm. */
@@ -215,6 +219,10 @@ export type ShapeCustomization = {
   hingeScrewAcross?: number;
   /** Hinge: false for straight screw holes; otherwise countersunk on the side that faces the other leaf when closed. */
   hingeScrewCountersink?: boolean;
+  /** Hinge: the screw holes' top - "countersunk", "straight", "nut" (a hexagonal pocket for a nut) or "countersunkNut" (countersunk on leaf A, a nut on B); left out, hingeScrewCountersink decides. */
+  hingeScrewHead?: "countersunk" | "straight" | "nut" | "countersunkNut";
+  /** Hinge: a nut's width across the flats in mm for the nut's pockets; left out, from the hole's diameter. */
+  hingeNutWidth?: number;
   /** Hinge: the leaves' outer corners rounded with this radius in mm. */
   hingeCornerRadius?: number;
   /** Hinge: "fingers" gives each knuckle its own finger instead of a leaf each side, the two sides' alternating like combs; left out, plates. */
@@ -227,6 +235,8 @@ export type ShapeCustomization = {
   gridfinityMagnets?: boolean;
   /** Gridfinity bin: the size counts cells of 21 mm, each with a foot, four to a baseplate's socket; missing means the 42 mm grid. */
   gridfinityHalfGrid?: boolean;
+  /** Gridfinity baseplate: up to 12 units across and deep instead of 6, for print beds over 256 mm (#1061); missing means 6. */
+  gridfinityLargePlate?: boolean;
   /** Gridfinity bin: a label shelf along the back wall. */
   gridfinityLabelBack?: boolean;
   /** Gridfinity bin: a label shelf along the front wall. */
@@ -653,8 +663,11 @@ export type GridfinityOpening = {
 export type ThreadRole = "rod" | "screw" | "nut" | "bore";
 export type ThreadHead = "cylinder" | "countersunk" | "hex";
 /** What drives a screw: a recess in its free head face (#1052). */
-export type ThreadDrive = "hex" | "torx" | "phillips" | "none";
+export type ThreadDrive = "hex" | "torx" | "phillips" | "slot" | "robertson" | "none";
 export type ThreadHand = "right" | "left";
+export type SpringForm = "coil" | "flat";
+export type FlatSpringPattern = "round" | "zigzag" | "square";
+export type FlatSpringEnds = "eye" | "tab" | "none";
 /**
  * Die Zahnform: scharfe ISO-Spitze, flache Trapezflanke, rundes Profil oder
  * das Whitworth-Profil der G-Rohrgewinde (55 Grad, Kuppe und Grund gerundet).
@@ -709,6 +722,8 @@ export type EdgeTreatmentFeature = {
   shellEdges?: ShellEdges;
   /** Only for "offset": the faces moved inward, the body shrunk; missing means grown. */
   offsetShrink?: boolean;
+  /** Only for "offset" (#1057): only the sides moved, flat tops and bottoms kept at their heights; missing means every face. */
+  offsetSideways?: boolean;
   /** Only for "deleteFace": the faces deleted, as the tool numbered them on the body before. */
   faceIds?: number[];
   faceCount?: number;
@@ -814,6 +829,22 @@ export type CadPrimitiveFrame = {
 /** The top edge of a text's letters: rounded or chamfered, `size` mm wide and high (#225). */
 export type TextEdge = { kind: "round" | "chamfer"; size: number };
 
+/** A section of a transition between its bottom and its top (#1034). */
+export type LoftMiddleSection = {
+  /** Where it stands, as a share of the height from the bottom, 0 to 1. */
+  at: number;
+  outline: "round" | "rectangle" | "polygon";
+  width: number;
+  depth: number;
+  /** Corner rounding of a rectangle, in mm. */
+  corner?: number;
+  /** Sides of a polygon. */
+  sides?: number;
+  /** How far its middle sits from the bottom's middle, in mm. */
+  offsetX?: number;
+  offsetZ?: number;
+};
+
 export type WorkplaneShape = {
   id: string;
   name: string;
@@ -918,6 +949,10 @@ export type WorkplaneShape = {
   springWire?: number;
   springHand?: ThreadHand;
   springQuality?: number;
+  /** A flat spring (#1076) instead of the coil: a band that runs in waves across the plate, `height` thick. Unset = the coil. */
+  springForm?: SpringForm;
+  springPattern?: FlatSpringPattern;
+  springEnds?: FlatSpringEnds;
   starPoints?: number;
   starInnerSize?: number;
   starOuterFillet?: number;
@@ -940,7 +975,7 @@ export type WorkplaneShape = {
   /** Hinge, cone style: the diameter of the cones at their root in mm; left out, the largest that fits (#907). */
   hingeConeSize?: number;
   /** Hinge: "pin" (default) or "cone": cones on every other knuckle that nest into the others, printing without bridges (#907). */
-  hingeStyle?: "pin" | "pinless" | "cone";
+  hingeStyle?: "pin" | "pinless" | "cone" | "liftOff";
   /** Hinge: diameter of the pin in mm; the other part's bore is wider by the clearance. */
   hingePinDiameter?: number;
   /** Hinge: thickness of the two leaves in mm. */
@@ -961,6 +996,10 @@ export type WorkplaneShape = {
   hingeScrewAcross?: number;
   /** Hinge: false for straight screw holes; otherwise countersunk on the side that faces the other leaf when closed. */
   hingeScrewCountersink?: boolean;
+  /** Hinge: the screw holes' top - "countersunk", "straight", "nut" (a hexagonal pocket for a nut) or "countersunkNut" (countersunk on leaf A, a nut on B); left out, hingeScrewCountersink decides. */
+  hingeScrewHead?: "countersunk" | "straight" | "nut" | "countersunkNut";
+  /** Hinge: a nut's width across the flats in mm for the nut's pockets; left out, from the hole's diameter. */
+  hingeNutWidth?: number;
   /** Hinge: the leaves' outer corners rounded with this radius in mm. */
   hingeCornerRadius?: number;
   /** Hinge: "fingers" gives each knuckle its own finger instead of a leaf each side, the two sides' alternating like combs; left out, plates. */
@@ -973,6 +1012,8 @@ export type WorkplaneShape = {
   gridfinityMagnets?: boolean;
   /** Gridfinity bin: the size counts cells of 21 mm, each with a foot, four to a baseplate's socket; missing means the 42 mm grid. */
   gridfinityHalfGrid?: boolean;
+  /** Gridfinity baseplate: up to 12 units across and deep instead of 6, for print beds over 256 mm (#1061); missing means 6. */
+  gridfinityLargePlate?: boolean;
   /** Gridfinity bin: a label shelf along the back wall. */
   gridfinityLabelBack?: boolean;
   /** Gridfinity bin: a label shelf along the front wall. */
@@ -1109,6 +1150,14 @@ export type WorkplaneShape = {
   /** Transition: degrees the top end tilts about the x axis and about the z axis (#205). */
   loftTiltX?: number;
   loftTiltZ?: number;
+  /**
+   * Transition (#1034): more sections between the bottom and the top, each at a share of the height
+   * (0 to 1) with its own outline, size and offset from the bottom's middle. Missing or empty is the
+   * plain transition between two ends.
+   */
+  loftSections?: LoftMiddleSection[];
+  /** Transition with more sections: one smooth surface through all of them, or straight walls between neighbours. Smooth if missing. */
+  loftThrough?: "smooth" | "straight";
   /** Counterbore/countersink: diameter of the shaft below the head in mm (double countersink: the shaft between the two cones). */
   screwHoleShaft?: number;
   /** Counterbore: depth of the head pocket in mm. */

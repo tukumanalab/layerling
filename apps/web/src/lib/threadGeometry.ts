@@ -6,7 +6,7 @@ import type { MessageKey } from "@/lib/messages.en";
 
 export const DEFAULT_THREAD_ROLE: ThreadRole = "rod";
 export const DEFAULT_THREAD_HEAD: ThreadHead = "cylinder";
-export const THREAD_DRIVES: readonly ThreadDrive[] = ["hex", "torx", "phillips", "none"];
+export const THREAD_DRIVES: readonly ThreadDrive[] = ["hex", "torx", "phillips", "slot", "robertson", "none"];
 export const DEFAULT_THREAD_HAND: ThreadHand = "right";
 export const DEFAULT_THREAD_PROFILE: ThreadProfile = "v";
 export const DEFAULT_THREAD_DIAMETER = 6;
@@ -86,8 +86,8 @@ function finite(value: number | undefined, fallback: number) {
 /** Wie weit Durchmesser und Steigung von der Norm abweichen duerfen und trotzdem als Normgroesse gelten. */
 const SIZE_MATCH_TOLERANCE = 0.001;
 
-/** "pipe" ist das Whitworth-Rohrgewinde G: Durchmesser in Millimetern, Steigung in Gaengen je Zoll. */
-export type ThreadSystem = "metric" | "inch" | "pipe";
+/** "pipe" ist das Whitworth-Rohrgewinde G: Durchmesser in Millimetern, Steigung in Gaengen je Zoll. "bottle" sind Flaschenhaelse. */
+export type ThreadSystem = "metric" | "inch" | "pipe" | "bottle";
 
 export type ThreadSizeSpec = {
   /** Bleibt unuebersetzt: "M6" heisst in jeder Sprache M6. */
@@ -97,6 +97,9 @@ export type ThreadSizeSpec = {
   pitch: number;
   /** Das Profil, das die Norm dieser Reihe vorschreibt. */
   profile: ThreadProfile;
+  /** Ein eigenes Profil ("custom"): Gewindetiefe in mm und Flankenwinkel in Grad, wie die Norm sie vorgibt. */
+  depth?: number;
+  flankAngle?: number;
   /** Schluesselweite des Innensechskants. */
   socket: number;
   /** Zylinderkopf nach ISO 4762. */
@@ -258,8 +261,34 @@ const PIPE_SIZES: readonly ThreadSizeSpec[] = PIPE_ROWS.map((row) => ({
   profile: "whitworth",
 }));
 
-/** Die Reihen im Groessenmenue: metrisches Regelgewinde, Zoll grob und fein, Rohrgewinde G. */
-export type ThreadSeries = "metric" | "UNC" | "UNF" | "G";
+/**
+ * Flaschenhaelse (#1079). PCO 1881 ist der 28-mm-Hals der meisten Wasser- und
+ * Limoflaschen: eingaengig, 2,7 mm Steigung, aussen 27,4 mm, Kern 24,2 mm, also
+ * 1,6 mm tief, mit 15 Grad je Flanke und breiten flachen Kuppen - kein
+ * Spitzgewinde, deshalb ein eigenes Profil. Die Zahlen sind die der
+ * OpenSCAD-Bibliothek BOSL2 (`pco1881_neck`, `pco1881_cap`), die sie nach der
+ * Zeichnung der Norm fuehrt; die Normzeichnung selbst ist nicht frei zu haben.
+ * Am Hals laeuft das Gewinde knapp zwei Umdrehungen; wie weit, legt hier die
+ * Laenge fest. Kopf und Mutter sind nur der Vollstaendigkeit halber gerechnet.
+ *
+ * Kanister und Spuelmittelflaschen haben keine solche gemeinsame Norm, jeder
+ * Hersteller macht seinen Hals - die gehoeren deshalb nicht hierher.
+ */
+const BOTTLE_SIZES: readonly ThreadSizeSpec[] = [
+  {
+    id: "PCO 1881",
+    system: "bottle",
+    diameter: 27.4,
+    pitch: 2.7,
+    ...proportionalHeadSizes(27.4),
+    profile: "custom",
+    depth: 1.6,
+    flankAngle: 30,
+  },
+];
+
+/** Die Reihen im Groessenmenue: metrisches Regelgewinde, Zoll grob und fein, Rohrgewinde G, Flaschenhaelse. */
+export type ThreadSeries = "metric" | "UNC" | "UNF" | "G" | "bottle";
 
 /**
  * Was das Groessenmenue zu jeder Reihe zeigt: eine kurze Ueberschrift ueber
@@ -272,6 +301,7 @@ export const THREAD_SERIES_TEXT = {
   UNC: { group: "thread.group.UNC", hint: "thread.hint.UNC" },
   UNF: { group: "thread.group.UNF", hint: "thread.hint.UNF" },
   G: { group: "thread.group.G", hint: "thread.hint.G" },
+  bottle: { group: "thread.group.bottle", hint: "thread.hint.bottle" },
 } as const satisfies Record<ThreadSeries, { group: MessageKey; hint: MessageKey }>;
 
 export const THREAD_SIZE_GROUPS: ReadonlyArray<{ series: ThreadSeries; sizes: readonly ThreadSizeSpec[] }> = [
@@ -279,6 +309,7 @@ export const THREAD_SIZE_GROUPS: ReadonlyArray<{ series: ThreadSeries; sizes: re
   { series: "UNC", sizes: INCH_COARSE_SIZES },
   { series: "UNF", sizes: INCH_FINE_SIZES },
   { series: "G", sizes: PIPE_SIZES },
+  { series: "bottle", sizes: BOTTLE_SIZES },
 ];
 
 export const THREAD_SIZES: readonly ThreadSizeSpec[] = THREAD_SIZE_GROUPS.flatMap((group) => group.sizes);
@@ -353,6 +384,25 @@ export function threadSizeById(id: string): ThreadSizeSpec | null {
  */
 export function threadProfileForSize(size: ThreadSizeSpec, current: ThreadProfile): ThreadProfile {
   return current === "v" || current === "whitworth" ? size.profile : current;
+}
+
+/**
+ * Was die Wahl einer Normgroesse am Gewinde setzt. Ein Flaschenhals bringt sein
+ * eigenes Profil mit Tiefe und Flankenwinkel mit, immer - sonst passt der
+ * Deckel nicht. Wer von dort zu einer anderen Groesse geht, bekommt deren
+ * Normprofil zurueck, denn das eigene Profil war ja das des Halses.
+ */
+export function threadSizeSettings(size: ThreadSizeSpec, current: ThreadProfile, from: ThreadSizeSpec | null) {
+  const profile = size.depth !== undefined
+    ? "custom"
+    : from?.depth !== undefined && current === "custom" ? size.profile : threadProfileForSize(size, current);
+  return {
+    diameter: size.diameter,
+    pitch: size.pitch,
+    profile,
+    ...(size.depth !== undefined ? { depth: size.depth } : {}),
+    ...(size.flankAngle !== undefined ? { flankAngle: size.flankAngle } : {}),
+  };
 }
 
 /**
@@ -725,14 +775,34 @@ const TORX_INNER_PER_SIZE = 0.72;
 const TORX_LOBE_PER_SIZE = 0.08;
 /** Phillips: the width of each arm of the cross over its span. */
 const PHILLIPS_ARM_PER_SIZE = 0.25;
+/** Slot: its width over its length - wide enough for a coin on the larger sizes (#1052). */
+const SLOT_WIDTH_PER_SIZE = 0.2;
+/**
+ * Robertson (square, as in Canada): the square across flats of #00 to #4 and
+ * the largest screw diameter each takes - #00 on #2 (2.18 mm), #0 on #4, #1 on
+ * #7, #2 on #10, #3 on 1/4", #4 on 3/8". A screw between two takes the bit of
+ * the nearer one, so M3 gets #0, M4 and M5 #2, M6 #3, M8 #4.
+ */
+const ROBERTSON_SIZES: ReadonlyArray<{ upTo: number; square: number }> = [
+  { upTo: 2.35, square: 1.3 },
+  { upTo: 3.0, square: 1.79 },
+  { upTo: 3.99, square: 2.3 },
+  { upTo: 5.16, square: 2.84 },
+  { upTo: 7.14, square: 3.36 },
+  { upTo: Number.POSITIVE_INFINITY, square: 4.83 },
+];
 
 /**
  * The size a drive is given by: hex socket across flats, Torx outer
- * diameter, Phillips span of the cross. The defaults follow the hex socket
- * of the size: T20 on M4 measures 3.86 mm where its socket is 3 mm, PH2 on
- * M4 about 4 mm.
+ * diameter, Phillips span of the cross, slot length, Robertson square across
+ * flats. The defaults follow the hex socket of the size: T20 on M4 measures
+ * 3.86 mm where its socket is 3 mm, PH2 on M4 about 4 mm; Robertson follows
+ * its own sizes. A slot runs as far across the head as it may: asked for
+ * more than any head holds, it is cut back to the limit.
  */
 export function defaultThreadDriveSize(settings: DriveShape) {
+  if (settings.drive === "slot") return Number.POSITIVE_INFINITY;
+  if (settings.drive === "robertson") return ROBERTSON_SIZES.find((size) => settings.diameter <= size.upTo)!.square;
   const socket = threadSizeSpec(settings.diameter, settings.pitch).socket;
   if (settings.drive === "torx") return socket * 1.11;
   if (settings.drive === "phillips") return socket * 1.3;
@@ -744,6 +814,8 @@ export function threadDriveRadius(drive: ThreadDrive, size: number) {
   if (drive === "hex") return size / Math.sqrt(3);
   if (drive === "torx") return size / 2;
   if (drive === "phillips") return Math.hypot(size / 2, (size * PHILLIPS_ARM_PER_SIZE) / 2);
+  if (drive === "slot") return Math.hypot(size / 2, (size * SLOT_WIDTH_PER_SIZE) / 2);
+  if (drive === "robertson") return size / Math.SQRT2;
   return 0;
 }
 
@@ -789,6 +861,16 @@ export function threadDriveOutline(drive: ThreadDrive, size: number): ThreadDriv
     const corner = size / Math.sqrt(3);
     // The last corner is the start itself, not a rounding off it.
     return { start: [corner, 0], edges: Array.from({ length: 6 }, (_, index) => ({ to: index === 5 ? [corner, 0] : polar(corner, ((index + 1) * Math.PI) / 3) })) };
+  }
+  if (drive === "slot") {
+    const half = size / 2;
+    const width = (size * SLOT_WIDTH_PER_SIZE) / 2;
+    return { start: [half, 0], edges: [[half, width], [-half, width], [-half, -width], [half, -width], [half, 0]].map((to) => ({ to: to as DrivePoint })) };
+  }
+  if (drive === "robertson") {
+    // A square, its sides along x and y; the taper of a real socket is left out, a straight one holds the bit as well.
+    const half = size / 2;
+    return { start: [half, 0], edges: [[half, half], [-half, half], [-half, -half], [half, -half], [half, 0]].map((to) => ({ to: to as DrivePoint })) };
   }
   if (drive === "phillips") {
     const reach = size / 2;

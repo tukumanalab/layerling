@@ -7,7 +7,7 @@ Pour construire une pièce avec précision, vous devez mesurer. layerling dispos
 
 ## Le mètre ruban
 
-Le ruban à mesurer se trouve à l'extrémité inférieure de la barre de la caméra, sur le bord gauche ({{ui:camera.tapeTools}}). Il mesure les distances entre les coins, les arêtes et les faces. Un clic dessus ouvre cinq boutons. S'ils couvrent ce que vous souhaitez mesurer, faites-les glisser par la poignée de gauche n'importe où sur le plan de travail ; un double-clic sur la poignée les remet :
+Le ruban à mesurer se trouve à l'extrémité inférieure de la barre de vue, sur le bord gauche ({{ui:camera.tapeTools}}). Il mesure les distances entre les coins, les arêtes et les faces. Un clic dessus ouvre cinq boutons. S'ils couvrent ce que vous souhaitez mesurer, faites-les glisser par la poignée de gauche n'importe où sur le plan de travail ; un double-clic sur la poignée les remet :
 
 ![Le mètre ruban avec ses boutons : ajouter une mesure, déplacer des points de mesure, supprimer une mesure, des bords entiers, supprimer toutes les mesures.](shot:tape-menu)
 
@@ -27,7 +27,7 @@ Vous récupérez le {{ui:shape.ruler}} dans la bibliothèque de formes. Il s'agi
 
 ## Le carré de cadrage
 
-Parfois, il est préférable de mesurer à angle droit. Cliquez sur {{ui:camera.cornerRulerTool}} dans la barre de caméra puis sur le plan de travail. Un carré d'encadrement à deux bras à angle droit, avec des graduations comme un carré d'essai, y est placé. Il n'a pas non plus de corps propre. Cliquez près du coin d'un corps et son coin s'accroche exactement là.
+Parfois, il est préférable de mesurer à angle droit. Cliquez sur {{ui:camera.cornerRulerTool}} dans la barre de vue puis sur le plan de travail. Un carré d'encadrement à deux bras à angle droit, avec des graduations comme un carré d'essai, y est placé. Il n'a pas non plus de corps propre. Cliquez près du coin d'un corps et son coin s'accroche exactement là.
 
 Le carré d'encadrement repose sur le plan de travail. Si cela se trouve sur le côté d'un corps, le carré se trouve également de ce côté, voir [Vue et plan de travail](chapter:view-and-workplane). C'est ainsi que vous cotez sur un mur vertical : placez le plan de travail sur le mur, placez le carré dans son coin supérieur gauche et cliquez sur la poignée jusqu'à ce que les bras pointent vers la droite et le bas.
 
@@ -66,7 +66,7 @@ Une note enregistre ce que la géométrie ne dit pas : "Cette vis est trop serr�
 - Si son corps est supprimé, ou si plus aucun corps visible ne se trouve dessous, la note reste là où elle était, sur le plan de travail.
 - Faire glisser l'épingle déplace la note. Un clic sur l'épingle replie la carte, seul le petit numéro reste ; un autre clic la rouvre. Un clic dans le texte permet de le modifier.
 - Pendant que vous écrivez, [[Enter]] conserve le texte et [[Esc]] le remet tel qu'il était avant de commencer ; [[Shift]]+[[Enter]] démarre une nouvelle ligne.
-- **Dans une esquisse**, {{ui:editor.tool.note}} (sous {{ui:editor.group.manage}}) ou [[N]] place aussi une note, n'importe où sur l'esquisse. Toutes les notes d'une esquisse appartiennent à son corps : dans la vue 3D, elles se posent dessus, sur le dessus d'un corps créé avec {{ui:sketch.extrude}} ou {{ui:sketch.sweep}} et sur le profil dessiné d'un corps créé avec {{ui:sketch.revolve}}, et elles se déplacent avec lui. Quand vous rouvrez l'esquisse, elle affiche les notes du corps, y compris celles placées en 3D. Dans l'esquisse, {{ui:sketch.undo}} annule une note comme une ligne, et {{ui:sketch.cancel}} abandonne ce que vous avez modifié dans les notes. [[Shift]]+[[N]] affiche ou masque aussi les notes ici.
+- **Dans une esquisse**, {{ui:editor.tool.note}} ou [[N]] place aussi une note, n'importe où sur l'esquisse. Toutes les notes d'une esquisse appartiennent à son corps : dans la vue 3D, elles se posent dessus, sur le dessus d'un corps créé avec {{ui:sketch.extrude}} ou {{ui:sketch.sweep}} et sur le profil dessiné d'un corps créé avec {{ui:sketch.revolve}}, et elles se déplacent avec lui. Quand vous rouvrez l'esquisse, elle affiche les notes du corps, y compris celles placées en 3D. Dans l'esquisse, {{ui:sketch.undo}} annule une note comme une ligne, et {{ui:sketch.cancel}} abandonne ce que vous avez modifié dans les notes. [[Shift]]+[[N]] affiche ou masque aussi les notes ici.
 
 Les notes sont enregistrées dans la conception, n'apparaissent dans aucune exportation et peuvent être affichées ou masquées avec {{ui:visibility.notes}} (dans {{ui:editor.visibilityOptions}}, la flèche à côté de l'icône en forme d'œil) ou avec [[Shift]]+[[N]].
 
@@ -90,4 +90,4 @@ Une image de référence est une image sur laquelle aligner des pièces : posez 
 - {{ui:referenceImage.calibrate}} lui donne sa vraie taille, comme dans l'esquisse : cliquez sur deux points de l'image dont vous connaissez la distance réelle - deux trous de fixation de la carte, par exemple - et saisissez cette distance dans {{ui:referenceImage.distance}}. L'image garde ses proportions et son milieu.
 - Verrouillez-la avec le cadenas dans l'en-tête de ses réglages, et elle reste en place : les clics la traversent alors jusqu'au plateau. Choisissez-la dans la liste des objets pour la déverrouiller.
 - L'image est enregistrée une fois dans le fichier du projet, quel que soit le nombre de copies ou d'annulations. Une grande image grossit le fichier d'autant ; le message à l'ajout indique sa taille.
-- Une IA en ajoute une, la déplace, la calibre, l'estompe et la verrouille avec `layerling_reference_image`.
+- Une IA en ajoute une, la déplace, la calibre, l'estompe et la verrouille avec `layerling_reference_image`. Avec `trace`, elle vectorise l'image en un corps d'esquisse posé dessus, comme {{ui:sketch.traceImage}} dans l'esquisse.

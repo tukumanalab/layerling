@@ -17,7 +17,7 @@ export const GUIDE_CHAPTERS = {
   edges: { de: "kanten-und-aushoehlen", en: "edges-and-hollowing", nl: "randen-en-uithollen", ru: "edges-and-hollowing", cs: "edges-and-hollowing", sl: "robovi-in-izdolbljenje", hu: "edges-and-hollowing", es: "edges-and-hollowing" },
   sketches: { de: "skizzen", en: "sketches", nl: "schetsen", ru: "sketches", cs: "sketches", sl: "skice", hu: "sketches", es: "sketches" },
   text: { de: "text", en: "text", nl: "tekst", ru: "text", cs: "text", sl: "besedilo", hu: "text", es: "text" },
-  threads: { de: "gewinde-und-mechanik", en: "threads-and-mechanics", nl: "schroefdraad-en-mechanica", ru: "threads-and-mechanics", cs: "threads-and-mechanics", sl: "navoj", hu: "threads-and-mechanics", es: "threads-and-mechanics" },
+  threads: { de: "gewinde-und-mechanik", en: "threads-and-mechanics", nl: "schroefdraad-en-mechanica", ru: "threads-and-mechanics", cs: "threads-and-mechanics", sl: "navoji-in-mehanika", hu: "threads-and-mechanics", es: "threads-and-mechanics" },
   measuring: { de: "messen-und-notizen", en: "measuring-and-notes", nl: "meten-en-notities", ru: "measuring-and-notes", cs: "measuring-and-notes", sl: "merjenje-in-opombe", hu: "measuring-and-notes", es: "measuring-and-notes" },
   printing: { de: "drucken", en: "printing", nl: "printen", ru: "printing", cs: "printing", sl: "tiskanje", hu: "printing", es: "printing" },
   files: { de: "dateien-und-speichern", en: "files-and-saving", nl: "bestanden-en-opslaan", ru: "files-and-saving", cs: "files-and-saving", sl: "datoteke-in-shranjevanje", hu: "files-and-saving", es: "files-and-saving" },
@@ -37,7 +37,7 @@ export type GuideChapter = keyof typeof GUIDE_CHAPTERS;
 export const GUIDE_SECTIONS = {
   sectionView: { chapter: "view", de: "ins-innere-schauen-die-schnittansicht", en: "looking-inside-the-section-view", nl: "naar-binnen-kijken-de-doorsnede", ru: "zaglyanut-vnutr-vid-v-razreze", cs: "pohled-dovnitr-rez", sl: "pogled-v-notranjost-prerezni-pogled", hu: "belelatni-a-metszeti-nezet", es: "mirar-por-dentro-la-vista-de-seccion" },
   viewCube: { chapter: "view", de: "der-ansichtswuerfel", en: "the-view-cube", nl: "de-weergavekubus", ru: "kub-orientatsii", cs: "orientacni-krychle", sl: "orientacijska-kocka", hu: "a-nezetkocka", es: "el-cubo-de-vista" },
-  cameraBar: { chapter: "view", de: "die-kameraleiste", en: "the-camera-bar", nl: "de-camerabalk", ru: "panel-kamery", cs: "lista-pohledu", sl: "vrstica-kamere", hu: "a-kamerasav", es: "la-barra-de-camara" },
+  cameraBar: { chapter: "view", de: "die-ansichtsleiste", en: "the-view-bar", nl: "de-weergavebalk", ru: "panel-vida", cs: "lista-pohledu", sl: "vrstica-pogleda", hu: "a-nezetsav", es: "la-barra-de-vista" },
   gridAndSnapping: { chapter: "view", de: "gitter-und-raster", en: "grid-and-snapping", nl: "raster-en-vastklikken", ru: "setka-i-privyazka", cs: "mrizka-a-prichytavani", sl: "mreza-in-pripenjanje", hu: "racs-es-illesztes", es: "cuadricula-y-ajuste" },
   // The tabs of the settings window. Languages whose chapter explains the window in one go, under
   // "Grid and snapping", land there.

@@ -127,6 +127,13 @@ export type CadModifierProfilePart = {
    */
   apex?: { x: number; z: number };
   /**
+   * Loft only, through more sections (#1034): every section up the height with its loops (outer first, the
+   * opening second), piece for piece alike; `loops` is the first of them and `topLoops` the last.
+   */
+  through?: Array<{ y: number; loops: CadModifierProfileLoop[] }>;
+  /** With `through`: straight walls between neighbouring sections instead of one smooth surface. */
+  throughRuled?: boolean;
+  /**
    * Loft only: the section turns this many degrees from bottom to top, evenly, around
    * `twistCenter` (which moves with the lean). The sides are then no longer ruled: the body is a
    * smooth loft through sections a few degrees apart (#184).
@@ -276,12 +283,15 @@ export type CadModifierSpringPart = {
  * face between the helices of its two corners; the result stretched by
  * `stretch` (x and z) as the mesh is, then the straight round bore cut
  * through it. Built in the shape's own frame (y up, the foot at y = 0);
- * `transform` places it.
+ * `transform` places it. A herringbone gear's corners turn by half the
+ * twist up to the middle and back.
  */
 export type CadModifierHelicalGearPart = {
   corners: Array<{ angle: number; radius: number }>;
   /** Radians; the corners turn from +x towards +z as they rise when positive. */
   twist: number;
+  /** A herringbone gear: the corners turn by half the twist up to the middle and back to where they began at the top. */
+  herringbone?: boolean;
   height: number;
   stretch: { x: number; z: number };
   /** 0 for none. */
@@ -321,6 +331,7 @@ export type CadModifierGridfinityPart = {
   gridfinityLip: boolean;
   gridfinityMagnets: boolean;
   gridfinityHalfGrid?: boolean;
+  gridfinityLargePlate?: boolean;
   gridfinityLabelBack?: boolean;
   gridfinityLabelFront?: boolean;
   gridfinityLabelLeft?: boolean;
@@ -452,6 +463,8 @@ export type CadModifierWorkerRequest =
       shellEdges?: ShellEdges;
       // Only for "offset" (#919): `amount` is the distance, moved inward when this is set.
       offsetShrink?: boolean;
+      // Only for "offset" (#1057): only the sides move, the body keeps its height.
+      offsetSideways?: boolean;
       // Only for "deleteFace": the faces to delete, as the prepare numbered them.
       faceIds?: number[];
       // The finest deflection the shape's edge-treatment history has needed

@@ -100,7 +100,7 @@ import {
   threadSettings,
   threadSizeFor,
   threadSizeById,
-  threadProfileForSize,
+  threadSizeSettings,
   threadUsesInchPitch,
   threadsPerInchToPitch,
   type ThreadSettings,
@@ -166,9 +166,9 @@ import {
   normalizedBentTubeFields,
 } from "@/lib/bentTubeGeometry";
 import { displayStepFromMillimeters, formatFractionalInches, showsInchFractions, displayToMillimeters, formatMeasurementNumber, lengthDisplayUnit, measurementOptionLabel, millimetersToDisplay, parseMeasurementInput, resolveMeasurementInput } from "@/lib/measurementUnits";
-import { t, type MessageKey } from "@/lib/i18n";
+import { numberLocale, t, type MessageKey } from "@/lib/i18n";
 import { localizedError } from "@/lib/userErrors";
-import { displayShapeName, makeShapeFromAsset, renamedShapeName } from "@/lib/shapeCatalog";
+import { displayShapeName, makeShapeFromAsset, renamedShapeName, shapeAssetDefaultDimensions } from "@/lib/shapeCatalog";
 import { cylinderToEllipsePatch } from "@/lib/cylinderToEllipse";
 import { normalizeSurfaceTexture, SURFACE_TEXTURE_AXES, SURFACE_TEXTURE_CAP_EDGES, SURFACE_TEXTURE_CAP_STYLES, SURFACE_TEXTURE_CARBON_WEAVES, SURFACE_TEXTURE_BARK_TYPES, SURFACE_TEXTURE_BRICK_BONDS, SURFACE_TEXTURE_BUMP_GRIDS, SURFACE_TEXTURE_CRACK_STARTS, SURFACE_TEXTURE_CRACK_STYLES, SURFACE_TEXTURE_DEFAULTS, SURFACE_TEXTURE_DETAILS, SURFACE_TEXTURE_DIRECTIONS, SURFACE_TEXTURE_IMAGES, SURFACE_TEXTURE_LIMITS, SURFACE_TEXTURE_MASK_MODES, SURFACE_TEXTURE_PATTERNS, SURFACE_TEXTURE_PROFILES, SURFACE_TEXTURE_PROJECTIONS, SURFACE_TEXTURE_STARTERS, SURFACE_TEXTURE_TILINGS, SURFACE_TEXTURE_WOOD_CUTS, SURFACE_TEXTURE_WOOD_TYPES, surfaceTextureImageTile, type SurfaceTextureFace, type SurfaceTextureMaskMode, type SurfaceTexturePattern, type SurfaceTextureSettings } from "@/lib/surfaceTexture";
 import { SURFACE_TEXTURE_OWN_IMAGE_SIZE, surfaceTextureOwnImage } from "@/lib/surfaceTextureImages";
@@ -201,7 +201,7 @@ import { PICTURE_FILE_ACCEPT } from "@/lib/pictureIcon";
 import { BUILT_IN_FONTS, builtInFontName, customFontList, textFontLabel } from "@/lib/textFonts";
 import { SURFACE_TEXT_FONTS } from "@/lib/surfaceTextOutline";
 import { MIN_SLOT_END_RATIO, normalizeSlotEndRatio, taperedSlotOutline } from "@/lib/slotGeometry";
-import { loftMeasures, loftShapePatch, loftTiltLimit, maxLoftWall, MAX_LOFT_SEGMENTS, MAX_LOFT_SIDES, MAX_LOFT_TWIST, MIN_LOFT_SEGMENTS, MIN_LOFT_SIDES, MIN_LOFT_SIZE, normalizeLoftOutline, type LoftMeasures } from "@/lib/loftGeometry";
+import { loftMeasures, loftMiddlesWithCount, MAX_LOFT_MIDDLES, normalizeLoftThrough, loftShapePatch, loftTiltLimit, maxLoftWall, MAX_LOFT_SEGMENTS, MAX_LOFT_SIDES, MAX_LOFT_TWIST, MIN_LOFT_SEGMENTS, MIN_LOFT_SIDES, MIN_LOFT_SIZE, normalizeLoftOutline, type LoftMeasures } from "@/lib/loftGeometry";
 import { MAX_KNURL_ANGLE, MIN_KNURL_ANGLE, MIN_KNURL_COUNT, MIN_KNURL_DEPTH, knurlSettings, maxKnurlChamfer, maxKnurlCount, maxKnurlDepth, maxRoundKnurlDepth, normalizeKnurlAngle, normalizeKnurlChamfer, normalizeKnurlCount, normalizeKnurlDepth, normalizeKnurlPattern } from "@/lib/knurlGeometry";
 import {
   DEFAULT_GRIDFINITY_LABEL_CORNER,
@@ -212,7 +212,6 @@ import {
   GRIDFINITY_PADDING_KEYS,
   GRIDFINITY_SCOOP_WALL_KEYS,
   MAX_GRIDFINITY_DIVIDER_THICKNESS,
-  MAX_GRIDFINITY_DRAWER,
   MAX_GRIDFINITY_HEIGHT_UNITS,
   MAX_GRIDFINITY_LIP_CHAMFER,
   MAX_GRIDFINITY_PADDING,
@@ -245,6 +244,7 @@ import {
   gridfinityDividerPositionPatch,
   gridfinityDividerPositions,
   gridfinityDividerThickness,
+  gridfinityDrawerMax,
   gridfinityDrawerPatch,
   gridfinityDrawerSize,
   gridfinityFloorFits,
@@ -280,17 +280,20 @@ import {
   gridfinityWallThickness,
   normalizeGridfinityType,
 } from "@/lib/gridfinityGeometry";
-import { hingeLargestConeSize, hingeLargestCornerRadius, MAX_HINGE_ANGLE, MAX_HINGE_CLEARANCE, MAX_HINGE_KNUCKLES, MAX_HINGE_SCREW_DIAMETER, MAX_HINGE_SCREW_HOLES, MIN_HINGE_CLEARANCE, MIN_HINGE_KNUCKLES, MIN_HINGE_SCREW_DIAMETER, hingePlan, minimumHingeDepth, normalizeHingeAngle, normalizeHingeClearance, normalizeHingeKnuckles, normalizeHingeKnuckleWidth, normalizeHingeLeafThickness, normalizeHingePinDiameter, normalizeHingeScrewDiameter, normalizeHingeScrewHoles } from "@/lib/hingeGeometry";
+import { hingeLargestConeSize, hingeLargestCornerRadius, MAX_HINGE_ANGLE, MAX_HINGE_CLEARANCE, MAX_HINGE_KNUCKLES, MAX_HINGE_SCREW_DIAMETER, MAX_HINGE_SCREW_HOLES, MIN_HINGE_CLEARANCE, MIN_HINGE_KNUCKLES, MIN_HINGE_SCREW_DIAMETER, hingePlan, minimumHingeDepth, normalizeHingeAngle, normalizeHingeClearance, normalizeHingeKnuckles, normalizeHingeKnuckleWidth, normalizeHingeLeafThickness, normalizeHingePinDiameter, normalizeHingeScrewDiameter, normalizeHingeScrewHead, normalizeHingeScrewHoles, MAX_HINGE_NUT_WIDTH } from "@/lib/hingeGeometry";
 import { useLanguage } from "@/lib/useLanguage";
 import { useMovablePanel, type MovablePanelOptions } from "@/lib/useMovablePanel";
 import { meshAabb } from "@/lib/editorMeshCore";
 import { isNonSolidShape, resizedShapeSize, shapeDepth, shapeHasTaper, shapeOverallFootprintDimensions, shapeSupportsTaper, shapeTaperDimensions, shapeWidth } from "@/lib/workplaneShapes";
+import { tubeBeforeEdgeTreatments } from "@/lib/edgeTreatmentHistory";
 import { MAX_SKETCH_REVOLVE_TURNS, normalizeSketchRevolveSettings } from "@/lib/sketchRevolve";
 import { roundSideCount } from "@/lib/roundSideCount";
 import { torusTessellation } from "@/lib/torusTessellation";
 import { TORUS_MAX_TUBE_RATIO, TORUS_MIN_TUBE_RATIO, torusTubeRatio, torusTubeThickness } from "@/lib/torusShape";
 import { normalizePyramidTop } from "@/lib/pyramidGeometry";
 import {
+  DEFAULT_SPRING_TURNS,
+  DEFAULT_SPRING_WIRE,
   MAX_SPRING_QUALITY,
   MIN_SPRING_QUALITY,
   normalizeSpringQuality,
@@ -301,6 +304,19 @@ import {
   springTurnLimits,
   springWireLimits,
 } from "@/lib/springGeometry";
+import {
+  DEFAULT_FLAT_SPRING_TURNS,
+  DEFAULT_FLAT_SPRING_WIRE,
+  FLAT_SPRING_DIMENSIONS,
+  flatSpringSettings,
+  flatSpringTurnLimits,
+  flatSpringWireLimits,
+  normalizeFlatSpringEnds,
+  normalizeFlatSpringPattern,
+  normalizeFlatSpringTurns,
+  normalizeFlatSpringWire,
+  normalizeSpringForm,
+} from "@/lib/flatSpringGeometry";
 import { regularPolygonAspect } from "@/lib/regularPolygonFootprint";
 import { DEFAULT_TAPER_DIMENSION_MAX, MAX_HIGH_RESOLUTION_SIDES, MAX_HIGH_RESOLUTION_STEPS, POSITION_TYPED_LIMIT, RULER_MAX_LENGTH, customSnapGridLabel, positionReach, shapeDimensionLimit, snapGridOptions, snapGridStep } from "@/lib/workplaneSettings";
 import { printerPresetById } from "@/lib/printBed";
@@ -315,6 +331,7 @@ import { shapePivotFromWorld, shapePivotWorld } from "@/lib/rotationPivot";
 import { signedDegrees } from "@/lib/geometryRotation";
 import { orientedMeasures, withOrientedMeasures } from "@/lib/orientedMeasures";
 import { tubeAfterInner, tubeAfterOuter, tubeInnerDiameter } from "@/lib/tubeDiameters";
+import { WASHER_SIZE_ORDER, isWasherSize, washerSizeFor, washerTubeFields } from "@/lib/washerSizes";
 import { MAX_HIRTH_TEETH, MIN_HIRTH_BASE, MIN_HIRTH_TEETH, MIN_HIRTH_TOOTH_HEIGHT, hirthBoreLimit, hirthFlankAngle, hirthToothHeightLimit, normalizeHirthBore, normalizeHirthTeeth, normalizeHirthToothHeight } from "@/lib/hirthGeometry";
 
 /**
@@ -419,12 +436,16 @@ const THREAD_DRIVE_OPTIONS: Array<{ value: ThreadDrive; label: MessageKey }> = [
   { value: "hex", label: "thread.driveHex" },
   { value: "torx", label: "thread.driveTorx" },
   { value: "phillips", label: "thread.drivePhillips" },
+  { value: "slot", label: "thread.driveSlot" },
+  { value: "robertson", label: "thread.driveRobertson" },
   { value: "none", label: "thread.driveNone" },
 ];
 const DRIVE_SIZE_HINT: Record<Exclude<ThreadDrive, "none">, MessageKey> = {
   hex: "prop.driveSizeHex",
   torx: "prop.driveSizeTorx",
   phillips: "prop.driveSizePhillips",
+  slot: "prop.driveSizeSlot",
+  robertson: "prop.driveSizeRobertson",
 };
 const THREAD_PROFILE_OPTIONS: Array<{ value: ThreadProfile; label: MessageKey }> = [
   { value: "v", label: "thread.profileV" },
@@ -523,7 +544,7 @@ function scrollingAncestor(element: HTMLElement): HTMLElement | null {
 }
 
 function propertyUsesLengthUnit(key: string) {
-  return ["textLineWidth", "textEdgeSize", "letterSize", "iconWidth", "keyringDiameter", "keyringAlong", "positionX", "positionY", "positionZ", "pivotX", "pivotY", "pivotZ", "radius", "length", "width", "height", "bevel", "topRadius", "baseRadius", "thickness", "outerDiameter", "innerDiameter", "textRadius", "extrudeTopOffsetX", "extrudeTopOffsetZ", "toothSize", "toothWidth", "gearBacklash", "centerHole", "slotSmallEnd", "slotCentreDistance", "torusTube", "sketchLineWidth", "sketchCuttingEdge", "topLength", "topWidth", "bottomLength", "bottomWidth", "diameter", "pitch", "clearance", "axialClearance", "boltClearance", "threadDepth", "threadCoreDiameter", "threadLength", "headHeight", "headDiameter", "driveSize", "driveDepth", "chamfer", "chamferBottom", "headChamfer", "wire", "starOuterSize", "starInnerSize", "starOuterFillet", "starInnerFillet", "heartTipFillet", "crescentThickness", "crescentTipFillet", "honeycombCellSize", "honeycombWallThickness", "honeycombFrameWidth", "cornerFillet", "topBottomFillet", "bentTubeSize", "bentTubeWall", "bentTubeSegmentLength", "bentTubeBendRadius", "dovetailNeckWidth", "dovetailClearance", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeCornerRadius", "hingeScrewDiameter", "hingeScrewSpacing", "hingeScrewAcross", "screwHoleShaft", "screwHoleHeadDepth", "knurlDepth", "knurlChamfer", "loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftOffsetX", "loftOffsetZ", "loftWall", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelBackWidth", "gridfinityLabelCornerSize", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelFrontWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelLeftWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelRightWidth", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityDrawerWidth", "gridfinityDrawerDepth", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinityDividerThickness", "gridfinityDividerPositionX", "gridfinityDividerPositionZ", "gridfinityCompartmentLabelWidth", "gridfinityOpeningCornerSize", "gridfinityOpeningDepthBack", "gridfinityOpeningDepthFront", "gridfinityOpeningDepthLeft", "gridfinityOpeningDepthRight", "gridfinityOpeningWidthBack", "gridfinityOpeningWidthFront", "gridfinityOpeningWidthLeft", "gridfinityOpeningWidthRight", "gridfinityOpeningDistanceBack", "gridfinityOpeningDistanceFront", "gridfinityOpeningDistanceLeft", "gridfinityOpeningDistanceRight", "surfaceSpacing", "surfaceDepth", "surfaceFade", "surfaceCrackWidth", "surfaceCrackRecess", "surfaceTextSize", "surfaceCarbonCross", "surfaceBrickHeight", "surfaceBrickJoint", "surfaceRingWidth", "vase.wall", "vase.bottom", "vase.ribDepth", "vase.stripeDepth", "vase.voronoiCell", "vase.voronoiGap", "vase.voronoiDepth", "vase.waveAmplitude", "vaseFloor.drainDiameter", "vaseFloor.floorSlope", "vaseFloor.footHeight", "vaseFloor.rubberFootDiameter", "vaseFloor.rubberFootDepth", "vaseFloor.cutoutSize", "vaseFloor.cutoutWeb", "vaseFloor.lampHole", "vaseFloor.puckDiameter", "vaseFloor.lampNotch", "vaseFloor.lampNotchHeight", "vaseFloor.reinforceDepth", "vaseFloor.slitWidth", "vaseFloor.lineWidth", "vasePrint.lineWidth", "vaseParts.legHeight", "vaseParts.legDiameter", "vaseParts.saucerHeight", "vaseParts.saucerGap", "vaseParts.saucerWall", "vaseParts.insertWall", "vaseParts.insertStandoff", "vaseParts.reservoirHeight", "vaseParts.frogHole", "vaseParts.tubeDiameter", "vaseParts.lidClearance", "vaseParts.lidThickness", "vaseParts.lidDepth", "vaseParts.threadPitch", "vaseParts.fitClearance"].includes(key);
+  return ["textLineWidth", "textEdgeSize", "letterSize", "iconWidth", "keyringDiameter", "keyringAlong", "positionX", "positionY", "positionZ", "pivotX", "pivotY", "pivotZ", "radius", "length", "width", "height", "bevel", "topRadius", "baseRadius", "thickness", "outerDiameter", "innerDiameter", "textRadius", "extrudeTopOffsetX", "extrudeTopOffsetZ", "toothSize", "toothWidth", "gearBacklash", "centerHole", "slotSmallEnd", "slotCentreDistance", "torusTube", "sketchLineWidth", "sketchCuttingEdge", "topLength", "topWidth", "bottomLength", "bottomWidth", "diameter", "pitch", "clearance", "axialClearance", "boltClearance", "threadDepth", "threadCoreDiameter", "threadLength", "headHeight", "headDiameter", "driveSize", "driveDepth", "chamfer", "chamferBottom", "headChamfer", "wire", "starOuterSize", "starInnerSize", "starOuterFillet", "starInnerFillet", "heartTipFillet", "crescentThickness", "crescentTipFillet", "honeycombCellSize", "honeycombWallThickness", "honeycombFrameWidth", "cornerFillet", "topBottomFillet", "bentTubeSize", "bentTubeWall", "bentTubeSegmentLength", "bentTubeBendRadius", "dovetailNeckWidth", "dovetailClearance", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeCornerRadius", "hingeScrewDiameter", "hingeScrewSpacing", "hingeScrewAcross", "hingeNutWidth", "screwHoleShaft", "screwHoleHeadDepth", "knurlDepth", "knurlChamfer", "loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftOffsetX", "loftOffsetZ", "loftWall", "loftSectionHeight", "loftSectionWidth", "loftSectionDepth", "loftSectionCorner", "loftSectionOffsetX", "loftSectionOffsetZ", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelBackWidth", "gridfinityLabelCornerSize", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelFrontWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelLeftWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelRightWidth", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityDrawerWidth", "gridfinityDrawerDepth", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinityDividerThickness", "gridfinityDividerPositionX", "gridfinityDividerPositionZ", "gridfinityCompartmentLabelWidth", "gridfinityOpeningCornerSize", "gridfinityOpeningDepthBack", "gridfinityOpeningDepthFront", "gridfinityOpeningDepthLeft", "gridfinityOpeningDepthRight", "gridfinityOpeningWidthBack", "gridfinityOpeningWidthFront", "gridfinityOpeningWidthLeft", "gridfinityOpeningWidthRight", "gridfinityOpeningDistanceBack", "gridfinityOpeningDistanceFront", "gridfinityOpeningDistanceLeft", "gridfinityOpeningDistanceRight", "surfaceSpacing", "surfaceDepth", "surfaceFade", "surfaceCrackWidth", "surfaceCrackRecess", "surfaceTextSize", "surfaceCarbonCross", "surfaceBrickHeight", "surfaceBrickJoint", "surfaceRingWidth", "vase.wall", "vase.bottom", "vase.ribDepth", "vase.stripeDepth", "vase.voronoiCell", "vase.voronoiGap", "vase.voronoiDepth", "vase.waveAmplitude", "vaseFloor.drainDiameter", "vaseFloor.floorSlope", "vaseFloor.footHeight", "vaseFloor.rubberFootDiameter", "vaseFloor.rubberFootDepth", "vaseFloor.cutoutSize", "vaseFloor.cutoutWeb", "vaseFloor.lampHole", "vaseFloor.puckDiameter", "vaseFloor.lampNotch", "vaseFloor.lampNotchHeight", "vaseFloor.reinforceDepth", "vaseFloor.slitWidth", "vaseFloor.lineWidth", "vasePrint.lineWidth", "vaseParts.legHeight", "vaseParts.legDiameter", "vaseParts.saucerHeight", "vaseParts.saucerGap", "vaseParts.saucerWall", "vaseParts.insertWall", "vaseParts.insertStandoff", "vaseParts.reservoirHeight", "vaseParts.frogHole", "vaseParts.tubeDiameter", "vaseParts.lidClearance", "vaseParts.lidThickness", "vaseParts.lidDepth", "vaseParts.threadPitch", "vaseParts.fitClearance"].includes(key);
 }
 
 /**
@@ -603,7 +624,11 @@ function torusSideProperties(
   ];
 }
 
-function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeInspectorUpdate, textWidthMax = 260): ShapePropertyConfig[] {
+/** What the panel shows of a body that only the panel keeps: which section of a loft (#1034) its rows are about. */
+type ShapePropertyView = { loftSection: number; setLoftSection: (index: number) => void };
+const NO_PROPERTY_VIEW: ShapePropertyView = { loftSection: 0, setLoftSection: () => undefined };
+
+function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeInspectorUpdate, textWidthMax = 260, view: ShapePropertyView = NO_PROPERTY_VIEW): ShapePropertyConfig[] {
   const baseWidth = shapeWidth(shape);
   const baseDepth = shapeDepth(shape);
   const footprint = shapeOverallFootprintDimensions(shape);
@@ -1142,7 +1167,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
     }
     if (vase.twistMode === "kurve" || vase.twist !== 0 || vase.swayAngle > 0) properties.push(choice("twistAlong", "prop.vaseTwistAlong"));
     properties.push(choice("body", "prop.vaseBody", vase.body === "voll" ? "vase.bodySolidHint" : "vase.bodyHollowHint"));
-    if (vase.body === "hohl") properties.push(range("wall", "prop.vaseWall", 0.1), range("bottom", "prop.vaseBottom", 0.1), choice("innerShape", "prop.vaseInner"));
+    if (vase.body === "hohl") properties.push(range("wall", "prop.vaseWall", 0.1), range("bottom", "prop.vaseBottom", 0.1, "vase.bottomHint"), choice("innerShape", "prop.vaseInner"));
     properties.push(choice("effect", "prop.vaseEffect", "vase.effectHint"));
     if (vase.effect === "rillen") {
       properties.push(range("ribCount", "prop.vaseGrooveCount", 1), range("ribDepth", "prop.vaseGrooveDepth", 0.1), percent("grooveWidth", "prop.vaseGrooveWidth"), choice("ribShape", "prop.vaseGrooveShape"), range("waveAmplitude", "prop.vaseGrooveWave", 0.5));
@@ -1163,7 +1188,9 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
       value: vase.watertight === "ja",
       onChange: (value) => setVase({ watertight: value ? "ja" : "nein" }),
     }));
-    if (hollow) {
+    // Without a bottom (0 mm and no lamp) there are no drain holes and no foot.
+    const open = hollow && vase.lamp === "keine" && vase.bottom === 0;
+    if (hollow && !open) {
       properties.push(floor(range("drainHoles", "prop.vaseDrainHoles", 1, "vase.floorHint")));
       if (vase.drainHoles > 0) properties.push(floor(range("drainDiameter", "prop.vaseDrainDiameter", 0.5)), floor(range("floorSlope", "prop.vaseFloorSlope", 0.1)));
       if (vase.lamp !== "puck") properties.push(floor(range("footHeight", "prop.vaseFootHeight", 1)));
@@ -1302,6 +1329,8 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
     ];
     if (plan.type === "bin") {
       properties.push({ type: "toggle", id: "gridfinityHalfGrid", label: t("prop.gridfinityHalfGrid"), value: plan.halfGrid, onChange: (value) => apply({ halfGrid: value }) });
+    } else if (plan.type === "baseplate") {
+      properties.push({ type: "toggle", id: "gridfinityLargePlate", label: t("prop.gridfinityLargePlate"), value: plan.largePlate, onChange: (value) => apply({ largePlate: value }) });
     }
     if (plan.type === "tray") {
       // A tray (#837) has no grid: its size is free in mm, as a box's.
@@ -1313,20 +1342,21 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
     } else {
       const maxUnits = gridfinityMaxUnits(shape);
       properties.push(
-        { id: "gridfinityUnitsX", label: t("prop.gridfinityUnitsX"), value: plan.count.x, min: MIN_GRIDFINITY_UNITS, max: maxUnits, step: 1, hint: plan.halfGrid ? t("gridfinity.halfGridHint") : undefined, onChange: (value) => apply({ x: Math.round(value) }) },
+        { id: "gridfinityUnitsX", label: t("prop.gridfinityUnitsX"), value: plan.count.x, min: MIN_GRIDFINITY_UNITS, max: maxUnits, step: 1, hint: plan.halfGrid ? t("gridfinity.halfGridHint") : plan.largePlate ? t("gridfinity.largePlateHint") : undefined, onChange: (value) => apply({ x: Math.round(value) }) },
         { id: "gridfinityUnitsZ", label: t("prop.gridfinityUnitsZ"), value: plan.count.z, min: MIN_GRIDFINITY_UNITS, max: maxUnits, step: 1, onChange: (value) => apply({ z: Math.round(value) }) },
       );
     }
     if (plan.type === "baseplate") {
       // The drawer it fills (#455): typing a drawer's inside size works out the units and the paddings of that axis.
       const drawer = gridfinityDrawerSize({ ...shape, depth });
+      const drawerMax = gridfinityDrawerMax(shape);
       const fit = (axis: "x" | "z", value: number) => {
         const patch = gridfinityDrawerPatch({ ...shape, depth }, axis, value);
         onUpdate({ ...patch, size: resizedShapeSize(patch.width, patch.depth) });
       };
       properties.push(
-        { id: "gridfinityDrawerWidth", label: t("prop.gridfinityDrawerWidth"), value: drawer.width, min: MIN_GRIDFINITY_DRAWER, max: MAX_GRIDFINITY_DRAWER, step: 0.1, hint: t("gridfinity.drawerHint"), onChange: (value) => fit("x", value) },
-        { id: "gridfinityDrawerDepth", label: t("prop.gridfinityDrawerDepth"), value: drawer.depth, min: MIN_GRIDFINITY_DRAWER, max: MAX_GRIDFINITY_DRAWER, step: 0.1, onChange: (value) => fit("z", value) },
+        { id: "gridfinityDrawerWidth", label: t("prop.gridfinityDrawerWidth"), value: drawer.width, min: MIN_GRIDFINITY_DRAWER, max: drawerMax, step: 0.1, hint: t("gridfinity.drawerHint", { size: drawerMax.toLocaleString(numberLocale()) }), onChange: (value) => fit("x", value) },
+        { id: "gridfinityDrawerDepth", label: t("prop.gridfinityDrawerDepth"), value: drawer.depth, min: MIN_GRIDFINITY_DRAWER, max: drawerMax, step: 0.1, onChange: (value) => fit("z", value) },
       );
       // Padding (#455): a solid border on each side, so the plate fills a drawer that is not whole units; the units stay as they are.
       const walls = [
@@ -1495,10 +1525,10 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         id: "hingeStyle",
         label: t("prop.hingeStyle"),
         value: plan.style,
-        options: [{ value: "pin", label: t("hinge.stylePin") }, { value: "pinless", label: t("prop.hingePinless") }, { value: "cone", label: t("hinge.styleCone") }],
-        hint: plan.style === "cone" ? t("hinge.styleConeHint") : undefined,
+        options: [{ value: "pin", label: t("hinge.stylePin") }, { value: "pinless", label: t("prop.hingePinless") }, { value: "cone", label: t("hinge.styleCone") }, { value: "liftOff", label: t("hinge.styleLiftOff") }],
+        hint: plan.style === "cone" ? t("hinge.styleConeHint") : plan.style === "liftOff" ? t("hinge.styleLiftOffHint") : undefined,
         // The old "without pin" switch is part of this choice now (#907).
-        onChange: (value) => onUpdate({ hingeStyle: value === "cone" || value === "pinless" ? value : undefined, hingePinless: undefined }),
+        onChange: (value) => onUpdate({ hingeStyle: value === "cone" || value === "pinless" || value === "liftOff" ? value : undefined, hingePinless: undefined }),
       },
       ...(plan.style === "cone" ? [{
         id: "hingeConeSize",
@@ -1510,7 +1540,8 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         hint: t("prop.hingeConeSizeHint"),
         onChange: (value: number) => onUpdate({ hingeConeSize: value }),
       }] : []),
-      {
+      // A lift-off hinge always has two knuckles.
+      ...(plan.style === "liftOff" ? [] : [{
         id: "hingeKnuckles",
         label: t("prop.hingeKnuckles"),
         value: plan.knuckles,
@@ -1518,7 +1549,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         max: MAX_HINGE_KNUCKLES,
         step: 2,
         // Typing a count takes the width away: the two ways of saying how many do not mix (#907).
-        onChange: (value) => onUpdate({ hingeKnuckles: normalizeHingeKnuckles(value, width, plan.clearance), hingeKnuckleWidth: undefined }),
+        onChange: (value: number) => onUpdate({ hingeKnuckles: normalizeHingeKnuckles(value, width, plan.clearance), hingeKnuckleWidth: undefined }),
       },
       {
         id: "hingeKnuckleWidth",
@@ -1528,8 +1559,8 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         max: 100,
         step: 0.5,
         hint: t("prop.hingeKnuckleWidthHint"),
-        onChange: (value) => onUpdate({ hingeKnuckleWidth: normalizeHingeKnuckleWidth(value) }),
-      },
+        onChange: (value: number) => onUpdate({ hingeKnuckleWidth: normalizeHingeKnuckleWidth(value) }),
+      }]),
       // The cone hinge has no pin: its cones take the pin's place.
       ...(plan.style === "cone" ? [] : [{
         id: "hingePinDiameter",
@@ -1596,11 +1627,30 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
           type: "select" as const,
           id: "hingeScrewCountersink",
           label: t("prop.hingeScrewHead"),
-          value: shape.hingeScrewCountersink === false ? "straight" : "countersunk",
-          options: [{ value: "countersunk", label: t("hinge.screwCountersunk") }, { value: "straight", label: t("hinge.screwStraight") }],
-          hint: shape.hingeScrewCountersink === false ? undefined : t("hinge.screwCountersunkHint"),
-          onChange: (value: string) => onUpdate({ hingeScrewCountersink: value === "straight" ? false : undefined }),
+          value: plan.screwHead,
+          options: [
+            { value: "countersunk", label: t("hinge.screwCountersunk") },
+            { value: "straight", label: t("hinge.screwStraight") },
+            { value: "nut", label: t("hinge.screwNut") },
+            { value: "countersunkNut", label: t("hinge.screwCountersunkNut") },
+          ],
+          hint: plan.screwHead === "countersunk" ? t("hinge.screwCountersunkHint") : plan.screwHead === "straight" ? undefined : t("hinge.screwNutHint"),
+          // The choice takes the place of the old countersink switch.
+          onChange: (value: string) => onUpdate({ hingeScrewHead: normalizeHingeScrewHead(value), hingeScrewCountersink: undefined }),
         },
+        ...(plan.screwHead === "nut" || plan.screwHead === "countersunkNut" ? [{
+          id: "hingeNutWidth",
+          label: t("prop.hingeNutWidth"),
+          value: shape.hingeNutWidth ?? 0,
+          min: 0,
+          max: MAX_HINGE_NUT_WIDTH,
+          step: 0.1,
+          // What it is now, and how deep the leaf lets the pocket go.
+          hint: plan.nutDepth > 0
+            ? t("prop.hingeNutWidthHint", { width: plainNumber(plan.nutWidth), depth: plainNumber(plan.nutDepth) })
+            : t("prop.hingeNutTooThin"),
+          onChange: (value: number) => onUpdate({ hingeNutWidth: value > 0 ? value : undefined }),
+        }] : []),
         {
           id: "hingeScrewSpacing",
           label: t("prop.hingeScrewSpacing"),
@@ -1690,23 +1740,90 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
       }
       return properties;
     };
+    /*
+     * More sections between the ends (#1034): how many, how the body goes through them, and each one's
+     * outline, height, size and offset. They set the shape, so twist, tilt and the S-curve step aside.
+     */
+    const middles = m.middles;
+    const sectionRows: ShapePropertyConfig[] = [
+      {
+        id: "loftSectionCount",
+        label: t("prop.loftSectionCount"),
+        value: middles.length,
+        min: 0,
+        max: MAX_LOFT_MIDDLES,
+        step: 1,
+        hint: t("loft.sectionsHint"),
+        onChange: (value) => {
+          const next = loftMiddlesWithCount(m, value);
+          // A new section is the one the rows show next.
+          const added = next.findIndex((middle) => !middles.some((old) => Math.abs(old.at - middle.at) < 1e-9));
+          if (next.length > middles.length && added >= 0) view.setLoftSection(added);
+          change({ middles: next });
+        },
+      },
+    ];
+    if (middles.length) {
+      // One section at a time, like the segments of a bent tube: a list of twelve would be long.
+      const index = Math.min(Math.max(0, view.loftSection), middles.length - 1);
+      const middle = middles[index];
+      const setMiddle = (next: Partial<(typeof middles)[number]>) => change({ middles: middles.map((entry, k) => (k === index ? { ...entry, ...next } : entry)) });
+      sectionRows.push(
+        {
+          type: "select",
+          id: "loftThrough",
+          label: t("prop.loftThrough"),
+          value: m.through,
+          options: [{ value: "smooth", label: t("loft.throughSmooth") }, { value: "straight", label: t("loft.throughStraight") }],
+          hint: t("loft.throughHint"),
+          onChange: (value) => change({ through: normalizeLoftThrough(value) }),
+        },
+        {
+          type: "select",
+          id: "loftSection",
+          label: t("prop.loftSection"),
+          value: String(index),
+          options: middles.map((_entry, k) => ({ value: String(k), label: t("loft.sectionNumber", { n: k + 1 }) })),
+          onChange: (value) => view.setLoftSection(Number(value)),
+        },
+        { type: "select", id: "loftSectionOutline", label: t("prop.loftSectionOutline"), value: middle.outline, options: outlines, onChange: (value) => setMiddle({ outline: normalizeLoftOutline(value) }) },
+        { id: "loftSectionHeight", label: t("prop.loftSectionHeight"), value: Math.round(middle.at * shape.height * 100) / 100, min: 0.1, max: Math.max(0.2, shape.height - 0.1), step: 0.5, hint: t("loft.sectionHeightHint"), onChange: (value) => setMiddle({ at: value / Math.max(0.01, shape.height) }) },
+        { id: "loftSectionWidth", label: t("prop.loftSectionWidth"), value: middle.width, min: MIN_LOFT_SIZE, max: 300, onChange: (value) => setMiddle({ width: value }) },
+        { id: "loftSectionDepth", label: t("prop.loftSectionDepth"), value: middle.depth, min: MIN_LOFT_SIZE, max: 300, onChange: (value) => setMiddle({ depth: value }) },
+      );
+      if (middle.outline === "rectangle") sectionRows.push({ id: "loftSectionCorner", label: t("prop.loftSectionCorner"), value: middle.corner, min: 0, max: Math.max(0.1, Math.min(middle.width, middle.depth) / 2), step: 0.1, onChange: (value) => setMiddle({ corner: value }) });
+      if (middle.outline === "polygon") sectionRows.push({ id: "loftSectionSides", label: t("prop.loftSectionSides"), value: middle.sides, min: MIN_LOFT_SIDES, max: MAX_LOFT_SIDES, step: 1, onChange: (value) => setMiddle({ sides: value }) });
+      sectionRows.push(
+        { id: "loftSectionOffsetX", label: t("prop.loftSectionOffsetX"), value: middle.offsetX, min: -150, max: 150, step: 0.5, onChange: (value) => setMiddle({ offsetX: value }) },
+        { id: "loftSectionOffsetZ", label: t("prop.loftSectionOffsetZ"), value: middle.offsetZ, min: -150, max: 150, step: 0.5, onChange: (value) => setMiddle({ offsetZ: value }) },
+      );
+    }
+    const turns: ShapePropertyConfig[] = middles.length ? [] : [
+      // The sections turn and tilt evenly on the way up (#205); a tilt keeps the top above the plate.
+      { id: "loftTwist", label: t("prop.loftTwist"), value: m.twist, min: -MAX_LOFT_TWIST, max: MAX_LOFT_TWIST, step: 5, onChange: (value) => change({ twist: value }) },
+      // The S-curve between the two ends (#271): a hose adapter that flares smoothly, shown as a percentage.
+      { id: "loftSmooth", label: t("prop.loftSmooth"), value: Math.round(m.smooth * 100), min: 0, max: 100, step: 5, hint: t("loft.smoothHint"), onChange: (value) => change({ smooth: Math.min(100, Math.max(0, value)) / 100 }) },
+    ];
+    const tilts: ShapePropertyConfig[] = middles.length ? [] : [
+      { id: "loftTiltX", label: t("prop.loftTiltX"), value: m.tiltX, min: -loftTiltLimit(shape, "x"), max: loftTiltLimit(shape, "x"), step: 1, onChange: (value) => change({ tiltX: value }) },
+      { id: "loftTiltZ", label: t("prop.loftTiltZ"), value: m.tiltZ, min: -loftTiltLimit(shape, "z"), max: loftTiltLimit(shape, "z"), step: 1, onChange: (value) => change({ tiltZ: value }) },
+    ];
+    const rounded = m.bottomOutline === "round" || m.topOutline === "round" || m.bottomCorner > 0 || m.topCorner > 0
+      || middles.some((middle) => middle.outline === "round" || (middle.outline === "rectangle" && middle.corner > 0));
     return [
       ...end(true),
+      ...sectionRows,
       ...end(false),
       { id: "height", label: t("prop.height"), value: shape.height, min: MIN_SHAPE_SIZE, max: 300, onChange: setHeight },
       { id: "loftOffsetX", label: t("prop.loftOffsetX"), value: m.offsetX, min: -150, max: 150, step: 0.5, onChange: (value) => change({ offsetX: value }) },
       { id: "loftOffsetZ", label: t("prop.loftOffsetZ"), value: m.offsetZ, min: -150, max: 150, step: 0.5, onChange: (value) => change({ offsetZ: value }) },
       { id: "loftWall", label: t("prop.loftWall"), value: m.wall, min: 0, max: Math.max(0.1, maxLoftWall(m)), step: 0.1, onChange: (value) => change({ wall: value }) },
-      // The sections turn and tilt evenly on the way up (#205); a tilt keeps the top above the plate.
-      { id: "loftTwist", label: t("prop.loftTwist"), value: m.twist, min: -MAX_LOFT_TWIST, max: MAX_LOFT_TWIST, step: 5, onChange: (value) => change({ twist: value }) },
-      // The S-curve between the two ends (#271): a hose adapter that flares smoothly, shown as a percentage.
-      { id: "loftSmooth", label: t("prop.loftSmooth"), value: Math.round(m.smooth * 100), min: 0, max: 100, step: 5, hint: t("loft.smoothHint"), onChange: (value) => change({ smooth: Math.min(100, Math.max(0, value)) / 100 }) },
+      ...turns,
       // How finely a circle or a rounded corner is drawn in the view and in the exports (#755); a polygon has its own sides.
-      ...(m.bottomOutline === "round" || m.topOutline === "round" || m.bottomCorner > 0 || m.topCorner > 0
+      ...(rounded
         ? [{ id: "loftSegments", label: t("prop.loftSegments"), value: m.segments, min: MIN_LOFT_SEGMENTS, max: MAX_LOFT_SEGMENTS, step: 1, hint: t("loft.segmentsHint"), onChange: (value: number) => change({ segments: value }) }]
         : []),
-      { id: "loftTiltX", label: t("prop.loftTiltX"), value: m.tiltX, min: -loftTiltLimit(shape, "x"), max: loftTiltLimit(shape, "x"), step: 1, onChange: (value) => change({ tiltX: value }) },
-      { id: "loftTiltZ", label: t("prop.loftTiltZ"), value: m.tiltZ, min: -loftTiltLimit(shape, "z"), max: loftTiltLimit(shape, "z"), step: 1, onChange: (value) => change({ tiltZ: value }) },
+      ...tilts,
     ];
   }
 
@@ -1920,7 +2037,25 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
       // A round tube has one outer diameter, and outer, inner and wall follow one another whatever is typed
       // first (see tubeDiameters.ts); the two sides Length and Width only come back for an oval one.
       const inner = tubeInnerDiameter(width, wall);
+      // A washer is a tube of its screw size's measures (ISO 7089, #1052): one choice sets all three.
+      const applyWasher = (value: string) => {
+        if (!isWasherSize(value)) return;
+        const washer = washerTubeFields(value);
+        onUpdate({ ...widthPatch(washer.width), depth: washer.depth, size: resizedShapeSize(washer.width, washer.depth), height: washer.height, bevel: washer.bevel }, { resizeAxis: "width" });
+      };
       return [
+        {
+          type: "select" as const,
+          id: "washerSize",
+          label: t("prop.washerSize"),
+          value: washerSizeFor(width, inner, shape.height) ?? "custom",
+          options: [
+            { value: "custom", label: t("port.custom") },
+            ...WASHER_SIZE_ORDER.map((size) => ({ value: size, label: size })),
+          ],
+          hint: t("prop.washerSizeHint"),
+          onChange: applyWasher,
+        },
         ...roundSideProperties(shape, width, depth, onUpdate),
         {
           id: "outerDiameter",
@@ -1968,6 +2103,116 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
   }
 
   if (shape.kind === "spring") {
+    /*
+     * The form switch (#1076): a flat spring lies on the plate, so the switch
+     * also gives it a strip's measures, and back to the coil a coil's.
+     */
+    const formSelect = {
+      type: "select" as const,
+      id: "springForm",
+      label: t("prop.springForm"),
+      value: normalizeSpringForm(shape.springForm),
+      options: [{ value: "coil", label: t("spring.coil") }, { value: "flat", label: t("spring.flat") }],
+      onChange: (form: string) => {
+        if (normalizeSpringForm(form) === normalizeSpringForm(shape.springForm)) return;
+        if (form === "flat") {
+          const { width: nextWidth, depth: nextDepth, height: nextHeight } = FLAT_SPRING_DIMENSIONS;
+          onUpdate({ springForm: "flat", width: nextWidth, depth: nextDepth, height: nextHeight, size: resizedShapeSize(nextWidth, nextDepth), springWire: DEFAULT_FLAT_SPRING_WIRE, springTurns: DEFAULT_FLAT_SPRING_TURNS });
+        } else {
+          const coil = shapeAssetDefaultDimensions("spring");
+          onUpdate({ springForm: undefined, width: coil.width, depth: coil.depth, height: coil.height, size: resizedShapeSize(coil.width, coil.depth), springWire: DEFAULT_SPRING_WIRE, springTurns: DEFAULT_SPRING_TURNS });
+        }
+      },
+    };
+    if (shape.springForm === "flat") {
+      const flat = flatSpringSettings(shape, width, depth);
+      const wireLimits = flatSpringWireLimits(width, depth, flat.pattern, flat.ends);
+      const turnLimits = flatSpringTurnLimits(width, depth, flat.wire, flat.pattern, flat.ends);
+      // As with the coil: band and turns move into what the new measures or settings hold.
+      const fit = (nextWidth: number, nextDepth: number, pattern = flat.pattern, ends = flat.ends) => {
+        const wire = normalizeFlatSpringWire(flat.wire, nextWidth, nextDepth, pattern, ends);
+        return { springWire: wire, springTurns: normalizeFlatSpringTurns(flat.turns, nextWidth, nextDepth, wire, pattern, ends) };
+      };
+      return [
+        formSelect,
+        {
+          type: "select",
+          id: "springPattern",
+          label: t("prop.springPattern"),
+          value: flat.pattern,
+          options: [{ value: "round", label: t("spring.round") }, { value: "zigzag", label: t("spring.zigzag") }, { value: "square", label: t("spring.square") }],
+          onChange: (value) => {
+            const pattern = normalizeFlatSpringPattern(value);
+            onUpdate({ springPattern: pattern, ...fit(width, depth, pattern) });
+          },
+        },
+        {
+          type: "select",
+          id: "springEnds",
+          label: t("prop.springEnds"),
+          value: flat.ends,
+          options: [{ value: "eye", label: t("spring.eye") }, { value: "tab", label: t("spring.tab") }, { value: "none", label: t("spring.none") }],
+          onChange: (value) => {
+            const ends = normalizeFlatSpringEnds(value);
+            onUpdate({ springEnds: ends, ...fit(width, depth, flat.pattern, ends) });
+          },
+        },
+        {
+          id: "turns",
+          label: t("prop.bends"),
+          value: flat.turns,
+          min: turnLimits.min,
+          max: turnLimits.max,
+          step: 1,
+          onChange: (turns) => onUpdate({ springTurns: normalizeFlatSpringTurns(turns, width, depth, flat.wire, flat.pattern, flat.ends) }),
+        },
+        {
+          id: "wire",
+          label: t("prop.band"),
+          value: flat.wire,
+          min: wireLimits.min,
+          max: wireLimits.max,
+          step: 0.1,
+          onChange: (value) => {
+            const wire = normalizeFlatSpringWire(value, width, depth, flat.pattern, flat.ends);
+            onUpdate({ springWire: wire, springTurns: normalizeFlatSpringTurns(flat.turns, width, depth, wire, flat.pattern, flat.ends) });
+          },
+        },
+        {
+          id: "quality",
+          label: t("prop.quality"),
+          value: normalizeSpringQuality(shape.springQuality),
+          min: MIN_SPRING_QUALITY,
+          max: MAX_SPRING_QUALITY,
+          step: 4,
+          onChange: (quality) => onUpdate({ springQuality: normalizeSpringQuality(quality) }),
+        },
+        {
+          id: "length",
+          label: t("prop.length"),
+          value: width,
+          min: MIN_SHAPE_SIZE,
+          max: 480,
+          onChange: (value) => onUpdate({ width: value, size: resizedShapeSize(value, depth), ...fit(value, depth) }, { resizeAxis: "width" }),
+        },
+        {
+          id: "width",
+          label: t("prop.width"),
+          value: depth,
+          min: MIN_SHAPE_SIZE,
+          max: 160,
+          onChange: (value) => onUpdate({ depth: value, size: resizedShapeSize(width, value), ...fit(width, value) }, { resizeAxis: "depth" }),
+        },
+        {
+          id: "height",
+          label: t("prop.height"),
+          value: shape.height,
+          min: MIN_SHAPE_SIZE,
+          max: 160,
+          onChange: (value) => onUpdate({ height: value }, { resizeAxis: "height" }),
+        },
+      ];
+    }
     const across = Math.max(width, depth);
     const settings = springSettings(shape, across, shape.height);
     const wireLimits = springWireLimits(across, shape.height);
@@ -1984,6 +2229,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
       return { springWire: wire, springTurns: normalizeSpringTurns(settings.turns, reach, nextHeight, wire) };
     };
     return [
+      formSelect,
       {
         id: "turns",
         label: t("prop.turns"),
@@ -2193,8 +2439,9 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         onChange: (value) => {
           const chosen = threadSizeById(value);
           // Eine G-Groesse bringt ihr Whitworth-Profil mit, eine M-, UNC- oder
-          // UNF-Groesse das Spitzgewinde; Trapez und Rund bleiben stehen.
-          if (chosen) applyThread({ diameter: chosen.diameter, pitch: chosen.pitch, profile: threadProfileForSize(chosen, settings.profile) });
+          // UNF-Groesse das Spitzgewinde, ein Flaschenhals sein eigenes Profil;
+          // Trapez und Rund bleiben stehen.
+          if (chosen) applyThread(threadSizeSettings(chosen, settings.profile, standard));
         },
       },
       {
@@ -2812,6 +3059,8 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
     { id: "length", label: t("prop.length"), value: depth, min: MIN_SHAPE_SIZE, max: 160, onChange: setDepth },
     { id: "width", label: t("prop.width"), value: width, min: MIN_SHAPE_SIZE, max: 160, onChange: setWidth },
     { id: "height", label: t("prop.height"), value: shape.height, min: MIN_SHAPE_SIZE, max: 160, onChange: setHeight },
+    // A tube with rounded or chamfered ends keeps its switch (#1067).
+    ...(tubeBeforeEdgeTreatments(shape) ? [{ type: "toggle" as const, id: "tubeBoreHole", label: t("prop.tubeBoreHole"), value: shape.tubeBoreHole === true, onChange: (value: boolean) => onUpdate({ tubeBoreHole: value || undefined }) }] : []),
   ];
 }
 
@@ -3022,11 +3271,11 @@ function surfaceTextFontOptions(current: string): SelectPropertyOption[] {
   return options;
 }
 
-function getShapeProperties(shape: WorkplaneShape, onUpdate: ShapeInspectorUpdate, workspace: WorkplaneWorkspaceSettings): ShapePropertyConfig[] {
+function getShapeProperties(shape: WorkplaneShape, onUpdate: ShapeInspectorUpdate, workspace: WorkplaneWorkspaceSettings, view: ShapePropertyView = NO_PROPERTY_VIEW): ShapePropertyConfig[] {
   const customLimit = workspace.shapeCustomizations[shape.kind]?.maxDimension;
   // A body turned by right angles names its measures by the way they run now (#230).
   const oriented = orientedMeasures(shape);
-  const own = getShapePropertiesWithAppLimits(shape, onUpdate, customLimit ?? 260);
+  const own = getShapePropertiesWithAppLimits(shape, onUpdate, customLimit ?? 260, view);
   const properties = withOrientedMeasures(own, oriented, { width: t("prop.width"), height: t("prop.height"), length: t("prop.length") });
   if (customLimit === undefined) return properties;
   return properties.map((property) => {
@@ -3152,7 +3401,10 @@ export function ShapeInspector({
     pendingFormulaRef.current = null;
     onUpdateShape(pending ? { ...patch, formulas: withFieldFormula(shape.formulas, pending.id, pending.text) } : patch, options);
   };
-  const properties = getShapeProperties(shape, onUpdate, workspace);
+  // The section of a loft the rows are about (#1034), back to the first for another body.
+  const [loftSection, setLoftSection] = useState(0);
+  useEffect(() => setLoftSection(0), [shape.id]);
+  const properties = getShapeProperties(shape, onUpdate, workspace, { loftSection, setLoftSection });
   const tiltedMeasures = orientedMeasures(shape).kind === "tilted";
   // What each value would be on a shape of this kind made new, with the saved defaults: the
   // small arrow next to a changed value takes it back there.
@@ -6670,7 +6922,7 @@ function ThreadHeadPreview({ head }: { head: ThreadHead }) {
 /** Der Antrieb von oben, so wie man in den Kopf schaut. */
 function ThreadDrivePreview({ drive }: { drive: ThreadDrive }) {
   const common = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinejoin: "round" as const, "aria-hidden": true };
-  const recess = drive === "none" ? null : threadDriveOutline(drive, drive === "phillips" ? 14 : 12);
+  const recess = drive === "none" ? null : threadDriveOutline(drive, drive === "phillips" ? 14 : drive === "slot" ? 16 : drive === "robertson" ? 10 : 12);
   const points = recess ? threadDriveOutlinePoints(recess).map(([x, z]) => `${(12 + x).toFixed(2)},${(12 - z).toFixed(2)}`).join(" ") : "";
   return (
     <svg {...common}>
