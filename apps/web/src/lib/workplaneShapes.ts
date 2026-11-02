@@ -2,7 +2,7 @@ import { createLocalId } from "@/lib/localIds";
 import { repairClampedMeshBase } from "@/lib/importedMeshBase";
 import { fieldFormulasEqual } from "@/lib/fieldFormulas";
 import { threadFootprintPatch } from "@/lib/threadGeometry";
-import { GRIDFINITY_PADDING_KEYS, gridfinityCompartmentLabelsEqual, gridfinityDividerPositionsEqual, gridfinityFootprintPatch, gridfinityOpeningsEqual, normalizeGridfinityPadding } from "@/lib/gridfinityGeometry";
+import { GRIDFINITY_PADDING_KEYS, gridfinityCompartmentLabelsEqual, gridfinityDividerPositionsEqual, gridfinityFootprintPatch, gridfinityOpeningsEqual, gridfinityOutlinesEqual, normalizeGridfinityPadding } from "@/lib/gridfinityGeometry";
 import { MCP_SHAPE_SETTING_KEYS } from "@/lib/mcpShapeSettings";
 import { bentTubeSegmentsEqual } from "@/lib/bentTubeGeometry";
 import { vaseSettingsEqual } from "@/lib/vaseSettings";
@@ -139,7 +139,7 @@ export function shapeTaperDimensions(shape: WorkplaneShape) {
  * Wabe und Schwalbenschwanz sie an. Die Liste steht hier, damit das Merkmalsfeld, die
  * Vorschau und die MCP-Bruecke nicht je ihre eigene fuehren.
  */
-const SHAPES_WITHOUT_TAPER = new Set<WorkplaneShape["kind"]>(["gear", "hirth", "thread", "spring", "pyramid", "ruler", "hinge", "counterbore", "countersink", "doubleCountersink", "teardrop", "port", "bentTube", "loft", "vase", "gridfinity"]);
+const SHAPES_WITHOUT_TAPER = new Set<WorkplaneShape["kind"]>(["gear", "hirth", "thread", "spring", "pyramid", "ruler", "hinge", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "bentTube", "loft", "vase", "gridfinity"]);
 
 export function shapeSupportsTaper(kind: WorkplaneShape["kind"]) {
   return !SHAPES_WITHOUT_TAPER.has(kind);
@@ -536,7 +536,7 @@ export function canonicalizeShape(unrepaired: WorkplaneShape): WorkplaneShape {
   // A gear set by module too, involute or round: its size is its module, the same both ways (#201) -
   // except the rack, a bar whose depth is its own. A Hirth joint interlocks only when it is round (#1016).
   const involuteGear = shape.kind === "gear" && shape.gearType !== "rack" && (shape.gearProfile === "involute" || shape.gearProfile === "round");
-  if ((shape.kind === "cylinder" || shape.kind === "star" || shape.kind === "knurl" || shape.kind === "hirth" || involuteGear) && next.width !== next.depth) {
+  if ((shape.kind === "cylinder" || shape.kind === "star" || shape.kind === "knurl" || shape.kind === "hirth" || shape.kind === "finishingWasher" || involuteGear) && next.width !== next.depth) {
     next.depth = next.width;
     next.size = next.width;
   }
@@ -743,6 +743,7 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     gridfinityOpeningsEqual(a.gridfinityOpenings, b.gridfinityOpenings) &&
     a.gridfinityOpeningCorner === b.gridfinityOpeningCorner &&
     a.gridfinityOpeningCornerSize === b.gridfinityOpeningCornerSize &&
+    gridfinityOutlinesEqual(a.gridfinityOutline, b.gridfinityOutline) &&
     a.dovetailNeckWidth === b.dovetailNeckWidth &&
     a.dovetailClearance === b.dovetailClearance &&
     a.loftBottomOutline === b.loftBottomOutline &&
@@ -771,6 +772,7 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.screwHoleHeadDepth === b.screwHoleHeadDepth &&
     a.screwHoleAngle === b.screwHoleAngle &&
     a.portProfile === b.portProfile &&
+    a.portClearance === b.portClearance &&
     a.cornerFillet === b.cornerFillet &&
     a.topBottomFillet === b.topBottomFillet &&
     a.roundedBoxQuality === b.roundedBoxQuality &&
@@ -791,6 +793,7 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.knurlChamfer === b.knurlChamfer &&
     a.cylinderWrap?.inward === b.cylinderWrap?.inward &&
     JSON.stringify(a.surfaceTexture ?? null) === JSON.stringify(b.surfaceTexture ?? null) &&
+    JSON.stringify(a.surfaceTextureLayers ?? null) === JSON.stringify(b.surfaceTextureLayers ?? null) &&
     a.surfaceTextureMask === b.surfaceTextureMask &&
     a.surfaceFillOf === b.surfaceFillOf &&
     vaseSettingsEqual(a.vase, b.vase) &&
@@ -807,6 +810,9 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     JSON.stringify(a.textKeyring ?? null) === JSON.stringify(b.textKeyring ?? null) &&
     JSON.stringify(a.textEdge ?? null) === JSON.stringify(b.textEdge ?? null) &&
     qrSettingsEqual(a.qrCode, b.qrCode) &&
+    (a.sbcBoard?.board ?? null) === (b.sbcBoard?.board ?? null) &&
+    (a.sbcBoard?.clearance ?? 0) === (b.sbcBoard?.clearance ?? 0) &&
+    (a.sbcBoard?.reach ?? 0) === (b.sbcBoard?.reach ?? 0) &&
     a.importedMesh === b.importedMesh &&
     a.imagePlate === b.imagePlate &&
     a.sketchProfile === b.sketchProfile &&
