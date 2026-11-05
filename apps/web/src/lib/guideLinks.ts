@@ -57,6 +57,7 @@ export const GUIDE_SECTIONS = {
   pattern: { chapter: "select", de: "muster-reihe-und-kreis", en: "patterns-row-and-circle", nl: "patronen-rij-en-cirkel", ru: "massivy-ryad-i-krug", cs: "opakovani-v-rade-a-po-kruznici", sl: "polja-vrsta-in-krog", hu: "ismetles-sor-es-koer", es: "patrones-fila-y-circulo" },
   holePattern: { chapter: "select", de: "lochmuster-auf-einer-flaeche", en: "hole-pattern-on-a-face", nl: "gatenpatroon-op-een-vlak", ru: "massiv-otverstiy-na-grani", cs: "rastr-otvoru-na-plose", sl: "vzorec-lukenj-na-ploskvi", hu: "lyukminta-egy-lapon", es: "patron-de-orificios-en-una-cara" },
   faceTool: { chapter: "select", de: "eine-flaeche-heraus-oder-hineinziehen", en: "pushing-a-face-out-or-in", nl: "een-vlak-naar-buiten-of-naar-binnen-trekken", fr: "tirer-une-face-vers-l-exterieur-ou-l-interieur", ru: "vytyagivanie-grani-naruzhu-ili-vnutr", cs: "vysunuti-plochy-ven-nebo-dovnitr", sl: "vlecenje-ploskve-navzven-ali-navznoter", es: "empujar-una-cara-hacia-fuera-o-hacia-dentro" },
+  alignSpread: { chapter: "select", de: "gleiche-abstaende", en: "equal-gaps", fr: "espacement-egal", es: "espaciado-igual", it: "spaziatura-uguale", nl: "gelijke-tussenruimte", da: "lige-store-mellemrum", pl: "rowne-odstepy", cs: "stejne-mezery", sl: "enaki-razmiki", hu: "egyenlo-koezoek", ru: "ravnye-promezhutki" },
   scaleByPercent: { chapter: "select", de: "um-prozent-skalieren", en: "scaling-by-percent", nl: "schalen-in-procenten", ru: "masshtabirovanie-v-protsentakh", cs: "zmena-velikosti-o-procenta", sl: "povecava-v-odstotkih", hu: "meretezes-szazalekban", es: "escalar-en-porcentaje" },
   selectionProperties: { chapter: "select", de: "mehrere-teile-auf-einmal-aendern", en: "changing-several-parts-at-once", nl: "meerdere-onderdelen-tegelijk-veranderen", ru: "izmenenie-neskolkikh-detaley-srazu", cs: "soucasna-zmena-vice-dilu", sl: "sprememba-vec-delov-naenkrat", hu: "toebb-resz-modositasa-egyszerre", es: "cambiar-varias-piezas-a-la-vez" },
   historyView: { chapter: "select", de: "zurueckschauen-die-verlaufsansicht", en: "looking-back-the-history-view", nl: "terugkijken-de-geschiedenisweergave", ru: "vzglyad-nazad-prosmotr-istorii", cs: "prohlizeni-historie", sl: "pogled-nazaj-pogled-zgodovine", hu: "visszatekintes-az-elozmenynezet", es: "mirar-atras-la-vista-del-historial" },
@@ -67,7 +68,9 @@ export const GUIDE_SECTIONS = {
   edgeTreatment: { chapter: "edges", de: "kanten-fasen-und-verrunden", en: "chamfering-and-filleting-edges", nl: "randen-afschuinen-en-afronden", ru: "faska-i-skruglenie-kromok", cs: "zkoseni-a-zaobleni-hran", sl: "posnetje-in-zaokrozitev-robov", hu: "elek-letoerese-es-lekerekitese", es: "achaflanar-y-redondear-aristas" },
   hollowing: { chapter: "edges", de: "koerper-aushoehlen", en: "hollowing-bodies", nl: "lichamen-uithollen", ru: "sozdanie-obolochki", cs: "vytvareni-dutin", sl: "izdolbljenje-teles", hu: "testek-kiueregelese", es: "vaciar-cuerpos" },
   lid: { chapter: "edges", de: "ein-deckel-fuer-einen-offenen-koerper", en: "a-lid-for-an-open-body", nl: "een-deksel-voor-een-open-vorm", fr: "un-couvercle-pour-un-corps-ouvert", ru: "kryshka-dlya-otkrytogo-tela", cs: "viko-pro-otevrene-teleso", sl: "pokrov-za-odprto-telo", hu: "fedel-nyitott-testhez", es: "una-tapa-para-un-cuerpo-abierto" },
+  cableChannel: { chapter: "edges", de: "ein-kabelkanal-durch-einen-koerper", en: "a-cable-channel-through-a-body", nl: "een-kabelkanaal-door-een-vorm", fr: "un-passage-de-cable-a-travers-un-corps", ru: "kabelnyy-kanal-skvoz-telo", cs: "kabelovy-kanal-telesem", sl: "kabelski-kanal-skozi-telo", da: "en-kabelkanal-gennem-et-legeme", es: "un-canal-para-cable-a-traves-de-un-cuerpo" },
   cutOut: { chapter: "solids", de: "koerper-ausschneiden", en: "cutting-one-body-out-of-another", nl: "het-ene-lichaam-uit-het-andere-snijden", "pt-br": "recortando-um-solido-de-outro", ru: "vyrezanie-odnogo-tela-iz-drugogo", cs: "vyriznuti-jednoho-telesa-z-druheho", sl: "izrezovanje-enega-telesa-iz-drugega", hu: "egy-test-kivagasa-egy-masikbol", es: "recortar-un-cuerpo-de-otro", fr: "decouper-un-corps-dans-un-autre" },
+  punch: { chapter: "solids", de: "einen-umriss-durch-einen-koerper-stanzen", en: "punching-an-outline-through-a-body", nl: "een-omtrek-door-een-lichaam-ponsen", "pt-br": "puncionando-um-contorno-atraves-de-um-solido", ru: "probivka-kontura-skvoz-telo", cs: "prorazeni-obrysu-telesem", sl: "izsekovanje-obrisa-skozi-telo", hu: "koervonal-atuetese-egy-testen", es: "troquelar-un-contorno-a-traves-de-un-cuerpo", fr: "poinconner-un-contour-a-travers-un-corps" },
   offset: { chapter: "edges", de: "koerper-versetzen", en: "offsetting-bodies", nl: "lichamen-verschuiven", fr: "decaler-des-corps", ru: "smeshchenie-tela", cs: "odsazeni-teles", sl: "odmik-teles", es: "desfasar-cuerpos" },
   deleteFace: { chapter: "edges", de: "flaechen-loeschen", en: "deleting-faces", nl: "vlakken-verwijderen", fr: "supprimer-des-faces", ru: "udalenie-graney", cs: "mazani-ploch", sl: "brisanje-ploskev", es: "eliminar-caras" },
   threads: { chapter: "threads", de: "gewinde", en: "threads", nl: "schroefdraad", ru: "rezba", cs: "zavity", sl: "navoj", hu: "menetek", es: "roscas" },
@@ -81,6 +84,9 @@ export const GUIDE_SECTIONS = {
   flexi: { chapter: "threads", de: "flexi-gelenke", en: "flexi-joints", nl: "flexi-scharnieren", ru: "fleksi-sharniry", cs: "flexi-klouby", sl: "flexi-zgibi", hu: "flexi-csuklok", es: "articulaciones-flexi", fr: "articulations-flexi" },
   knurl: { chapter: "threads", de: "raendelung", en: "knurling", nl: "kartel", ru: "nakatka", cs: "ryhovane-uchopy", sl: "narebricenje", hu: "recezes", es: "moleteado" },
   dovetail: { chapter: "threads", de: "schwalbenschwanz", en: "dovetail", nl: "zwaluwstaart", ru: "lastochkin-khvost", cs: "rybinovy-spoj", sl: "lastovicji-rep", hu: "fecskefark", es: "cola-de-milano" },
+  screwBoss: { chapter: "threads", de: "schraubdom", en: "screw-boss", nl: "schroefpaal", fr: "bossage-a-vis", ru: "bobyshka-pod-vint", cs: "sroubovy-sloupek", sl: "vijacni-steber", da: "skruetap", hu: "csavaroszlop", es: "torreta-para-tornillo", it: "torretta-per-viti", pl: "tulejka-na-wkret", ar: "screw-boss" },
+  snapFit: { chapter: "threads", de: "schnapphaken", en: "snap-fit", nl: "klikhaak", fr: "clip-a-encliqueter", ru: "zashchelka", cs: "zaklapavaci-hacek", sl: "zaskocna-kljukica", da: "snaplas", hu: "pattintos-kampo", es: "clip-de-encaje", it: "gancio-a-scatto", pl: "zatrzask", ar: "snap-fit" },
+  ribs: { chapter: "threads", de: "rippen", en: "ribs", nl: "ribben", fr: "nervures", ru: "rebra", cs: "zebra", sl: "rebra", da: "ribber", hu: "bordak", es: "nervios", it: "nervature", pl: "zebra", ar: "ribs" },
   teardrop: { chapter: "threads", de: "tropfenbohrung", en: "teardrop-hole", nl: "druppelgat", ru: "kaplevidnoe-otverstie", cs: "kapkovity-otvor", sl: "kapljicna-izvrtina", hu: "csepp-alaku-lyuk", es: "orificio-en-lagrima" },
   ports: { chapter: "threads", de: "anschlussoeffnungen", en: "port-openings", nl: "aansluitopeningen", ru: "otverstiya-pod-razemy", cs: "otvory-pro-konektory", sl: "odprtine-za-prikljucke", hu: "csatlakozonyilasok", es: "aberturas-para-conectores", fr: "ouvertures-de-connecteur", it: "aperture-per-connettori", pl: "otwory-na-zlacza", da: "stikabninger", ar: "port-openings" },
   sbcBoard: { chapter: "threads", de: "sbc-platinen", en: "sbc-boards", nl: "sbc-borden", ru: "platy-sbc", cs: "desky-sbc", hu: "sbc-lapok", es: "placas-sbc" },
@@ -94,6 +100,7 @@ export const GUIDE_SECTIONS = {
   importing: { chapter: "files", de: "importieren", en: "importing", nl: "importeren", ru: "import", cs: "import", sl: "uvoz", hu: "importalas", es: "importar" },
   simplifyMesh: { chapter: "files", de: "ein-importiertes-netz-vereinfachen", en: "simplifying-an-imported-mesh", nl: "een-geimporteerde-mesh-vereenvoudigen", ru: "uproshchenie-importirovannoy-setki", cs: "zjednoduseni-importovane-site", sl: "poenostavitev-uvozene-mreze", hu: "importalt-halo-egyszerusitese", es: "simplificar-una-malla-importada" },
   clearanceCheck: { chapter: "measuring", de: "spiel-pruefen", en: "checking-clearance", nl: "speling-controleren", fr: "verifier-le-jeu", ru: "proverka-zazora", cs: "kontrola-vule", sl: "preverjanje-zracnosti", da: "tjek-spillerum", hu: "hezag-ellenorzese", es: "comprobar-la-holgura", it: "controllare-il-gioco", pl: "sprawdzanie-luzu" },
+  protractor: { chapter: "measuring", de: "der-winkelmesser", en: "the-protractor", nl: "de-gradenboog", ru: "transportir", cs: "uhlomer", sl: "kotomer", hu: "a-szoegmero", es: "el-transportador" },
   tapeMeasure: { chapter: "measuring", de: "das-massband", en: "the-tape-measure", nl: "het-meetlint", ru: "ruletka", cs: "mereni-vzdalenosti", sl: "merilni-trak", hu: "a-meroszalag", es: "la-cinta-metrica" },
   notes: { chapter: "measuring", de: "notizen", en: "notes", nl: "notities", ru: "zametki", cs: "poznamky", sl: "opombe", hu: "jegyzetek", es: "notas" },
   sketchCorners: { chapter: "sketches", de: "ecken-runden-oder-fasen", en: "rounding-or-chamfering-corners", nl: "hoeken-afronden-of-afschuinen", ru: "skruglenie-i-faska-na-uglakh", cs: "zaobleni-a-zkoseni-rohu", sl: "zaokrozevanje-ali-posnetje-vogalov", hu: "sarkok-lekerekitese-vagy-letoerese", es: "redondear-o-achaflanar-esquinas" },
@@ -202,6 +209,12 @@ export function guideSectionForShape(shape: GuideShape): GuideSection | undefine
       return "knurl";
     case "dovetail":
       return "dovetail";
+    case "screwBoss":
+      return "screwBoss";
+    case "snapFit":
+      return "snapFit";
+    case "rib":
+      return "ribs";
     case "teardrop":
       return "teardrop";
     case "port":
@@ -237,6 +250,9 @@ export function guideChapterForShape(shape: GuideShape): GuideChapter {
     case "hinge":
     case "knurl":
     case "dovetail":
+    case "screwBoss":
+    case "snapFit":
+    case "rib":
     case "teardrop":
     case "port":
     case "counterbore":

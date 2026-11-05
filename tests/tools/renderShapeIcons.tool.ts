@@ -9,9 +9,13 @@ import { createSpringGeometry } from "@/lib/springGeometry";
 import { createStarGeometry } from "@/lib/starGeometry";
 import { createHeartGeometry } from "@/lib/heartGeometry";
 import { createCrescentGeometry } from "@/lib/crescentGeometry";
+import { createCurvedConeGeometry } from "@/lib/curvedCone";
 import { createParaboloidGeometry } from "@/lib/roundBodyGeometry";
 import { createSlotGeometry } from "@/lib/slotGeometry";
 import { createDovetailGeometry } from "@/lib/dovetailGeometry";
+import { createScrewBossGeometry } from "@/lib/screwBoss";
+import { createSnapFitGeometry } from "@/lib/snapFit";
+import { createRibGeometry } from "@/lib/rib";
 import { createHingeGeometry } from "@/lib/hingeGeometry";
 import { createGridfinityGeometry } from "@/lib/gridfinityGeometry";
 import { createKnurlGeometry } from "@/lib/knurlGeometry";
@@ -427,6 +431,15 @@ describe("palette icons", () => {
       build: () => createParaboloidGeometry(24, 22, 24, 32),
     });
     render({
+      // The trumpet it starts as, a little from above so the flat top shows.
+      name: "apps/web/public/assets/editor/shape-icons-gray/curvedCone.png",
+      height: 26,
+      lay: false,
+      azimuth: 35,
+      elevation: 24,
+      build: () => createCurvedConeGeometry(26, 26, 26, 0.25, -0.8, 96),
+    });
+    render({
       // Steiler von oben, damit das Trapez als Schwalbenschwanz zu lesen ist.
       name: "apps/web/public/assets/editor/shape-icons-gray/dovetail.png",
       height: 8,
@@ -439,6 +452,33 @@ describe("palette icons", () => {
         height: 8,
         dovetailNeckWidth: 16,
       }),
+    });
+    render({
+      // A post with its hole and four gussets, from above so the hole shows.
+      name: "apps/web/public/assets/editor/shape-icons-gray/screwBoss.png",
+      height: 12,
+      lay: false,
+      azimuth: 35,
+      elevation: 32,
+      build: () => createScrewBossGeometry({ width: 20, depth: 20, height: 14, screwBossDiameter: 9, screwBossGussets: 4, screwBossGussetHeight: 8, screwBossGussetThickness: 2 }, 64),
+    });
+    render({
+      // The hook and its catch from the side, a little turned, so the barb under the ledge reads.
+      name: "apps/web/public/assets/editor/shape-icons-gray/snapFit.png",
+      height: 16,
+      lay: false,
+      azimuth: 70,
+      elevation: 15,
+      build: () => createSnapFitGeometry({ width: 8, depth: 10, height: 16, snapFitUndercut: 1.6, snapFitThickness: 2 }),
+    });
+    render({
+      // The gusset: a triangle against a wall reads as a brace more clearly than a plain strip.
+      name: "apps/web/public/assets/editor/shape-icons-gray/rib.png",
+      height: 14,
+      lay: false,
+      azimuth: 35,
+      elevation: 20,
+      build: () => createRibGeometry({ width: 16, depth: 3, height: 16, ribStyle: "gusset" }),
     });
     render({
       name: "apps/web/public/assets/editor/shape-icons-gray/counterbore.png",

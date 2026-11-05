@@ -413,6 +413,19 @@ export function ToolbarCutOutIcon(props: IconProps) {
   );
 }
 
+/** A star held over a plate, its outline running down in dashes to the star-shaped opening it leaves: a punch. */
+export function ToolbarPunchIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M24 5l3 6h6l-5 4 2 6-6-4-6 4 2-6-5-4h6Z" {...SOLID} />
+      <path d="M24 5l3 6h6l-5 4 2 6-6-4-6 4 2-6-5-4h6Z" />
+      <path d="M18 21v9M30 21v9" strokeDasharray="3 3" />
+      <path d="M6 30h12v10H6ZM30 30h12v10H30Z" {...SOLID} />
+      <path d="M6 30h12M30 30h12M42 30v10H6V30M18 40h12" />
+    </ToolbarVectorIcon>
+  );
+}
+
 /** A block whose boss on top is drawn dashed: the faces that go, the top closed again. */
 export function ToolbarDeleteFaceIcon(props: IconProps) {
   return (
@@ -432,6 +445,19 @@ export function ToolbarSimplifyIcon(props: IconProps) {
       <path d="M24 6 40 15v18L24 42 8 33V15Z" />
       <path d="M24 6v36M24 24 40 15M24 24l16 9" />
       <path d="M8 21h16M8 27h16M13.5 12v27M19 9v30" strokeWidth="1.6" opacity="0.7" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A cylinder faceted on its left half and round on its right: a mesh made an exact body. */
+export function ToolbarMakeExactIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M8 13 14 9h10v30H14l-6-4Z" {...SOLID} />
+      <path d="M24 9c9 0 16 2.2 16 5v20c0 2.8-7 5-16 5" {...SOLID} />
+      <path d="M8 13 14 9h10M8 13v22l6 4h10M14 9v30M8 35" />
+      <path d="M24 9c9 0 16 2.2 16 5v20c0 2.8-7 5-16 5M24 19c9 0 16-2.2 16-5" />
+      <path d="M8 13l6 4h10M14 17v22" strokeWidth="1.6" opacity="0.7" />
     </ToolbarVectorIcon>
   );
 }
@@ -488,6 +514,18 @@ export function ToolbarLidIcon(props: IconProps) {
       <path d="M6 9h36v6H6Z" {...SOLID} />
       <path d="M6 9h36v6H6Z" />
       <path d="M16.5 15v4h15v-4" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A block with a round channel through it: in at the side, a gentle bend, out at the top. */
+export function ToolbarCableChannelIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M7 12h34v28H7Z" {...SOLID} />
+      <path d="M7 12h34v28H7Z" />
+      <path d="M7 33.5h12a11.5 11.5 0 0 0 11.5-11.5V12" />
+      <path d="M7 28.5h12a6.5 6.5 0 0 0 6.5-6.5V12" />
     </ToolbarVectorIcon>
   );
 }

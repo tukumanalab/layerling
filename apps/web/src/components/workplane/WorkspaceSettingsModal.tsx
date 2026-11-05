@@ -235,7 +235,8 @@ function specialFieldsForShape(
   const defaults = shapeAssetSpecialDefaults(kind, dimensions);
   // Ohne eigene Angabe folgt die Seitenzahl der Groesse; hier steht, was das
   // bei den Vorgabemassen ergibt. Eine eingetragene Zahl haelt sie fest.
-  if (kind === "cylinder" || kind === "ellipse" || kind === "slot") {
+  // The curved cone's top and bend are kept as shares; "Save as default" on its card keeps them.
+  if (kind === "cylinder" || kind === "ellipse" || kind === "slot" || kind === "curvedCone") {
     return [{
       type: "number",
       key: "sides",
@@ -931,6 +932,12 @@ export function WorkspaceSettingsModal({
                     label={t("workspace.dimensionsAlwaysVisible")}
                     checked={workspace.dimensionsAlwaysVisible}
                     onChange={(dimensionsAlwaysVisible) => patchWorkspace({ dimensionsAlwaysVisible })}
+                  />
+                  <WorkspaceToggle
+                    label={t("workspace.dimensionAxisColors")}
+                    description={t("workspace.dimensionAxisColorsHint")}
+                    checked={workspace.dimensionAxisColors}
+                    onChange={(dimensionAxisColors) => patchWorkspace({ dimensionAxisColors })}
                   />
                   <WorkspaceToggle
                     label={t("workspace.showRotationAngles")}

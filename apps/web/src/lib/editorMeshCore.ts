@@ -29,6 +29,10 @@ import { createBentTubeGeometry } from "@/lib/bentTubeGeometry";
 import { createPrismGeometry } from "@/lib/prismGeometry";
 import { shapeHasAlongDeform, slopeMesh } from "@/lib/slopeAlong";
 import { createBooleanHalfSphereGeometry, createBooleanHollowCylinderGeometry, createBooleanRoundRoofGeometry, createParaboloidGeometry } from "@/lib/roundBodyGeometry";
+import { createCurvedConeGeometry } from "@/lib/curvedCone";
+import { createScrewBossGeometry } from "@/lib/screwBoss";
+import { createSnapFitGeometry } from "@/lib/snapFit";
+import { createRibGeometry } from "@/lib/rib";
 import { createPyramidGeometry } from "@/lib/pyramidGeometry";
 import { roundSideCount } from "@/lib/roundSideCount";
 import { createThreadGeometry } from "@/lib/threadGeometry";
@@ -431,6 +435,18 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
     case "paraboloid":
       geometry = createParaboloidGeometry(width, height, depth, shape.steps ?? 32);
       break;
+    case "curvedCone":
+      geometry = createCurvedConeGeometry(width, height, depth, shape.curvedConeTop, shape.curvedConeBend, roundSideCount(shape.sides, width, depth));
+      break;
+    case "screwBoss":
+      geometry = createScrewBossGeometry({ ...shape, width, depth, height });
+      break;
+    case "snapFit":
+      geometry = createSnapFitGeometry({ ...shape, width, depth, height });
+      break;
+    case "rib":
+      geometry = createRibGeometry({ ...shape, width, depth, height });
+      break;
     case "torus":
       geometry = createBooleanTorusGeometry(width, height, depth, shape);
       break;
@@ -543,6 +559,7 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         gridfinityMagnets: shape.gridfinityMagnets,
         gridfinityHalfGrid: shape.gridfinityHalfGrid,
         gridfinityLargePlate: shape.gridfinityLargePlate,
+        gridfinitySwallowtail: shape.gridfinitySwallowtail,
         gridfinityLabelBack: shape.gridfinityLabelBack,
         gridfinityLabelFront: shape.gridfinityLabelFront,
         gridfinityLabelLeft: shape.gridfinityLabelLeft,
@@ -667,6 +684,7 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         threadHead: shape.threadHead,
         threadHand: shape.threadHand,
         threadProfile: shape.threadProfile,
+        threadTaper: shape.threadTaper,
         threadDiameter: shape.threadDiameter,
         threadPitch: shape.threadPitch,
         threadClearance: shape.threadClearance,
@@ -683,6 +701,8 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         threadDrive: shape.threadDrive,
         threadDriveSize: shape.threadDriveSize,
         threadDriveDepth: shape.threadDriveDepth,
+        threadCollarHeight: shape.threadCollarHeight,
+        threadCollarDiameter: shape.threadCollarDiameter,
       });
       break;
     case "spring":

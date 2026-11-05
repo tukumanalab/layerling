@@ -9,6 +9,42 @@ Most mezi AI klientem a editorem běží **lokálně na vašem počítači**. Co
 
 > **Důležité:** MCP je dostupné ve vývojovém serveru, který si spustíte sami. Na layerling.com a statickém hostingu je vypnuté. Vlastní server, například Docker na NASu, jej může zpřístupnit s přístupovým tokenem; viz část o instalaci na NASu níže.
 
+## Krok za krokem pro začátečníky
+
+Nemusíte k tomu umět programovat.
+
+**Nejkratší cesta:** dejte své oblíbené AI adresu projektu, `https://github.com/henmedia/layerling`, a požádejte ji: „Nastav layerling na mém počítači, abych s tebou mohl přes jeho MCP server stavět 3D modely.“ AI vše sama stáhne a nainstaluje a řekne vám, až bude hotová. Funguje to s AI, která umí pracovat na vašem počítači, například záložka Code v aplikaci Claude, Codex, Antigravity nebo Gemini CLI. Chat v prohlížeči to nezvládne, protože na váš počítač nic nainstaluje.
+
+**Nebo to udělejte sami, ve Windows s aplikací Claude, v pěti krocích:**
+
+**1. Nainstalujte layerling.** Otevřete nabídku Start, napište `PowerShell` a otevřete Windows PowerShell. Zkopírujte tento řádek, vložte ho do okna pravým tlačítkem myši a stiskněte Enter:
+
+```powershell
+irm https://raw.githubusercontent.com/henmedia/layerling/main/scripts/windows-quickstart.ps1 | iex
+```
+
+Nainstaluje, co layerling potřebuje, stáhne layerling do složky `layerling` ve vaší uživatelské složce (`C:\Users\<vaše jméno>\layerling`) a otevře ho v prohlížeči. Poprvé to trvá několik minut.
+
+![Windows PowerShell s vloženým řádkem. Stiskněte Enter a začne to.](still:ai-quickstart-powershell)
+
+**2. Nechte layerling běžet.** layerling běží, dokud je okno PowerShellu otevřené, a AI může stavět jen tehdy, když běží. Příště místo toho poklepejte na „Start layerling“ na ploše.
+
+**3. Nainstalujte aplikaci Claude.** Nainstalujte aplikaci Claude pro Windows a přihlaste se. Záložka Code z dalšího kroku je součástí placených tarifů Claude.
+
+**4. Otevřete složku layerling v záložce Code.** V aplikaci Claude se nahoře přepněte na Code a jako pracovní složku zvolte složku `layerling` ve své uživatelské složce. layerling už obsahuje vše, co Claude potřebuje, aby našel jeho nástroje. Pokud se Claude zeptá, zda smí použít MCP server „layerling“ z této složky, povolte to.
+
+**5. Řekněte Claudovi, co má postavit.** Například: „Použij nástroje layerlingu a postav mi kulatou krabičku o průměru 60 mm a výšce 40 mm se stěnou 2,5 mm.“ Pokud není otevřený žádný editor, Claude ho otevře ve vašem prohlížeči, postaví tam krabičku krok za krokem a pořizuje snímky, aby svou práci zkontroloval. Vy se díváte a kdykoli můžete sami něco změnit.
+
+**Na Macu** to jde stejně, s těmito změnami. V kroku 1 otevři aplikaci Terminál (stiskni Cmd+mezerník, napiš `Terminal` a stiskni Enter), vlož tento řádek a stiskni Enter:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/henmedia/layerling/main/scripts/mac-quickstart.sh | sh
+```
+
+Pokud chybí Git nebo Node.js, řekne ti, co nainstalovat (Git nabídne macOS v okně, Node.js je instalační program na nodejs.org); potom spusť stejný řádek znovu. V kroku 2 se zástupce na ploše také jmenuje „Start layerling“. V kroku 3 nainstaluj aplikaci Claude pro Mac.
+
+> **Tip:** Když něco nefunguje, řekněte Claudovi, co vidíte. Umí chybu přečíst a většinou ji sám opraví. Pokud se v editoru nic neděje, nejdřív zkontrolujte, zda layerling stále běží (krok 2).
+
 ## Nastavení
 
 1. Stáhněte Layerling z [GitHubu](https://github.com/henmedia/layerling) a ve složce projektu spusťte `npm run dev`. Je potřeba Node.js. Ve Windows jeho instalaci zajistí příkaz pro rychlé spuštění z README.
@@ -47,6 +83,7 @@ AI používá stejné funkce a stejné zpracování příkazů jako ruční ovl�
 | `layerling_list_objects` | vypíše objekty s rozměry, polohou, natočením a identifikátorem |
 | `layerling_select_objects` | vybere objekty |
 | `layerling_delete_objects` | odstraní objekty |
+| `layerling_move_object` | přesune objekt na jiné místo v seznamu objektů |
 | `layerling_create_shape` | vytvoří kvádr, válec, text i po oblouku, závit, ozubené kolo, těleso z náčrtu a další tvary |
 | `layerling_import_file` | importuje soubor stejně jako okno importu; barevné OBJ či 3MF po barvách, víceobjektové 3MF po objektech |
 | `layerling_add_font` | přidá vlastní písmo TrueType, OpenType nebo WOFF; zůstane v prohlížeči, projekt uchová jen použité znaky |
@@ -71,6 +108,7 @@ AI používá stejné funkce a stejné zpracování příkazů jako ruční ovl�
 | `layerling_cookie_cutter` | makes a cookie cutter from the objects: a wall and a rim round the outline (Cookie cutter) |
 | `layerling_flexi_joints` | cuts a flat body into links with joints printed in place that swing to the sides (Flexi joints) |
 | `layerling_make_lid` | makes a lid for a body open at the top: pushed in, over the top or flat, with the fit you choose and magnets if you like (Lid) |
+| `layerling_make_cable_channel` | runs a round channel for a cable through a body from an entry to an exit, finding the way itself with gentle bends (Cable channel) |
 | `layerling_loft_sketches` | joins two sketch bodies into a loft from one outline to the other (Loft sketches) |
 | `layerling_separate_parts` | rozdělí tvar na jeho nespojené části, těleso z náčrtu na jedno těleso za každý obrys |
 | `layerling_split_objects` | rozdělí tělesa nebo výřezy rovinou na dvě části |
@@ -78,12 +116,14 @@ AI používá stejné funkce a stejné zpracování příkazů jako ruční ovl�
 | `layerling_apply_edge_treatment` | zkosí nebo zaoblí vybrané hrany |
 | `layerling_hollow_object` | vytvoří dutinu s rovnoměrnou stěnou |
 | `layerling_cut_out` | vyřízne jedno těleso z druhého, aby k sobě pasovala: díl zůstane, kopie zvětšená o vůli se odečte od druhého tělesa |
+| `layerling_punch` | prorazí obrys jednoho tělesa, při pohledu podél x, y nebo z, rovně skrz druhé; razník zůstane a nemusí se ho dotýkat |
 | `layerling_offset_object` | odsadí všechny plochy tělesa pro vůli lícovaného spoje: zvětší nebo zmenší těleso, nebo přidá zvětšenou kopii jako díru, nebo posune jen boky |
 | `layerling_list_faces` | vypíše plochy přesného tělesa |
 | `layerling_delete_faces` | smaže plochy a uzavře mezeru |
-| `layerling_array_objects` | opakuje objekty v řadě nebo po kružnici |
+| `layerling_array_objects` | opakuje objekty v řadě, v mřížce nebo po kružnici |
 | `layerling_bundle_objects` | seskupí objekty jako Ctrl+B: společný pohyb, zachované barvy a typy, samostatná tělesa při exportu |
 | `layerling_layer_text` | vytvoří vrstvenou jmenovku: písmena, širší okraje a souvislou podložku; podporuje otvor na kroužek, rohy po vrstvách, úpravu hran písmen a seznam jmen |
+| `layerling_text_block` | vytvoří textový blok: text se stane prvním z několika řádků, každý samostatným textem pod tím nad ním, zarovnaných vlevo, na střed nebo vpravo, každý řádek stejně velký nebo menší |
 | `layerling_layer_icon` | vytvoří vrstvený štítek ze SVG nebo vysunutého náčrtu, s rozšířenými okraji a souvislou podložkou; umožní změnit šířku a vrstvy i rozmístit více kopií na podložku |
 | `layerling_create_qr_code` | vytvoří z textu nebo webové adresy QR kód jako {{ui:shape.qrCode}} v knihovně tvarů – samotný kód, vystouplý na destičce nebo vyrytý, s opravou chyb, šířkou, výškou, klidovou zónou a na přání jako otvor; varuje, když modul klesne pod 0,8 mm |
 | `layerling_create_sbc_board` | vloží desku SBC ve skutečné velikosti jako {{ui:shape.sbcBoard}} v knihovně tvarů – Raspberry Pi 5, 4, 3 B+, Zero 2 W nebo BIGTREETECH Pi, s otvory a konektory, vůlí kolem okrajových konektorů, polohou a jako výřez pro krabičku |
@@ -95,10 +135,16 @@ AI používá stejné funkce a stejné zpracování příkazů jako ruční ovl�
 | `layerling_add_reference_points` | vytvoří referenční body na středech, rozích, středech hran nebo zadaných souřadnicích |
 | `layerling_list_reference_points` | vypíše referenční body s identifikátory a polohami |
 | `layerling_remove_reference_points` | odstraní vybrané nebo všechny referenční body |
+| `layerling_list_notes` | čte poznámky uživatele s textem, tělesem, ke kterému je každá připnutá, a zda jde o zadání pro AI |
+| `layerling_wait_for_notes` | čeká, až u poznámky zaškrtnete {{ui:note.forAi}}, a požadavek hned předá |
+| `layerling_add_note` | dá na model poznámku, připnutou k objektu nebo volnou na desce |
+| `layerling_update_note` | změní poznámku nebo na ni odpoví; odpověď zadání uzavře |
+| `layerling_remove_notes` | smaže poznámky podle id |
 | `layerling_inspect_errors` | přečte poslední hlášení a chybu i zprávy z celé relace |
 | `layerling_wrap_around_cylinder` | obtočí rovinné těleso, SVG nebo text kolem válce jako reliéf či rytinu |
 | `layerling_texture_surface` | nanese na těleso povrchovou texturu: drážky, vroubkování, plástev nebo výstupky; později ji také změní nebo odebere |
 | `layerling_simplify_mesh` | sníží počet trojúhelníků sítě na zadané procento nebo počet |
+| `layerling_make_exact` | převede importovanou síť na přesné CAD těleso: roviny, válce, kužele, koule a toroidy se stanou skutečnými plochami, hrany se čistě zaoblí a STEP je ponese |
 | `layerling_save_custom_shape` | uloží tělesa jako vlastní tvar na serveru nebo v prohlížeči pro další projekty |
 | `layerling_list_custom_shapes` | vypíše vlastní tvary na serveru i v prohlížeči |
 | `layerling_insert_custom_shape` | vloží vlastní tvar do otevřeného projektu, případně na zadanou polohu x/z |
@@ -106,6 +152,7 @@ AI používá stejné funkce a stejné zpracování příkazů jako ruční ovl�
 | `layerling_show_workplane` | skryje nebo zobrazí podložku s mřížkou, pouze změna pohledu |
 | `layerling_set_section_view` | zapne pohled v řezu, aniž by skutečně rozdělil tělesa |
 | `layerling_measurements` | zobrazí nebo skryje měření měřicího nástroje a vypíše je s jejich délkami, a skryje nebo zobrazí rozměry kolem výběru jako [[Q]] |
+| `layerling_measure_angle` | měří úhel jako úhloměr: ve vrcholu ze tří bodů nebo mezi dvěma rovnými plochami, a ukáže ho v pohledu |
 | `layerling_saved_view` | uloží aktuální pohled pod klávesu 7, 8, 9 nebo 0 a vrátí se k němu, jako Shift+klávesa a klávesa (jen pohled); nastaví také úvodní pohled nových návrhů |
 | `layerling_clear_history` | trvale vymaže historii kroků zpět, vyžaduje `confirm: true` |
 | `layerling_set_history_view` | zobrazí starší stav projektu bez změny současného; editační nástroje počkají na zavření historie |

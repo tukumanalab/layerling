@@ -1,5 +1,7 @@
+import { CONCAVE_FILLET_STRAIGHT_MESSAGE } from "@/lib/cadConcaveFillet";
 import { t } from "@/lib/i18n";
 import { withBasePath } from "@/lib/basePath";
+import { isKernelMemoryFault, isWasmMemoryFaultMessage } from "@/lib/kernelFault";
 import { localizedError } from "@/lib/userErrors";
 import type { CadModifierDeflection, CadModifierEdge, CadModifierQuality } from "@/lib/cadModifierTypes";
 import type { OcctKernel, ShapeHandle } from "occt-wasm";
@@ -141,7 +143,8 @@ export function applyCadTransform(cad: OcctKernel, shape: ShapeHandle, transform
   }
   try {
     return cad.transform(shape, transform);
-  } catch {
+  } catch (error) {
+    if (isKernelMemoryFault(error)) throw error;
     return cad.generalTransform(shape, transform);
   }
 }
@@ -169,10 +172,7 @@ export function isCadModifierKernelExhausted(message: string, errorName = "") {
 }
 
 export function isCadModifierWasmMemoryFault(message: string, errorName = "") {
-  return (
-    /memory access out of bounds|out of bounds memory access|\babort(?:ed)?\b/i.test(message) ||
-    /^(?:WebAssembly\.)?RuntimeError$/i.test(errorName)
-  );
+  return isWasmMemoryFaultMessage(message, errorName);
 }
 
 /**
@@ -199,14 +199,14 @@ export function rescueSharpAngleForEdges(
  * an Apply (#538) the value without edges (#1115). The value comes along whenever the kind is the same.
  */
 export function cadModifierPresetValues<Kind extends string>(
-  preset: { kind: Kind; amount: number; chamferAngle: number; endAmount?: number | null; edgeIds: number[] } | null,
+  preset: { kind: Kind; amount: number; chamferAngle: number; endAmount?: number | null; concave?: boolean; edgeIds: number[] } | null,
   kind: Kind,
   existingEdgeIds: ReadonlySet<number>,
 ) {
   if (!preset || preset.kind !== kind) return { edgeIds: [] as number[], values: null };
   return {
     edgeIds: preset.edgeIds.filter((edgeId) => existingEdgeIds.has(edgeId)),
-    values: { amount: preset.amount, chamferAngle: preset.chamferAngle, endAmount: preset.endAmount ?? null },
+    values: { amount: preset.amount, chamferAngle: preset.chamferAngle, endAmount: preset.endAmount ?? null, concave: preset.concave === true },
   };
 }
 
@@ -357,8 +357,14 @@ export function cadModifierUserErrorMessage(rawError: string | null | undefined)
   if (rawError.includes("The edge preview timed out")) {
     return t("edge.errorPreviewTimeout");
   }
+  if (rawError.includes("Select at least one highlighted edge")) {
+    return t("edge.selectAtLeastOne");
+  }
   if (rawError.includes(VARIABLE_FILLET_ONE_EDGE_MESSAGE)) {
     return t("edge.variableOneEdge");
+  }
+  if (rawError.includes(CONCAVE_FILLET_STRAIGHT_MESSAGE)) {
+    return t("edge.concaveStraightOnly");
   }
   if (
     rawError.includes("The CAD worker could not start") ||

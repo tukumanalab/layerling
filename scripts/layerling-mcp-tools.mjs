@@ -19,8 +19,8 @@ export const editorTargetSchema = {
  */
 export const creatableShapeKinds = [
   "box", "roundedBox", "cube", "cylinder", "slot", "ellipse", "polygon", "sphere", "cone", "pyramid", "wedge",
-  "roundRoof", "halfSphere", "paraboloid", "torus", "loft", "vase", "tube", "bentTube", "star", "heart", "crescent", "text", "thread", "spring", "gridfinity", "gear", "hirth",
-  "hinge", "knurl", "dovetail", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "ruler", "sketch",
+  "roundRoof", "halfSphere", "paraboloid", "curvedCone", "torus", "loft", "vase", "tube", "bentTube", "star", "heart", "crescent", "text", "thread", "spring", "gridfinity", "gear", "hirth",
+  "hinge", "knurl", "dovetail", "screwBoss", "snapFit", "rib", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "ruler", "sketch",
 ];
 
 /**
@@ -36,6 +36,7 @@ export const threadSizeNames = [
   "#4-48 UNF", "#6-40 UNF", "#8-36 UNF", "#10-32 UNF", "1/4\"-28 UNF", "5/16\"-24 UNF", "3/8\"-24 UNF", "7/16\"-20 UNF", "1/2\"-20 UNF", "5/8\"-18 UNF", "3/4\"-16 UNF", "1\"-12 UNF",
   "G1/16", "G1/8", "G1/4", "G3/8", "G1/2", "G5/8", "G3/4", "G7/8", "G1", "G1 1/8", "G1 1/4", "G1 1/2", "G1 3/4",
   "G2", "G2 1/4", "G2 1/2", "G2 3/4", "G3", "G3 1/2", "G4",
+  "1/16\" NPT", "1/8\" NPT", "1/4\" NPT", "3/8\" NPT", "1/2\" NPT", "3/4\" NPT", "1\" NPT", "1 1/4\" NPT", "1 1/2\" NPT", "2\" NPT", "2 1/2\" NPT", "3\" NPT", "3 1/2\" NPT", "4\" NPT",
   "PCO 1881", "S60x6 (IBC)",
 ];
 
@@ -49,7 +50,7 @@ export const threadSizeSetting = {
   threadSize: {
     type: "string",
     enum: threadSizeNames,
-    description: "Thread only: a standard size by name, as the editor's size menu lists it. Sets threadDiameter and threadPitch; if those come along (as in a settings block read back), they must match the size. A G size is a Whitworth pipe thread (BSPP, ISO 228-1, for fittings, water, gas, hydraulics and pneumatics): G1/2 is 20.955 mm with 14 threads per inch. It switches a v profile to whitworth, and an M, UNC or UNF size switches whitworth back to v; trapezoidal and round stay, and a threadProfile in the same call wins. PCO 1881 is the 28 mm neck of most water and soda bottles (27.4 mm, pitch 2.7): it sets the custom profile with threadDepth 1.6 and threadFlankAngle 30 unless the call gives them; the neck is a rod, the cap a nut or bore. S60x6 (IBC) is the outlet thread of IBC containers (DIN 6063-1, KS 60: 60 mm, pitch 6, core 54): it sets the custom profile with threadDepth 3 and threadFlankAngle 30 the same way.",
+    description: "Thread only: a standard size by name, as the editor's size menu lists it. Sets threadDiameter and threadPitch; if those come along (as in a settings block read back), they must match the size. A G size is a Whitworth pipe thread (BSPP, ISO 228-1, for fittings, water, gas, hydraulics and pneumatics): G1/2 is 20.955 mm with 14 threads per inch. It switches a v profile to whitworth, and an M, UNC or UNF size switches whitworth back to v; trapezoidal and round stay, and a threadProfile in the same call wins. PCO 1881 is the 28 mm neck of most water and soda bottles (27.4 mm, pitch 2.7): it sets the custom profile with threadDepth 1.6 and threadFlankAngle 30 unless the call gives them; the neck is a rod, the cap a nut or bore. S60x6 (IBC) is the outlet thread of IBC containers (DIN 6063-1, KS 60: 60 mm, pitch 6, core 54): it sets the custom profile with threadDepth 3 and threadFlankAngle 30 the same way. An NPT size (1/16\" NPT to 4\" NPT, ASME B1.20.1) is the American tapered pipe thread: the pipe's outside diameter (1/2\" NPT is 21.336 mm with 14 threads per inch), the custom profile with 60-degree flanks and 0.779 pitch deep, and threadTaper true; another size makes a tapered thread straight again, unless the call gives threadTaper.",
   },
 };
 
@@ -60,12 +61,31 @@ export const threadSizeSetting = {
  * geprueft wie in den Einstellungen; was daneben liegt, wird eingefangen.
  */
 export const shapeSettingSchema = {
-  sides: { type: "number", description: "Cylinder, slot, cone, tube, polygon, pyramid, round roof, teardrop, counterbore, countersink, doubleCountersink, torus (around the ring). Left out on a round body, the side count follows the diameter." },
+  sides: { type: "number", description: "Cylinder, slot, cone, curved cone, tube, polygon, pyramid, round roof, teardrop, counterbore, countersink, doubleCountersink, torus (around the ring). Left out on a round body, the side count follows the diameter." },
   steps: { type: "number", description: "Sphere and half sphere: how finely the surface is divided. Torus: how finely the tube is divided; left out, it follows the size." },
   bevel: { type: "number", description: "Tube: wall thickness. Text: rounding of the lettering." },
   segments: { type: "number", description: "Text only: steps in the rounding." },
   topRadius: { type: "number", description: "Cone only: radius of the flat top. 0 runs to a point." },
   baseRadius: { type: "number", description: "Cone only: radius at the base." },
+  curvedConeTop: { type: "number", description: "Curved cone only: the top's diameter as a share of the bottom's (the width), 0 to 1; 0 runs to a point, 1 is a cylinder. Default 0.25." },
+  curvedConeBend: { type: "number", description: "Curved cone only: how far the side bends, -1 to 1. Negative bends it inward into a trumpet like a pseudosphere, 0 is a straight cone, positive bulges it outward into a dome with a flat top. Default -0.8." },
+  screwBossFastener: { type: "string", enum: ["insert", "selfTapping", "custom"], description: "Screw boss only: what goes into its hole - a heat-set insert (default), a self-tapping screw for plastics, or a hole of your own (screwBossHole and screwBossHoleDepth)." },
+  screwBossSize: { type: "string", description: "Screw boss only: the size from the fastener's list. Inserts: M2, M2.5, M3, M3S (short), M4, M5, #2-56, #4-40, #6-32, #8-32, #10-24, 1/4-20 (M3: hole 4.0 mm, insert 5.7 mm). Self-tapping screws: ST2.2, K25, ST2.9, K30, ST3.5, K40, ST4.2, K50, #2, #4, #6, #8, #10 (pilot hole 0.8 times the screw). Default M3, or K30 for screws." },
+  screwBossHole: { type: "number", description: "Screw boss only: the hole's diameter in mm, instead of the size's." },
+  screwBossHoleDepth: { type: "number", description: "Screw boss only: the hole's depth from the top in mm, instead of the size's (an insert's length + 1); as deep as the post goes through." },
+  screwBossDiameter: { type: "number", description: "Screw boss only: the post's outer diameter in mm (about twice an insert's hole, 2.5 times a screw). With gussets the width and depth are the footprint they reach to." },
+  screwBossGussets: { type: "number", description: "Screw boss only: thin ribs from the post down to the floor, 0 to 6 (default 0); they reach out to the footprint (width), screwBossGussetHeight high (default 0.6 of the post) and screwBossGussetThickness thick (1.6 mm)." },
+  screwBossGussetHeight: { type: "number", description: "Screw boss only: how high the gussets reach up the post, mm." },
+  screwBossGussetThickness: { type: "number", description: "Screw boss only: the gussets' thickness, mm." },
+  snapFitPart: { type: "string", enum: ["both", "hook", "catch"], description: "Snap-fit only: both (default) puts the hook and its catch where they sit snapped in under a lid on top - the hook's foot at the top (under the lid), its barb at the bottom, the catch's back at +z (the inside of the wall it goes on); hook or catch makes one of them. separate_parts splits both into two bodies." },
+  snapFitThickness: { type: "number", description: "Snap-fit only: the arm's thickness, mm (1.6). The answer's strain at the root is 1.5 * thickness * undercut / length^2: PLA up to about 2 %, PETG and ABS about 4 %." },
+  snapFitUndercut: { type: "number", description: "Snap-fit only: how far the barb reaches under the catch, mm (1)." },
+  snapFitClearance: { type: "number", description: "Snap-fit only: the play between barb and catch, mm (0.2)." },
+  snapFitLeadAngle: { type: "number", description: "Snap-fit only: the barb's entry slope, degrees from the direction it goes in, 10-60 (30 slides in easily)." },
+  snapFitRetainAngle: { type: "number", description: "Snap-fit only: the angle of the face that holds, 30-90: 90 holds for good, 45 lets it be pulled apart again." },
+  snapFitFoot: { type: "number", description: "Snap-fit only: the foot's thickness under the arm, mm (1.6; 0: no foot)." },
+  ribStyle: { type: "string", enum: ["straight", "gusset"], description: "Rib only: a straight rib (width its length, depth its thickness) or a gusset, a right triangle that braces a wall against the floor (width along the floor, height up the wall at -x, depth its thickness)." },
+  ribTop: { type: "string", enum: ["flat", "round", "chamfer"], description: "Straight rib only: its top." },
   topWidth: { type: "number", description: "Pyramid only: width of the flat top. 0 runs to a point." },
   topDepth: { type: "number", description: "Pyramid only: depth of the flat top. 0 runs to a point." },
   taperTopWidth: { type: "number", description: "Taper, on every shape except gear, hirth, thread, spring, gridfinity, hinge, pyramid, bentTube, teardrop, counterbore, countersink and ruler: width of the top face. Setting one value of a face pins the other." },
@@ -97,6 +117,7 @@ export const shapeSettingSchema = {
   threadHead: { type: "string", enum: ["cylinder", "countersunk", "hex", "square", "flange", "wing", "knob"], description: "Thread only. For a screw the head: cylinder (socket head), countersunk, hex, square, flange (a hex with a disc under it), wing (a hub with a flat bar across, turned by hand, prints lying flat) or knob (a star knob with six lobes). For a nut its shape: hex (also for cylinder or countersunk), square, flange, wing or knob, sized from the thread (a wing nut 5 times the thread across, a star knob nut 5 times)." },
   threadHand: { type: "string", enum: ["right", "left"], description: "Thread only." },
   threadProfile: { type: "string", enum: threadProfiles, description: "Thread only: tooth shape. \"v\" is the sharp 60-degree ISO default (M, UNC, UNF); trapezoidal and round both leave a flat crest and root, which prints more reliably; \"whitworth\" is the 55-degree profile with rounded crest and root of the G pipe threads (ISO 228-1); \"custom\" is a symmetric trapezoid whose depth and flank angle you set with threadDepth and threadFlankAngle." },
+  threadTaper: { type: "boolean", description: "Thread only: tapered 1 in 16 on the diameter, as the pipe thread NPT; false or missing is a straight thread. threadDiameter is then the wide end's. A rod or screw narrows towards its tip at the top; a nut or tapped hole widens towards its mouth at the top, so a tapered rod turned upside down screws into it. Any profile can be tapered; an NPT threadSize sets it." },
   threadDiameter: { type: "number", description: "Thread only, in millimetres: 6 is an M6, 20.955 a G1/2 pipe thread. Width and depth follow it, they are not set separately. For a standard size, threadSize is simpler." },
   threadPitch: { type: "number", description: "Thread only, in millimetres per turn: an M6 runs 1.0 as standard." },
   threadClearance: { type: "number", description: "Thread only, for nuts and tapped holes: how much room the thread leaves so a printed pair still turns." },
@@ -113,6 +134,8 @@ export const shapeSettingSchema = {
   threadDrive: { type: "string", enum: ["hex", "torx", "phillips", "slot", "robertson", "none"], description: "Thread only, and only for a screw: the drive recess in the head. \"hex\" is a hex socket (the default for cylinder and countersunk heads), \"torx\" six lobes, \"phillips\" a cross, \"slot\" a straight slot across the head (for a flat screwdriver or a coin), \"robertson\" a square socket (the Robertson drive common in Canada), \"none\" a plain head turned by hand or with a spanner (the default for a hex head)." },
   threadDriveSize: { type: "number", description: "Thread only, for a screw with a drive, in mm: hex socket across flats, Torx outer diameter, or the span of the Phillips cross, or the slot's length (its width is a fifth of it), or the Robertson square across flats. Left out it follows the standard for the size (an M4 takes 3 mm hex, about T20, about PH2, Robertson #2 (2.84 mm); a slot runs as far across the head as it fits); it must fit the head." },
   threadDriveDepth: { type: "number", description: "Thread only, for a screw with a drive: how deep the recess goes into the head, in mm, at most 90 % of the head height. 0 leaves the head without a drive. Left out it is 60 % of the head height, at most a little over half the diameter." },
+  threadCollarHeight: { type: "number", description: "Thread only, for a screw without a countersunk head or for a nut: the height of a round collar, in mm - between a screw's head and its thread (a spacer under a star knob, a shoulder under a head), or on a nut's top face. 0 or left out: none. Without a height of its own the thread keeps its length (a nut its body) and the shape grows by the collar." },
+  threadCollarDiameter: { type: "number", description: "Thread only, for a screw or nut with a collar: its diameter in mm, at least 0.4 mm wider than a screw's thread (a nut's: 1.3 times the thread plus 0.4 mm) and 0.4 mm narrower than the head or nut where it is narrowest (between a star knob's scallops, a wing head's hub, a nut's flats). Left out it is twice the thread." },
   springTurns: { type: "number", description: "Spring only: turns of the coil, or the bends of a flat spring." },
   springWire: { type: "number", description: "Spring only: thickness of the wire, or the width of a flat spring's band." },
   springForm: { type: "string", enum: ["coil", "flat"], description: "Spring only: coil (default) or flat - a band that runs in waves across the plate, width its length, depth how far the waves reach, height its thickness. A new flat spring is 60 x 16 x 4 mm unless sizes are given; switching an existing spring keeps its size, so give the new width, depth and height with it." },
@@ -154,11 +177,13 @@ export const shapeSettingSchema = {
   hingeNutWidth: { type: "number", description: "Hinge only: the nut's width across the flats in mm for nut pockets, 0 or left out to take it from the hole's diameter (M3 5.8, M4 7.3 with play). The pocket is as deep as a nut is high, leaving 0.6 mm of leaf below it; on a leaf too thin for that it is left out." },
   hingeCornerRadius: { type: "number", description: "Hinge only: round the four outer corners of the leaves with this radius in mm (default 0, sharp); with fingers, the two outer corners of each finger." },
   hingeLeafStyle: { type: "string", enum: ["plate", "fingers"], description: "Hinge only: \"plate\" (default) gives each side one leaf along the whole length; \"fingers\" gives each knuckle its own finger as wide as the knuckle, the two sides' fingers alternating like two combs, so the hinge folds all the way round, and with hingeStyle \"cone\" and fingers as thick as the knuckle it closes flat. No leaf joins a side's fingers: join them to the model (a box and its lid). Fingers take no screw holes." },
-  gridfinityType: { type: "string", enum: ["bin", "baseplate", "tray"], description: "Gridfinity only: a bin, or the baseplate bins stand in, to the published Gridfinity measures so they fit parts printed from other designs, or a tray. A bin's or baseplate's size is whole grid units of 42 mm: a bin is 42 x units - 0.5 across and deep (41.5, 83.5, 125.5 ... up to 6 units, 251.5), 7 mm per height unit, up to 20 units, plus 4.4 for the stacking lip (a 3-unit bin is 25.4 tall); a baseplate is 42 x units across and deep, up to 6 units, or 12 with gridfinityLargePlate, plus its padding (gridfinityPaddingBack and the others), and 5 tall. Any width, depth or height is rounded to the nearest whole units. When a baseplate becomes a bin, give its height too, or it gets one height unit. With gridfinityHalfGrid a bin's units are cells of 21 mm instead. A tray (#837) has no grid: a flat bottom with no feet, lip or magnet holes, its width and depth free in mm from 10 to 252 and its height from 3 to 140, kept as given within them (a new one is 80 x 40 x 20); when a baseplate becomes a tray, give its height too, or it stays 5 mm tall. The settings marked Gridfinity bin only apply to a tray too, except gridfinityLip, gridfinityLipChamfer, gridfinityMagnets and gridfinityHalfGrid; its floor starts at 1.2 mm (gridfinityFloorHeight), it takes as many compartments as leave each at least 6 mm wide (up to 24 along a side and 40 in all), its dividers and label shelves run up to its top, and its label shelves need no height units, only room, as finger scoops on any part." },
+  gridfinityType: { type: "string", enum: ["bin", "baseplate", "tray"], description: "Gridfinity only: a bin, or the baseplate bins stand in, to the published Gridfinity measures so they fit parts printed from other designs, or a tray. A bin's or baseplate's size is whole grid units of 42 mm: a bin is 42 x units - 0.5 across and deep (41.5, 83.5, 125.5 ... up to 6 units, 251.5), 7 mm per height unit, up to 20 units, plus 4.4 for the stacking lip (a 3-unit bin is 25.4 tall); a baseplate is 42 x units across and deep, up to 6 units, or 12 with gridfinityLargePlate, plus its padding (gridfinityPaddingBack and the others), and 5 tall (7.4 with gridfinitySwallowtail). Any width, depth or height is rounded to the nearest whole units. When a baseplate becomes a bin, give its height too, or it gets one height unit. With gridfinityHalfGrid a bin's units are cells of 21 mm instead. A tray (#837) has no grid: a flat bottom with no feet, lip or magnet holes, its width and depth free in mm from 10 to 252 and its height from 3 to 140, kept as given within them (a new one is 80 x 40 x 20); when a baseplate becomes a tray, give its height too, or it stays 5 mm tall. The settings marked Gridfinity bin only apply to a tray too, except gridfinityLip, gridfinityLipChamfer, gridfinityMagnets and gridfinityHalfGrid; its floor starts at 1.2 mm (gridfinityFloorHeight), it takes as many compartments as leave each at least 6 mm wide (up to 24 along a side and 40 in all), its dividers and label shelves run up to its top, and its label shelves need no height units, only room, as finger scoops on any part." },
   gridfinityLip: { type: "boolean", description: "Gridfinity bin only: the stacking lip on top of the wall that the next bin's feet sit in (default true). Switching it keeps the height units and adds or takes off the 4.4 mm." },
   gridfinityMagnets: { type: "boolean", description: "Gridfinity bin only: holes for 6 x 2 mm magnets under each foot, 6.5 mm wide and 2.4 deep, 13 mm from the middle of the unit both ways (default false); on the half-size grid one hole under each foot, see gridfinityHalfGrid. A baseplate has none." },
   gridfinityHalfGrid: { type: "boolean", description: "Gridfinity bin only: a half-size grid (default false). The width and depth then count cells of 21 mm: a bin is 21 x units - 0.5 (20.5, 41.5, 62.5 ... up to 12 units, 251.5), with a foot under every cell, the same steps and corners, four to a socket of an ordinary baseplate. Switching it on keeps the outline; switching it off rounds an odd count up to whole units of 42 mm. With magnets each foot gets one hole, 2.5 mm both ways from its middle towards the corner of its cell on the 42 mm grid, counted from the bin's left back corner (-x, -z). A baseplate ignores it." },
   gridfinityLargePlate: { type: "boolean", description: "Gridfinity baseplate only: up to 12 units across and deep instead of 6 (default false), for print beds over 256 mm; a large plate of 12 x 12 is 504 mm without padding, and its exact body takes about 25 s, close to the 30 s layerling_list_edges and layerling_list_faces wait by default, so give those a larger timeoutMs. Switching it off brings a larger plate back to 6 units, its padding kept. A plate larger than the chosen printer's bed is flagged in the editor. A bin or tray ignores it." },
+  gridfinitySwallowtail: { type: "boolean", description: "Gridfinity baseplate only (#1061): Swallowtail (default false). The plate stands on a 2.4 mm floor, 7.4 mm tall, the sockets ending on it, and has half a bow-tie pocket under each side without padding, one at the middle of each cell, so two plates side by side make whole pockets across the seam. A pocket is 6 mm wide at the plate's side and 10 mm wide 7 mm in, 2 mm deep; in its bottom 0.6 mm a lip runs along its sides from 2.5 mm in, where the key's slots begin, growing to 0.2 mm at the end, and the seam itself is open. The key (gridfinityKeys) is pressed in from below, its slotted ends squeeze past the lip, and it clicks in. Not on a plate fitted to an outline (gridfinityOutline), which ignores it and stays 5 mm tall. A bin or tray ignores it." },
+  gridfinitySwallowtailClearance: { type: "number", description: "Gridfinity baseplate with gridfinitySwallowtail only (#1061): how much smaller than its pocket each key from gridfinityKeys is on every side, in mm (default 0.05, 0 to 0.15, to 0.01; beyond 0.15 the lip hardly holds the key). Raise it if printed keys jam or break, lower it if they sit loose. It changes only the keys laid out after it; the plate stays the same." },
   gridfinityLabelBack: { type: "boolean", description: "Gridfinity bin only, 3 height units or more and a floor low enough (see gridfinityFloorHeight): a label shelf along the inside of the back wall (default false). The shelf is flat on top, with a 1.2 mm strip down at the front and an underside rising at 36 degrees from the wall; its top is 0.85 mm below 7 mm per height unit (20.15 mm for 3 units), so the feet of a bin stacked on the lip stay 0.5 mm clear. Shelves on several walls join at the corners; each wall has its own width, length and offset (gridfinityLabelBackWidth, gridfinityLabelBackLength, gridfinityLabelBackOffset and the same for Front, Left and Right), and the corner settings apply to all of them. A bin with compartments (gridfinityCompartmentsX/Z) does not build them and takes gridfinityCompartmentLabels instead." },
   gridfinityLabelFront: { type: "boolean", description: "Gridfinity bin only: a label shelf along the front wall (default false), not built in a bin with compartments; see gridfinityLabelBack." },
   gridfinityLabelLeft: { type: "boolean", description: "Gridfinity bin only: a label shelf along the left wall (default false), not built in a bin with compartments; see gridfinityLabelBack." },
@@ -182,8 +207,8 @@ export const shapeSettingSchema = {
   gridfinityScoopLeft: { type: "boolean", description: "Gridfinity bin only: a finger scoop along the left wall (default false); see gridfinityScoopBack." },
   gridfinityScoopRight: { type: "boolean", description: "Gridfinity bin only: a finger scoop along the right wall (default false); see gridfinityScoopBack." },
   gridfinityScoopRadius: { type: "number", description: "Gridfinity bin only: the finger scoops' radius in mm, at least 3.5. Unset, it is half the height from the floor (5.95 mm up unless gridfinityFloorHeight raises it) to where the stacking lip's support leaves the wall, 1.65 mm under 7 mm per height unit with the 0.95 mm wall (with a wall over 1.75 mm, the ledge 0.85 mm under it), or to the top of a bin without the lip: 6.7 for a bin of 3 height units with the lip, 7.525 without. It stays at least 0.5 mm less than that height, and across the bin it leaves at least 2 mm of floor, between two scoops facing each other or between a scoop and the wall opposite it." },
-  gridfinityFloorHeight: { type: "number", description: "Gridfinity bin only: the floor's height inside in mm, measured from the underside of the bin (default 5.95, the 1.2 mm floor on the feet). Raised, the bin is solid up to it, a blank to cut shapes into: at most where the stacking lip's support leaves the wall, 1.65 mm under 7 mm per height unit with the 0.95 mm wall (19.35 for 3 units), so a stacked bin's feet stay clear by 2.25 mm less the wall; with a wall over 1.75 mm, at most the ledge 0.85 mm under 7 mm per height unit; or the top of a bin without the lip, a solid block. Not in a bin of 1 height unit with the lip and a wall of 1.6 mm or less. Finger scoops start on it and label shelves can reach less far out above it; both are left out once it leaves them no room." },
-  gridfinityOpenBack: { type: "boolean", description: "Gridfinity bin only: no wall and no stacking lip along the back above the floor (default false), so bins open on facing sides stand side by side as one run. The walls beside it and their lip run straight out to the bin's outline and end square, 0.5 mm from the next bin as between any two bins, and the floor runs flat to the edge and ends square there. Feet and magnet holes stay as they are. A label shelf or finger scoop on an open side is not built, nor are the scoops against dividers facing that way (the setting is kept for when the side is closed again); shelves and scoops beside it, and dividers that meet it, run out to the edge, and a compartment takes no label on an open side. Any sides together, all four for a floor on its feet alone. A bin without the lip whose floor is raised to the top (gridfinityFloorHeight) is a solid block and has nothing to open. gridfinityOpenings opens a side only partly." },
+  gridfinityFloorHeight: { type: "number", description: "Gridfinity bin only: the floor's height inside in mm, measured from the underside of the bin (default 5.95, the 1.2 mm floor on the feet). Raised, the bin is solid up to it, a blank to cut shapes into. With the lip, a bin still stacks on it up to where the stacking lip's support leaves the wall, 1.65 mm under 7 mm per height unit with the 0.95 mm wall (19.35 for 3 units), so a stacked bin's feet stay clear by 2.25 mm less the wall; with a wall over 1.75 mm, up to the ledge 0.85 mm under 7 mm per height unit. From the lip's top up, 4.4 mm over 7 mm per height unit (25.4 for 3 units), it fills the lip too: a solid block with a flat top, which no bin stacks on; a value between the two is built at the highest floor a bin still stacks on. Without the lip, at most the top of the bin, a solid block. Finger scoops start on it and label shelves can reach less far out above it; both are left out once it leaves them no room." },
+  gridfinityOpenBack: { type: "boolean", description: "Gridfinity bin only: no wall and no stacking lip along the back above the floor (default false), so bins open on facing sides stand side by side as one run. The walls beside it and their lip run straight out to the bin's outline and end square, 0.5 mm from the next bin as between any two bins, and the floor runs flat to the edge and ends square there. Feet and magnet holes stay as they are. A label shelf or finger scoop on an open side is not built, nor are the scoops against dividers facing that way (the setting is kept for when the side is closed again); shelves and scoops beside it, and dividers that meet it, run out to the edge, and a compartment takes no label on an open side. Any sides together, all four for a floor on its feet alone. A bin whose floor is raised to the top (with the lip, to the lip's top; gridfinityFloorHeight) is a solid block and has nothing to open. gridfinityOpenings opens a side only partly." },
   gridfinityOpenFront: { type: "boolean", description: "Gridfinity bin only: no wall and no stacking lip along the front above the floor (default false), or only partly with gridfinityOpenings; see gridfinityOpenBack." },
   gridfinityOpenLeft: { type: "boolean", description: "Gridfinity bin only: no wall and no stacking lip along the left above the floor (default false), or only partly with gridfinityOpenings; see gridfinityOpenBack." },
   gridfinityOpenRight: { type: "boolean", description: "Gridfinity bin only: no wall and no stacking lip along the right above the floor (default false), or only partly with gridfinityOpenings; see gridfinityOpenBack." },
@@ -211,8 +236,8 @@ export const shapeSettingSchema = {
   },
   gridfinityOpeningCorner: { type: "string", enum: ["round", "chamfer"], description: "Gridfinity bin with a side opened partly (gridfinityOpenings) only: the corners of every notch seen from outside the wall, the two at the top where the wall's top meets the notch and the two at the bottom, rounded (default) or chamfered, by gridfinityOpeningCornerSize." },
   gridfinityOpeningCornerSize: { type: "number", description: "Gridfinity bin with a side opened partly (gridfinityOpenings) only: the size of that rounding or chamfer in mm, 0 to 10 (default 0, square corners), taken to 0.01 mm; under 0.5 mm a corner stays square. The top corners take it first, up to the end of the wall's straight part and the depth, staying above the floor's rounding; the bottom ones then up to half the width and what the depth leaves. A corner that would end just beside an edge of the wall is made up to 0.5 mm smaller to keep clear of it. A notch across the whole side has no top corners." },
-  gridfinityLipChamfer: { type: "number", description: "Gridfinity bin with the stacking lip only: a chamfer on the lip's top edge in mm, 0 to 1 (default 0, the sharp top the specification draws). It is the edge tool's chamfer of that size, built in: that much off the outer wall and off the 45 degree slope inside, which is where the feet of a bin stacked on top rest, so a larger chamfer leaves them less to rest on. Built to 0.01 mm. The height setting and how high bins stack stay as they are; the top comes down by 0.71 x the chamfer." },
-  gridfinityWallThickness: { type: "number", description: "Gridfinity bin only: the wall's thickness in mm, set in from the outside, which never changes, so the bin still fits the baseplate and stacks (default 0.95, at least 0.8, at most where the walls meet). The inner corners are rounded by 3.75 mm less the wall, square from 3.75. Over 1.75 mm with the lip the wall stops at a flat ledge 0.85 mm under 7 mm per height unit, clear of a stacked bin's feet, and the floor goes no higher; where the walls leave less than 1 mm inside, the bin is built solid. Finger scoops and label shelves are left out, and fewer compartments are built, where a thick wall leaves them no room. A bin open in full on all four sides has no wall to set and never goes solid." },
+  gridfinityLipChamfer: { type: "number", description: "Gridfinity bin with the stacking lip only: a chamfer on the lip's top edge in mm, 0 to 1 (default 0, the sharp top the specification draws). It is the edge tool's chamfer of that size, built in: that much off the outer wall and off the 45 degree slope inside, which is where the feet of a bin stacked on top rest, so a larger chamfer leaves them less to rest on. Built to 0.01 mm. The height setting and how high bins stack stay as they are; the top comes down by 0.71 x the chamfer. A bin filled to the lip's top (gridfinityFloorHeight) has no lip edge left and takes none." },
+  gridfinityWallThickness: { type: "number", description: "Gridfinity bin only: the wall's thickness in mm, set in from the outside, which never changes, so the bin still fits the baseplate and stacks (default 0.95, at least 0.8, at most where the walls meet). The inner corners are rounded by 3.75 mm less the wall, square from 3.75. Over 1.75 mm with the lip the wall stops at a flat ledge 0.85 mm under 7 mm per height unit, clear of a stacked bin's feet, and the floor goes no higher unless it fills the lip too (gridfinityFloorHeight); where the walls leave less than 1 mm inside, the bin is built solid. Finger scoops and label shelves are left out, and fewer compartments are built, where a thick wall leaves them no room. A bin open in full on all four sides has no wall to set and never goes solid." },
   gridfinityPaddingBack: { type: "number", description: "Gridfinity baseplate only: a solid border at the plate's 5 mm height along the back, outside the grid, in mm (default 0, at most 41, to 0.01), so the plate fills a drawer that is not whole units of 42 mm. The grid stays whole units, moved away from the padded sides, and the outer corners keep their rounding (4 mm unless gridfinityCornerRadius sets it). Width and depth are the whole plate, padding included: a plate of 5 units with 19.5 mm on the right is 229.5 across. A padding given without width and depth keeps the units (on a new plate, those of the default size) and writes the size with it; a width or depth given with it is the whole plate on that axis, and the other axis keeps its units. A drawer larger than the print bed takes several baseplates, each padded on the sides that face the drawer's walls. A bin keeps the setting and ignores it." },
   gridfinityPaddingFront: { type: "number", description: "Gridfinity baseplate only: the border along the front in mm (default 0, at most 41); see gridfinityPaddingBack." },
   gridfinityPaddingLeft: { type: "number", description: "Gridfinity baseplate only: the border along the left in mm (default 0, at most 41); see gridfinityPaddingBack." },
@@ -296,7 +321,7 @@ export const shapeSettingSchema = {
   slotEndRatio: { type: "number", description: "Capsule (slot) only: the small end's diameter as a share of the large one, 0.1 to 1 (default 1, two equal ends). The large end sits at the start of the long axis, the small one at its end, the sides run as tangents to both - a belt guard. The large diameter is the capsule's short side; the centre distance is the long side less both radii." },
   torusTubeRatio: { type: "number", description: "Torus only: how thick the tube is seen from above, as a share of the torus's outer size, 0.01 to 0.5 (0.5 closes the hole). The height only squashes or stretches the tube, so a flat ring keeps its hole; resizing the torus scales the tube along. A tube as thick as the torus is high keeps the torus an exact CAD body." },
   dovetailClearance: { type: "number", description: "Dovetail only: gap in mm (0 to 2, default 0.2) added on every side while the dovetail is a hole - a copy of the tail set to hole cuts a socket the tail fits into." },
-  portProfile: { type: "string", enum: ["rounded", "hdmi", "miniHdmi", "microHdmi", "displayPort", "miniDisplayPort"], description: "Port opening only: rounded corners (default), or the lower corners cut off at a slant as on an HDMI, Mini HDMI, Micro HDMI or Mini DisplayPort socket, or only the lower left one as on DisplayPort. The cut grows with width and height." },
+  portProfile: { type: "string", enum: ["rounded", "hdmi", "miniHdmi", "microHdmi", "displayPort", "miniDisplayPort", "xt60", "xt30", "mt60", "dsub9"], description: "Port opening only: rounded corners (default), or the lower corners cut off at a slant as on an HDMI, Mini HDMI, Micro HDMI or Mini DisplayPort socket, or only the lower left one as on DisplayPort; xt60 and xt30 a lying outline with one end narrowed by two cut corners, mt60 a rounded triangle, dsub9 the D-Sub's trapezoid - these four have every corner rounded by cornerFillet. The cut grows with width and height." },
   portClearance: { type: "number", description: "Port opening only: extra room in mm (0 to 2, default 0) on every side, on top of the room a portPreset has already. Together with portPreset when creating, it makes the opening wider and taller by twice this and its corners rounder by it. On its own it does not change the size; it records the extra room, so the inspector still shows the preset." },
   cornerFillet: { type: "number", description: "Rounded box and port opening only. Rounded box: fillet radius of vertical corners in mm. Port opening: radius of the opening's four corners in mm, at most half its width or height (half the height gives fully round ends, as on USB-C)." },
   topBottomFillet: { type: "number", description: "Rounded box only: fillet radius of top and bottom edges in mm." },
@@ -322,8 +347,9 @@ export const shapeSettingSchema = {
     description: "Bent tube only: the chain of segments, each a straight run followed by an arc bend. The tube starts along +X; roll 0 bends within the workplane, roll 90 bends upward. layerling_read_scene reports this list as JSON text, which is accepted here as well.",
   },
   vase: {
-    type: ["object", "string"],
-    description: "Vase only: its settings, by the vase tool's own (German) names, for example { profile: \"bauchig\" (or flasche, schale, fass, zylinder, trichter), section: \"vieleck\" (or kreis, welle), polySides: 6, sectionWaves: 12, sectionWaveStyle: \"weich\" (or spitz, bogen, lamellen), twist: 90, swayAngle: 10, body: \"voll\" (one wall for the slicer's vase mode) or \"hohl\" with wall and bottom in mm (bottom 0: no bottom, a tube open at both ends, for bells and mouthpieces), effect: \"rillen\" (or keine, streifen, voronoi, lowpoly), ribCount: 48, ribDepth: 1.6, stripeCount, voronoiCell, lowpolyAround, zoneFrom/zoneTo in % of the height, quality: \"entwurf\", \"standard\" or \"fein\" }. Also: section2 (a second cross-section the first blends into, between section2From and section2To %), waveAmplitude/waveCount (winding grooves), and bottom and wall: watertight: \"ja\", drainHoles, drainDiameter, floorSlope, footHeight, rubberFeet, cutout (keine, voronoi, waben, rauten, kreise; cutoutSize, cutoutWeb, cutoutFrom, cutoutTo) and lamp (keine, haengend, stehend, puck; lampSocket e27, e14 or eigen with lampHole) for a hollow vase, reinforce (keine, rippen, doppelwand; reinforceCount, reinforceDepth) for a solid one. Drawn shapes: profile \"gezeichnet\" with profilePoints [[height 0..1, radius 0..1, kind?, slope?], ...] (kind 1 a corner, 2 a handle with its slope; the widest point is the diameter), section or section2 \"gezeichnet\" with drawSymmetry (halb, viertel, windmuehle with drawRepeat blades, frei) and drawPoints [{ x, y, corner, tx?, ty? }, ...] in the unit circle (the part the symmetry repeats), twistMode \"kurve\" with twistPoints [[height 0..1, angle in degrees, kind?, slope?], ...]. Accessories: legMode (keine, stecken = legs to plug in, angeformt = moulded on, staender = a stand; legCount, legHeight, legDiameter, legShape kegel/zylinder/kantig, legSplay, legInset), saucerMode (keine, schale = a saucer, versteckt = hidden in the foot; saucerHeight, saucerGap, saucerWall, saucerRibs/saucerSpout/saucerGrip \"ja\" or \"nein\"), insertMode (keine, pflanze, bewaesserung, stecker, roehrchen; insertWall, insertStandoff, reservoirHeight, frogHole, tubeDiameter) for a hollow vase, lidMode (keiner, stuelp, schnapp, schraube; lidClearance, lidThickness, lidDepth, threadPitch, lidGrip) and fitClearance; vaseParts lays them out as objects. For printing: material (pla, petg, abs, asa, tpu) and lineWidth (the slicer's line in vase mode, mm), which the editor's Print card weighs. Settings not given stay as they were (when creating: the vase tool's defaults). The height is the object's height and the widest diameter its larger side; the other side follows the outline. layerling_read_scene reports the settings that differ from the defaults as JSON text, which is accepted here as well.",
+    // anyOf, not a list of types: some MCP clients drop a tool whose schema has one (#1285).
+    anyOf: [{ type: "object" }, { type: "string" }],
+    description: "Vase only: its settings, by the vase tool's own (German) names, for example { profile: \"bauchig\" (or flasche, schale, fass, zylinder, trichter), section: \"vieleck\" (or kreis, welle), polySides: 6, sectionWaves: 12, sectionWaveStyle: \"weich\" (or spitz, bogen, lamellen), twist: 90, swayAngle: 10, body: \"voll\" (one wall for the slicer's vase mode) or \"hohl\" with wall and bottom in mm (bottom 0: no bottom, a tube open at both ends, for bells and mouthpieces), effect: \"rillen\" (or keine, streifen, voronoi, lowpoly), ribCount: 48, ribDepth: 1.6, stripeCount, voronoiCell, lowpolyAround, zoneFrom/zoneTo in % of the height, quality: \"entwurf\", \"standard\" or \"fein\" }. Also: section2 (a second cross-section the first blends into, between section2From and section2To %), waveAmplitude/waveCount (winding grooves), and bottom and wall: watertight: \"ja\", drainHoles, drainDiameter, floorSlope, footHeight, rubberFeet, cutout (keine, voronoi, waben, rauten, kreise; cutoutSize, cutoutWeb, cutoutFrom, cutoutTo) and lamp (keine, haengend, stehend, puck; lampSocket e27, e14 or eigen with lampHole) for a hollow vase, reinforce (keine, rippen, doppelwand; reinforceCount, reinforceDepth) for a solid one. Drawn shapes: profile \"gezeichnet\" with profilePoints [[height 0..1, radius 0..1, kind?, slope?], ...] (kind 1 a corner, 2 a handle with its slope; the widest point is the diameter), section or section2 \"gezeichnet\" with drawSymmetry (halb, viertel, windmuehle with drawRepeat blades, frei) and drawPoints [{ x, y, corner, tx?, ty? }, ...] in the unit circle (the part the symmetry repeats), twistMode \"kurve\" with twistPoints [[height 0..1, angle in degrees, kind?, slope?], ...]. Accessories: legMode (keine, stecken = legs to plug in, angeformt = moulded on, staender = a stand; legCount, legHeight, legDiameter, legShape kegel/zylinder/kantig, legSplay, legInset), saucerMode (keine, schale = a saucer, versteckt = hidden in the foot; saucerHeight, saucerGap, saucerWall, saucerRibs/saucerSpout/saucerGrip \"ja\" or \"nein\"), insertMode (keine, pflanze, bewaesserung, stecker, roehrchen; insertWall, insertStandoff, reservoirHeight, frogHole, tubeDiameter) for a hollow vase, lidMode (keiner, stuelp, schnapp, schraube, kanne = a teapot lid: the top lidHeight mm of a hollow vase is the lid, its pattern and twist running on, a lip into the opening, lidKnob \"ja\" a knob apart; lidClearance, lidThickness, lidDepth, threadPitch, lidGrip) and fitClearance; vaseParts lays them out as objects. For printing: material (pla, petg, abs, asa, tpu) and lineWidth (the slicer's line in vase mode, mm), which the editor's Print card weighs. Settings not given stay as they were (when creating: the vase tool's defaults). The height is the object's height and the widest diameter its larger side; the other side follows the outline. layerling_read_scene reports the settings that differ from the defaults as JSON text, which is accepted here as well.",
   },
   text: { type: "string", description: "Text only: the lettering itself." },
   font: { type: "string", description: "Text only: a built-in font (Multilanguage, Sans, Serif, Script, Monospace, Rounded, Stencil, or Zen Kaku Gothic New for Japanese - kana and kanji work in every font), or a font of one's own by its id (custom:...) or its name, as layerling_list_fonts gives them." },
@@ -396,6 +422,19 @@ export const tools = [
     },
   },
   {
+    name: "layerling_move_object",
+    description: "Move an object to another place in the object list (#1233), like the handle on its row in the editor: the design's own order, the one the list shows when it is not sorted A-Z. `before` is the id of the object it goes in front of; without it the object goes last. Only the order changes, never the shape. One undo step.",
+    inputSchema: {
+      ...editorTargetSchema,
+      required: ["id"],
+      properties: {
+        ...editorTargetSchema.properties,
+        id: { type: "string" },
+        before: { type: "string" },
+      },
+    },
+  },
+  {
     name: "layerling_create_shape",
     description: "Create any of Layerling's shapes: boxes, cylinders, slots, polygons, spheres, cones, pyramids, wedges, roofs, tori, tubes, stars, hearts, crescents, print-in-place hinges, Gridfinity bins and baseplates, knurled grips, raised text, threads (rod, screw, nut, tapped hole), springs, gears, Hirth joints (face teeth that lock two parts at any multiple of one tooth), port openings for USB, HDMI, DisplayPort and RJ45 sockets, or a simple extruded sketch. Width, depth and height default to what the editor uses for that shape; everything a shape has beyond its size is optional and falls back to the same defaults as a shape placed by hand. With a workplane set on a face (layerling_set_workplane), the shape stands on that face and x and z count on it (0, 0 is where the workplane sits) - unless elevation or a rotation is given, which mean the base plate.",
     inputSchema: {
@@ -433,8 +472,10 @@ export const tools = [
         washer: { type: "string", enum: ["M1.6", "M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10", "M12", "M14", "M16", "M20", "M24", "M30"], description: "Tube (kind tube) only, when creating: a washer for this screw size to ISO 7089, normal series - outer diameter, bore and thickness, e.g. M5 is 10 mm across with a 5.3 mm bore, 1 mm thick. A width, depth, height or bevel given as well wins over the standard measure." },
         screwSize: { type: "string", enum: ["M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10", "M12", "M14", "M16", "M20", "M24", "M30"], description: "Counterbore, countersink, doubleCountersink and finishingWasher only, when creating. A finishingWasher of a size (M2 to M20) is the washer under that countersunk screw: bore as its clearance hole, seat as its countersink, outer diameter and height following from them (M3 10.3 x 2.95 mm, M6 16.6 x 4.5 mm). On the holes: the hole for a metric screw of this size - shaft as the clearance hole to ISO 273, medium (M5 5.5 mm); a counterbore's head to DIN 974-1 for socket head cap screws (M5 10 mm across), as deep as the screw's diameter plus 0.4 mm; a countersink's head to ISO 15065 at 90 degrees (M5 10.4 mm), which goes up to M20. The length stays (height, default 20) unless it is too short for the head. A width, height, screwHoleShaft, screwHoleHeadDepth or screwHoleAngle given as well wins." },
         nut: { type: "string", enum: ["M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10", "M12", "M14", "M16", "M20", "M24", "M30"], description: "Polygon (kind polygon) only, when creating: the pocket for a hex nut of this screw size to ISO 4032 - a hexagon 0.4 mm wider across flats and 0.4 mm higher than the nut, e.g. M5 8.4 mm across flats (width) and 5.1 mm high; depth is the width across corners. Make it a hole (hole true) to cut the pocket. A width, depth or height given as well wins; sides must be 6 or left out." },
-        portPreset: { type: "string", enum: ["usbC", "usbCPlug", "microUsb", "usbA", "hdmi", "miniHdmi", "microHdmi", "displayPort", "miniDisplayPort", "rj45"], description: "Port opening (kind port) only, when creating: the socket whose opening it gets, from data sheets and standards with room for printing - usbC 9.4 x 3.7 mm with round ends, usbCPlug 12.8 x 7 mm for a USB-C socket behind the wall, microUsb 8 x 3.1 mm, usbA 13 x 5.6 mm, hdmi 15.7 x 6.2 mm, miniHdmi 11.2 x 3.1 mm and microHdmi 6.8 x 3.6 mm (Raspberry Pi 4 and 5) with both lower corners cut, displayPort 17.1 x 5.76 mm with the lower left corner cut, miniDisplayPort 8.8 x 5.9 mm with both lower corners cut, rj45 16.7 x 14.4 mm for a network jack. It sets width, height, cornerFillet and portProfile, grown by portClearance if given; width, height, cornerFillet or portProfile given as well win. A port opening is a hole lying on its side: width and height are the opening seen from the front, depth how far it reaches into the wall along its own Z axis, so turn it with rotation to face the wall it goes through." },
+        portPreset: { type: "string", enum: ["usbC", "usbCPlug", "microUsb", "usbA", "hdmi", "miniHdmi", "microHdmi", "displayPort", "miniDisplayPort", "rj45", "xt30", "xt60", "mt60", "mpx", "dsub9"], description: "Port opening (kind port) only, when creating: the socket whose opening it gets, from data sheets and standards with room for printing - usbC 9.4 x 3.7 mm with round ends, usbCPlug 12.8 x 7 mm for a USB-C socket behind the wall, microUsb 8 x 3.1 mm, usbA 13 x 5.6 mm, hdmi 15.7 x 6.2 mm, miniHdmi 11.2 x 3.1 mm and microHdmi 6.8 x 3.6 mm (Raspberry Pi 4 and 5) with both lower corners cut, displayPort 17.1 x 5.76 mm with the lower left corner cut, miniDisplayPort 8.8 x 5.9 mm with both lower corners cut, rj45 16.7 x 14.4 mm for a network jack; for a plug to pass through: xt30 10.7 x 5.7 mm and xt60 16.5 x 8.6 mm (Amass) lying, one end narrowed by two cut corners, mt60 12.5 x 13 mm a rounded triangle (Amass, three poles), mpx 16.5 x 6.9 mm (Multiplex), dsub9 19.74 x 11.18 mm the D-Sub 9 (serial port) panel cut-out, its sides 10 degrees from upright; dsub9 comes grouped with its two 3.18 mm screw holes 24.99 mm apart (see portScrewHoles). It sets width, height, cornerFillet and portProfile, grown by portClearance if given; width, height, cornerFillet or portProfile given as well win. A port opening is a hole lying on its side: width and height are the opening seen from the front, depth how far it reaches into the wall along its own Z axis, so turn it with rotation to face the wall it goes through." },
+        portScrewHoles: { type: "boolean", description: "Port opening (kind port) only, when creating with portPreset dsub9: the D-Sub's two screw holes (3.18 mm, 24.99 mm apart, at its middle height, grown by portClearance) come with it by default, the opening and the holes one hole group named D-Sub 9, as the editor's socket list makes it; false leaves them out. true for a socket without screw holes is an error." },
         vaseParts: { type: "boolean", description: "Vase only: true also lays out the vase's accessories (legs to plug in, a stand, a saucer, an insert, a lid, as its settings ask for) as objects of their own beside it, ready to print; the ones laid out for this vase before are replaced. Returns them as parts; accessories this vase does not allow (an insert through a narrow neck) are listed as notPossible." },
+        gridfinityKeys: { type: "boolean", description: "Gridfinity baseplate with gridfinitySwallowtail only (#1061): true also lays out the plate's keys in front of it, flat on its level, as sketch bodies ready to print: one for each pocket at its back and right, so that every pocket across a seam with the next plate gets one. Each key is 1.4 mm thick, the pocket less gridfinitySwallowtailClearance on every side (14 x 10 mm less twice that), with a slot of 1.2 x 4.5 mm into each end. Returns them as parts; a second call lays them out again, and the keys laid out for the plate before are removed. Unless the object is a baseplate with gridfinitySwallowtail and pockets at its back or right (sides without padding), the call fails before changing anything; keys that cannot be made after that come back in notPossible with the reason." },
         ...threadSizeSetting,
       },
     },
@@ -498,7 +539,7 @@ export const tools = [
   },
   {
     name: "layerling_update_object",
-    description: "Update one object: exact dimensions, position, color, name, hole state, see-through display, rotations, locked and hidden state, and everything the shape has beyond its size - the side count of a cylinder, the diameter of a thread, the turns of a spring, the lettering of a text. Changing a thread's diameter or pitch moves width and depth with it.",
+    description: "Update one object: exact dimensions, position, color, name, hole state, see-through display, rotations, locked, shape-locked and hidden state, and everything the shape has beyond its size - the side count of a cylinder, the diameter of a thread, the turns of a spring, the lettering of a text. Changing a thread's diameter or pitch moves width and depth with it.",
     inputSchema: {
       ...editorTargetSchema,
       required: ["id"],
@@ -523,6 +564,7 @@ export const tools = [
           description: "The point this body turns about, in workplane coordinates like x, z and elevation. It stays with the body: it moves, turns and scales with it, and the rotate handle and R key turn the body about it. null removes it.",
         },
         locked: { type: "boolean" },
+        shapeLocked: { type: "boolean", description: "Lock shape (#1277), the second level of locking: the object can still be moved, turned, lifted, aligned, copied and grouped with others, but its size, its settings, its name and its body stay as they are - no resizing, ungrouping, mirroring, edge tools or deleting, and a group holding such a part keeps its size. A copy keeps the lock. While it is on, update_object takes only x, z, elevation, rotation, rotationX, rotationZ, rotationPivot, hidden, transparent and locked; pass shapeLocked: false in the same call to change anything else." },
         hidden: { type: "boolean" },
         stroke: {
           anyOf: [
@@ -545,6 +587,7 @@ export const tools = [
         stretch: { type: "boolean", description: "Straight text only: true stretches the letters to fill the whole box in both directions, so a capital can be made lower or narrower as in Tinkercad; false (the default) fits them into the box with their proportions kept, centred. Set the box with width and depth." },
         vertical: { type: "boolean", description: "true stacks the letters top to bottom, each centred on one upright line. Straight text: the box turns upright and the letters keep their size. Curved text: the column runs along the circle of textRadius, its middle at the circle's left side (textInward: the right side), the letters standing upright, so a name follows the rim of a disk; textFlipped does nothing then. Spacing widens or narrows the gap between the letters." },
         spacing: { type: "number", minimum: -50, maximum: 300, description: "Text only: the space between the letters on top of the font's own, in per cent of the letter size - 0 as the font has it, above it wider, below it tighter (down to -50), up to 300. Straight and curved text; the letters keep their size and the box follows. Not applied to Arabic and Hebrew, whose letters join up." },
+        letterWidth: { type: "number", minimum: 25, maximum: 400, description: "Curved text only: how wide each letter is drawn, in per cent of its own width - 100 as the font has it, below narrower (down to 25), above wider (up to 400). The letters keep their height and the arc they take grows or shrinks with them; the box follows. For straight text use stretch with width and depth instead." },
         letterEdge: {
           anyOf: [
             { type: "null" },
@@ -571,23 +614,25 @@ export const tools = [
         rotationZ: { type: "number" },
         ...shapeSettingSchema,
         vaseParts: { type: "boolean", description: "Vase only: true also lays out the vase's accessories (legs to plug in, a stand, a saucer, an insert, a lid, as its settings ask for) as objects of their own beside it, ready to print; the ones laid out for this vase before are replaced. Returns them as parts; accessories this vase does not allow (an insert through a narrow neck) are listed as notPossible." },
+        gridfinityKeys: { type: "boolean", description: "Gridfinity baseplate with gridfinitySwallowtail only (#1061): true also lays out the plate's keys in front of it, flat on its level, as sketch bodies ready to print: one for each pocket at its back and right, so that every pocket across a seam with the next plate gets one. Each key is 1.4 mm thick, the pocket less gridfinitySwallowtailClearance on every side (14 x 10 mm less twice that), with a slot of 1.2 x 4.5 mm into each end. Returns them as parts; a second call lays them out again, and the keys laid out for the plate before are removed. Unless the object is a baseplate with gridfinitySwallowtail and pockets at its back or right (sides without padding), the call fails before changing anything; keys that cannot be made after that come back in notPossible with the reason." },
         ...threadSizeSetting,
       },
     },
   },
   {
     name: "layerling_align_objects",
-    description: "Align two or more Layerling objects using the same alignment logic as the editor Alignment button. On the plate the axes are the world's; with a workplane set on a face (layerling_set_workplane) the objects are measured and moved along that plane's axes instead - x along the face, y out of it, z across - so a part turned 45° lines up with its own edges. mode size is the editor's Alt on an align dot: the objects stay where they are and change their size instead - min or max stretches each one, its other side fixed, to that side of the anchor (or of the farthest object without one); center gives each one the anchor's size along the axis (or the largest object's), its middle fixed. An object turned at some other angle than square to the axis is left as it is and counted in skipped.",
+    description: "Align two or more Layerling objects using the same alignment logic as the editor Alignment button. On the plate the axes are the world's; with a workplane set on a face (layerling_set_workplane) the objects are measured and moved along that plane's axes instead - x along the face, y out of it, z across - so a part turned 45° lines up with its own edges. mode size is the editor's Alt on an align dot: the objects stay where they are and change their size instead - min or max stretches each one, its other side fixed, to that side of the anchor (or of the farthest object without one); center gives each one the anchor's size along the axis (or the largest object's), its middle fixed. An object turned at some other angle than square to the axis is left as it is and counted in skipped. mode spread is the editor's equal-gaps dot (target is not needed): three or more objects are spread along the axis so the space between neighbouring edges is the same; the first and last stay. An object that runs past all the others along the axis and is longer than each (a board, a tray) is found by itself as a frame: the others spread inside it with the same gap at its edges, a single one comes to its middle. Objects in several rows (boxes overlapping across the axis, on both other axes) spread row by row; where they stand in no clean rows, objects side by side that overlap along the axis move together as one block (a whole row of a puzzle tray, front to back). gap (mm) lines them up that far apart instead, from the anchor or a locked object or else the first; in a frame the row is centred. Locked objects and the anchor never move; problem says tooFew, noRoom or lockedBetween when nothing could move, gaps the gap each row got.",
     inputSchema: {
       ...editorTargetSchema,
-      required: ["axis", "target"],
+      required: ["axis"],
       properties: {
         ...editorTargetSchema.properties,
         ids: { type: "array", items: { type: "string" }, description: "Object ids to align. If omitted, uses the current selection." },
-        anchorId: { type: "string", description: "Optional object id to keep fixed as the alignment reference." },
+        anchorId: { type: "string", description: "Optional object id to keep fixed as the alignment reference, or \"plate\": the build plate is the reference - the objects line up on its edges or middle, and mode spread spreads them over the whole plate with the same gap to its edges." },
         axis: { type: "string", enum: ["x", "y", "z"], description: "x=left/right, z=front/back, y=bottom/top - or along the set workplane's x, z and normal." },
-        target: { type: "string", enum: ["min", "center", "max"], description: "Which side/center to align." },
-        mode: { type: "string", enum: ["position", "size"], description: "position (default) moves the objects; size stretches them to the reference instead." },
+        target: { type: "string", enum: ["min", "center", "max"], description: "Which side/center to align. Required for position and size." },
+        mode: { type: "string", enum: ["position", "size", "spread"], description: "position (default) moves the objects; size stretches them to the reference instead; spread gives them equal gaps along the axis." },
+        gap: { type: "number", minimum: 0, description: "Only with mode spread: the gap between the objects in mm, instead of spreading them evenly." },
       },
     },
   },
@@ -663,7 +708,7 @@ export const tools = [
   },
   {
     name: "layerling_perforate_face",
-    description: "Cut a pattern of holes into a flat face of a solid body - the editor's Hole pattern tool (vents, speaker grilles, baskets). The holes are ordinary hole shapes standing on the face and grouped with the body (nothing is baked: ungroup frees them again). Name the body and a side of its own box (targetFace, snapped to the nearest real face; the whole flat face around its middle is used) or give point and normal on the face yourself. Only holes that lie wholly inside the face, at least margin away from its edge, are made. form: round (size = diameter), square (size = side), rectangle and slot (size = width, height = height), hexagon (size = diameter across the corners). spacing is centre to centre (for rectangle and slot: along the row, with rowSpacing between the rows); staggered shifts every second row by half a spacing and packs the rows so each hole has neighbours one spacing away. Without depth the holes go through the whole body. A curved face is refused. One undo step.",
+    description: "Cut a pattern of holes into a flat face of a solid body - the editor's Hole pattern tool (vents, speaker grilles, baskets). The holes are ordinary hole shapes standing on the face and grouped with the body (nothing is baked: ungroup frees them again). Name the body and a side of its own box (targetFace, snapped to the nearest real face; the whole flat face around its middle is used) or give point and normal on the face yourself. Only holes that lie wholly inside the face, at least margin away from its edge, are made. form: round (size = diameter), square (size = side), rectangle and slot (size = width, height = height), hexagon (size = diameter across the corners). spacing is centre to centre (for rectangle and slot: along the row, with rowSpacing between the rows); staggered shifts every second row by half a spacing and packs the rows so each hole has neighbours one spacing away. perimeter puts the holes in a ring along the face's outer edge instead, margin in from it (screw holes round a lid or a plate): a hole on every corner and each side shared out evenly by spacing, or `count` holes round the edge (shared out over the sides, still one on every corner); round faces and corners: false go evenly round from the topmost point, moved `start` mm along the edge. The spacing is evened out so the ring closes without a gap; the answer's ring gives the line's length and onCorners. form custom repeats the object shapeId from the scene instead of a hole, raised as a solid or cut in as a hole (rivets, a diamond plate). A round hole can be a counterbore or countersink (holeType): size is then the shaft, headSize the head's diameter at the face, headDepth the counterbore's depth; screwSize (M2 to M30) sets all three for a metric screw. Without depth the holes go through the whole body. A curved face is refused. One undo step.",
     inputSchema: {
       ...editorTargetSchema,
       properties: {
@@ -672,14 +717,22 @@ export const tools = [
         targetFace: { type: "string", enum: ["bottom", "top", "left", "right", "front", "back"], description: "Side of the body's own box, taken in its current turn (default top)." },
         point: { type: "array", items: { type: "number" }, minItems: 3, maxItems: 3, description: "A point on the face, [x, y, z] in world coordinates (y up). With normal, wins over targetFace." },
         normal: { type: "array", items: { type: "number" }, minItems: 3, maxItems: 3, description: "Outward normal [x, y, z] of the face at point, in world coordinates." },
-        form: { type: "string", enum: ["round", "square", "rectangle", "hexagon", "slot"], description: "Shape of the holes (default hexagon)." },
+        form: { type: "string", enum: ["round", "square", "rectangle", "hexagon", "slot", "custom"], description: "Shape of the holes (default hexagon). custom repeats the object shapeId instead: a rivet, a stud, the tread of a diamond plate." },
+        shapeId: { type: "string", description: "form custom only: the object of the scene to repeat over the face. Its width and depth are the room each copy takes; every copy stands upright on the face (its own turn is not taken along). A solid copy is set onto the face and joins the body, a hole is cut in by its own height. size, height, depth and holeType do not count for it; the object itself stays." },
         size: { type: "number", minimum: 0.5, maximum: 200, description: "Diameter, side or width of a hole in millimetres (default 6)." },
         height: { type: "number", minimum: 0.5, maximum: 200, description: "Height of a rectangle or slot in millimetres (default: size)." },
         spacing: { type: "number", minimum: 0.5, maximum: 400, description: "Centre to centre in millimetres (default 9); raised to just over the hole size if smaller." },
-        arrangement: { type: "string", enum: ["grid", "staggered"], description: "grid (rows and columns) or staggered (default)." },
+        arrangement: { type: "string", enum: ["grid", "staggered", "perimeter"], description: "grid (rows and columns), staggered (default) or perimeter (a ring along the outer edge)." },
         rowSpacing: { type: "number", minimum: 0.5, maximum: 400, description: "Rectangle and slot only: centre to centre of the rows in millimetres, so narrow holes can sit close in the row (default: the spacing); raised to just over the hole height if smaller." },
         margin: { type: "number", minimum: 0, maximum: 100, description: "Clear distance between the holes and the face's edge in millimetres (default 4)." },
         depth: { type: "number", minimum: 0.1, description: "Depth of the holes in millimetres. Omit to go through the whole body." },
+        count: { type: "integer", minimum: 2, maximum: 200, description: "Perimeter only: this many holes round the edge instead of following the spacing; never more than fit without overlapping." },
+        corners: { type: "boolean", description: "Perimeter only: a hole on every corner of the edge (default true). false goes evenly round from start." },
+        start: { type: "number", minimum: 0, maximum: 2000, description: "Perimeter only, when the holes do not sit on corners (a round face, or corners: false): how far along the edge from its topmost point the first hole sits, in mm (default 0)." },
+        holeType: { type: "string", enum: ["plain", "counterbore", "countersink"], description: "Round holes only: plain (default), counterbore (a pocket for a cap screw's head) or countersink (a 90 degree cone for a countersunk screw)." },
+        screwSize: { type: "string", enum: ["M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10", "M12", "M14", "M16", "M20", "M24", "M30"], description: "With holeType counterbore or countersink: shaft, head and depth for a metric screw of this size (clearance hole to ISO 273, counterbore to DIN 974-1, countersink to ISO 15065, which ends at M20)." },
+        headSize: { type: "number", minimum: 1, maximum: 200, description: "Counterbore or countersink: the head's diameter at the face in millimetres (default twice the shaft)." },
+        headDepth: { type: "number", minimum: 0.2, maximum: 200, description: "Counterbore only: how deep the pocket for the head reaches into the face in millimetres (default the shaft's diameter)." },
       },
     },
   },
@@ -807,7 +860,7 @@ export const tools = [
   },
   {
     name: "layerling_flexi_joints",
-    description: "Make flexi links from the given objects, like the editor's Flexi joints button: a body lying flat on the plate (a fish, a snake, a dragon drawn as a sketch or SVG and extruded) is cut across its length into links, with a joint printed in place at every cut, so the links swing to the sides once printed. Solids among the ids are joined and holes among them cut away; the links replace them as meshes in one bundle, from the body's start to its end. Each joint is an upright knuckle, thicker in the middle than at its ends (45 degree cones, no support needed), held in a socket of the next link with the clearance all round; the cut between two links is a V that opens by the swing angle. axis: X or Y, the side to cut along (default the body's longer side); joints (default as many as the body's length and width suggest; without it fewer are tried when they lie too close); clearance in mm (0.1 to 1, default 0.4); swing to each side in degrees (5 to 60, default 30; a small joint may allow less, the answer says how much); size, the knuckle's diameter at its widest in mm (default the largest that fits, up to 12); start and end, how far the first joint lies from the body's start and the last from its end along the axis in mm (default links of equal length). Where a joint goes the body should be about 6 mm high and 12 mm wide at least; a joint that does not fit is named in the error. bend: \"side\" (default) as described, or \"fold\" for links that fold up and down instead, like the bands of a flexi keychain: every cut is then a hinge lying flat across the body at half its height, made of 3 or 5 knuckles side by side that belong to the two links in turn, with a 45 degree cone on each knuckle of the one link reaching into the next knuckle of the other; the cut beside the knuckles is a V seen from the side, and swing is how far the links fold up and down (5 to 90, default 45); size is not used, the hinge takes its size from the body's height, which should be 3.5 mm at least (5 mm or more holds better), and the body should be about 12 mm wide where the hinges go; joints default to bands about 11 mm long. Returns the new bundle with joints, links, the smallest swing, the axis and the bend.",
+    description: "Make flexi links from the given objects, like the editor's Flexi joints button: a body lying flat on the plate (a fish, a snake, a dragon drawn as a sketch or SVG and extruded) is cut across its length into links, with a joint printed in place at every cut, so the links swing to the sides once printed. Solids among the ids are joined and holes among them cut away; the links replace them as meshes in one bundle, from the body's start to its end. Each joint is an upright knuckle, thicker in the middle than at its ends (45 degree cones, no support needed), held in a socket of the next link with the clearance all round; the cut between two links is a V that opens by the swing angle. axis: X or Y, the side to cut along (default the body's longer side); joints (default as many as the body's length and width suggest; without it fewer are tried when they lie too close); clearance in mm (0.1 to 1, default 0.4); swing to each side in degrees (5 to 60, default 30; a small joint may allow less, the answer says how much); size, the knuckle's diameter at its widest in mm (default the largest that fits, up to 12); start and end, how far the first joint lies from the body's start and the last from its end along the axis in mm (default links of equal length). Where a joint goes the body should be about 6 mm high and 12 mm wide at least; a joint that does not fit is named in the error. bend: \"side\" (default) as described, or \"fold\" for links that fold up and down instead, like the bands of a flexi keychain: every cut is then a hinge lying flat across the body at half its height, made of 3 or 5 knuckles side by side that belong to the two links in turn, with a 45 degree cone on each knuckle of the one link reaching into the next knuckle of the other; the cut beside the knuckles is a V seen from the side, and swing is how far the links fold up and down (5 to 90, default 45); size is not used, the hinge takes its size from the body's height, which should be 3.5 mm at least (5 mm or more holds better), and the body should be about 15 to 20 mm wide where the hinges go; joints default to bands about 11 mm long. Returns the new bundle with joints, links, the smallest swing, the axis and the bend.",
     inputSchema: {
       ...editorTargetSchema,
       required: ["ids"],
@@ -827,7 +880,7 @@ export const tools = [
   },
   {
     name: "layerling_make_lid",
-    description: "Make a lid for a body that is open at the top, like the editor's Lid button (#1009): a box hollowed with its top open, a pot, a tray. Solids among the ids are joined and holes among them cut away; the body is cut just below its rim, and the lid follows that outline and the opening inside it, round or angular. `type`: `plug` (default) a plate as large as the body with a lip below it that goes into the opening, `cap` a plate a wall wider than the body with a rim below it that goes over the outside, `both` the lip and the rim together, so the body's wall sits in a groove between them (#1062), `flat` only the plate. Sizes in mm: `thickness` of the plate (2), `gap` per side between lid and body (0.2; 0.1 tight, 0.3 loose, up to 1), `depth` how far the lip or rim reaches down (4), `wall` its thickness (1.6). The lid is a new mesh beside the body, turned over with its plate down, ready to print; the body stays. A body without an opening at the top is refused for all but flat (hollow it with `layerling_hollow_object` and the top open first). `magnets: true` holds the lid by four round magnets in the corners: a pocket for each in the body's rim and one facing it in the lid's plate, `magnetDiameter` by `magnetHeight` (6 by 2; 8 by 3 and 10 by 3 are common too), with `magnetGap` of play per side (0.1 to press them in, more to glue them, up to 0.5). A wall too thin for a pocket gets a post in that corner, which the lip goes round. The plate must be at least the magnet's height plus 0.8 mm thick (2.8 for 6 by 2). With magnets the body changes: it is grouped with the pockets (and the posts), keeping its name, and returned as `body`; `magnets` is the number of pockets and `posts` whether posts were needed.",
+    description: "Make a lid for a body that is open at the top, like the editor's Lid button (#1009): a box hollowed with its top open, a pot, a tray. Solids among the ids are joined and holes among them cut away; the body is cut just below its rim, and the lid follows that outline and the opening inside it, round or angular. `type`: `plug` (default) a plate as large as the body with a lip below it that goes into the opening, `cap` a plate a wall wider than the body with a rim below it that goes over the outside, `both` the lip and the rim together, so the body's wall sits in a groove between them (#1062), `flat` only the plate. Sizes in mm: `thickness` of the plate (2), `gap` per side between lid and body (0.2; 0.1 tight, 0.3 loose, up to 1), `depth` how far the lip or rim reaches down (4), `wall` its thickness (1.6). The lid is a new body beside the body, turned over with its plate down, ready to print; the body stays. Where the body is an exact one and no magnet posts are needed, the lid is an exact CAD body too (#1154), so its edges take `layerling_apply_edge_treatment`; otherwise it is a mesh. A body without an opening at the top is refused for all but flat (hollow it with `layerling_hollow_object` and the top open first). `magnets: true` holds the lid by four round magnets in the corners: a pocket for each in the body's rim and one facing it in the lid's plate, `magnetDiameter` by `magnetHeight` (6 by 2; 8 by 3 and 10 by 3 are common too), with `magnetGap` of play per side (0.1 to press them in, more to glue them, up to 0.5). A wall too thin for a pocket gets a post in that corner, which the lip goes round. The plate must be at least the magnet's height plus 0.8 mm thick (2.8 for 6 by 2). With magnets the body changes: it is grouped with the pockets (and the posts), keeping its name, and returned as `body`; `magnets` is the number of pockets and `posts` whether posts were needed.",
     inputSchema: {
       ...editorTargetSchema,
       required: ["ids"],
@@ -843,6 +896,35 @@ export const tools = [
         magnetDiameter: { type: "number" },
         magnetHeight: { type: "number" },
         magnetGap: { type: "number" },
+        hinge: { type: "boolean", description: "A hinge along a side of the body (hingeSide, the back -z by default; straight, or round like a pot), for a plug or flat lid: knuckles take turns on the body (both ends) and the lid, flush with the lid's top, a hole for a pin through all of them. The body's knuckles are grouped with it (returned as body). Default false." },
+        hingePin: { type: "number", description: "The pin's diameter in mm, 1 to 8 (1.75: a piece of filament). Default 1.75." },
+        hingeGap: { type: "number", description: "The gap between the knuckles and round the lid's back edge in mm, 0.1 to 1. Default 0.3." },
+        hingePinPlay: { type: "number", description: "The pin's play in its holes per side in mm, 0.05 to 0.5; more if a printed or filament pin goes in hard. Default 0.2." },
+        hingeKnuckles: { type: "number", description: "How many knuckles, odd, 3 to 15; 0 lets the hinge's length decide (about one per 10 mm). Default 0." },
+        hingePrintPin: { type: "boolean", description: "Also make the pin as a body of its own, lying beside the lid (strong from about 3 mm). Default false." },
+        hingeSide: { type: "string", enum: ["back", "right", "front", "left"], description: "The side the hinge goes along, as in the starting view: back (-z), right (+x), front (+z) or left (-x). A round side (a pot, a tube) gets its knuckles on a block reaching in to the wall. Default back." },
+        hingeStyle: { type: "string", enum: ["outside", "flush", "pivot"], description: "Where the hinge sits: outside (default) behind the side, the lid opens all the way; flush in the wall, the box keeps its size and the lid opens to about 140 degrees; pivot, the lid lies in the opening and turns on two pins through the side walls, held by a ledge inside, opening to about 95 degrees. flush and pivot need a straight side and go without magnets." },
+        hingeTeardrop: { type: "boolean", description: "Teardrop pin holes, pointing up as each part is printed (the body upright, the lid turned over), so they do not droop. Default true." },
+        clickBumps: { type: "boolean", description: "Click bumps (#1234): small half-round bumps on the lip's outer face (plug, both) or the rim's inner face (cap) snap into dimples cut into the body's wall at the same places, so the lid clicks into place. One in the middle of each straight side of 12 mm or more along the lip or rim (two on a side over 80 mm), four evenly round a round opening, none on the hinge's side; each reaches 0.4 mm into the wall past the gap, and a dimple always leaves 0.4 mm of the wall. Not for a flat lid or a pivot lid. The body is grouped with the dimples (returned as body, clickBumps the number of bumps). Default false." },
+        handle: { type: "string", enum: ["none", "tab", "notch"], description: "A handle on the side the lid opens at, the front (+z) or the side opposite the hinge (#1230): tab, a pull tab on the lid's plate, 20 mm wide (at most half that side), reaching 6 mm beyond the plate, as thick as it with its outer corners rounded, so the lid still prints turned over; notch, a finger recess 16 mm wide and 5 mm high in the body's outer wall just below the lid's edge (below the rim's lower edge for a cap), never leaving less than 0.8 mm of the wall, grouped with the body. Not for a pivot lid. Default none." },
+      },
+    },
+  },
+  {
+    name: "layerling_make_cable_channel",
+    description: "Cut a round channel for a cable or an LED lead through one body, like the editor's Cable channel tool: from `entry` to `exit`, two points {x, y, z} in the editor's coordinates (y is the height, as elevation) on or near the body's surface, each moved to the nearest point of the surface. The way is found by itself: it starts and ends straight along the surface's normal, runs straight where it can and bends where it must, no tighter than `minBend` (centre-line radius in mm, default 25; a cable pushes through about five times its diameter), keeping at least `minWall` mm of material to the hull (1.5) and as far from the hull as it can. `diameter` in mm (5). The channel becomes a bent tube (solid, as a hole, at most 11 bends) grouped with the body, so the body stays exact and the tube can be changed after `layerling_ungroup_objects`. Returns the group and `channel`: its `length`, `minBend` (null when straight), `minWall`, the number of `segments` and the bent tube's `chain` (each a straight `length`, then a bend of `bendAngle` degrees round `bendRadius`, turned by `roll`), the `entry` and `exit` on the surface, and `tight`/`thin` when a bend or the wall had to be smaller than asked. `apply: false` only reports what it would make. Fails with a message when the ends are too close, the body is too thin at an end, no way keeps the wall, or the way needs more than 11 bends.",
+    inputSchema: {
+      ...editorTargetSchema,
+      required: ["id", "entry", "exit"],
+      properties: {
+        ...editorTargetSchema.properties,
+        id: { type: "string", description: "The body to run the channel through." },
+        entry: { type: "object", properties: { x: { type: "number" }, y: { type: "number" }, z: { type: "number" } }, required: ["x", "y", "z"] },
+        exit: { type: "object", properties: { x: { type: "number" }, y: { type: "number" }, z: { type: "number" } }, required: ["x", "y", "z"] },
+        diameter: { type: "number" },
+        minBend: { type: "number" },
+        minWall: { type: "number" },
+        apply: { type: "boolean" },
       },
     },
   },
@@ -955,8 +1037,8 @@ export const tools = [
         textContent: { type: "string", description: "Text: the words, up to 200 characters. Default Layerling." },
         textFont: { type: "string", description: "Text: Multilanguage, Sans, Serif, Script, Monospace, Rounded, Stencil or Japanese, or the name of a font of one's own. Default Multilanguage." },
         textSize: { type: "number", description: "Text: letter size in mm (the height of a capital), 2 to 200. Default 10." },
-        textAround: { type: "number", description: "Text: where it sits round the axis in degrees, -180 to 180: 0 the front, 90 the right, -90 the left (with axis x or y, 0 is the top and 180 the bottom). Default 0." },
-        textHeight: { type: "number", description: "Text: where its middle sits along the axis, in % of the body's size along it, 0 to 100. Default 50." },
+        textAround: { type: "number", description: "Text, and an image once: where it sits round the axis in degrees, -180 to 180: 0 the front, 90 the right, -90 the left (with axis x or y, 0 is the top and 180 the bottom). Default 0." },
+        textHeight: { type: "number", description: "Text, and an image once: where its middle sits along the axis, in % of the body's size along it, 0 to 100. Default 50." },
         textTurn: { type: "number", description: "Text: turned on the surface in degrees, -180 to 180, counterclockwise seen from outside. Default 0." },
         textVertical: { type: "boolean", description: "Text: true stacks the letters top to bottom instead of side by side. Default false." },
         carbonWeave: { type: "string", enum: ["twill22", "twill21", "twill31"], description: "Carbon: twill22 (each band over two crossing bands, then under two: the even diagonal of most carbon parts), twill21 (over two, under one: the upright bands show long, the crossing ones short) or twill31 (over three, under one). Default twill22." },
@@ -983,7 +1065,7 @@ export const tools = [
         imageTurn: { type: "number", description: "Image: the tiles turned on the surface in degrees, -180 to 180. Default 0." },
         imageInvert: { type: "boolean", description: "Image: light and dark swapped. Default false." },
         imageBlur: { type: "number", description: "Image: softened over this many of its points, 0 to 8. Default 0." },
-        imageTiling: { type: "string", enum: ["repeat", "mirror", "staggered"], description: "Image: tiles repeated, mirrored (no seam at their borders), or every other row half a tile along. Default repeat." },
+        imageTiling: { type: "string", enum: ["repeat", "mirror", "staggered", "once"], description: "Image: tiles repeated, mirrored (no seam at their borders), or every other row half a tile along - or once: a single image pressed on like a label, its middle placed with textAround and textHeight, spacing its width and tileHeight its height (0: as the image); the surface beside it stays smooth. Default repeat." },
         faces: {
           type: "array",
           items: {
@@ -1016,7 +1098,7 @@ export const tools = [
   },
   {
     name: "layerling_simplify_mesh",
-    description: "Reduce the triangle count of one imported mesh (decimation), as the editor's \"Simplify mesh\" does - for a dense STL, OBJ, 3MF or STEP import, or the mesh a cut, merge or wrap left behind. Use it when a mesh is too complex to cut (the cut reports the triangle count and the limit) or makes the editor slow. Pass either keepPercent or targetTriangles. Fine detail goes first; the body keeps its size and position, and the simplifier stops early rather than close holes or merge walls, so the count reached can stay above a very low target. The result is one plain mesh body: a group simplified this way can no longer be ungrouped or opened. One undo step brings the old mesh back. Shapes from the catalogue have no mesh to simplify; lower their sides or quality instead. Returns the object with trianglesBefore and trianglesAfter.",
+    description: "Reduce the triangle count of one imported mesh (decimation), as the editor's \"Simplify mesh\" does - for a dense STL, OBJ, 3MF or STEP import, or the mesh a cut, merge or wrap left behind. Use it when a mesh is too complex to cut (the cut reports the triangle count and the limit) or makes the editor slow. Pass either keepPercent or targetTriangles. Fine detail goes first; the body keeps its size and position, and the simplifier stops early rather than close holes or merge walls, so the count reached can stay above a very low target. Sharp edges (faces meeting at more than 30 degrees) and the rims of holes stay exactly where they are, as the panel's \"Keep edges and holes\" does: flat faces lose most of their triangles, a bore stays as round as it was; pass keepEdges false to let them be rounded off for a lower count. The result is one plain mesh body: a group simplified this way can no longer be ungrouped or opened. One undo step brings the old mesh back. Shapes from the catalogue have no mesh to simplify; lower their sides or quality instead. Returns the object with trianglesBefore, trianglesAfter and keepEdges.",
     inputSchema: {
       ...editorTargetSchema,
       properties: {
@@ -1024,6 +1106,18 @@ export const tools = [
         id: { type: "string", description: "The mesh to simplify; defaults to the one selected body." },
         keepPercent: { type: "number", description: "Share of the triangles to keep, above 0 and below 100. 50 halves the count." },
         targetTriangles: { type: "number", description: "Number of triangles to aim for, below the current count (importedTriangles in layerling_list_objects)." },
+        keepEdges: { type: "boolean", description: "Keep sharp edges and the rims of holes exactly. Default true." },
+      },
+    },
+  },
+  {
+    name: "layerling_make_exact",
+    description: "Turn one imported mesh (STL, OBJ, 3MF, or the mesh a split or wrap left behind) into an exact CAD body, as the editor's \"Make exact\" does: its planes, cylinders, cones, spheres and tori are recognised and rebuilt as real faces, the edges between them as lines, arcs and curves. Afterwards layerling_list_edges lists one edge per real edge (a bore's rim is one circle, not a hundred segments), so chamfers and fillets follow it cleanly, layerling_list_faces and layerling_delete_faces work on its faces, and a STEP export carries the real cylinders. What fits no surface stays flat facets; a mostly free-form mesh (a figure, a sculpted shape) is refused and stays a mesh. Up to 400,000 triangles; a larger mesh goes below that with layerling_simplify_mesh (keepEdges on), a smaller one comes out cleanest as it came. Takes up to a few minutes for a large mesh. One undo step brings the mesh back. Returns the object, the number of faces, what was found (planes, cylinders, cones, spheres, tori), the facets left and their share of the surface in percent.",
+    inputSchema: {
+      ...editorTargetSchema,
+      properties: {
+        ...editorTargetSchema.properties,
+        id: { type: "string", description: "The mesh to make exact; defaults to the one selected body." },
       },
     },
   },
@@ -1104,7 +1198,7 @@ export const tools = [
   },
   {
     name: "layerling_list_faces",
-    description: "List the faces of one object's exact body, for layerling_delete_faces: each with its id, its kind (plane, cylinder, cone, sphere, torus, bspline, ...), its area in square millimetres, its middle and, for a flat face, its outward normal, in world coordinates (y up). Only for exact bodies, STEP imports and layerling's shapes; whatever layerling keeps as a mesh (an imported STL, OBJ or 3MF, a split, wrapped or simplified body, a very detailed shape such as a long text) has no exact faces.",
+    description: "List the faces of one object's exact body, for layerling_delete_faces: each with its id, its kind (plane, cylinder, cone, sphere, torus, bspline, ...), its area in square millimetres, its middle and, for a flat face, its outward normal, in world coordinates (y up); a hair-thin face (under 0.05 mm wide) has thin: true. Only for exact bodies, STEP imports and layerling's shapes; whatever layerling keeps as a mesh (an imported STL, OBJ or 3MF, a split, wrapped or simplified body, a very detailed shape such as a long text) has no exact faces.",
     inputSchema: {
       ...editorTargetSchema,
       required: ["id"],
@@ -1116,7 +1210,7 @@ export const tools = [
   },
   {
     name: "layerling_delete_faces",
-    description: "Delete faces of an exact body, solid or hole, as the editor's Delete face tool does: the faces around them grow until they close the gap, so a fillet, a hole, a boss or a step is gone and the body stays exact (fillet, chamfer and STEP export still work on it). Give every face of the feature, with ids from layerling_list_faces - the four faces of a box's rounded top edges, the wall of a hole, the side and top of a boss. When the faces around them cannot close the gap, nothing changes and the answer says so. Deleting only the floor of a pocket makes it a hole straight through. One undo step; undone like an edge treatment.",
+    description: "Delete faces of an exact body, solid or hole, as the editor's Delete face tool does: the faces around them grow until they close the gap, so a fillet, a hole, a boss or a step is gone and the body stays exact (fillet, chamfer and STEP export still work on it). Give every face of the feature, with ids from layerling_list_faces - the four faces of a box's rounded top edges, the wall of a hole, the side and top of a boss. When the faces around them cannot close the gap, nothing changes and the answer says so. Deleting only the floor of a pocket makes it a hole straight through. A thin face (thin: true in layerling_list_faces) goes with a picked face when it touches it and leads on to another face in the picked face's plane, with the thin faces joined to it that touch a face in that plane too, as a mesh made exact can keep them between the strips of one side; the answer lists them, when there are any, as takenAlongFaceIds and every deleted face as deletedFaceIds. One undo step; undone like an edge treatment.",
     inputSchema: {
       ...editorTargetSchema,
       required: ["id", "faceIds"],
@@ -1179,20 +1273,36 @@ export const tools = [
     },
   },
   {
+    name: "layerling_punch",
+    description: "Punch the outline of one solid straight through another, like the editor's Punch tool: the punch's silhouette, seen along `direction`, is cut through the whole target, wherever the punch stands in front of it - the two need not touch. A teapot held over a plate leaves a teapot-shaped opening; move or turn the punch and call again for another. The opening is an exact sketch body set to hole and grouped with the target, so ungrouping takes it out again; the punch is returned unchanged. Coordinates are as in a slicer: X to the right, Y to the back, Z up. Without `direction` the axis along which the punch stands furthest from the target is taken (the result names it). `clearance` (millimetres, 0 to 10, default 0) grows the outline on every side, so a printed part passes through (0.2 is usual). Fails with a message when the outline misses the target along that direction. Both must be unlocked solids, neither a hole nor a bundle.",
+    inputSchema: {
+      ...editorTargetSchema,
+      required: ["punchId", "targetId"],
+      properties: {
+        ...editorTargetSchema.properties,
+        punchId: { type: "string", description: "The body whose outline is punched; it stays as it is." },
+        targetId: { type: "string", description: "The body that gets the opening, such as a plate, a lid or a wall." },
+        direction: { type: "string", enum: ["x", "y", "z"], description: "Axis the punch goes along: x left/right, y front/back, z up/down. Picked from where the punch stands when omitted." },
+        clearance: { type: "number", description: "Extra room all round in millimetres, 0 to 10; 0 when omitted." },
+      },
+    },
+  },
+  {
     name: "layerling_array_objects",
-    description: "Repeat objects n times in a row or around a circle - hole rows, hole grids, bolt circles, the teeth of a ring - like the editor's Pattern tool. `count` includes the originals. Coordinates are as in a slicer: X to the right, Y to the back, Z up. A row steps `spacing` millimetres along `direction` (negative runs the other way), or along several axes at once with `spacingX`, `spacingY` and `spacingZ` (a diagonal row, a staircase; give any of them and the others count as 0). With `fitAxis` a row is spread evenly over a body instead - holes along a plate: the last piece ends as far from the body's far end as the original stands from its nearer one, and `edgeGap` sets that gap first. A circle turns about the vertical axis through (`centerX`, `centerY`) over `angle` degrees: 360 (default) spreads the pieces evenly, a smaller angle puts the first and last piece on its ends; positive runs counter-clockwise seen from above. `rise` lifts every copy that many millimetres more than the one before (a screw, an ascending spiral) and `radiusChange` moves it that far further from the centre (negative: closer) for a flat or conical spiral. `rotateCopies` (default true) turns each copy with the circle. The copies are added as one undo step and returned with their ids; the originals stay where they are, unless `edgeGap` moves them. A circle leaves its centre as the pieces' pivot (their selection's, or the group's with `group: true`), halfway up the pieces, and returns it as `pivot` (X, Y, Z), so another part can be aligned to the true centre rather than the middle of the pieces' box.",
+    description: "Repeat objects n times in a row, in a grid or around a circle - hole rows, hole grids, bolt circles, the teeth of a ring - like the editor's Pattern tool. `count` includes the originals. Coordinates are as in a slicer: X to the right, Y to the back, Z up. A row steps `spacing` millimetres along `direction` (negative runs the other way), or along several axes at once with `spacingX`, `spacingY` and `spacingZ` (a diagonal row, a staircase; give any of them and the others count as 0). A grid lays `count` columns along X, `spacingX` apart, and `rows` rows along Y, `spacingY` apart (negative runs to the left or the front; left out, the pieces' size plus 5 mm). Each can be 1, for a single line along Y or X; columns times rows is at most 100, past that the rows are cut back. The answer's `grid` gives the columns and rows made, with `capped: true` when the rows were cut. With `fitAxis` a row is spread evenly over a body instead - holes along a plate: the last piece ends as far from the body's far end as the original stands from its nearer one, and `edgeGap` sets that gap first. A circle turns about the vertical axis through (`centerX`, `centerY`) over `angle` degrees: 360 (default) spreads the pieces evenly, a smaller angle puts the first and last piece on its ends; positive runs counter-clockwise seen from above. `rise` lifts every copy that many millimetres more than the one before (a screw, an ascending spiral) and `radiusChange` moves it that far further from the centre (negative: closer) for a flat or conical spiral. `rotateCopies` (default true) turns each copy with the circle. The copies are added as one undo step and returned with their ids; the originals stay where they are, unless `edgeGap` moves them. A circle leaves its centre as the pieces' pivot (their selection's, or the group's with `group: true`), halfway up the pieces, and returns it as `pivot` (X, Y, Z), so another part can be aligned to the true centre rather than the middle of the pieces' box.",
     inputSchema: {
       ...editorTargetSchema,
       required: ["mode", "count"],
       properties: {
         ...editorTargetSchema.properties,
         ids: { type: "array", items: { type: "string" }, description: "Objects to repeat; the current selection when omitted." },
-        mode: { type: "string", enum: ["row", "circle"] },
-        count: { type: "number", description: "Pieces including the originals, 2 to 100." },
+        mode: { type: "string", enum: ["row", "grid", "circle"] },
+        count: { type: "number", description: "Pieces including the originals, 2 to 100. Grid: the columns along X, 1 to 100." },
+        rows: { type: "number", description: "Grid: rows along Y including the originals' row, 1 to 100, default 1." },
         spacing: { type: "number", description: "Row: centre-to-centre distance in millimetres." },
         direction: { type: "string", enum: ["x", "y", "z"], description: "Row: axis to step along (z is up). Used with `spacing`." },
-        spacingX: { type: "number", description: "Row: step along X in millimetres per copy. With spacingY / spacingZ the row runs along several axes at once." },
-        spacingY: { type: "number", description: "Row: step along Y (towards the back) in millimetres per copy." },
+        spacingX: { type: "number", description: "Row: step along X in millimetres per copy. With spacingY / spacingZ the row runs along several axes at once. Grid: from column to column." },
+        spacingY: { type: "number", description: "Row: step along Y (towards the back) in millimetres per copy. Grid: from row to row." },
         spacingZ: { type: "number", description: "Row: step along Z (up) in millimetres per copy." },
         angle: { type: "number", description: "Circle: total angle in degrees, default 360." },
         centerX: { type: "number", description: "Circle: centre X in millimetres, default 0." },
@@ -1209,7 +1319,7 @@ export const tools = [
   },
   {
     name: "layerling_apply_edge_treatment",
-    description: "Apply chamfer, chamfillet or fillet to specific edge ids returned by layerling_list_edges, on a solid or a hole (a hole stays a hole: a box hole with filleted vertical edges cuts a pocket with round inside corners), to \"all\" sharp edges, to the \"top\" edges (every edge along the body's highest level, such as the rim of a cookie cutter), to the \"bottom\" edges (every edge along its lowest level, such as the foot of a part), or to the \"vertical\" edges (every edge that stands straight up, such as the corners of a box), as the editor's Top edges, Bottom edges and Vertical edges buttons pick them. A chamfillet is the printable foot: a chamfer at the plate (chamferAngle 15 to 75, default 45) that blends tangentially into a fillet toward the wall, so the foot needs no support and ends soft; amount is the height it takes up, and it is mostly used with \"bottom\". A fillet with endAmount has a variable radius: it runs from amount at one end of the edge to endAmount at the other, on exactly one edge id; if the large end comes out where the small one should be, apply it again with the two values swapped.",
+    description: "Apply chamfer, chamfillet or fillet to specific edge ids returned by layerling_list_edges, on a solid or a hole (a hole stays a hole: a box hole with filleted vertical edges cuts a pocket with round inside corners), to \"all\" sharp edges, to the \"top\" edges (every edge along the body's highest level, such as the rim of a cookie cutter), to the \"bottom\" edges (every edge along its lowest level, such as the foot of a part), or to the \"vertical\" edges (every edge that stands straight up, such as the corners of a box), as the editor's Top edges, Bottom edges and Vertical edges buttons pick them. A chamfillet is the printable foot: a chamfer at the plate (chamferAngle 15 to 75, default 45) that blends tangentially into a fillet toward the wall, so the foot needs no support and ends soft; amount is the height it takes up, and it is mostly used with \"bottom\". A fillet with endAmount has a variable radius: it runs from amount at one end of the edge to endAmount at the other, on exactly one edge id; if the large end comes out where the small one should be, apply it again with the two values swapped. A fillet with concave true is the negative of a rounding: it scoops a quarter-round out of each straight edge (a cylinder of radius amount lying on the edge), as a notch in the corners of a box, instead of rounding the edge off. When the kernel refuses a chamfer or plain fillet, layerling tries once more with the short edges (up to twice the size) at the ends of the picked ones, as where an earlier chamfer ends on a wall still sharp; the ones it took along come back as cornerEdgeIds and are part of selectedEdgeIds.",
     inputSchema: {
       ...editorTargetSchema,
       required: ["id", "kind", "edgeIds", "amount"],
@@ -1226,6 +1336,7 @@ export const tools = [
         allEdges: { type: "boolean" },
         amount: { type: "number" },
         endAmount: { type: "number", description: "Fillet of one edge only: the radius at the edge's other end, for a radius that changes along it (#687)." },
+        concave: { type: "boolean", description: "Fillet only: scoop the straight edges out (a cylinder of radius amount on each edge) instead of rounding them (#1160)." },
         chamferAngle: { type: "number" },
         sharpAngle: { type: "number" },
         quality: { type: "string", enum: ["draft", "standard", "fine"] },
@@ -1248,6 +1359,22 @@ export const tools = [
         ids: { type: "array", items: { type: "string" }, description: "At least two objects to bundle." },
       },
       required: ["ids"],
+    },
+  },
+  {
+    name: "layerling_text_block",
+    description: "Several lines of text under one another, as the editor's Text block card does (#1207): a plain straight text (not curved, not stacked top to bottom, without a key ring) becomes the first of the lines, and every further line is a text of its own under the one above, in the same font, height, fill and colour. The lines are lined up on the left edge, the middle or the right edge of the text (align), `gap` mm apart, and each is `step` per cent the letter size of the one above (100 all alike, 80 each a fifth smaller). The block's top stays where the text's top was; a turned text turns the block with it. Each line can be changed on its own afterwards (update_object: text, letterSize through width and depth, font). One undo step. Returns the lines, top to bottom, the first keeping the text's id.",
+    inputSchema: {
+      ...editorTargetSchema,
+      properties: {
+        ...editorTargetSchema.properties,
+        id: { type: "string", description: "The plain straight text to start from; it becomes the first line." },
+        lines: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 20, description: "The lines, top to bottom, at most 24 characters each; blank ones are left out." },
+        align: { type: "string", enum: ["left", "center", "right"], description: "Where the lines line up: the text's left edge, its middle or its right edge. Default center." },
+        gap: { type: "number", minimum: 0, maximum: 100, description: "Room between the boxes of two lines in mm. Default 2." },
+        step: { type: "number", minimum: 25, maximum: 200, description: "Each line's letter size in per cent of the one above. Default 100." },
+      },
+      required: ["id", "lines"],
     },
   },
   {
@@ -1379,14 +1506,18 @@ export const tools = [
   },
   {
     name: "layerling_create_sbc_board",
-    description: "An SBC board true to size, like SBC board in the editor's shape library (#1098): a single-board computer to build a case around. `board` is pi5 (Raspberry Pi 5, default), pi4 (Raspberry Pi 4 Model B), pi3bPlus (Raspberry Pi 3 Model B+), zero2w (Raspberry Pi Zero 2 W) or bttPi12 (BIGTREETECH Pi V1.2). It is a group: the board - a plate with rounded corners and its four mounting holes cut through - and a box for each connector, header and larger chip, each its own colour; every part is an exact body, so the edge tool, the STEP export and cuts work on it. The board's front edge (USB-C, HDMI) faces +z, its underside lies at the bottom of the group. `clearance` (0 to 2 mm, default 0) grows the connectors at the board's edge on every side but the bottom, so a case wall cut with the board as a hole leaves them a gap; for a printed case 0.2 to 0.5. `reach` (0 to 10 mm, default 0) then makes each of them reach that much further out on the edge it stands at, so they cut through a case wall as thick as that - the real connectors stand out of the board only 1 to 3 mm. Both work the same for every board. It stands on the middle of the plate; `x` and `z` move its middle (mm). `asHole` makes it a hole, to group into a case and cut the openings. The settings stay on the body (summary `sbcBoard`). Mounting holes and the outline follow the makers' drawings; some heights are estimated. One undo step.",
+    description: "An SBC board true to size, like SBC board in the editor's shape library (#1098): a single-board computer to build a case around. `board` is pi5 (Raspberry Pi 5, default), pi4 (Raspberry Pi 4 Model B), pi3bPlus (Raspberry Pi 3 Model B+), zero2w (Raspberry Pi Zero 2 W), bttPi12 (BIGTREETECH Pi V1.2), xiaoEsp32c6 (Seeed Studio XIAO ESP32-C6), esp32c3SuperMini (ESP32-C3 Super Mini) or esp32c6SuperMini (ESP32-C6 Super Mini). It is a group: the board - a plate with its mounting holes cut through (the ESP32 boards have none; their USB-C is at the right end) - and a box for each connector, header and larger chip, each its own colour; every part is an exact body, so the edge tool, the STEP export and cuts work on it. The board's front edge (USB-C, HDMI) faces +z, and the group stands on its lowest point: the microSD card slot under the board (on the Zero 2 W it is on top). The card slot is a connector at the left edge, so clearance and reach work on it too. `clearance` (0 to 2 mm, default 0) grows the connectors at the board's edge on every side but the bottom, so a case wall cut with the board as a hole leaves them a gap; for a printed case 0.2 to 0.5. `reach` (0 to 10 mm, default 0) then makes each of them reach that much further out on the edge it stands at, so they cut through a case wall as thick as that - the real connectors stand out of the board only 1 to 3 mm. Both work the same for every board. `ribbonUp` and `gpioUp` open the ribbon cable connectors and the GPIO header up through a lid, `upReach` (20 to 100 mm, default 20) higher; `ribbonSide` opens the ribbon cables out through the nearer wall. It stands on the middle of the plate; `x` and `z` move its middle (mm). `asHole` makes it a hole, to group into a case and cut the openings. The settings stay on the body (summary `sbcBoard`). Mounting holes and the outline follow the makers' drawings; some heights are estimated, and on the two Super Mini boards, which have no maker's drawing, everything is taken from published community models. One undo step.",
     inputSchema: {
       ...editorTargetSchema,
       properties: {
         ...editorTargetSchema.properties,
-        board: { type: "string", enum: ["pi5", "pi4", "pi3bPlus", "zero2w", "bttPi12"], description: "The board (default pi5)." },
+        board: { type: "string", enum: ["pi5", "pi4", "pi3bPlus", "zero2w", "bttPi12", "xiaoEsp32c6", "esp32c3SuperMini", "esp32c6SuperMini"], description: "The board (default pi5)." },
         clearance: { type: "number", minimum: 0, maximum: 2, description: "Extra room round the edge connectors, in mm (default 0)." },
         reach: { type: "number", minimum: 0, maximum: 10, description: "How much further out the edge connectors reach, in mm, to cut through a case wall (default 0)." },
+        ribbonUp: { type: "boolean", description: "The ribbon cable connectors (camera, display, PCIe) open up through a lid: grown by clearance and reaching upReach higher (default false)." },
+        ribbonSide: { type: "boolean", description: "The ribbon cable connectors open out through a wall: an opening across their long side to the nearer edge of the board and on by reach, as high as the connector (default false)." },
+        gpioUp: { type: "boolean", description: "The GPIO header reaches up through a lid: grown by clearance and reaching upReach higher (default false)." },
+        upReach: { type: "number", minimum: 20, maximum: 100, description: "How far the openings going up reach above their part, in mm (default 20)." },
         x: { type: "number", description: "Move its middle to this x (mm)." },
         z: { type: "number", description: "Move its middle to this z (mm)." },
         asHole: { type: "boolean", description: "Make the board a hole (default false)." },
@@ -1422,13 +1553,18 @@ export const tools = [
         },
         locked: { type: "boolean", description: "true locks it (it stays put and lets clicks through), false unlocks it." },
         trace: {
-          type: ["object", "boolean"],
           description: "Trace the picture into a sketch body standing on it (#1060), as Trace on the sketch's reference image does: true, or { part, threshold, height }. Only a reference image lying flat (on the plate or a level face).",
-          properties: {
-            part: { type: "string", enum: ["dark", "light"], description: "Which part of the picture becomes the body (default dark)." },
-            threshold: { type: "number", minimum: 0.05, maximum: 0.95, description: "Where dark turns light, 0.05 to 0.95 (default 0.5)." },
-            height: { type: "number", minimum: 0.2, maximum: 500, description: "How high the body is in mm (default 2)." },
-          },
+          anyOf: [
+            {
+              type: "object",
+              properties: {
+                part: { type: "string", enum: ["dark", "light"], description: "Which part of the picture becomes the body (default dark)." },
+                threshold: { type: "number", minimum: 0.05, maximum: 0.95, description: "Where dark turns light, 0.05 to 0.95 (default 0.5)." },
+                height: { type: "number", minimum: 0.2, maximum: 500, description: "How high the body is in mm (default 2)." },
+              },
+            },
+            { type: "boolean" },
+          ],
         },
       },
     },
@@ -1451,7 +1587,7 @@ export const tools = [
   },
   {
     name: "layerling_show_overhangs",
-    description: "Find overhangs that would need supports, like \"Show overhangs\" in the editor's visibility menu: faces that lean towards the plate more steeply than angle (degrees from vertical; a wall is 0, a flat ceiling 90). enabled switches the red tint in the view on or off; angle (30-70, default 45) is kept in the design's settings. Faces lying on the plate do not count. Returns enabled, angle and, for each visible solid (or the given ids), overhangAreaMm2 and lowestOverhangHeight - 0 means it prints without supports at that angle. A face resting on another body still counts. Use layerling_capture_image afterwards to see where the red is.",
+    description: "Find overhangs that would need supports, like \"Show overhangs\" in the editor's visibility menu: faces that lean towards the plate more steeply than angle (degrees from vertical; a wall is 0, a flat ceiling 90). enabled switches the red tint in the view on or off; angle (30-70, default 45) is kept in the design's settings. Faces lying on the plate do not count. Returns enabled, angle and, for each visible solid (or the given ids), overhangAreaMm2, lowestOverhangHeight and steepestOverhangAngle (the steepest face leaning towards the plate, degrees from vertical; null when none does) - an area of 0 means it prints without supports at that angle. A face resting on another body still counts. Use layerling_capture_image afterwards to see where the red is.",
     inputSchema: {
       ...editorTargetSchema,
       properties: {
@@ -1532,6 +1668,79 @@ export const tools = [
     },
   },
   {
+    name: "layerling_list_notes",
+    description: "Read the notes the user has put on the model, with the editor's Note tool. A note is a pin with text, free on the plate or pinned to an object. Each comes with its id, text, forAi (the user ticked For the AI: a request to you), reply (what you answered under it), object (the body it is pinned to, with id and name, or null), x, z and elevation in mm (the plate's X, its depth, positive towards the front, and the height), and open. Reference points are not notes; layerling_list_reference_points lists those. Use onlyForAi to get just the requests. Do the work a request asks for, then answer it with layerling_update_note.",
+    inputSchema: {
+      ...editorTargetSchema,
+      properties: {
+        ...editorTargetSchema.properties,
+        onlyForAi: { type: "boolean", description: "true lists only the notes ticked For the AI. Default false: all notes." },
+      },
+    },
+  },
+  {
+    name: "layerling_wait_for_notes",
+    description: "Wait until the user puts a request on the model: a note ticked For the AI that you have not had yet, or one the user changed since. Returns as soon as there is one, with the notes as layerling_list_notes gives them, or after the time is up with notes empty and timedOut true. Use it when the user asks you to watch their notes: do the work each request asks for, answer it with layerling_update_note, then call this again, so the user only has to work on the model. A request is handed over once; what you write into a note yourself counts as seen, so a note you keep open with a question comes back only when the user changes it.",
+    inputSchema: {
+      ...editorTargetSchema,
+      properties: {
+        ...editorTargetSchema.properties,
+        seconds: { type: "number", minimum: 1, maximum: 600, description: "How long to wait at most, in seconds. Default 50, which stays under the time most clients give a tool call; raise it only if your client waits longer." },
+      },
+    },
+  },
+  {
+    name: "layerling_add_note",
+    description: "Put a note on the model, to answer or ask something at a spot, for example \"hole placed here, 15 mm deep. Is that right?\". Pin it to an object with objectId (at its top face's middle unless at says where), or put it free on the plate with at. The note shows as a numbered pin the user can open; it is saved with the design, never printed or exported, and undo takes it back. Returns the note. Leave forAi out for an answer or a remark to the user; set it only to leave a request that an agent should pick up later.",
+    inputSchema: {
+      ...editorTargetSchema,
+      properties: {
+        ...editorTargetSchema.properties,
+        text: { type: "string", maxLength: 2000, description: "The note's words." },
+        objectId: { type: "string", description: "A top-level object to pin the note to. The note follows the object when it moves." },
+        at: {
+          type: "object",
+          properties: {
+            x: { type: "number", description: "Position along the plate's X, in mm." },
+            z: { type: "number", description: "Position along the plate's depth, in mm, positive towards the front. The editor's Y counts the other way (towards the back), so Y = -z." },
+            elevation: { type: "number", description: "Height in mm, default 0." },
+          },
+          required: ["x", "z"],
+          description: "Where the pin stands. Needed without objectId; with objectId it picks the spot on or near the object instead of the top face's middle.",
+        },
+        forAi: { type: "boolean", description: "Mark the note as a request for the AI agent (the user's For the AI box). Default false." },
+      },
+      required: ["text"],
+    },
+  },
+  {
+    name: "layerling_update_note",
+    description: "Change a note: its text, your answer under it, or whether it is still a request. An answer (reply) closes a request by itself: forAi turns false, and the user sees your reply under their text. Pass forAi true to hand a note back as a request. Returns the note.",
+    inputSchema: {
+      ...editorTargetSchema,
+      properties: {
+        ...editorTargetSchema.properties,
+        id: { type: "string", description: "The note's id from layerling_list_notes." },
+        text: { type: "string", maxLength: 2000, description: "New text for the note. Leave the user's own words alone unless asked; answer with reply instead." },
+        reply: { type: "string", maxLength: 2000, description: "Your answer to the note, shown under its text. An empty string removes it." },
+        forAi: { type: "boolean", description: "true keeps or makes the note a request, false closes it." },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "layerling_remove_notes",
+    description: "Delete notes by id. Reference points are not touched; layerling_remove_reference_points deletes those.",
+    inputSchema: {
+      ...editorTargetSchema,
+      properties: {
+        ...editorTargetSchema.properties,
+        ids: { type: "array", items: { type: "string" }, description: "The notes to delete." },
+      },
+      required: ["ids"],
+    },
+  },
+  {
     name: "layerling_show_workplane",
     description: "Show or hide the plate with its grid, labels and any workplane set on a face, like the eye over a grid in the editor's camera bar. Only the view changes: new shapes still land on the workplane, and nothing is saved with the design. Hide it before layerling_capture_image with view \"bottom\" to see the underside, for example with layerling_show_overhangs. Call without visible to read the state. Returns visible.",
     inputSchema: {
@@ -1551,6 +1760,39 @@ export const tools = [
         ...editorTargetSchema.properties,
         visible: { type: "boolean", description: "true shows the measurements, false hides them. Left out they stay as they are." },
         dimensions: { type: "boolean", description: "false hides the sizes and distances around the selection (key Q), true shows them again. Left out they stay as they are." },
+      },
+    },
+  },
+  {
+    name: "layerling_measure_angle",
+    description: "Measure an angle with the editor's protractor. points: three points in world coordinates (y up, as layerling_list_faces and layerling_list_edges give them), the corner first and then one point on each side; the answer is the angle at the corner, 0 to 180 degrees. faces: two flat faces, each { id, faceId } with a face id from layerling_list_faces; the answer is angle, the smaller of the two angles the planes make (0 to 90, what a chamfer or a slope is called by), and other, the one beside it (180 minus angle): a 45 degree chamfer against the top gives 45 and 135, two sides of a box 90, parallel faces 0. A round face has no normal and is refused. text is what the editor shows. show (default true) draws the angle in the view, with the protractor open, as if it had been clicked; measured faces follow their bodies when they move. Nothing is saved and nothing goes into the undo history. clear true puts the protractor away with its measurement. Combine with layerling_capture_image to see it.",
+    inputSchema: {
+      ...editorTargetSchema,
+      properties: {
+        ...editorTargetSchema.properties,
+        points: {
+          type: "array",
+          minItems: 3,
+          maxItems: 3,
+          items: { type: "array", minItems: 3, maxItems: 3, items: { type: "number" } },
+          description: "Three [x, y, z] points in world coordinates (y up): the corner first, then one point on each side.",
+        },
+        faces: {
+          type: "array",
+          minItems: 2,
+          maxItems: 2,
+          items: {
+            type: "object",
+            required: ["id", "faceId"],
+            properties: {
+              id: { type: "string", description: "The object the face belongs to." },
+              faceId: { type: "integer", description: "A flat face's id from layerling_list_faces." },
+            },
+          },
+          description: "Two flat faces to measure between.",
+        },
+        show: { type: "boolean", description: "false only measures and leaves the view as it is. Default true." },
+        clear: { type: "boolean", description: "true puts the protractor away with its measurement; nothing else is needed." },
       },
     },
   },
@@ -1761,7 +2003,7 @@ export const tools = [
         id: { type: "string", description: "Object whose face takes the workplane." },
         face: { type: "string", enum: ["top", "bottom", "left", "right", "front", "back"], description: "Side of the object's own box, taken in its current turn. Defaults to top." },
         flip: { type: "boolean", description: "Let the workplane face into the object instead of out of it." },
-        onSection: { type: "boolean", description: "Put the workplane on the cut of the section view (layerling_section_view must have it switched on), facing out of the body that stays; a sketch started there shows the outline of the cut." },
+        onSection: { type: "boolean", description: "Put the workplane on the cut of the section view (layerling_set_section_view must have it switched on), facing out of the body that stays; a sketch started there shows the outline of the cut." },
         reset: { type: "boolean", description: "Put the workplane back on the base plate." },
         visible: { type: "boolean", description: "Show (true) or hide (false) a workplane set on a face." },
       },

@@ -2,12 +2,17 @@
 
 import { cadHasSolidBody } from "@/lib/cadSolidBody";
 import { cadFaultyEdgeIds } from "@/lib/cadFaultyEdges";
+import { cornerEdgeCandidates, edgesTouchingEnds } from "@/lib/cadCornerEdges";
+import { innerCornerEdges, treatAfterInnerCorners } from "@/lib/cadInnerCorners";
 import { OcctKernel, type OcctModuleFactory, type ShapeHandle } from "occt-wasm";
 import { assertCadKernelRunnable } from "@/lib/wasmSupport";
 import { CANNOT_OFFSET_MESSAGE, offsetSolid, offsetSolidSideways, orientedFaceNormal, shellSolid } from "@/lib/cadShell";
 import { chamfilletSolid } from "@/lib/cadChamfillet";
+import { isBundleScopeKey } from "@/lib/cadModifierGroups";
+import { cadLidSolid } from "@/lib/cadLid";
+import { concaveFilletSolid } from "@/lib/cadConcaveFillet";
 import { cadFaceList, cadFaceTessellation, DELETE_FACES_UNCHANGED_MESSAGE, deleteFacesSolid } from "@/lib/cadDeleteFaces";
-import type { CadModifierComponentMesh, CadModifierDeflection, CadModifierDisplayEdge, CadModifierEdge, CadModifierFaces, CadModifierMeshPart, CadModifierPrimitivePart, CadModifierProfilePart, CadModifierWorkerRequest, CadModifierWorkerResponse } from "@/lib/cadModifierTypes";
+import type { CadModifierComponentMesh, CadModifierDeflection, CadModifierDisplayEdge, CadModifierEdge, CadModifierExactReport, CadModifierFaces, CadModifierMeshPart, CadModifierPrimitivePart, CadModifierProfilePart, CadModifierWorkerRequest, CadModifierWorkerResponse } from "@/lib/cadModifierTypes";
 import { cadProfileSolidMismatch, profileExtrusionSolid } from "@/lib/cadProfileSolid";
 import { importedStepBody } from "@/lib/cadImportedStep";
 import { threadPartSolid } from "@/lib/threadSolid";
@@ -18,9 +23,11 @@ import { helicalGearPartSolid } from "@/lib/gearSolid";
 import { hirthPartSolid } from "@/lib/hirthSolid";
 import { meshTreatedBody } from "@/lib/cadMeshAccuracy";
 import { planarMeshFaces } from "@/lib/cadPlanarMesh";
+import { EXACT_MESH_FAILED_MESSAGE, exactMeshFreeformShare, exactSolidFromMesh, type ExactMeshReport } from "@/lib/cadMeshExact";
 import { cadFlatFaceMeshStraysFromOutline } from "@/lib/cadFaceOutline";
 import { buildMessage } from "@/lib/buildStamp";
 import { CAD_MODIFIER_KERNEL_RESTART_MESSAGE, CAD_MODIFIER_RUNTIME_BASE, VARIABLE_FILLET_ONE_EDGE_MESSAGE, cadModifierCappedDeflection, cadModifierTessellationDeflection, cadModifierTopologyEdgeIsSelectable, applyCadTransform, isCadModifierKernelExhausted, isCadModifierWasmMemoryFault } from "@/lib/cadModifierRuntime";
+import { isKernelMemoryFault } from "@/lib/kernelFault";
 
 const HASH_UPPER_BOUND = 2_147_483_647;
 const CAD_EDGE_WIREFRAME_DEFLECTION = 0.035;
@@ -31,6 +38,8 @@ let baseShape: ShapeHandle | null = null;
 let baseSolids: ShapeHandle[] = [];
 let edgeHandles: ShapeHandle[] = [];
 let edgeOwners: number[] = [];
+// The prepared edges with their points, for the short corner edges of a second try (#1178).
+let edgeInfos: CadModifierEdge[] = [];
 let faceHandles: ShapeHandle[] = [];
 let faceOwners: number[] = [];
 
@@ -76,6 +85,7 @@ function releaseSession(cad: OcctKernel) {
   baseSolids = [];
   edgeHandles = [];
   edgeOwners = [];
+  edgeInfos = [];
   faceHandles = [];
   faceOwners = [];
 }
@@ -446,21 +456,27 @@ const PLANAR_FACE_TRIANGLE_LIMIT = 6000;
  * and sewn instead; whatever goes wrong there leaves the plain result.
  */
 function reconstructMeshSolid(cad: OcctKernel, part: CadModifierMeshPart) {
+  // Make exact may find what the edge tool, with its smaller limits, left as a mesh: it does not take the kept one.
   const key = meshSolidKey(part);
   const kept = key === null ? undefined : meshSolids.get(key);
-  if (key !== null && kept !== undefined) {
+  if (key !== null && kept !== undefined && (!exactRequested || kept.report)) {
     try {
-      const restored = cad.fromBREP(kept);
-      if (cad.isSolid(restored) && cadShapeIsValid(cad, restored)) return restored;
+      const restored = cad.fromBREP(kept.brep);
+      if (cad.isSolid(restored) && cadShapeIsValid(cad, restored)) {
+        if (kept.report) exactReports.push(kept.report);
+        return restored;
+      }
     } catch (error) {
       if (isFatalKernelFault(error)) throw error;
     }
     meshSolids.delete(key);
   }
-  const solid = rebuiltMeshSolid(cad, part);
+  const rebuilt = rebuiltMeshSolid(cad, part);
+  const solid = rebuilt.solid;
+  if (rebuilt.report) exactReports.push(rebuilt.report);
   if (key !== null) {
     try {
-      meshSolids.set(key, storedBrep(cad, solid));
+      meshSolids.set(key, { brep: storedBrep(cad, solid), report: rebuilt.report });
       while (meshSolids.size > MESH_SOLID_KEPT) meshSolids.delete(meshSolids.keys().next().value as string);
     } catch (error) {
       if (isFatalKernelFault(error)) throw error;
@@ -475,7 +491,7 @@ function reconstructMeshSolid(cad: OcctKernel, part: CadModifierMeshPart) {
  * its BREP for the next time (forum: a pocket in a filleted body took 21 seconds each time).
  */
 const MESH_SOLID_KEPT = 4;
-const meshSolids = new Map<string, string>();
+const meshSolids = new Map<string, { brep: string; report?: CadModifierExactReport }>();
 
 /** What identifies a mesh part: its own triangles, however they got there. Null when the part carries no mesh. */
 function meshSolidKey(part: CadModifierMeshPart) {
@@ -494,7 +510,76 @@ function meshSolidKey(part: CadModifierMeshPart) {
   return `${part.positions.length}:${part.indices.length}:${(first >>> 0).toString(36)}${(second >>> 0).toString(36)}`;
 }
 
-function rebuiltMeshSolid(cad: OcctKernel, part: CadModifierMeshPart) {
+/** Meshes up to this many triangles are looked through for their cylinders, cones, spheres and tori first. */
+const EXACT_MESH_TRIANGLE_LIMIT = 40000;
+/** How long the edge tool waits for that before it takes the mesh as it is. */
+const EXACT_MESH_BUDGET_MS = 6000;
+/** Make exact asks for it: larger meshes, more time. */
+const EXACT_REQUEST_TRIANGLE_LIMIT = 400000;
+const EXACT_REQUEST_BUDGET_MS = 90000;
+/** While a prepare runs: whether it is Make exact, and what its mesh parts were rebuilt from. */
+let exactRequested = false;
+let exactReports: CadModifierExactReport[] = [];
+
+/** The reports of a prepare's mesh parts added up, or undefined when none was rebuilt exactly. */
+function sumExactReports(reports: CadModifierExactReport[]): CadModifierExactReport | undefined {
+  if (reports.length === 0) return undefined;
+  const sum = { plane: 0, cylinder: 0, cone: 0, sphere: 0, torus: 0, facets: 0, facetShare: 0, faces: 0, triangles: 0 };
+  for (const r of reports) {
+    sum.plane += r.plane; sum.cylinder += r.cylinder; sum.cone += r.cone; sum.sphere += r.sphere; sum.torus += r.torus;
+    sum.facets += r.facets; sum.faces += r.faces; sum.triangles += r.triangles;
+    sum.facetShare += r.facetShare * r.triangles;
+  }
+  sum.facetShare = sum.triangles > 0 ? sum.facetShare / sum.triangles : 0;
+  return sum;
+}
+
+function exactReportOf(report: ExactMeshReport): CadModifierExactReport {
+  return {
+    plane: report.plane,
+    cylinder: report.cylinder,
+    cone: report.cone,
+    sphere: report.sphere,
+    torus: report.torus,
+    facets: report.facets,
+    facetShare: report.area > 0 ? report.facetArea / report.area : 0,
+    faces: report.faces,
+    triangles: report.triangles,
+  };
+}
+
+/**
+ * A mesh with round faces in it (a group of cylinders, an STL of a CAD part) rebuilt as the exact solid it was made
+ * of: then a fillet follows one round edge, not a hundred short ones. Null when there is nothing round in it (the
+ * flat faces are built whole below) or it does not come out as a valid solid.
+ */
+function exactMeshSolid(cad: OcctKernel, part: CadModifierMeshPart): { solid: ShapeHandle; report: CadModifierExactReport } | null {
+  const limit = exactRequested ? EXACT_REQUEST_TRIANGLE_LIMIT : EXACT_MESH_TRIANGLE_LIMIT;
+  if (!part.positions || !part.indices || part.indices.length / 3 > limit) return null;
+  try {
+    // Make exact says so when a mesh is mostly free-form, rather than build its triangles over again as faces.
+    const exact = exactSolidFromMesh(cad, part.positions, part.indices, { budgetMs: exactRequested ? EXACT_REQUEST_BUDGET_MS : EXACT_MESH_BUDGET_MS, refuseFreeform: exactRequested });
+    if (!exact) return null;
+    const round = exact.report.cylinder + exact.report.cone + exact.report.sphere + exact.report.torus;
+    // Without anything round, the edge tool keeps its own way below; Make exact takes the flat result too.
+    if ((round > 0 || exactRequested) && cad.isSolid(exact.solid) && cadShapeIsValid(cad, exact.solid)) return { solid: exact.solid, report: exactReportOf(exact.report) };
+    releaseHandles(cad, [exact.solid]);
+  } catch (error) {
+    if (isFatalKernelFault(error)) throw error;
+    if (exactRequested && error instanceof Error && exactMeshFreeformShare(error.message) !== null) throw error;
+  }
+  return null;
+}
+
+function rebuiltMeshSolid(cad: OcctKernel, part: CadModifierMeshPart): { solid: ShapeHandle; report?: CadModifierExactReport } {
+  const exact = exactMeshSolid(cad, part);
+  if (exact) return exact;
+  // Make exact wants the exact body or nothing: the plain rebuild below would only be thrown away.
+  if (exactRequested) throw new Error(EXACT_MESH_FAILED_MESSAGE);
+  return { solid: flatRebuiltMeshSolid(cad, part) };
+}
+
+function flatRebuiltMeshSolid(cad: OcctKernel, part: CadModifierMeshPart) {
   let plain: ShapeHandle | null = null;
   let plainError: unknown = null;
   try {
@@ -545,40 +630,55 @@ function faceCount(cad: OcctKernel, shape: ShapeHandle) {
 }
 
 function plainMeshSolid(cad: OcctKernel, part: CadModifierMeshPart) {
-  const imported = cad.importStl(meshPartToAsciiStl(part));
-  let shape = cad.fixShape(imported);
-  if (cad.isSolid(shape)) {
-    try {
-      shape = cad.healSolid(shape, 1e-4);
-      shape = cad.fixFaceOrientations(shape);
-      shape = cad.removeDegenerateEdges(shape);
-      shape = cad.unifySameDomain(shape);
-    } catch {
-      // Fall through to face sewing when the imported solid cannot be healed directly.
+  // Every handle made on the way is let go at the end, all but the one handed back: the imported mesh, its faces and
+  // the candidates of the tolerances that did not close took kernel memory until the next prepare.
+  const made: ShapeHandle[] = [];
+  const kept = (handle: ShapeHandle) => {
+    made.push(handle);
+    return handle;
+  };
+  let result: ShapeHandle | null = null;
+  try {
+    const imported = kept(cad.importStl(meshPartToAsciiStl(part)));
+    let shape = kept(cad.fixShape(imported));
+    if (cad.isSolid(shape)) {
+      try {
+        shape = kept(cad.healSolid(shape, 1e-4));
+        shape = kept(cad.fixFaceOrientations(shape));
+        shape = kept(cad.removeDegenerateEdges(shape));
+        shape = kept(cad.unifySameDomain(shape));
+      } catch (error) {
+        // A kernel out of memory is restarted, not tried on; anything else falls through to face sewing.
+        if (isFatalKernelFault(error)) throw error;
+      }
+      if (cad.isSolid(shape) && cadShapeIsValid(cad, shape)) return (result = shape);
     }
-    if (cad.isSolid(shape) && cadShapeIsValid(cad, shape)) return shape;
-  }
 
-  const faces = cad.getSubShapes(imported, "face");
-  if (faces.length === 0) throw new Error("The selected object has no closed faces");
-  for (const tolerance of [1e-5, 1e-4, 1e-3, 1e-2]) {
-    try {
-      let candidate = cad.sewAndSolidify(faces, tolerance);
-      candidate = cad.fixShape(candidate);
-      if (cad.isSolid(candidate)) candidate = cad.healSolid(candidate, tolerance);
-      candidate = cad.fixFaceOrientations(candidate);
-      candidate = cad.removeDegenerateEdges(candidate);
-      candidate = cad.unifySameDomain(candidate);
-      if (cad.isSolid(candidate) && cadShapeIsValid(cad, candidate)) return candidate;
-      // A mesh of several loose pieces (a group of holes, two bodies grouped side by side) sews to one
-      // shell per piece, which is no single solid; each piece becomes a solid and they are joined (#394).
-      const joined = joinedShellSolids(cad, candidate);
-      if (joined) return joined;
-    } catch {
-      // Try the next tolerance. Curved tessellations can need looser vertex sewing.
+    const faces = cad.getSubShapes(imported, "face");
+    made.push(...faces);
+    if (faces.length === 0) throw new Error("The selected object has no closed faces");
+    for (const tolerance of [1e-5, 1e-4, 1e-3, 1e-2]) {
+      try {
+        let candidate = kept(cad.sewAndSolidify(faces, tolerance));
+        candidate = kept(cad.fixShape(candidate));
+        if (cad.isSolid(candidate)) candidate = kept(cad.healSolid(candidate, tolerance));
+        candidate = kept(cad.fixFaceOrientations(candidate));
+        candidate = kept(cad.removeDegenerateEdges(candidate));
+        candidate = kept(cad.unifySameDomain(candidate));
+        if (cad.isSolid(candidate) && cadShapeIsValid(cad, candidate)) return (result = candidate);
+        // A mesh of several loose pieces (a group of holes, two bodies grouped side by side) sews to one
+        // shell per piece, which is no single solid; each piece becomes a solid and they are joined (#394).
+        const joined = joinedShellSolids(cad, candidate);
+        if (joined) return (result = joined);
+      } catch (error) {
+        if (isFatalKernelFault(error)) throw error;
+        // Try the next tolerance. Curved tessellations can need looser vertex sewing.
+      }
     }
+    throw new Error("The selected mesh is open or non-manifold. Repair it before adding edge treatments.");
+  } finally {
+    releaseHandles(cad, [...new Set(made)].filter((handle) => handle !== result));
   }
-  throw new Error("The selected mesh is open or non-manifold. Repair it before adding edge treatments.");
 }
 
 /**
@@ -608,6 +708,20 @@ function joinedShellSolids(cad: OcctKernel, sewn: ShapeHandle) {
  * first built on their own (#996): such a group's holes cut only its own solids, not the neighbours it was
  * grouped with afterwards.
  */
+// The solids of a bundle's scope: its own solids and the groups inside it, its holes left to the level above.
+function combinedScopeSolids(cad: OcctKernel, parts: CadModifierMeshPart[], depth: number): ShapeHandle[] {
+  const inner = new Map<number, CadModifierMeshPart[]>();
+  for (const part of parts) {
+    if ((part.scope?.length ?? 0) <= depth) continue;
+    const key = (part.scope as number[])[depth];
+    inner.set(key, [...(inner.get(key) ?? []), part]);
+  }
+  return [
+    ...parts.filter((part) => (part.scope?.length ?? 0) === depth && !part.hole).map((part) => reconstructSolid(cad, part)),
+    ...[...inner.values()].flatMap((nested) => combinedScope(cad, nested, depth + 1) ?? []),
+  ];
+}
+
 function combinedScope(cad: OcctKernel, parts: CadModifierMeshPart[], depth: number): ShapeHandle | null {
   const here = parts.filter((part) => (part.scope?.length ?? 0) === depth);
   const inner = new Map<number, CadModifierMeshPart[]>();
@@ -616,20 +730,32 @@ function combinedScope(cad: OcctKernel, parts: CadModifierMeshPart[], depth: num
     const key = (part.scope as number[])[depth];
     inner.set(key, [...(inner.get(key) ?? []), part]);
   }
+  // A bundle with a hole in it (#1164): its hole cuts what it is grouped with, its solids are added afterwards.
+  const bundles = [...inner.entries()].filter(([key]) => isBundleScopeKey(key)).map(([, nested]) => nested);
+  const bundleSolids = bundles.flatMap((nested) => combinedScopeSolids(cad, nested, depth + 1));
+  const bundleHoles = bundles.flatMap((nested) => nested.filter((part) => part.hole && (part.scope?.length ?? 0) === depth + 1).map((part) => reconstructSolid(cad, part)));
   const solids = [
     ...here.filter((part) => !part.hole).map((part) => reconstructSolid(cad, part)),
-    ...[...inner.values()].flatMap((nested) => combinedScope(cad, nested, depth + 1) ?? []),
+    ...[...inner.entries()].filter(([key]) => !isBundleScopeKey(key)).flatMap(([, nested]) => combinedScope(cad, nested, depth + 1) ?? []),
   ];
   const holes = here.filter((part) => part.hole).map((part) => reconstructSolid(cad, part));
-  if (solids.length === 0) return null;
-  let result = solids[0];
-  for (let index = 1; index < solids.length; index += 1) {
-    result = cad.fuse(result, solids[index]);
-    result = cad.simplify(result);
-    result = cad.unifySameDomain(result);
+  if (solids.length === 0 && bundleSolids.length === 0) return null;
+  const fused = (shapes: ShapeHandle[]) => {
+    let joined = shapes[0];
+    for (let index = 1; index < shapes.length; index += 1) {
+      joined = cad.fuse(joined, shapes[index]);
+      joined = cad.simplify(joined);
+      joined = cad.unifySameDomain(joined);
+    }
+    return joined;
+  };
+  let result: ShapeHandle | null = solids.length ? fused(solids) : null;
+  if (result !== null) {
+    for (const hole of bundleHoles) result = tidiedIfValid(cad, fuzzyCut(cad, result, hole), cadShapeIsValid);
   }
+  if (bundleSolids.length) result = fused(result === null ? bundleSolids : [result, ...bundleSolids]);
   for (const hole of holes) {
-    result = tidiedIfValid(cad, fuzzyCut(cad, result, hole), cadShapeIsValid);
+    result = tidiedIfValid(cad, fuzzyCut(cad, result as ShapeHandle, hole), cadShapeIsValid);
   }
   return result;
 }
@@ -655,7 +781,8 @@ function reconstructParts(cad: OcctKernel, parts: CadModifierMeshPart[]) {
     try {
       const untouched = cad.unifySameDomain(cad.simplify(combined));
       result = cadShapeIsValid(cad, untouched) ? untouched : combined;
-    } catch {
+    } catch (error) {
+      if (isKernelMemoryFault(error)) throw error;
       result = combined;
     }
   }
@@ -731,7 +858,8 @@ function collectEdges(cad: OcctKernel, shape: ShapeHandle, sharpAngle: number, s
         let area = 0;
         try {
           area = Math.abs(cad.getSurfaceArea(face));
-        } catch {
+        } catch (error) {
+          if (isKernelMemoryFault(error)) throw error;
           area = 0;
         }
         faceAreaByHash.set(hash, area);
@@ -748,7 +876,8 @@ function collectEdges(cad: OcctKernel, shape: ShapeHandle, sharpAngle: number, s
           const face = faceByHash.get(hash);
           try {
             type = face === undefined ? "unknown" : cad.surfaceType(face);
-          } catch {
+          } catch (error) {
+            if (isKernelMemoryFault(error)) throw error;
             type = "unknown";
           }
           surfaceTypeByHash.set(hash, type);
@@ -776,7 +905,8 @@ function collectEdges(cad: OcctKernel, shape: ShapeHandle, sharpAngle: number, s
       let curveType = "line";
       try {
         curveType = cad.curveType(handle);
-      } catch {
+      } catch (error) {
+        if (isKernelMemoryFault(error)) throw error;
         curveType = "unknown";
       }
       return { id, points, ...classification, curveType, surfaceTypes, faceAreas };
@@ -840,6 +970,7 @@ function verwirfKernel(cad: OcctKernel | null) {
   baseSolids = [];
   edgeHandles = [];
   edgeOwners = [];
+  edgeInfos = [];
   faceHandles = [];
   faceOwners = [];
 }
@@ -860,6 +991,7 @@ function treatEdges(cad: OcctKernel, solid: ShapeHandle, edges: ShapeHandle[], r
   if (request.kind === "fillet" && request.endAmount !== undefined) {
     return cad.filletVariable(solid, edges[0], request.amount, request.endAmount);
   }
+  if (request.kind === "fillet" && request.concave) return concaveFilletSolid(cad, solid, edges, request.amount);
   if (request.kind === "fillet") return cad.fillet(solid, edges, request.amount);
   if (request.kind === "chamfillet") return chamfilletSolid(cad, solid, edges, request.amount, request.chamferAngle);
   return Math.abs(request.chamferAngle - 45) < 0.001
@@ -903,6 +1035,55 @@ function culpritEdgeIds(cad: OcctKernel, solid: ShapeHandle, entries: { id: numb
   return failing.length ? failing : all;
 }
 
+const CORNER_EDGE_BUDGET_MS = 3000;
+
+// A refused chamfer or fillet tried once more with the short edges at the ends of the picked ones
+// (#1178): the bridges between two picked edges together, then each short edge on its own. The first
+// that gives a body wins; none, and the refusal stands as it was.
+function treatWithCornerEdges(cad: OcctKernel, solid: ShapeHandle, entries: { id: number; edge: ShapeHandle }[], request: Extract<CadModifierWorkerRequest, { type: "preview" }>) {
+  if (request.kind !== "chamfer" && (request.kind !== "fillet" || request.endAmount !== undefined || request.concave)) return null;
+  const { bridges, others } = cornerEdgeCandidates(edgeInfos, entries.map((entry) => entry.id), request.amount);
+  const attempts = [...(bridges.length > 1 ? [bridges] : []), ...[...bridges, ...others].map((id) => [id])];
+  const deadline = performance.now() + CORNER_EDGE_BUDGET_MS;
+  for (const edgeIds of attempts) {
+    if (performance.now() > deadline) return null;
+    try {
+      const component = treatEdges(cad, solid, [...entries.map((entry) => entry.edge), ...edgeIds.map((id) => edgeHandles[id])], request);
+      if (cadHasSolidBody(cad, component)) return { component, edgeIds };
+      releaseHandles(cad, [component]);
+    } catch (error) {
+      if (isFatalKernelFault(error)) throw error;
+    }
+  }
+  return null;
+}
+
+const INNER_CORNER_BUDGET_MS = 4000;
+
+function polylineLength(points: number[]) {
+  let length = 0;
+  for (let index = 3; index + 2 < points.length; index += 3) {
+    length += Math.hypot(points[index] - points[index - 3], points[index + 1] - points[index - 2], points[index + 2] - points[index - 1]);
+  }
+  return length;
+}
+
+// A refused chamfer or fillet tried once more past the sharp inner corners at the ends of the picked edges (the notches
+// where the discs of a cloud meet): the corners taken along, or rounded first a little (lib/cadInnerCorners.ts).
+function treatPastInnerCorners(cad: OcctKernel, solid: ShapeHandle, entries: { id: number; edge: ShapeHandle }[], request: Extract<CadModifierWorkerRequest, { type: "preview" }>) {
+  if (request.kind !== "chamfer" && (request.kind !== "fillet" || request.endAmount !== undefined || request.concave)) return null;
+  const deadline = performance.now() + INNER_CORNER_BUDGET_MS;
+  const touchingIds = edgesTouchingEnds(edgeInfos, entries.map((entry) => entry.id));
+  // An edge shorter than the size, a sliver where one disc barely shows between two others, leaves the kernel nothing
+  // to hold on to: forced past it, it made faces that crossed or crashed outright. Then the refusal stands.
+  if ([...entries.map((entry) => entry.id), ...touchingIds].some((id) => polylineLength(edgeInfos[id]?.points ?? []) < request.amount)) return null;
+  const touching = touchingIds.map((id) => edgeHandles[id]).filter((edge): edge is ShapeHandle => edge !== undefined);
+  const corners = innerCornerEdges(cad, solid, touching, request.amount);
+  if (corners.length === 0) return null;
+  const result = treatAfterInnerCorners(cad, solid, entries.map((entry) => entry.edge), corners, request.amount, (body, edges, amount) => treatEdges(cad, body, edges, { ...request, amount }), deadline, isFatalKernelFault);
+  return result ? { ...result, count: corners.length } : null;
+}
+
 // Which solid of the body each edge or face belongs to, found by hash and isSame.
 function componentOwners(cad: OcctKernel, handles: ShapeHandle[], type: "edge" | "face", unmappedMessage: string) {
   // One solid owns everything there is.
@@ -941,12 +1122,20 @@ async function bearbeiteAnfrage(request: CadModifierWorkerRequest, halter: { cad
   }
   if (request.type === "prepare") {
     releaseSession(activeCad);
-    baseShape = reconstructPartsWithFallback(activeCad, request.parts);
+    exactRequested = request.exact === true;
+    exactReports = [];
+    try {
+      baseShape = reconstructPartsWithFallback(activeCad, request.parts);
+    } finally {
+      exactRequested = false;
+    }
+    const exactReport = sumExactReports(exactReports);
     const collected = collectEdges(activeCad, baseShape, request.sharpAngle, Boolean(request.suppressTreatmentDetailEdges), true);
     edgeHandles = collected.handles;
     baseSolids = activeCad.isSolid(baseShape) ? [baseShape] : activeCad.getSubShapes(baseShape, "solid");
     if (baseSolids.length === 0) throw new Error("The selected group contains no closed solid components");
     edgeOwners = componentOwners(activeCad, edgeHandles, "edge", "A CAD edge could not be mapped to its solid component; restart the edge tool");
+    edgeInfos = collected.edges.map((edge) => ({ ...edge, owner: edgeOwners[edge.id] ?? 0 }));
     let faces: CadModifierFaces | undefined;
     if (request.faces) {
       faceHandles = activeCad.getSubShapes(baseShape, "face");
@@ -959,10 +1148,11 @@ async function bearbeiteAnfrage(request: CadModifierWorkerRequest, halter: { cad
     post({
       type: "ready",
       requestId: request.requestId,
-      edges: collected.edges.map((edge) => ({ ...edge, owner: edgeOwners[edge.id] ?? 0 })),
+      edges: edgeInfos,
       selectableEdgeIds: collected.selectableEdgeIds,
       sourceType: activeCad.getShapeType(baseShape),
       ...(faces ? { faces } : {}),
+      ...(exactReport ? { exactReport } : {}),
     }, faces?.mesh ? [faces.mesh.positions.buffer, faces.mesh.indices.buffer, faces.mesh.triangleFaces.buffer] : []);
     return;
   }
@@ -972,12 +1162,22 @@ async function bearbeiteAnfrage(request: CadModifierWorkerRequest, halter: { cad
     ? (request.faceIds ?? []).map((id) => ({ id, face: faceHandles[id], owner: faceOwners[id] })).filter((entry): entry is { id: number; face: ShapeHandle; owner: number } => entry.face !== undefined)
     : [];
   if (request.kind === "deleteFace" && selectedFaces.length === 0) throw new Error("Select at least one face");
-  if (selected.length === 0 && request.kind !== "shell" && request.kind !== "deleteFace" && request.kind !== "offset") throw new Error("Select at least one highlighted edge");
+  if (selected.length === 0 && request.kind !== "shell" && request.kind !== "deleteFace" && request.kind !== "offset" && request.kind !== "lid" && request.kind !== "exact") throw new Error("Select at least one highlighted edge");
   if (request.kind === "fillet" && request.endAmount !== undefined && selected.length !== 1) throw new Error(VARIABLE_FILLET_ONE_EDGE_MESSAGE);
   const componentResults: ShapeHandle[] = [];
+  // Short corner edges a second try took along so the chamfer or fillet went through (#1178).
+  const cornerEdgeIds: number[] = [];
+  // Sharp inner corners rounded or chamfered first so the picked edges went through, and the size they got.
+  const innerCorners = { count: 0, amount: Infinity };
   let result: ShapeHandle | null = null;
   try {
-    for (let owner = 0; owner < baseSolids.length; owner += 1) {
+    // The lid (#1154) is a new body made from the whole one, not a change to each of its solids.
+    if (request.kind === "lid") {
+      const lid = request.lid ? cadLidSolid(activeCad, baseShape, request.lid) : null;
+      if (!lid) throw new Error("The lid cannot be built as an exact body");
+      componentResults.push(lid);
+    }
+    for (let owner = 0; request.kind !== "lid" && owner < baseSolids.length; owner += 1) {
       const solid = baseSolids[owner];
       const componentEntries = selected.filter((entry) => entry.owner === owner);
       const componentEdges = componentEntries.map((entry) => entry.edge);
@@ -996,8 +1196,20 @@ async function bearbeiteAnfrage(request: CadModifierWorkerRequest, halter: { cad
           component = treatEdges(activeCad, solid, componentEdges, request);
         } catch (error) {
           if (isFatalKernelFault(error)) throw error;
-          const rawMessage = error instanceof Error ? error.message : String(error ?? "");
-          throw new EdgeTreatmentError(rawMessage, culpritEdgeIds(activeCad, solid, componentEntries, request, error));
+          const retried = treatWithCornerEdges(activeCad, solid, componentEntries, request);
+          const pastCorners = retried ? null : treatPastInnerCorners(activeCad, solid, componentEntries, request);
+          if (!retried && !pastCorners) {
+            const rawMessage = error instanceof Error ? error.message : String(error ?? "");
+            throw new EdgeTreatmentError(rawMessage, culpritEdgeIds(activeCad, solid, componentEntries, request, error));
+          }
+          if (retried) {
+            component = retried.component;
+            cornerEdgeIds.push(...retried.edgeIds);
+          } else {
+            component = pastCorners!.component;
+            innerCorners.count += pastCorners!.count;
+            innerCorners.amount = Math.min(innerCorners.amount, pastCorners!.cornerAmount);
+          }
         }
       }
       if (request.kind !== "shell" && componentEdges.length > 0 && !cadHasSolidBody(activeCad, component)) {
@@ -1017,12 +1229,11 @@ async function bearbeiteAnfrage(request: CadModifierWorkerRequest, halter: { cad
     if ((request.kind === "fillet" || request.kind === "chamfer") && cadFlatFaceMeshStraysFromOutline(activeCad, result)) {
       throw new Error("The chosen size creates invalid or overlapping edge geometry");
     }
-    const baseLoose = cadModifierTessellationDeflection(request.quality, Math.min(request.amount, request.endAmount ?? request.amount), request.minDeflection);
-    const baseCapped = cadModifierCappedDeflection(request.quality, baseLoose);
-    const loose = request.kind === "chamfillet"
-      ? { linear: Math.min(baseLoose.linear * 0.25, 0.0025), angular: Math.min(baseCapped.angular * 0.2, 0.028) }
-      : baseLoose;
-    const capped = request.kind === "chamfillet" ? loose : baseCapped;
+    // A Chamfillet is meshed as finely as the quality asks, like every other treatment: its own 0.0025 mm and 0.028 rad
+    // gave a 31 mm star 195,263 triangles and a design of 50 such bodies minutes to open (Discussion #1042). Its blend
+    // shades smooth from the kernel's normals; lib/cadMeshRelief.ts lightens the bodies it meshed before.
+    const loose = cadModifierTessellationDeflection(request.quality, Math.min(request.amount, request.endAmount ?? request.amount), request.minDeflection);
+    const capped = cadModifierCappedDeflection(request.quality, loose);
     const meshed = meshTreatedBody(activeCad, [...componentResults], result, loose, capped);
     // The body may have been replaced by fresh copies, meshed with the old angle.
     componentResults.splice(0, componentResults.length, ...meshed.components);
@@ -1055,7 +1266,7 @@ async function bearbeiteAnfrage(request: CadModifierWorkerRequest, halter: { cad
       };
     });
     post(
-      { type: "preview", requestId: request.requestId, positions: mesh.positions, normals: mesh.normals, indices: mesh.indices, triangleCount: mesh.triangleCount, brep, displayEdges, components, deflection },
+      { type: "preview", requestId: request.requestId, positions: mesh.positions, normals: mesh.normals, indices: mesh.indices, triangleCount: mesh.triangleCount, brep, displayEdges, components, deflection, ...(cornerEdgeIds.length ? { cornerEdgeIds } : {}), ...(innerCorners.count ? { innerCorners: { count: innerCorners.count, amount: innerCorners.amount } } : {}) },
       [
         mesh.positions.buffer,
         mesh.normals.buffer,

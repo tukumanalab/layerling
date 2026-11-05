@@ -75,7 +75,8 @@ import { writeCornerRulers } from "@/lib/cornerRulerStore";
 import { readTape, writeTape } from "@/lib/tapeStore";
 import { useFileAccept } from "@/lib/fileAccept";
 import { lylFileAccessSupported, onLylFilesLaunched, pickFilesToImport, rememberLylFile, type LylFileHandle } from "@/lib/lylFileAccess";
-import { exportLylProject, importLylProject, inspectLylProjectPackage, LYL_CREATED_WITH_VERSION, LYL_MEDIA_TYPE, withLylProjectName } from "@/lib/lylProject";
+import { exportLylProject, importLylProject, inspectLylProjectPackage, LYL_CREATED_WITH_VERSION, LYL_MEDIA_TYPE, withLylProjectName, withLylThumbnail } from "@/lib/lylProject";
+import { relieveOverFineCadMeshes, type RemeshCadBrep } from "@/lib/cadMeshRelief";
 import { backupDesignAlreadyThere, backupEntryPaths, backupFileName, backupFolderPaths, backupThumbnailPath, unpackBackupFolders, isBackupFileName, createBackupWriter, unpackBackup, zipHoldsDesigns } from "@/lib/projectBackup";
 import { CUSTOM_SHAPES_FOLDER } from "@/lib/customShapesServer";
 import { downloadBackup, pngDataUrl, projectThumbnailBlob, projectThumbnailPngBytes, serverCustomShapesBackupEntries, writeServerBackup } from "@/lib/backupDownload";
@@ -429,6 +430,9 @@ function projectResourceRecordId(projectId: string, kind: ProjectShapeResourceRe
   return `${projectId}:${projectResourceKey(kind, resourceId)}`;
 }
 
+/** The kernel's worker is only loaded for a design that has a body to mesh lighter (lib/cadMeshRelief.ts). */
+const remeshCadBrepLater: RemeshCadBrep = (brep, deflection, capped) => import("@/lib/editorSketchCad").then(({ remeshCadBrep }) => remeshCadBrep(brep, deflection, capped));
+
 async function loadProjectShapes(projectId: string) {
   const database = await openProjectShapesDb();
   const record = await new Promise<ProjectShapeRecord | null>((resolve, reject) => {
@@ -445,7 +449,7 @@ async function loadProjectShapes(projectId: string) {
   const storedPackage = record.lylPackage ?? record.skfPackage;
   if (storedPackage) {
     database.close();
-    const restored = await importLylProject(storedPackage);
+    const { project: restored, relieved } = await relieveOverFineCadMeshes(await importLylProject(storedPackage), remeshCadBrepLater);
     return {
       ...record,
       shapes: restored.shapes,
@@ -453,6 +457,8 @@ async function loadProjectShapes(projectId: string) {
       historyIndex: restored.historyIndex,
       assets: restored.assets,
       attachments: restored.attachments,
+      // Bodies meshed lighter than they were stored (Discussion #1042): the design is saved so again.
+      relievedMeshes: relieved,
     };
   }
 
@@ -1376,7 +1382,12 @@ export default function Home() {
             [activeProjectId]: reconciled,
           };
         });
-        if (record && !record.lylPackage && !record.skfPackage && loadedRevision > 0) {
+        if (record && "relievedMeshes" in record && record.relievedMeshes > 0) {
+          // The lighter meshes are saved, so the design opens light from now on (Discussion #1042).
+          void saveProjectShapesWhenIdle(activeProjectId, loadedEntry, projectShapeSaveContext(activeProject)).catch(() => {
+            // The stored design stays as it was and is lightened again on the next opening.
+          });
+        } else if (record && !record.lylPackage && !record.skfPackage && loadedRevision > 0) {
           // Migrate the data at the revision it was actually read from disk. Using the
           // newer project metadata revision here can let stale shapes outrank a live edit.
           void saveProjectShapesWhenIdle(activeProjectId, loadedEntry, projectShapeSaveContext(activeProject)).catch(() => {
@@ -1725,7 +1736,7 @@ export default function Home() {
   const openLylProjectFromFile = useCallback(async (file: File, sharedProject?: SharedProject, fileHandle?: LylFileHandle) => {
     setDashboardNotice(t("notice.validatingFile", { name: file.name }));
     try {
-      const restored = await importLylProject(await file.arrayBuffer());
+      const restored = (await relieveOverFineCadMeshes(await importLylProject(await file.arrayBuffer()), remeshCadBrepLater)).project;
       const now = Date.now();
       // A project on the server has one working copy here, not one per opening.
       // Without this, every visit to the folder left another namesake behind.
@@ -1783,17 +1794,17 @@ export default function Home() {
     }
   }, [openFolderId, projects, refreshSharedProjects]);
 
-  // A .lyl opened from the file manager with the installed app (#605). Only the first file: a design
-  // opens the editor, so a second one could not be shown anyway.
-  const openLaunchedFileRef = useRef(openLylProjectFromFile);
-  openLaunchedFileRef.current = openLylProjectFromFile;
+  // A .lyl opened from the file manager with the installed app (#605), or an .stl or .3mf (#1287), which
+  // becomes a new design as with Import on the start page. Only the first file: a design opens the editor,
+  // so a second one could not be shown anyway.
+  const openLaunchedFileRef = useRef<(file: File, handle: LylFileHandle) => Promise<unknown>>((file, handle) => openLylProjectFromFile(file, undefined, handle));
   useEffect(() => {
     if (!mounted) return;
     let taken = false;
     onLylFilesLaunched((file, handle) => {
       if (taken) return;
       taken = true;
-      void openLaunchedFileRef.current(file, undefined, handle).finally(() => { taken = false; });
+      void openLaunchedFileRef.current(file, handle).finally(() => { taken = false; });
     });
   }, [mounted]);
 
@@ -2017,7 +2028,8 @@ export default function Home() {
 
   /** Puts a project into a folder of the store as a file that is not there yet. */
   const putProjectOnServer = useCallback(async (project: DashboardProject, targetPath: string) => {
-    const bytes = await projectPackageBytes(project);
+    // The file carries the card's picture, for other programs to show (#1226).
+    const bytes = await withLylThumbnail(await projectPackageBytes(project), await projectThumbnailPngBytes(project.thumbnailUrl).catch(() => null));
     const { fileName } = sharedProjectSaveTarget({ projectName: project.name, exportName: project.name, binding: undefined });
     const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
     const projectBlob = new Blob([body], { type: LYL_MEDIA_TYPE });
@@ -2550,6 +2562,7 @@ export default function Home() {
     },
     [openFolderId, openLylProjectFromFile, placeNewDesign, projects.length, refreshSharedProjects, restoreBackup],
   );
+  openLaunchedFileRef.current = (file, handle) => importFilesFromDashboard([file], handle);
 
   /** Chrome and Edge: a file dialog that hands over the file's place, so Save can write back into it (#251). */
   const pickDashboardImport = async () => {

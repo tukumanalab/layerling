@@ -21,7 +21,7 @@ Szybkość przybliżania kółkiem ustawia {{ui:workspace.zoomSpeed}} w ustawien
 
 **Przyciski myszy jak w slicerze.** Jeśli przywykłeś do Bambu Studio albo OrcaSlicer, ustaw w ustawieniach, w sekcji {{ui:workspace.appearance}}, {{ui:workspace.mouseScheme}} na {{ui:workspace.mouseSchemeSlicer}}. Przeciągnięcie lewym przyciskiem po pustym miejscu obraca wtedy widok, prawy przycisk przesuwa go tak jak środkowy, a [[Shift]] z przeciągnięciem lewym rysuje ramkę zaznaczenia. Przeciągnięcie bryły nadal ją przesuwa, a krótkie kliknięcie prawym nadal otwiera menu. W szkicu prawy przycisk też przesuwa widok.
 
-**Mysz 3D.** SpaceMouse albo inna mysz 3D obraca, przesuwa i przybliża widok 3D: odepchnij nakładkę od siebie, aby przybliżyć, przesuń ją, aby przesunąć widok, przechyl ją, aby pochylić widok, i przekręć ją, aby obrócić widok dookoła. W ustawieniach, w sekcji {{ui:workspace.appearance}}, kliknij {{ui:workspace.spaceMouseConnect}} i wybierz urządzenie w oknie, które otworzy przeglądarka. Przeglądarka zapamiętuje ten wybór, więc trzeba to zrobić tylko raz. Działa to w Chrome i Edge, które mają dostęp do takich urządzeń. Firefox i Safari go nie mają.
+**Mysz 3D.** SpaceMouse albo inna mysz 3D obraca, przesuwa i przybliża widok 3D: odepchnij nakładkę od siebie, aby przybliżyć, przesuń ją, aby przesunąć widok, przechyl ją, aby pochylić widok, i przekręć ją, aby obrócić widok dookoła. W ustawieniach, w sekcji {{ui:workspace.appearance}}, kliknij {{ui:workspace.spaceMouseConnect}} i wybierz urządzenie w oknie, które otworzy przeglądarka. Przeglądarka zapamiętuje ten wybór, więc trzeba to zrobić tylko raz. Działa to w Chrome i Edge, które mają dostęp do takich urządzeń. Firefox i Safari go nie mają. Jeśli któryś kierunek działa odwrotnie, zaznacz go pod przyciskiem: przesunięcie na boki, przesunięcie w górę i w dół, powiększenie, pochylenie lub obrót.
 
 Na tablecie lub telefonie dwa palce przybliżają (rozsuwanie i ściąganie) i przesuwają widok (przesuwanie razem). Jeden palec na pustym miejscu obraca widok, a stuknięcie tam czyści zaznaczenie. Na kształcie lub uchwycie palec działa na projekt, tak jak lewy przycisk myszy. Aby obracać widok palcem, który zaczyna ruch także na kształcie, włącz {{ui:camera.touchRotate}} na pasku widoku. Ten przełącznik pojawia się na urządzeniach z ekranem dotykowym.
 
@@ -42,14 +42,15 @@ Przeciągnij kostkę, aby obrócić widok, tak samo jak przeciąganiem prawym pr
 Przy lewej krawędzi jest wąski pasek. Od góry:
 
 - {{ui:camera.home}} pokazuje z powrotem całą scenę. Klawisz to [[Home]], a gdy nic nie jest zaznaczone, robi to też [[F]].
-- {{ui:camera.focusSelection}} przybliża do zaznaczenia ([[F]] albo [[Shift]]+[[F]]).
+- {{ui:camera.focusSelection}} przybliża do zaznaczenia ([[Shift]]+[[F]]). Gdy nic nie jest zaznaczone, mieści w widoku całą scenę, tak jak [[F]].
 - {{ui:camera.zoomIn}} i {{ui:camera.zoomOut}} przybliżają krok po kroku, podobnie jak klawisze [[+]] i [[−]].
 - {{ui:camera.orthographic}} przełącza na płaski widok, w którym równoległe krawędzie zostają równoległe. Do mierzenia i wyrównywania krawędzi bywa wygodniejszy od widoku perspektywicznego. [[O]] przełącza w obie strony, a drugie kliknięcie przywraca poprzedni widok.
 - {{ui:camera.secondView}} otwiera drugi widok projektu we własnym oknie, opisanym niżej. Drugie kliknięcie je zamyka.
+- {{ui:camera.showScrollbars}} pokazuje pasek przewijania u dołu widoku i drugi wzdłuż jego prawej krawędzi. Przeciągnij pasek, aby płynnie przesuwać widok, kliknij strzałkę na jego końcu, aby przesunąć go odrobinę (przytrzymaj, aby przesuwać dalej), albo kliknij obok paska, aby przesunąć o prawie cały widok. Nic się nie obraca, a w przeciwieństwie do klawiszy strzałek paski działają także przy zaznaczonej części - przydatne z bliska przy drobnych szczegółach. Drugie kliknięcie je ukrywa; ta przeglądarka zapamiętuje wybór.
 - {{ui:camera.hideWorkplane}} (oko nad siatką) ukrywa płytę z siatką, żeby obejrzeć projekt od spodu. Zmienia się tylko widok: nowe kształty dalej trafiają na płaszczyznę roboczą. Drugie kliknięcie pokazuje ją z powrotem.
 - {{ui:camera.placeWorkplane}}, narzędzie Zmierz i kątownik to osobne narzędzia, opisane niżej i w rozdziale [Pomiary i notatki](chapter:measuring-and-notes).
 
-Mała strzałka na samej górze paska ukrywa go, jeśli przeszkadza.
+Mała strzałka na samej górze paska ukrywa go, jeśli przeszkadza. Ten sam przycisk, przeciągnięty, przenosi pasek w dowolne miejsce edytora, także w szkicu, a dwukrotne kliknięcie odkłada go z powrotem. Podgląd 3D obracanego szkicu przesuwa się tak samo za swój tytuł.
 
 Projekt otwiera się tak, jak go zostawiłeś: kąt, przybliżenie i położenie widoku zapamiętuje ta przeglądarka, więc kontynuujesz tam, gdzie skończyłeś, także po powrocie do strony startowej albo zamknięciu strony. Zapisany plik (.lyl) zabiera widok ze sobą, więc także gdzie indziej otworzy się w tym widoku. Widok nie należy do historii cofania.
 
@@ -75,7 +76,7 @@ W każdym projekcie możesz też zachować cztery własne widoki. [[Shift]]+[[7]
 
 Okno narzędzia jest przypięte do swojego przycisku. Jeśli coś zasłania, przeciągnij je za pasek tytułu w dowolne miejsce na płaszczyźnie roboczej, a następnym razem otworzy się tam. Dwukrotne kliknięcie paska tytułu albo upuszczenie okna przy przycisku odkłada je na miejsce.
 
-X i [[Esc]] zamykają okno, a gdy trwa pomiar, [[Esc]] najpierw go kończy. Przekrój zostaje, dopóki nie wyłączysz go przyciskiem {{ui:camera.sectionActive}} albo nie wrócisz do przeglądu projektów. Dopóki jest włączony, jego przycisk pozostaje podświetlony. Wszystko, co umieścisz po odciętej stronie, pokaże się dopiero po wyłączeniu przekroju. Tablet nie ma klawisza [[Esc]], dlatego okno ma tam dwa dodatkowe przyciski: {{ui:camera.sectionBack}} kończy trwający pomiar, a jeśli żaden nie trwa, zamyka okno, a {{ui:camera.sectionConfirm}} zamyka okno jednym krokiem. Na komputerze ich nie widać.
+X i [[Esc]] zamykają okno, a gdy trwa pomiar, [[Esc]] najpierw go kończy. Przekrój zostaje, dopóki nie wyłączysz go przyciskiem {{ui:camera.sectionActive}}, nie klikniesz jego przycisku na pasku, gdy okno jest otwarte, albo nie wrócisz do przeglądu projektów. Dopóki jest włączony, jego przycisk pozostaje podświetlony. Wszystko, co umieścisz po odciętej stronie, pokaże się dopiero po wyłączeniu przekroju. Tablet nie ma klawisza [[Esc]], dlatego okno ma tam dwa dodatkowe przyciski: {{ui:camera.sectionBack}} kończy trwający pomiar, a jeśli żaden nie trwa, zamyka okno, a {{ui:camera.sectionConfirm}} zamyka okno jednym krokiem. Na komputerze ich nie widać.
 
 ## Płaszczyzna robocza
 
@@ -103,7 +104,7 @@ Siatka pokazuje rozmiar płyty. W prawym dolnym rogu jest **krok przyciągania**
 
 ### Okno ustawień
 
-Koło zębate na wstążce ({{ui:editor.workspaceSettings}}) otwiera ustawienia. Po lewej jest pięć sekcji: {{ui:workspace.appearance}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}} i {{ui:workspace.history}}. Każda zmiana działa od razu. {{ui:workspace.makeDefault}} na dole zapisuje bieżące ustawienia jako domyślne, żeby nowy projekt z nimi zaczynał. Otwierany plik przynosi własne ustawienia, a {{ui:workspace.useMyDefault}} obok nakłada na otwarty projekt Twoje zapisane kolory, siatkę i resztę, zachowując jego jednostki. Jeśli Twoje ustawienia domyślne mają drukarkę, przychodzi ona razem z rozmiarem swojego stołu, a bez niej projekt zachowuje swoją płytę i drukarkę. {{ui:workspace.close}} w prawym górnym rogu zamyka okno. Ta część omawia ustawienia po kolei.
+Koło zębate w wierszu tytułu ({{ui:editor.workspaceSettings}}) otwiera ustawienia. Po lewej jest pięć sekcji: {{ui:workspace.appearance}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}} i {{ui:workspace.history}}. Każda zmiana działa od razu. {{ui:workspace.makeDefault}} na dole zapisuje bieżące ustawienia jako domyślne, żeby nowy projekt z nimi zaczynał. Otwierany plik przynosi własne ustawienia, a {{ui:workspace.useMyDefault}} obok nakłada na otwarty projekt Twoje zapisane kolory, siatkę i resztę, zachowując jego jednostki. Jeśli Twoje ustawienia domyślne mają drukarkę, przychodzi ona razem z rozmiarem swojego stołu, a bez niej projekt zachowuje swoją płytę i drukarkę. {{ui:workspace.close}} w prawym górnym rogu zamyka okno. Ta część omawia ustawienia po kolei.
 
 ### Wygląd: motyw, pasek narzędzi i kostka widoku
 
@@ -167,7 +168,7 @@ Widok szkicu ma własne kolory: {{ui:workspace.sketchBackground}} dla okna wokó
 
 {{ui:workspace.zoomSpeed}} to suwak od wolno do szybko: jak szybko przybliżają kółko i touchpad. Przyciski i klawisze przybliżania zachowują własne małe kroki. {{ui:workspace.cameraInertia}}: gdy puścisz mysz, widok obraca się jeszcze przez chwilę i łagodnie zwalnia. Po wyłączeniu zatrzymuje się od razu, jak w Tinkercadzie i Fusion 360.
 
-{{ui:workspace.overhangAngle}} to kąt, od którego ściana liczy się jako nawis, gdy włączysz Pokaż nawisy w menu widoczności: takie ściany są kreskowane na czerwono i biało. 30° to ostrożnie, 70° zakłada dobre chłodzenie wydruku, a 45° to zwykły punkt wyjścia.
+{{ui:workspace.overhangAngle}} to kąt, od którego ściana liczy się jako nawis, gdy włączysz Pokaż nawisy w menu widoczności: takie ściany są kreskowane na czerwono i biało. 30° to ostrożnie, 70° zakłada dobre chłodzenie wydruku, a 45° to zwykły punkt wyjścia. Dopóki są pokazane, wiersz pod widokiem podaje najbardziej stromy nawis i ile cm² wymaga podpór.
 
 {{ui:workspace.booleanTriangleLimit}} ogranicza, ile trójkątów może mieć zaimportowana siatka przy cięciu, scalaniu albo części wspólnej, bo jest to liczone w przeglądarce. Siatka powyżej limitu nie jest przetwarzana. Najpierw uprość siatkę albo podnieś limit, jeśli Twój komputer to udźwignie. Wyższy limit może zamrozić edytor na kilka sekund.
 

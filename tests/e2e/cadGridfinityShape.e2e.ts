@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { GRIDFINITY_LIP_HEIGHT, gridfinityTriangles } from "@/lib/gridfinityGeometry";
+import { DEFAULT_GRIDFINITY_SWALLOWTAIL_CLEARANCE, GRIDFINITY_LIP_HEIGHT, GRIDFINITY_SWALLOWTAIL_KEY_THICKNESS, GRIDFINITY_SWALLOWTAIL_LIP_HEIGHT, MAX_GRIDFINITY_SWALLOWTAIL_CLEARANCE, gridfinitySwallowtailKeyOutline, gridfinityTriangles } from "@/lib/gridfinityGeometry";
 import { gridfinityPartSolid } from "@/lib/gridfinitySolid";
-import { cad, bin, plate, meshVolume, trianglesVolume, meshBounds, overlap, material } from "./helpers/gridfinityHarness";
+import { cad, bin, plate, meshVolume, trianglesVolume, meshBounds, overlap, material, expectBuilt } from "./helpers/gridfinityHarness";
 
 
 /*
@@ -22,6 +22,37 @@ describe("exact Gridfinity bodies", () => {
       const { min, max } = meshBounds(part);
       [box.xmin - min[0], box.ymin - min[1], box.zmin - min[2], box.xmax - max[0], box.ymax - max[1], box.zmax - max[2]].forEach((d) => expect(Math.abs(d)).toBeLessThan(0.01));
     }
+  });
+
+  it("builds Swallowtail plates on their floor with their pockets as one valid solid with the mesh's volume and box", () => {
+    for (const part of [plate({ gridfinitySwallowtail: true }), plate({ width: 42, gridfinitySwallowtail: true }), plate({ width: 136, depth: 84, gridfinityPaddingRight: 10, gridfinitySwallowtail: true }), plate({ gridfinityCornerRadius: 0, gridfinitySwallowtail: true })]) expectBuilt(part);
+  });
+
+  it("builds a Swallowtail plate of 12 x 12 units, its 48 pockets in the same cut as its sockets", () => {
+    expectBuilt(plate({ width: 504, depth: 504, gridfinityLargePlate: true, gridfinitySwallowtail: true }));
+  });
+
+  it("holds a key across the seam of two Swallowtail plates: clear above the lip, caught by it below up to the most clearance", () => {
+    const left = gridfinityPartSolid(cad, plate({ gridfinitySwallowtail: true }));
+    const right = cad.translate(left, 84, 0, 0);
+    // The key's outline lying flat at the seam (x = 42, z = 0), 1.4 mm thick from y0 up, in the plates' own frame (y up).
+    const key = (y0: number, clearance = DEFAULT_GRIDFINITY_SWALLOWTAIL_CLEARANCE) => {
+      const points = gridfinitySwallowtailKeyOutline(clearance).map((p) => ({ x: 42 + p.x, y: y0, z: p.z }));
+      const face = cad.makeFace(cad.makeWire(points.map((p, i) => cad.makeLineEdge(p, points[(i + 1) % points.length]))));
+      return cad.extrude(face, 0, GRIDFINITY_SWALLOWTAIL_KEY_THICKNESS, 0);
+    };
+    const pressedIn = key(GRIDFINITY_SWALLOWTAIL_LIP_HEIGHT);
+    expect(overlap(pressedIn, left) + overlap(pressedIn, right)).toBeLessThan(1e-6);
+    // Below, only the slotted ends meet the lip, which grows to 0.2 mm at the pocket's end: the most clearance, 0.15 mm,
+    // still leaves a little of it to catch. The key's sides close in on the pocket's towards its ends (5/7 of the clearance
+    // there), so only at about 0.26 mm would nothing be caught.
+    const caught = (clearance: number) => { const atTheLip = key(0, clearance); return overlap(atTheLip, left) + overlap(atTheLip, right); };
+    // The key's middle, up to its slots 2.45 mm either side of the seam, meets nothing on the way in: the seam is open.
+    const middle = cad.intersect(key(0), cad.translate(cad.makeBox(4.9, 3, 12), 42 - 2.45, -1, -6));
+    expect(overlap(middle, left) + overlap(middle, right)).toBeLessThan(1e-6);
+    expect(caught(DEFAULT_GRIDFINITY_SWALLOWTAIL_CLEARANCE)).toBeGreaterThan(0.5);
+    expect(caught(MAX_GRIDFINITY_SWALLOWTAIL_CLEARANCE)).toBeGreaterThan(0.02);
+    expect(caught(0.3)).toBeLessThan(1e-6);
   });
 
   it("fits bins in baseplates 0.25 mm up, where a bigger bin rests on the ridges, and 0.3 mm sideways they overlap", () => {
@@ -170,6 +201,11 @@ describe("exact Gridfinity bodies", () => {
       bin({ gridfinityLip: false, height: 21, gridfinityFloorHeight: 20.99 }),
       bin({ height: 42 + GRIDFINITY_LIP_HEIGHT, gridfinityFloorHeight: 20, gridfinityScoopFront: true, gridfinityScoopRight: true, gridfinityLabelBack: true }),
       bin({ gridfinityHalfGrid: true, width: 20.5, depth: 41.5, gridfinityFloorHeight: 12 }),
+      // With the lip filled too (#1126): from its top, 21 + 4.4, up.
+      bin({ gridfinityFloorHeight: 25.4 }),
+      bin({ gridfinityFloorHeight: 30, gridfinityMagnets: true, gridfinityLipChamfer: 0.5 }),
+      bin({ gridfinityFloorHeight: 25.4, gridfinityScoopFront: true, gridfinityLabelBack: true, gridfinityOpenLeft: true, gridfinityCompartmentsX: 2, gridfinityBinCornerRadius: 1 }),
+      bin({ width: 41.5, depth: 41.5, height: 7 + GRIDFINITY_LIP_HEIGHT, gridfinityFloorHeight: 7 + GRIDFINITY_LIP_HEIGHT }),
     ]) {
       const solid = gridfinityPartSolid(cad, part);
       expect(cad.isValid(solid)).toBe(true);
@@ -184,6 +220,10 @@ describe("exact Gridfinity bodies", () => {
     const block = gridfinityPartSolid(cad, bin({ gridfinityLip: false, height: 21, gridfinityFloorHeight: 21 }));
     const tops = cad.getSubShapes(block, "face").filter((face) => { const b = cad.getBoundingBox(face); return Math.abs(b.ymin - 21) < 1e-6 && Math.abs(b.ymax - 21) < 1e-6; });
     expect(tops).toHaveLength(1);
+    // Filled to the lip's top, one flat top too, where the lip's slopes and the ledge would have been.
+    const filled = gridfinityPartSolid(cad, bin({ gridfinityFloorHeight: 25.4 }));
+    expect(cad.getSubShapes(filled, "face").filter((face) => { const b = cad.getBoundingBox(face); return Math.abs(b.ymin - 25.4) < 1e-6 && Math.abs(b.ymax - 25.4) < 1e-6; })).toHaveLength(1);
+    expect(cad.getBoundingBox(filled).ymax).toBeCloseTo(25.4, 6);
     // A bin stacked on one raised to the highest sits as on a plain one, its feet 1.3 mm above the floor: pushed 1.25 mm
     // further down they cut into the lip only, as much as on a plain bin; 1.35 mm down they reach the floor.
     const plain = gridfinityPartSolid(cad, bin({ width: 41.5, depth: 41.5 }));

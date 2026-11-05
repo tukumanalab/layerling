@@ -16,6 +16,10 @@ import { createCrescentGeometry } from "@/lib/crescentGeometry";
 import { createSlotGeometry } from "@/lib/slotGeometry";
 import { createDovetailGeometry } from "@/lib/dovetailGeometry";
 import { createParaboloidGeometry } from "@/lib/roundBodyGeometry";
+import { createCurvedConeGeometry } from "@/lib/curvedCone";
+import { createScrewBossGeometry } from "@/lib/screwBoss";
+import { createSnapFitGeometry } from "@/lib/snapFit";
+import { createRibGeometry } from "@/lib/rib";
 import { createLoftGeometry } from "@/lib/loftGeometry";
 import { createHingeGeometry } from "@/lib/hingeGeometry";
 import { createGridfinityGeometry } from "@/lib/gridfinityGeometry";
@@ -256,6 +260,27 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     segments: shape.segments,
     topRadius: shape.topRadius,
     baseRadius: shape.baseRadius,
+    curvedConeTop: shape.curvedConeTop,
+    curvedConeBend: shape.curvedConeBend,
+    screwBossFastener: shape.screwBossFastener,
+    // A boss grouped as a hole is drawn as its hole alone (see screwBossCavityMesh).
+    screwBossAsHole: shape.kind === "screwBoss" && shape.hole ? true : undefined,
+    screwBossSize: shape.screwBossSize,
+    screwBossHole: shape.screwBossHole,
+    screwBossHoleDepth: shape.screwBossHoleDepth,
+    screwBossDiameter: shape.screwBossDiameter,
+    screwBossGussets: shape.screwBossGussets,
+    screwBossGussetHeight: shape.screwBossGussetHeight,
+    screwBossGussetThickness: shape.screwBossGussetThickness,
+    snapFitPart: shape.snapFitPart,
+    snapFitThickness: shape.snapFitThickness,
+    snapFitUndercut: shape.snapFitUndercut,
+    snapFitClearance: shape.snapFitClearance,
+    snapFitLeadAngle: shape.snapFitLeadAngle,
+    snapFitRetainAngle: shape.snapFitRetainAngle,
+    snapFitFoot: shape.snapFitFoot,
+    ribStyle: shape.ribStyle,
+    ribTop: shape.ribTop,
     topWidth: shape.topWidth,
     topDepth: shape.topDepth,
     taperTopWidth: shape.taperTopWidth,
@@ -285,6 +310,7 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     threadHead: shape.threadHead,
     threadHand: shape.threadHand,
     threadProfile: shape.threadProfile,
+    threadTaper: shape.threadTaper,
     threadDiameter: shape.threadDiameter,
     threadPitch: shape.threadPitch,
     threadClearance: shape.threadClearance,
@@ -301,6 +327,8 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     threadDrive: shape.threadDrive,
     threadDriveSize: shape.threadDriveSize,
     threadDriveDepth: shape.threadDriveDepth,
+    threadCollarHeight: shape.threadCollarHeight,
+    threadCollarDiameter: shape.threadCollarDiameter,
     springTurns: shape.springTurns,
     springWire: shape.springWire,
     springHand: shape.springHand,
@@ -348,6 +376,7 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     gridfinityMagnets: shape.gridfinityMagnets,
     gridfinityHalfGrid: shape.gridfinityHalfGrid,
     gridfinityLargePlate: shape.gridfinityLargePlate,
+    gridfinitySwallowtail: shape.gridfinitySwallowtail,
     gridfinityLabelBack: shape.gridfinityLabelBack,
     gridfinityLabelFront: shape.gridfinityLabelFront,
     gridfinityLabelLeft: shape.gridfinityLabelLeft,
@@ -449,6 +478,7 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     textStretch: shape.textStretch,
     textVertical: shape.textVertical,
     textSpacing: shape.textSpacing,
+    textLetterWidth: shape.textLetterWidth,
     textKeyring: shape.textKeyring,
     textEdge: shape.textEdge,
     // A fill is built by the 2D kernel; until it has loaded the text is drawn plain (#215).
@@ -618,6 +648,27 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     segments: shape.segments,
     topRadius: shape.topRadius,
     baseRadius: shape.baseRadius,
+    curvedConeTop: shape.curvedConeTop,
+    curvedConeBend: shape.curvedConeBend,
+    screwBossFastener: shape.screwBossFastener,
+    // A boss grouped as a hole is drawn as its hole alone (see screwBossCavityMesh).
+    screwBossAsHole: shape.kind === "screwBoss" && shape.hole ? true : undefined,
+    screwBossSize: shape.screwBossSize,
+    screwBossHole: shape.screwBossHole,
+    screwBossHoleDepth: shape.screwBossHoleDepth,
+    screwBossDiameter: shape.screwBossDiameter,
+    screwBossGussets: shape.screwBossGussets,
+    screwBossGussetHeight: shape.screwBossGussetHeight,
+    screwBossGussetThickness: shape.screwBossGussetThickness,
+    snapFitPart: shape.snapFitPart,
+    snapFitThickness: shape.snapFitThickness,
+    snapFitUndercut: shape.snapFitUndercut,
+    snapFitClearance: shape.snapFitClearance,
+    snapFitLeadAngle: shape.snapFitLeadAngle,
+    snapFitRetainAngle: shape.snapFitRetainAngle,
+    snapFitFoot: shape.snapFitFoot,
+    ribStyle: shape.ribStyle,
+    ribTop: shape.ribTop,
     topWidth: shape.topWidth,
     topDepth: shape.topDepth,
     taperTopWidth: shape.taperTopWidth,
@@ -647,6 +698,7 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     threadHead: shape.threadHead,
     threadHand: shape.threadHand,
     threadProfile: shape.threadProfile,
+    threadTaper: shape.threadTaper,
     threadDiameter: shape.threadDiameter,
     threadPitch: shape.threadPitch,
     threadClearance: shape.threadClearance,
@@ -663,6 +715,8 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     threadDrive: shape.threadDrive,
     threadDriveSize: shape.threadDriveSize,
     threadDriveDepth: shape.threadDriveDepth,
+    threadCollarHeight: shape.threadCollarHeight,
+    threadCollarDiameter: shape.threadCollarDiameter,
     springTurns: shape.springTurns,
     springWire: shape.springWire,
     springHand: shape.springHand,
@@ -710,6 +764,7 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     gridfinityMagnets: shape.gridfinityMagnets,
     gridfinityHalfGrid: shape.gridfinityHalfGrid,
     gridfinityLargePlate: shape.gridfinityLargePlate,
+    gridfinitySwallowtail: shape.gridfinitySwallowtail,
     gridfinityLabelBack: shape.gridfinityLabelBack,
     gridfinityLabelFront: shape.gridfinityLabelFront,
     gridfinityLabelLeft: shape.gridfinityLabelLeft,
@@ -811,6 +866,7 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     textStretch: shape.textStretch,
     textVertical: shape.textVertical,
     textSpacing: shape.textSpacing,
+    textLetterWidth: shape.textLetterWidth,
     textKeyring: shape.textKeyring,
     textEdge: shape.textEdge,
     // A fill is built by the 2D kernel; until it has loaded the text is drawn plain (#215).
@@ -841,8 +897,12 @@ export function selectionFrameForShapes(
   // axes, or a tilted cylinder distorts when dragged.
   // A shape's handles write their sizes to its own width, depth and height, so a workplane that stands across
   // its up axis (on a side face) must not give them its axes: the sizes would land on the wrong dimensions (#933).
+  // Nor one the shape is turned on (a box turned 90° on a raised face): its width would become the depth (#1163).
+  const singleQuaternion = singleShape ? quaternionForShape(singleShape) : null;
+  const alongWorkplane = (axis: THREE.Vector3, workplaneAxis: PlacementWorkplane["normal"]) =>
+    Math.abs(axis.applyQuaternion(singleQuaternion!).dot(new THREE.Vector3(workplaneAxis.x, workplaneAxis.y, workplaneAxis.z).normalize())) > 0.999;
   const useWorkplane = Boolean(workplane) && !placementWorkplaneIsBase(workplane!)
-    && (!singleShape || Math.abs(new THREE.Vector3(0, 1, 0).applyQuaternion(quaternionForShape(singleShape)).dot(new THREE.Vector3(workplane!.normal.x, workplane!.normal.y, workplane!.normal.z).normalize())) > 0.999);
+    && (!singleShape || (alongWorkplane(new THREE.Vector3(0, 1, 0), workplane!.normal) && alongWorkplane(new THREE.Vector3(1, 0, 0), workplane!.xAxis)));
   const quaternion = useWorkplane
     ? placementWorkplaneQuaternion(workplane!)
     : singleShape ? quaternionForShape(singleShape) : new THREE.Quaternion();
@@ -1897,6 +1957,7 @@ export function createShapeObject(
         gridfinityMagnets: shape.gridfinityMagnets,
         gridfinityHalfGrid: shape.gridfinityHalfGrid,
         gridfinityLargePlate: shape.gridfinityLargePlate,
+        gridfinitySwallowtail: shape.gridfinitySwallowtail,
         gridfinityLabelBack: shape.gridfinityLabelBack,
         gridfinityLabelFront: shape.gridfinityLabelFront,
         gridfinityLabelLeft: shape.gridfinityLabelLeft,
@@ -1997,6 +2058,18 @@ export function createShapeObject(
       break;
     case "paraboloid":
       addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createParaboloidGeometry(width, height, depth, shape.steps ?? 32)), material, shape);
+      break;
+    case "curvedCone":
+      addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createCurvedConeGeometry(width, height, depth, shape.curvedConeTop, shape.curvedConeBend, roundSideCount(shape.sides, width, depth))), material, shape);
+      break;
+    case "screwBoss":
+      addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createScrewBossGeometry({ ...shape, width, depth, height })), material, shape);
+      break;
+    case "snapFit":
+      addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createSnapFitGeometry({ ...shape, width, depth, height })), material, shape);
+      break;
+    case "rib":
+      addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createRibGeometry({ ...shape, width, depth, height })), material, shape);
       break;
     case "torus":
       addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createTorusGeometry(width, height, depth, shape)), material, shape);
@@ -2099,6 +2172,7 @@ export function createShapeObject(
         threadHead: shape.threadHead,
         threadHand: shape.threadHand,
         threadProfile: shape.threadProfile,
+        threadTaper: shape.threadTaper,
         threadDiameter: shape.threadDiameter,
         threadPitch: shape.threadPitch,
         threadClearance: shape.threadClearance,
@@ -2115,6 +2189,8 @@ export function createShapeObject(
         threadDrive: shape.threadDrive,
         threadDriveSize: shape.threadDriveSize,
         threadDriveDepth: shape.threadDriveDepth,
+        threadCollarHeight: shape.threadCollarHeight,
+        threadCollarDiameter: shape.threadCollarDiameter,
       })), material, shape);
       break;
     case "spring":
@@ -2487,7 +2563,7 @@ export function addShapeEdgeDecorations(group: THREE.Group, mesh: THREE.Mesh, pr
   const complexEdges =
     shape.kind === "mesh" ||
     Boolean(shape.importedMesh) ||
-    ["cone", "pyramid", "roof", "roundRoof", "halfSphere", "paraboloid", "torus", "tube", "ring", "star", "gear", "hirth", "wedge", "polygon", "heart", "crescent", "slot", "dovetail", "hinge", "gridfinity", "knurl", "teardrop", "port", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "honeycomb", "loft"].includes(shape.kind);
+    ["cone", "pyramid", "roof", "roundRoof", "halfSphere", "paraboloid", "curvedCone", "torus", "tube", "ring", "star", "gear", "hirth", "wedge", "polygon", "heart", "crescent", "slot", "dovetail", "screwBoss", "snapFit", "rib", "hinge", "gridfinity", "knurl", "teardrop", "port", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "honeycomb", "loft"].includes(shape.kind);
   const importedTriangleCount = shape.importedMesh?.triangleCount ?? 0;
   // A vase's relief has an edge at every rib: drawn like a heavy imported mesh, without the lines.
   const skipHeavyImportedEdges = (Boolean(shape.importedMesh) && importedTriangleCount > IMPORTED_SELECTED_EDGE_TRIANGLE_LIMIT)

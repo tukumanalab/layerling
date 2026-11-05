@@ -1,5 +1,920 @@
 [
   {
+    "version": "1.141.0",
+    "items": [
+      {
+        "title": {
+          "de": "Maße beim Verschieben auch mit den Pfeiltasten",
+          "en": "Movement dimensions with the arrow keys too"
+        },
+        "body": {
+          "de": "Ist „Maße beim Verschieben zeigen“ an, zeigen jetzt auch die Pfeiltasten, um wie viel du die Auswahl verschiebst, wie beim Ziehen mit der Maus. Die Tastendrücke zählen zusammen, bis du etwas anderes auswählst oder ziehst; Strg+↑ und Strg+↓ zeigen den Weg nach oben oder unten. Danach kannst du die Zahl anklicken und den genauen Weg eintippen.",
+          "en": "With \"Show movement dimensions\" on, the arrow keys now show by how much you move the selection too, as a drag with the mouse does. The presses add up until you select something else or drag; Ctrl+↑ and Ctrl+↓ show the way up or down. Then click the number to type the exact distance."
+        }
+      },
+      {
+        "title": {
+          "de": "Swallowtail-Verbinder, die passen",
+          "en": "Swallowtail keys that fit"
+        },
+        "body": {
+          "de": "Die Verbinder für Swallowtail-Bodenplatten gehen leichter hinein: Die Fuge ist offen, und der Absatz hält nur noch die geschlitzten Enden. Mit „Spiel der Verbinder“ unter „Swallowtail“ im Eigenschaften-Fenster machst du sie für deinen Drucker lockerer oder strammer; klicke danach noch einmal auf „Verbinder anlegen“.",
+          "en": "The keys for Swallowtail baseplates go in more easily: the seam is open, and the lip only holds their slotted ends. With \"Key clearance\" under \"Swallowtail\" in the Properties panel you make them looser or tighter for your printer; click \"Add keys\" again afterwards."
+        }
+      },
+      {
+        "title": {
+          "de": "Deckel mit Klicknoppen und Griff",
+          "en": "Lids with click bumps and a handle"
+        },
+        "body": {
+          "de": "Das Deckelwerkzeug kann den Deckel jetzt einrasten lassen: kleine Noppen am Deckelrand klicken in Mulden der Gehäusewand. Dazu gibt es unter „Griff“ eine Zugzunge oder eine Fingermulde. So hält ein Deckel ohne Magnete, und du bekommst ihn wieder auf.",
+          "en": "The Lid tool can now click the lid in: small bumps on the lid's rim snap into dimples in the box's wall. Under \"Handle\" there is also a pull tab or a finger notch. So a lid stays shut without magnets, and you can still get it off."
+        }
+      },
+      {
+        "title": {
+          "de": "Scharnier bündig in der Wand oder als Drehdeckel",
+          "en": "Hinge flush in the wall, or a pivot lid"
+        },
+        "body": {
+          "de": "Unter „Scharnier“ wählst du die Art: außen wie bisher, bündig in der Rückwand, damit die Box ihre Größe behält, oder ein Drehdeckel auf zwei Stiften. Das Spiel des Stifts stellst du jetzt selbst ein, falls er sich schwer einschieben lässt.",
+          "en": "Under \"Hinge\" you pick the type: outside as before, flush in the back wall so the box keeps its size, or a pivot lid on two pins. You set the pin's play yourself now, in case it is hard to push in."
+        }
+      },
+      {
+        "title": {
+          "de": "Schraubdom als Loch schneidet nur die Tasche",
+          "en": "A screw boss as a hole cuts only its pocket"
+        },
+        "body": {
+          "de": "Ein Schraubdom, der als Loch in einen Block gruppiert wird, schneidet jetzt nur noch die Tasche für den Gewindeeinsatz und nicht mehr den ganzen Pfosten.",
+          "en": "A screw boss grouped into a block as a hole now cuts only the pocket for the threaded insert, no longer the whole post."
+        }
+      },
+      {
+        "title": {
+          "de": "Vase: Ansicht bleibt beim Feinjustieren stehen",
+          "en": "Vase: the view stays put while you fine-tune"
+        },
+        "body": {
+          "de": "Im Zeichenfenster der Vase springt die Ansicht nicht mehr heraus, wenn du hineingezoomt einen Punkt oder Griff loslässt. Der Doppelklick auf die Linie fügt wieder einen Punkt ein.",
+          "en": "In the vase drawing window the view no longer jumps back out when you drop a point or a handle zoomed in. A double-click on the line adds a point again."
+        }
+      },
+      {
+        "title": {
+          "de": "Bildtextur „Einmal“ ohne Löcher auf runden Körpern",
+          "en": "Image texture \"Once\" without holes on round bodies"
+        },
+        "body": {
+          "de": "Ein einmal aufgesetztes Bild reißt keine Stücke aus Kugeln mehr und lässt sich auf abgerundeten Platten speichern. Sind Flächen gewählt, landet es auf ihnen.",
+          "en": "An image pressed on once no longer tears pieces out of spheres and can be saved on rounded plates. With faces picked, it lands on them."
+        }
+      },
+      {
+        "title": {
+          "de": "3D-Maus: Richtungen umdrehbar",
+          "en": "3D mouse: directions can be reversed"
+        },
+        "body": {
+          "de": "Seitlich schieben, hoch und runter schieben, Kippen und Drehen der SpaceMouse laufen jetzt andersherum als vorher. Unter „3D-Maus“ in den Einstellungen kannst du jede Richtung einzeln umdrehen.",
+          "en": "Shifting sideways, shifting up and down, tilting and twisting on the SpaceMouse now run the other way than before. Under \"3D mouse\" in the settings you can reverse each direction on its own."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.140.0",
+    "items": [
+      {
+        "title": {
+          "de": "Maßkästchen in Achsenfarben",
+          "en": "Dimension boxes in axis colours"
+        },
+        "body": {
+          "de": "In den Arbeitsbereich-Einstellungen gibt es einen neuen Schalter: Damit bekommt jedes Maßkästchen neben der Auswahl die Farbe seiner Achse, wie die Griffe, X rot, Y grün und Z blau. So siehst du auch an kleinen Teilen auf einen Blick, welche Zahl welche ist. Er ist anfangs aus.",
+          "en": "A new switch in the workspace settings gives each value box beside the selection the colour of its axis, as the handles have: red X, green Y and blue Z. So even on small parts you see at a glance which number is which. It is off to begin with."
+        }
+      },
+      {
+        "title": {
+          "de": "Schraubdom, Schnapphaken und Rippe",
+          "en": "Screw boss, snap-fit and rib"
+        },
+        "body": {
+          "de": "Für Gehäuse gibt es in der Formenbibliothek einen eigenen Abschnitt mit drei neuen Formen. Der Schraubdom nimmt eine Einschmelzmutter oder eine Kunststoffschraube auf und warnt, wenn die Wand um das Loch zu dünn wird. Der Schnapphaken hält einen Deckel und sagt dir, ob der Arm in PLA, PETG oder ABS hält. Die Rippe steift eine Wand aus, auch als schräge Stütze zum Boden.",
+          "en": "Enclosures get a section of their own in the shape library, with three new shapes. The screw boss takes a heat-set insert or a screw for plastics and warns when the wall round the hole gets too thin. The snap-fit holds a lid and tells you whether its arm will take it in PLA, PETG or ABS. The rib stiffens a wall, also as a sloped gusset to the floor."
+        }
+      },
+      {
+        "title": {
+          "de": "Freihand zeichnen in der Skizze",
+          "en": "Freehand drawing in sketches"
+        },
+        "body": {
+          "de": "Das neue Skizzenwerkzeug Freihand (Taste 5) nimmt einen Strich mit Stift, Finger oder Maus und macht beim Absetzen wenige Punkte daraus, die du danach ziehen kannst: Ecken, wo er scharf abbog, weiche Kurven dazwischen. Endet er an seinem Anfang, wird ein Umriss daraus, der zum Körper werden kann.",
+          "en": "The new sketch tool Freehand (key 5) takes a stroke drawn with a pen, a finger or the mouse and, when you lift it, makes a few points of it that you can drag afterwards: corners where it turned sharply, smooth curves in between. If it ends where it began, it becomes an outline that can turn into a body."
+        }
+      },
+      {
+        "title": {
+          "de": "Getippte Maße lassen gesperrte Punkte stehen",
+          "en": "Typed sizes keep locked points"
+        },
+        "body": {
+          "de": "Tippst du in der Skizze eine Länge oder einen Winkel ein, bleibt ein gesperrter Punkt (Strg+L) jetzt stehen: Die Länge bewegt das freie Ende der Linie, der Winkel dreht die Linie, deren anderes Ende frei ist. So machst du einen Umriss Ecke für Ecke genau: Ecke sperren, Länge und Winkel der nächsten Linie eintippen, ihr Ende sperren und weiter.",
+          "en": "When you type a length or an angle in a sketch, a locked point (Ctrl+L) now stays where it is: the length moves the free end of the line, the angle turns the line whose far end is free. So you can make an outline exact corner by corner: lock a corner, type the length and the angle of the next line, lock its end, and go on."
+        }
+      },
+      {
+        "title": {
+          "de": "Rechtsklick im Auswahlrahmen",
+          "en": "Right-click inside the selection frame"
+        },
+        "body": {
+          "de": "Ein Rechtsklick auf eine leere Stelle innerhalb des Rahmens einer Auswahl öffnet jetzt das Menü der Auswahl, mit Gruppieren, Ausrichten und allem anderen. Vorher kam dort nur das kurze Menü mit Einfügen, sobald der Klick zwischen die Teile fiel.",
+          "en": "A right-click on empty space inside the frame of a selection now opens the menu of the selection, with Group, Align and the rest. Before, a click between the parts only brought up the short menu with Paste."
+        }
+      },
+      {
+        "title": {
+          "de": "Angeheftete Formen verdecken nichts mehr",
+          "en": "A pinned shape library no longer covers the properties"
+        },
+        "body": {
+          "de": "Die angeheftete Formenbibliothek liegt jetzt unter den Eigenschaften des gewählten Objekts statt darüber, auch wenn du sie an den rechten Rand schiebst. Nur kurz geöffnet, ohne Anheften, liegt sie wie bisher obenauf.",
+          "en": "A pinned shape library now lies under the properties of the selected object instead of over them, even when you move it to the right edge. Opened briefly without pinning, it still comes on top as before."
+        }
+      },
+      {
+        "title": {
+          "de": "KI-Werkzeuge laden in jedem Client",
+          "en": "AI tools load in every client"
+        },
+        "body": {
+          "de": "Manche KI-Clients ließen die Werkzeuge zum Anlegen und Ändern von Formen und für Vorlagenbilder weg, weil zwei ihrer Einstellungen mehrere Typen auf einmal angaben. Sie sind jetzt so beschrieben, dass jeder Client sie lädt.",
+          "en": "Some AI clients left out the tools that create and change shapes and the one for reference images, because two of their settings named several types at once. They are now described so that every client loads them."
+        }
+      },
+      {
+        "title": {
+          "de": "STL und 3MF per Doppelklick öffnen",
+          "en": "Open STL and 3MF with a double click"
+        },
+        "body": {
+          "de": "Die installierte App in Chrome oder Edge meldet sich jetzt auch für STL- und 3MF-Dateien an. Ein Doppelklick auf eine solche Datei öffnet sie als neuen Entwurf, wie Importieren auf der Startseite. Unter „Öffnen mit“ kannst du layerling für diese Dateien als Standard festlegen.",
+          "en": "The app installed from Chrome or Edge now also signs up for STL and 3MF files. A double click on one opens it as a new design, as Import on the start page does. Under \"Open with\" you can make layerling the default for these files."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.139.0",
+    "items": [
+      {
+        "title": {
+          "de": "Gleiche Abstände",
+          "en": "Equal gaps"
+        },
+        "body": {
+          "de": "Beim Ausrichten steht neben jeder Linie ein neuer Punkt: Er verteilt verschieden große Teile so, dass zwischen ihnen überall derselbe Abstand ist. Auf einem Brett bleibt derselbe Abstand zum Rand, mehrere Reihen werden Reihe für Reihe verteilt, ein Klick auf die freie Platte verteilt über die ganze Platte, und mit Alt tippst du den Abstand selbst ein.",
+          "en": "Align has a new dot beside each line: it spreads parts of different sizes so the space between them is the same everywhere. On a board the same gap stays at its edges, several rows are spread row by row, a click on the empty plate spreads them over the whole plate, and with Alt you type the gap yourself."
+        }
+      },
+      {
+        "title": {
+          "de": "Gruppieren lässt Kanten, wie sie sind",
+          "en": "Grouping leaves edges as they are"
+        },
+        "body": {
+          "de": "Beim Gruppieren mit Löchern konnte eine Ecke neben einer Rundung schräg abgeschnitten werden, weil das Aufräumen hauchdünner Stufen zu weit ging. Jetzt prüft layerling, dass die Form dabei gleich bleibt.",
+          "en": "When grouping with holes, a corner beside a rounding could come out cut off at a slant, because tidying away hair-thin steps went too far. layerling now checks that the shape stays the same."
+        }
+      },
+      {
+        "title": {
+          "de": "Ausrichten per Rechtsklick",
+          "en": "Align from the right-click menu"
+        },
+        "body": {
+          "de": "Mit zwei oder mehr ausgewählten Teilen steht Ausrichten jetzt auch im Menü, das ein Rechtsklick an der Maus öffnet, gleich über Spiegeln. So musst du nicht erst zur Leiste fahren oder dir die Taste L merken.",
+          "en": "With two or more parts selected, Align is now also in the menu a right-click opens at the pointer, just above Mirror. No trip to the toolbar, and no need to remember the L key."
+        }
+      },
+      {
+        "title": {
+          "de": "Formenbibliothek: gleich lostippen",
+          "en": "Shape library: type right away"
+        },
+        "body": {
+          "de": "Wenn du die Formenbibliothek öffnest, steht der Cursor jetzt gleich im Suchfeld, wie bei der Befehlssuche. Auf einem Touchgerät nicht, damit keine Tastatur aufspringt.",
+          "en": "When you open the shape library, the cursor is now in its search field right away, as in the command search. Not on a touch screen, so no keyboard pops up."
+        }
+      },
+      {
+        "title": {
+          "de": "Bildlaufleisten für die Ansicht",
+          "en": "Scrollbars for the view"
+        },
+        "body": {
+          "de": "Ein neuer Schalter in der Ansichtenleiste blendet unten und rechts Bildlaufleisten ein. Damit schiebst du die Ansicht ruhig und in kleinen Schritten, ohne dass sie sich dreht, auch während ein Teil ausgewählt ist. Praktisch, wenn du nah an kleinen Details arbeitest.",
+          "en": "A new switch in the view bar shows scrollbars along the bottom and the right of the view. They slide the view calmly and in small steps without turning it, also while a part is selected. Handy when you work close up on small details."
+        }
+      },
+      {
+        "title": {
+          "de": "Form sperren",
+          "en": "Lock shape"
+        },
+        "body": {
+          "de": "Neben dem Schloss gibt es jetzt ein Schild (Strg+Umschalt+L): Ein Teil mit gesperrter Form lässt sich weiter verschieben, drehen, kopieren und mit anderen gruppieren, behält aber Größe, Einstellungen und Namen. Auch Kopien und Gruppen behalten die Sperre.",
+          "en": "Beside the padlock there is now a shield (Ctrl+Shift+L): a part with its shape locked still moves, turns, copies and groups with others, but keeps its size, settings and name. Copies and groups keep the lock too."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.138.0",
+    "items": [
+      {
+        "title": {
+          "de": "3MF/OBJ-Export: keine Teile mehr verloren",
+          "en": "3MF/OBJ export: no more parts lost"
+        },
+        "body": {
+          "de": "Bei Entwürfen mit mehreren Farben fehlten im 3MF- oder OBJ-Export manchmal kleine Teile, etwa Punkte oder Bretter eines Logos, die für winzige Reste gehalten wurden. Jetzt bleiben alle Teile mit etwas Volumen erhalten, und nur echte Splitter werden weggelassen.",
+          "en": "In designs with several colours, the 3MF or OBJ export sometimes left out small parts, such as the dots or planks of a logo, taking them for tiny leftovers. Now every part with some volume is kept and only real slivers are left out."
+        }
+      },
+      {
+        "title": {
+          "de": "Haarfeine Flächen bei „Fläche löschen“",
+          "en": "Hair-thin faces in Delete face"
+        },
+        "body": {
+          "de": "Bleiben nach „Exakt machen“ haarfeine Flächen zwischen Flächen in einer Ebene, nimmt „Fläche löschen“ sie mit den gewählten Flächen mit, sodass eine in Streifen zerfallene Seite wieder eine Fläche werden kann.",
+          "en": "When Make exact leaves hair-thin faces between faces in one plane, Delete face takes them along with the picked faces, so a side that came out as strips can become one face again."
+        }
+      },
+      {
+        "title": {
+          "de": "Punkte und Kurvengriffe eintippen",
+          "en": "Type points and curve handles"
+        },
+        "body": {
+          "de": "In der Skizze zeigt ein gewählter Punkt seine Lage als X und Y, ein angeklickter Kurvengriff seine Lage zu seinem Punkt. Beides lässt sich eintippen, so wird eine Kurve genau und auf beiden Seiten gleich.",
+          "en": "In a sketch, a selected point shows where it lies as X and Y, and a clicked curve handle where it lies from its point. Both can be typed, so a curve comes out exact and the same on both sides."
+        }
+      },
+      {
+        "title": {
+          "de": "Kegelige Gewinde und NPT",
+          "en": "Tapered threads and NPT"
+        },
+        "body": {
+          "de": "Ein Gewinde kann jetzt kegelig sein, 1:16 wie ein Rohrgewinde, und das Größenmenü hat die amerikanischen NPT-Rohrgewinde von 1/16\" bis 4\". Stange und Schraube werden zur Spitze schmaler, Mutter und Gewindeloch zur Öffnung weiter.",
+          "en": "A thread can now be tapered, 1 in 16 as a pipe thread is, and the size menu has the American NPT pipe threads from 1/16\" to 4\". Rod and screw narrow towards the tip, nut and tapped hole widen towards the mouth."
+        }
+      },
+      {
+        "title": {
+          "de": "Ausrichten mit verdrehten Teilen sofort da",
+          "en": "Align comes up at once with twisted parts"
+        },
+        "body": {
+          "de": "Mit verdrehten Teilen in der Auswahl brauchte das Ausrichten-Werkzeug einige Sekunden, bis seine Punkte erschienen, und ebenso lange für jeden Klick. Jetzt misst es jedes Teil nur noch einmal und ist sofort da.",
+          "en": "With twisted parts in the selection, the align tool took a few seconds before its dots appeared, and as long again for each click. It now measures each part only once and comes up at once."
+        }
+      },
+      {
+        "title": {
+          "de": "Einrasten in der Mitte der Arbeitsebene",
+          "en": "Snap to the centre of the workplane"
+        },
+        "body": {
+          "de": "Beim Ziehen rastet eine Form jetzt auch an der Mitte der Arbeitsebene ein, auf X, auf Y oder auf beiden; die rosa Hilfslinien zeigen es. Alt zieht ohne Einrasten.",
+          "en": "When you drag a shape it now also snaps to the centre of the workplane, along X, along Y or both, and the pink guide lines show it. Alt drags without snapping."
+        }
+      },
+      {
+        "title": {
+          "de": "Deckelscharnier: Seite wählen, Tropfenlöcher, runde Dosen",
+          "en": "Lid hinge: pick the side, teardrop holes, round pots"
+        },
+        "body": {
+          "de": "Das Scharnier eines Deckels lässt sich jetzt hinten, rechts, vorn oder links setzen, etwa an die lange Seite einer Schachtel. Die Löcher für den Stift bekommen oben eine Spitze, damit sie beim Drucken nicht durchhängen, und auch runde Dosen bekommen ein Scharnier.",
+          "en": "A lid's hinge can now go at the back, right, front or left, along the long side of a box, say. The pin holes get a point on top so they do not droop when printed, and round pots take a hinge too."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.137.0",
+    "items": [
+      {
+        "title": {
+          "de": "Gridfinity-Bodenplatten, die zusammenrasten",
+          "en": "Gridfinity baseplates that click together"
+        },
+        "body": {
+          "de": "Schalte im Eigenschaften-Fenster einer Bodenplatte „Swallowtail“ ein, und die Platte bekommt unter jeder Seite ohne Ausgleich halbe Taschen. „Verbinder anlegen“ legt kleine Verbinder zum Drucken an; von unten über der Fuge eingedrückt, rastet jeder ein und hält zwei Platten zusammen. Die Platte steht dann auf einem Boden und ist 7,4 mm hoch.",
+          "en": "Switch on \"Swallowtail\" in a baseplate's Properties panel and the plate gets half pockets under each side without padding. \"Add keys\" lays out small keys to print; pressed in from below across the seam, each clicks in and holds two plates together. The plate then stands on a floor, 7.4 mm tall."
+        }
+      },
+      {
+        "title": {
+          "de": "Importierte Netze als exakte Körper",
+          "en": "Imported meshes as exact bodies"
+        },
+        "body": {
+          "de": "Eine STL-, OBJ- oder 3MF-Datei besteht nur aus Dreiecken. „Make exact“ (Ändern, Fläche) erkennt Ebenen, Zylinder, Kegel, Kugeln und Ringe darin und baut einen exakten Körper daraus. Danach folgen Verrunden und Fasen einer sauberen Kante, „Fläche löschen“ nimmt eine ganze Bohrung weg, und STEP enthält die echten Flächen. Beim Vereinfachen bleiben Kanten und Löcher auf Wunsch erhalten.",
+          "en": "An STL, OBJ or 3MF file is only triangles. \"Make exact\" (Modify, Surface) finds the planes, cylinders, cones, spheres and tori in it and rebuilds an exact body. Fillet and Chamfer then follow one clean edge, Delete face takes away a whole bore, and STEP carries the real faces. Simplify can keep edges and holes."
+        }
+      },
+      {
+        "title": {
+          "de": "Verrunden trotz scharfer Innenecken",
+          "en": "Rounding past sharp inner corners"
+        },
+        "body": {
+          "de": "Verrunden und Fasen scheiterten an Einkerbungen, etwa bei mehreren zusammengesetzten Scheiben. Jetzt werden diese Innenecken zuerst etwas gerundet und die gewählten Kanten danach wie verlangt bearbeitet. Die Statuszeile sagt, wie groß die Innenrundung wurde.",
+          "en": "Fillet and Chamfer failed at notches, for example on several joined discs. Now these inner corners are rounded a little first and the picked edges are then treated as asked. The status line says how large the inner rounding became."
+        }
+      },
+      {
+        "title": {
+          "de": "Pfeiltasten: ruhiger und mit Weite",
+          "en": "Arrow keys: smoother, and with the distance"
+        },
+        "body": {
+          "de": "Eine gehaltene Pfeiltaste bewegt den Körper jetzt flüssig und hält an, sobald man sie loslässt, auch auf einem langsamen Rechner. Die Statuszeile nennt außerdem, wie weit er sich bewegt hat, zum Beispiel „um 5 mm“.",
+          "en": "A held arrow key now moves the body smoothly and stops as soon as it is let go, even on a slow computer. The status line also says how far it moved, for example \"by 5 mm\"."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.136.0",
+    "items": [
+      {
+        "title": {
+          "de": "Objektliste: Formen verschieben",
+          "en": "Object list: move shapes"
+        },
+        "body": {
+          "de": "Jede Zeile der Objektliste hat links einen Griff mit sechs Punkten. Zieh ihn nach oben oder unten, mit der Maus oder dem Finger, oder fokussiere ihn und drücke die Pfeiltasten: Die Form steht dann an einer anderen Stelle der Liste. Rückgängig macht es wieder rückgängig. Bei A–Z-Sortierung oder Suche sind die Griffe ausgeblendet.",
+          "en": "Each row of the object list has a handle with six dots at its left. Drag it up or down, with the mouse or a finger, or focus it and press the arrow keys, and the shape moves to another place in the list. Undo takes it back. With the A–Z sort or a search the handles are hidden."
+        }
+      },
+      {
+        "title": {
+          "de": "Löcher am Rand und eigene Formen",
+          "en": "Holes along the edge, and shapes of your own"
+        },
+        "body": {
+          "de": "Das Lochmuster setzt Löcher jetzt auch als Kranz entlang der Kante einer Fläche: ein Loch auf jeder Ecke und die Seiten gleichmäßig aufgeteilt, nach Abstand oder Anzahl, auf runden Flächen mit verschiebbarem Start. Runde Löcher können eine Stufen- oder Senkbohrung bekommen, mit metrischen Schraubengrößen. Und mit „Eigene Form“ wiederholt es eine Form aus der Szene über die Fläche, aufgesetzt oder eingeschnitten: Nieten, Noppen, ein Riffelblech.",
+          "en": "The hole pattern can now set its holes in a ring along the edge of a face: a hole on every corner and the sides shared out evenly, by spacing or by number, with a start you can move on round faces. Round holes can get a counterbore or countersink, with metric screw sizes. And with Own shape it repeats a shape from the scene over the face, raised or cut in: rivets, studs, a diamond plate."
+        }
+      },
+      {
+        "title": {
+          "de": "KI wartet auf deine Notizen",
+          "en": "The AI waits for your notes"
+        },
+        "body": {
+          "de": "Ein KI-Agent an der MCP-Brücke kann jetzt auf deine Notizen warten: Bitte ihn einmal darum, dann greift er jeden Auftrag auf, sobald du an einer Notiz „Für die KI“ ankreuzt, und antwortet am Modell.",
+          "en": "An AI agent on the MCP bridge can now wait for your notes: ask it once, and it picks up every request as soon as you tick For the AI on a note, and answers on the model."
+        }
+      },
+      {
+        "title": {
+          "de": "Winkelmesser",
+          "en": "Protractor"
+        },
+        "body": {
+          "de": "Neben dem Winkellineal misst der Winkelmesser jetzt Winkel: die Ecke und auf jedem Schenkel einen Punkt anklicken, oder zwei ebene Flächen. Er rastet an Ecken und Kanten ein und folgt den Körpern, wenn sie sich bewegen.",
+          "en": "Beside the framing square, the protractor now measures angles: click the corner and a point on each side, or two flat faces. It snaps to corners and edges and follows the bodies when they move."
+        }
+      },
+      {
+        "title": {
+          "de": "Verjüngung im Verhältnis",
+          "en": "Taper in proportion"
+        },
+        "body": {
+          "de": "Die Karte Verjüngung hat jetzt den Schalter Proportionen beibehalten: Länge und Breite desselben Endes ändern sich dann gemeinsam, ein quadratisches Oberteil bleibt quadratisch.",
+          "en": "The Taper card now has a Keep proportions switch: Length and Width of the same end then change together, so a square top stays square."
+        }
+      },
+      {
+        "title": {
+          "de": "Schnittmenge zeigt erst, was bleibt",
+          "en": "Intersection shows first what stays"
+        },
+        "body": {
+          "de": "Der erste Klick auf Schnittmenge zeigt das gemeinsame Stück grün, die Formen lassen sich noch verschieben; der zweite Klick wendet es an, Esc bricht ab. Der eigene Knopf „Gemeinsames Stück zeigen“ ist dafür weg, die Leiste ist einen Knopf schmaler.",
+          "en": "The first click on Intersection shows the common part in green, and the shapes can still be moved; the second click applies it, Esc cancels. The separate \"Show common part\" button is gone, so the bar is one button narrower."
+        }
+      },
+      {
+        "title": {
+          "de": "Körper mit Fasen und Rundungen folgen sofort",
+          "en": "Bodies with chamfers and fillets follow at once"
+        },
+        "body": {
+          "de": "Ein Körper mit gefasten oder gerundeten Kanten reagierte beim Verschieben, mit der Maus wie mit den Pfeiltasten, spürbar verzögert, weil seine ganze Kanten-Vorgeschichte bei jedem Schritt neu durchgerechnet wurde. Jetzt folgt er so schnell wie ein einfacher Quader, und auch das Speichern danach geht schneller.",
+          "en": "A body with chamfered or rounded edges reacted with a noticeable delay when moved, with the mouse as with the arrow keys, because its whole edge history was worked through again at every step. It now follows as quickly as a plain box, and saving afterwards is faster too."
+        }
+      },
+      {
+        "title": {
+          "de": "Kreise und Rechtecke rasten mit ihrer Mitte ein",
+          "en": "Circles and rectangles snap with their middle"
+        },
+        "body": {
+          "de": "Ziehst du in der Skizze einen Kreis oder ein Rechteck, rastet seine Mitte auf den Enden, Ecken und Mitten der anderen Linien, auf Kreismittelpunkten und auf Kreuzungen von Hilfslinien ein, ein blauer Ring zeigt die Stelle. So sitzt ein Loch genau auf der Mitte einer Linie. Alt schaltet das Einrasten ab.",
+          "en": "Drag a circle or a rectangle in the sketch and its middle snaps to the ends, corners and middles of the other lines, to circle centres and to crossings of construction lines, with a blue ring to show where. So a hole sits exactly on the middle of a line. Alt turns the snapping off."
+        }
+      },
+      {
+        "title": {
+          "de": "STEP behält keine falsche Form mehr",
+          "en": "STEP no longer writes the wrong shape"
+        },
+        "body": {
+          "de": "Wurde ein Körper erst verrundet oder ausgehöhlt und danach verjüngt oder verdreht, schrieb die STEP-Ausfuhr ihn ohne die Verdrehung, ohne Hinweis. Jetzt lässt sie ihn weg und sagt es, damit du ihn als STL ausgibst. In der Objektliste steht unter solchen Körpern jetzt Exakter Körper oder Netz, so siehst du vorher, was als STEP hinausgeht.",
+          "en": "A body that was rounded or hollowed first and tapered or twisted after went into the STEP file without the twist, and nothing said so. Now the export leaves it out and tells you, so you can save it as STL. The object list now says Exact body or Mesh under such bodies, so you see beforehand what goes into STEP."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.135.1",
+    "items": [
+      {
+        "title": {
+          "de": "STEP-Baugruppen kommen als Bündel",
+          "en": "STEP assemblies come in as bundles"
+        },
+        "body": {
+          "de": "Eine STEP-Datei aus einem anderen CAD-Programm bringt jetzt ihre Baugruppen mit: Jede wird ein Bündel unter ihrem Namen, eine Baugruppe darin ein Bündel im Bündel. So blendest du eine ganze Baugruppe mit Strg+H aus oder verschiebst sie auf einmal.",
+          "en": "A STEP file from another CAD program now brings its assemblies along: each becomes a bundle under its name, an assembly inside it a bundle inside the bundle. So you hide a whole assembly with Ctrl+H or move it in one go."
+        }
+      },
+      {
+        "title": {
+          "de": "Vorschaubild in der .lyl-Datei",
+          "en": "A picture in the .lyl file"
+        },
+        "body": {
+          "de": "Jede .lyl-Datei trägt jetzt das Bild deines Entwurfs, wie es seine Karte auf der Startseite zeigt. So können andere Programme, etwa eine Modellbibliothek oder der Dateimanager, eine Vorschau zeigen, ohne den Entwurf zu öffnen.",
+          "en": "Every .lyl file now carries the picture of your design, as its card on the start page shows it. Other programs, a library of models or a file manager, can show a preview without opening the design."
+        }
+      },
+      {
+        "title": {
+          "de": "Muster als Raster",
+          "en": "Pattern as a grid"
+        },
+        "body": {
+          "de": "Das Muster-Werkzeug hat neben Reihe und Kreis jetzt ein Raster: Spalten entlang X und Reihen entlang Y, jeweils mit eigener Anzahl und eigenem Abstand. So entstehen 4 × 3 Teile in einem Schritt, etwa für die Löcher einer Lochplatte.",
+          "en": "Besides a row and a circle, the Pattern tool now lays a grid: columns along X and rows along Y, each with its own count and spacing. That makes 4 × 3 pieces in one step, for the holes of a perforated plate, say."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.135.0",
+    "items": [
+      {
+        "title": {
+          "de": "Formenbibliothek in Abschnitten, mit Suche und „Zuletzt benutzt“",
+          "en": "Shape library in sections, with a search and Recently used"
+        },
+        "body": {
+          "de": "Die Formenbibliothek ist in Abschnitte gegliedert (Grundformen, Gefäße, Rohre & Übergänge, Löcher & Aussparungen und weitere), die du mit einem Klick auf den Namen einklappst. Oben stehen die vier zuletzt benutzten Formen und ein Suchfeld: „USB“ findet die Anschlussöffnung, „Rohr“ den Zylinder und das Rohr. Ziehen, Verschieben und Anheften gehen wie bisher.",
+          "en": "The shape library is in sections now (Basic shapes, Vessels, tubes & transitions, Holes & cut-outs and more), which you fold with a click on the name. On top are the last four shapes you used and a search field: \"USB\" finds the port opening, \"pipe\" the cylinder and the tube. Dragging, moving and pinning work as before."
+        }
+      },
+      {
+        "title": {
+          "de": "Kabelkanal durch einen Körper",
+          "en": "Cable channel through a body"
+        },
+        "body": {
+          "de": "Unter „Kanten & Wände“ gibt es den Kabelkanal: Körper wählen, Eintritt und Austritt anklicken, und layerling findet den Weg allein, in der Mitte des Körpers, mit der Wand, die du vorgibst, und mit Biegungen, die nicht enger sind als eingestellt. Der Kanal ist ein gebogenes Rohr als Loch, gruppiert mit dem Körper. Gut für LEDs in einer gedruckten Figur.",
+          "en": "Under Edges & walls there is the cable channel: select the body, click where the cable goes in and where it comes out, and layerling finds the way by itself, through the middle of the body, with the wall you ask for and bends no tighter than set. The channel is a bent tube as a hole, grouped with the body. Good for LEDs in a printed figure."
+        }
+      },
+      {
+        "title": {
+          "de": "Deckel mit Scharnier an der Rückseite",
+          "en": "Lid with a hinge at the back"
+        },
+        "body": {
+          "de": "Der Deckel-Assistent kann ein Scharnier an die gerade Rückseite setzen: Die Gelenkteile wechseln sich an Körper und Deckel ab, ein gerades Loch nimmt den Stift auf (1,75 mm, also ein Stück Filament), auf Wunsch wird der Stift gleich mitgedruckt. Der Deckel klappt auf, statt abgenommen zu werden.",
+          "en": "The lid tool can put a hinge along the straight back: the knuckles take turns on the body and the lid, a straight hole takes the pin (1.75 mm, so a piece of filament), and the pin can be printed too. The lid swings open instead of coming off."
+        }
+      },
+      {
+        "title": {
+          "de": "Überhänge: wie steil und wie viel",
+          "en": "Overhangs: how steep and how much"
+        },
+        "body": {
+          "de": "Bei „Überhänge zeigen“ steht unter der Ansicht jetzt eine Zeile mit dem steilsten Überhang und der Fläche, die Stützen braucht, zum Beispiel „44 cm² über 45° brauchen Stützen“. Der Deckel einer Vasenteekanne wird dabei so geprüft, wie er gedruckt wird: auf dem Kopf.",
+          "en": "With Show overhangs, a line under the view now gives the steepest overhang and the area that needs supports, for example \"44 cm² beyond 45° need supports\". A vase teapot lid is checked the way it prints: upside down."
+        }
+      },
+      {
+        "title": {
+          "de": "Ziegel auf flachen Kästen bleiben dicht",
+          "en": "Bricks on flat boxes stay closed"
+        },
+        "body": {
+          "de": "Ziegel auf einem flachen Kasten (zum Beispiel 7 mm hoch, oben und an allen Seiten) wurden bei manchen Größen undicht. Die Fugen aller Reihen werden jetzt in einem Zug geschnitten; die Ziegel sehen aus wie vorher, aber das Netz bleibt geschlossen.",
+          "en": "Bricks on a flat box (7 mm high, say, on the top and all sides) came out open at some sizes. The joints of all courses are cut in one go now; the bricks look as before, but the mesh stays closed."
+        }
+      },
+      {
+        "title": {
+          "de": "SBC-Platine: Flachbandkabel übereinander",
+          "en": "SBC board: ribbon cables one above the other"
+        },
+        "body": {
+          "de": "Beim Raspberry Pi 5 führten die Kamera- und Display-Kabel durch die Wand zur Ethernet-Buchse hinaus. Jetzt kommen sie am PCIe-Ende heraus, die drei Öffnungen übereinander; beim Pi 4 und 3 B+ sitzt die Kameraöffnung über der des Displays am linken Ende.",
+          "en": "On the Raspberry Pi 5 the camera and display cables went out through the wall at the Ethernet jack. They now come out at the PCIe end, the three openings one above the other; on the Pi 4 and 3 B+ the camera's opening sits over the display's at the left end."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.134.0",
+    "items": [
+      {
+        "title": {
+          "de": "Gridfinity-Behälter bis zur Oberkante des Stapelrands füllen",
+          "en": "Gridfinity bins filled to the top of the lip"
+        },
+        "body": {
+          "de": "„Bodenhöhe“ im Eigenschaften-Fenster reicht bei einem Gridfinity-Behälter mit Stapelrand jetzt bis zur Oberkante des Stapelrands. Oberhalb der Höhe, bis zu der sich noch ein Behälter darauf stapeln lässt, wird auch der Stapelrand gefüllt: Der Behälter ist ein massiver Block mit flacher Oberseite, so hoch wie die Behälter mit Stapelrand daneben, ein Rohling, in den du die Formen deiner Werkzeuge schneidest.",
+          "en": "\"Floor height\" in the Properties panel now goes on to the top of a Gridfinity bin's stacking lip. Above the highest floor another bin still stacks on, the lip is filled too: the bin is a solid block with a flat top, as tall as the bins with the lip beside it, a blank to cut the shapes of your tools into."
+        }
+      },
+      {
+        "title": {
+          "de": "Notizen als Gespräch mit der KI",
+          "en": "Notes as a conversation with the AI"
+        },
+        "body": {
+          "de": "An einer Notiz gibt es jetzt das Feld „Für die KI“. Ein KI-Agent an der MCP-Brücke liest solche Notizen, erledigt die Arbeit und antwortet unter deinem Text. Er kann auch selbst Notizen ans Modell setzen, um an einer Stelle etwas zu fragen. Du zeigst also einfach aufs Modell, statt Flächen und Kanten zu beschreiben.",
+          "en": "A note has a For the AI box now. An AI agent on the MCP bridge reads such notes, does the work and answers under your text. It can also put notes of its own on the model, to ask something at a spot. So you can simply point at the model instead of describing faces and edges."
+        }
+      },
+      {
+        "title": {
+          "de": "Schmalere oder breitere Buchstaben auf dem Bogen",
+          "en": "Narrower or wider letters on an arc"
+        },
+        "body": {
+          "de": "Text auf dem Kreisbogen hat jetzt das Feld „Buchstabenbreite“. Damit zeichnest du die Buchstaben schmaler oder breiter, etwa für eine hohe, schmale Schrift auf einer Münze. Die Höhe bleibt, und der Text bleibt auf dem Bogen.",
+          "en": "Text on an arc now has a Letter width field. It draws the letters narrower or wider, say for tall, narrow lettering on a coin. Their height stays, and the text stays on the arc."
+        }
+      },
+      {
+        "title": {
+          "de": "Textblock: mehrere Zeilen, links, mittig oder rechts",
+          "en": "Text block: several lines, left, centred or right"
+        },
+        "body": {
+          "de": "Ein Text hat jetzt die Karte „Textblock“. Gib mehrere Zeilen ein, wähle die Ausrichtung, den Abstand und ob jede Zeile kleiner werden soll. Jede Zeile wird ein eigener Text, den du danach einzeln ändern kannst, etwa für ein Schild oder eine Tafel.",
+          "en": "A text now has a Text block card. Type several lines, choose the alignment, the gap and whether each line gets smaller. Every line becomes a text of its own that you can change on its own afterwards, for a sign or a plaque, say."
+        }
+      },
+      {
+        "title": {
+          "de": "Gebogener Kegel",
+          "en": "Curved cone"
+        },
+        "body": {
+          "de": "Neu bei den Grundformen: ein Kegel, dessen Seite sich biegt. Mit „Biegung“ wird er nach innen zur Trompete wie eine Pseudosphäre oder nach außen zur Kuppel, „Durchmesser oben“ reicht von einer Spitze bis zur vollen Breite. Er ist ein exakter Körper, den du aushöhlen und verrunden kannst.",
+          "en": "New among the basic shapes: a cone whose side bends. Bend turns it inward into a trumpet like a pseudosphere or outward into a dome, and Top diameter goes from a point to the full width. It is an exact body you can hollow out and fillet."
+        }
+      },
+      {
+        "title": {
+          "de": "Kopien heißen wie ihr Vorbild",
+          "en": "Copies are named after their original"
+        },
+        "body": {
+          "de": "Duplizierst oder fügst du ein Objekt ein, dem du einen Namen gegeben hast, heißt die Kopie jetzt „Halter (Kopie)“, dann „Halter (Kopie 2)“. So stehen in der Objektliste keine zwei gleichen Namen mehr.",
+          "en": "When you duplicate or paste an object you have named, the copy is now called \"Holder (copy)\", then \"Holder (copy 2)\". So the object list no longer shows two of the same name."
+        }
+      },
+      {
+        "title": {
+          "de": "Den Verlauf abspielen",
+          "en": "Play the history"
+        },
+        "body": {
+          "de": "In der Verlaufsansicht spielen zwei Knöpfe unter dem Schieber die Schritte wie einen Film ab, vorwärts oder rückwärts, langsam, normal oder schnell. Gut für eine Bildschirmaufnahme, wie ein Teil entstanden ist.",
+          "en": "In the history view, two buttons under the slider play the steps like a film, forwards or backwards, slow, normal or fast. Good for a screen recording of how a part came about."
+        }
+      },
+      {
+        "title": {
+          "de": "Schnellstart mit KI auch auf dem Mac",
+          "en": "The AI quickstart on a Mac too"
+        },
+        "body": {
+          "de": "Die Schritt-für-Schritt-Anleitung im KI-Kapitel und die Einrichtung mit einer Zeile gibt es jetzt auch für den Mac: Sie prüft Git und Node.js, lädt layerling herunter und legt „Start layerling“ auf den Schreibtisch.",
+          "en": "The step-by-step part of the AI chapter and the one-line setup now work on a Mac too: it checks Git and Node.js, downloads layerling and puts \"Start layerling\" on the desktop."
+        }
+      },
+      {
+        "title": {
+          "de": "Die Platte unter einem eingelesenen QR-Code ist wieder ganz",
+          "en": "The plate under a traced QR code is whole again"
+        },
+        "body": {
+          "de": "Bei einem Symbolschild aus einem eingelesenen Bild eines QR-Codes deckte die Grundplatte nur die Ecken ab. Jetzt liegt sie wieder unter dem ganzen Code.",
+          "en": "On an icon tag made from a picture of a QR code, the bottom plate covered only the corners. Now it lies under the whole code again."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.133.0",
+    "items": [
+      {
+        "title": {
+          "de": "Ein Bild nur einmal aufprägen",
+          "en": "Press an image on just once"
+        },
+        "body": {
+          "de": "Die Bildtextur hat neben den Kacheln eine vierte Wahl: Einmal. Das Bild wird genau einmal aufgebracht, wo du es hinsetzt: Um und Höhe legen die Mitte fest, Gedreht dreht es, Bildbreite und Bildhöhe bestimmen die Größe. Rundherum bleibt die Fläche glatt, und die Kanten bleiben sauber.",
+          "en": "The image texture has a fourth choice next to the tiles: Once. The image is pressed on a single time where you put it: Around and Height place its middle, Turned turns it, Image width and Image height set its size. The surface stays smooth around it, and the edges stay clean."
+        }
+      },
+      {
+        "title": {
+          "de": "Stecker für Akkus, Motoren und die serielle Schnittstelle",
+          "en": "Plugs for batteries, motors and the serial port"
+        },
+        "body": {
+          "de": "Die Port-Öffnung kennt jetzt XT30, XT60, MT60, MPX und D-Sub 9, nach den Zeichnungen der Hersteller bemessen, mit etwa 0,25 mm Luft rundum. Bei D-Sub 9 kommen die zwei Schraubenlöcher gleich mit: Öffnung und Löcher bewegen und drehen sich als eine Gruppe.",
+          "en": "The port opening now knows XT30, XT60, MT60, MPX and D-Sub 9, sized from the makers' drawings with about 0.25 mm of room all round. D-Sub 9 brings its two screw holes along: the opening and the holes move and turn as one group."
+        }
+      },
+      {
+        "title": {
+          "de": "SBC-Boards: microSD, Flachbandkabel, GPIO und ESP32",
+          "en": "SBC boards: microSD, ribbon cables, GPIO and ESP32"
+        },
+        "body": {
+          "de": "Alle Raspberry Pi und das BIGTREETECH Pi haben jetzt ihren microSD-Schlitz. Flachbandkabel lassen sich durch den Deckel oder seitlich durch die Wand führen, die GPIO-Leiste durch den Deckel. Dazu kommen drei kleine ESP32-Boards: XIAO ESP32-C6, ESP32-C3 Super Mini und ESP32-C6 Super Mini.",
+          "en": "Every Raspberry Pi and the BIGTREETECH Pi have their microSD card slot now. Ribbon cables can leave through the lid or sideways through the wall, and the GPIO header through the lid. Three small ESP32 boards join: XIAO ESP32-C6, ESP32-C3 Super Mini and ESP32-C6 Super Mini."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.132.2",
+    "items": [
+      {
+        "title": {
+          "de": "Einen Umriss durchstanzen",
+          "en": "Punch an outline through a body"
+        },
+        "body": {
+          "de": "Unter Kombinieren gibt es jetzt Stanzen: Wähle zuerst einen Körper als Stempel, dann den Körper, der die Öffnung bekommt. Der Umriss des Stempels geht entlang X, Y oder Z gerade hindurch, auch wenn der Stempel nur davor steht. Der Stempel bleibt, sodass du ihn verschieben oder drehen und gleich noch einmal stanzen kannst.",
+          "en": "Combine now has Punch: pick a body as the punch first, then the body that gets the opening. The punch's outline goes straight through along X, Y or Z, even when the punch only stands in front of it. The punch stays, so you can move or turn it and punch again right away."
+        }
+      },
+      {
+        "title": {
+          "de": "Die Skizzenfläche wächst mit",
+          "en": "The sketch plate grows with the sketch"
+        },
+        "body": {
+          "de": "Ein Drehprofil lässt sich jetzt über den Rand der Fläche hinausschieben, für einen größeren Radius, ohne die Arbeitsebene in den Einstellungen zu vergrößern. Das Raster wächst mit, Punkte dort draußen lassen sich wieder auswählen, und die Minus-Taste zoomt heraus, bis alles zu sehen ist.",
+          "en": "A revolve profile can now go past the edge of the plate, for a bigger radius, without making the workplane bigger in the settings. The grid grows with it, points out there can be picked again, and the minus button zooms out until all of it fits."
+        }
+      },
+      {
+        "title": {
+          "de": "Fasen über eine halb gefaste Ecke",
+          "en": "Chamfers across a half-chamfered corner"
+        },
+        "body": {
+          "de": "Scheitert eine Fase oder Rundung, versucht layerling es noch einmal mit den kurzen Kanten an den Enden der gewählten. So geht eine Ecke, an der eine frühere Fase auf eine noch scharfe Wand trifft, in einem Schritt durch; die Meldung sagt, wie viele Kanten mitgenommen wurden.",
+          "en": "When a chamfer or fillet fails, layerling tries once more with the short edges at the ends of the picked ones. A corner where an earlier chamfer meets a wall that is still sharp now goes through in one step; a message says how many edges were taken along."
+        }
+      },
+      {
+        "title": {
+          "de": "Ein Bund an der Mutter",
+          "en": "A collar on a nut"
+        },
+        "body": {
+          "de": "Wie die Schraube bekommt jetzt auch die Mutter einen runden Bund: Bundhöhe und Bunddurchmesser stehen bei Sechskant-, Vierkant-, Flansch-, Flügel- und Sterngriffmuttern in den Einstellungen. Der Bund sitzt oben auf der Mutter, schmaler als sie, und das Gewinde läuft hindurch; die Mutter druckt weiter auf ihrer Auflagefläche, der Bund ohne Stützen. Die Höhe zählt nur die Mutter selbst.",
+          "en": "Like the screw, a nut can now take a round collar: Collar height and Collar diameter are in the settings of the hex, square, flange, wing and star knob nuts. The collar stands on top of the nut, narrower than it, with the thread running through; the nut still prints on its bearing face, the collar without supports. The height counts the nut itself only."
+        }
+      },
+      {
+        "title": {
+          "de": "Teekannendeckel: Fuge nach Höhe vom Boden",
+          "en": "Teapot lid: the joint as a height from the bottom"
+        },
+        "body": {
+          "de": "Beim Teekannendeckel der Vase lässt sich die Fuge jetzt auch als Höhe vom Boden eintippen, im neuen Feld „Vase bis · Deckel ab“ neben der Höhe des Deckels. Beide ergeben zusammen die Höhe der Vase: Trägst du das eine ein, nimmt das andere den Rest.",
+          "en": "On the vase's teapot lid the joint can now be typed in as a height from the bottom, in the new field \"Body up to · lid from\" beside Lid height. The two add up to the vase's height: type one and the other takes the rest."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.132.1",
+    "items": [
+      {
+        "title": {
+          "de": "Ein Teekannendeckel für die Vase",
+          "en": "A teapot lid for the vase"
+        },
+        "body": {
+          "de": "Unter Zubehör gibt es jetzt den Teekannendeckel: Das Oberteil einer hohlen Vase wird zum Deckel, mit ihrer eigenen Wand und ihrem Muster, sodass Rillen und Verdrehung über die Fuge weiterlaufen. Ein Rand greift in die Öffnung, und auf Wunsch kommt ein Knauf als eigenes Teil dazu.",
+          "en": "Accessories now has a teapot lid: the top of a hollow vase becomes its lid, with the vase's own wall and pattern, so grooves and twist run on across the joint. A lip goes into the opening, and a knob can come with it as a part of its own."
+        }
+      },
+      {
+        "title": {
+          "de": "Ziegel bleiben an der Kante zur Oberseite sauber",
+          "en": "Bricks keep a clean rim to the top"
+        },
+        "body": {
+          "de": "Bekamen die Seiten und die Oberseite eines Körpers Ziegel, zog sich die oberste Ziegelreihe an der Kante zu langen Keilen. Jetzt bleibt diese Kante glatt, und die Fugen laufen weiter um die senkrechten Ecken.",
+          "en": "With bricks on a body's sides and on its top, the top course of the wall was pulled into long wedges along the rim. Now that rim stays smooth, and the joints still run round the upright corners."
+        }
+      },
+      {
+        "title": {
+          "de": "layerling ganz auf Italienisch",
+          "en": "layerling fully in Italian"
+        },
+        "body": {
+          "de": "Alle Texte des Programms sind jetzt ins Italienische übersetzt.",
+          "en": "Every text of the program is translated into Italian now."
+        }
+      },
+      {
+        "title": {
+          "de": "Der Server-Reiter zählt alle Entwürfe, auch auf PHP-Servern",
+          "en": "The server tab counts every design on PHP servers too"
+        },
+        "body": {
+          "de": "Auf einem Server mit PHP zeigte der Reiter auf der Startseite nur die Entwürfe des offenen Ordners, kam nie von selbst nach vorn und öffnete die Willkommensseite, obwohl dort Entwürfe lagen. Jetzt zählt er alle Entwürfe in allen Ordnern, wie mit Docker.",
+          "en": "On a server running PHP, the tab on the start page showed only the designs of the open folder, never came to the front by itself and opened the welcome page although there were designs. Now it counts every design in every folder, as with Docker."
+        }
+      },
+      {
+        "title": {
+          "de": "Mehr übersetzt: Spanisch, Arabisch, Polnisch, Chinesisch und Dänisch",
+          "en": "More translated: Spanish, Arabic, Polish, Chinese and Danish"
+        },
+        "body": {
+          "de": "Spiel prüfen, die Magnete im Deckel, Schichten der Oberflächentextur, klappende Flexi-Glieder und weitere neue Fenster standen in diesen Sprachen noch auf Englisch. Jetzt sind sie übersetzt, ebenso die Meldung, wenn konkaves Verrunden eine gebogene Kante trifft.",
+          "en": "Check clearance, the lid's magnets, surface texture layers, folding flexi links and other new windows were still in English in these languages. They are translated now, and so is the message when a concave fillet meets a curved edge."
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.132.0",
+    "items": [
+      {
+        "title": {
+          "de": "Bodenplatte in einen Umriss einpassen",
+          "en": "Fit a baseplate into an outline"
+        },
+        "body": {
+          "de": "Eine Gridfinity-Bodenplatte füllt jetzt auch eine Schublade, die kein Rechteck ist. Wähle die Platte zusammen mit einer Form, die das Innere der Schublade nachbildet, und klicke in den Eigenschaften auf „Bodenplatte in Umriss einpassen“: ganze Zellen in einem Raster, das dorthin rückt, wo es die meisten aufnimmt, höchstens 6 in der Breite und 6 in der Tiefe (12 mit „Große Bodenplatte“), der Rest massiv, sodass jede Mulde weiter einen gewöhnlichen Behälter aufnimmt.",
+          "en": "A Gridfinity baseplate can now fill a drawer that is not a rectangle. Select the plate together with a shape of the drawer's inside and click \"Fit baseplate to outline\" in the properties panel: whole cells on one grid, placed where it holds the most, at most 6 across and 6 deep (12 with Large plate), the rest solid, so every socket still takes an ordinary bin."
+        }
+      },
+      {
+        "title": {
+          "de": "Fase und Rundung lassen das Loch eines Bündels offen",
+          "en": "Chamfer and fillet keep a bundle's hole open"
+        },
+        "body": {
+          "de": "Ein Bündel aus einem Stift und einem größeren Loch, mit einer Box gruppiert, schneidet die Box, aber nicht den eigenen Stift. Bei Fase und Rundung kam die Nut um den Stift zugefüllt zurück. Jetzt bleibt sie.",
+          "en": "A bundle of a peg and a bigger hole, grouped with a box, cuts the box but not its own peg. With a chamfer or fillet the groove round the peg came back filled in. Now it stays."
+        }
+      },
+      {
+        "title": {
+          "de": "Ein Bund unter dem Schraubenkopf",
+          "en": "A collar under the screw head"
+        },
+        "body": {
+          "de": "Eine Schraube hat jetzt Bundhöhe und Bunddurchmesser: ein runder Bund zwischen Kopf und Gewinde, etwa als Abstandhalter unter einem Sterngriff. Er bleibt innerhalb des Kopfes und druckt ohne Stützen.",
+          "en": "A screw now has Collar height and Collar diameter: a round collar between head and thread, for example a spacer under a star knob. It stays inside the head and prints without supports."
+        }
+      },
+      {
+        "title": {
+          "de": "Deckel als exakter Körper: Kanten lassen sich verrunden",
+          "en": "Lids are exact bodies: their edges can be rounded"
+        },
+        "body": {
+          "de": "Ein Deckel für einen exakten Körper, etwa einen ausgehöhlten abgerundeten Quader, ist jetzt selbst ein exakter CAD-Körper. Seine Kanten verrundest oder fast du mit dem Kantenwerkzeug, und die Rundungen bleiben auch im STEP-Export rund.",
+          "en": "A lid for an exact body, such as a rounded box you hollowed, is now an exact CAD body itself. Round or chamfer its edges with the edge tool, and its curves stay round in a STEP export too."
+        }
+      },
+      {
+        "title": {
+          "de": "Konkave Verrundung: Kanten ausschneiden statt abrunden",
+          "en": "Concave fillet: scoop edges out instead of rounding"
+        },
+        "body": {
+          "de": "Im Verrundungsfenster schneidet „Konkav (ausschneiden)“ eine Viertelkreis-Mulde aus jeder gewählten geraden Kante, wie die ausgehöhlten Ecken einer Box. Vorher ging das nur mit einem Zylinder als Loch von Hand.",
+          "en": "In the fillet window, “Concave (scoop out)” cuts a quarter-round scoop out of each picked straight edge, like the notched corners of a box. Before, that took a cylinder turned into a hole and lined up by hand."
+        }
+      },
+      {
+        "title": {
+          "de": "Gedrehte Körper bleiben beim Ziehen gedreht",
+          "en": "Turned shapes stay turned when you drag a handle"
+        },
+        "body": {
+          "de": "Lag die Arbeitsebene auf einer Fläche, drehte sich ein gedrehter Körper beim Ziehen an einem Griff scheinbar zurück, weil die Länge in die andere Seite ging. Die Griffe folgen jetzt der Drehung des Körpers.",
+          "en": "With the workplane on a face, a turned shape seemed to turn back when you dragged a handle, because the length went into the other side. The handles now follow the shape's turn."
+        }
+      },
+      {
+        "title": {
+          "de": "Vase: der Hinweis zeigt den Weg zu Hohl und Deckel",
+          "en": "Vase: the message shows the way to hollow and lid"
+        },
+        "body": {
+          "de": "Eine Vase hat zu viele Dreiecke zum Aushöhlen. Die Absage nennt jetzt den eigenen Weg der Vase: unter Bauart „Hohl mit Wand“ und einen Deckel auf der Karte Zubehör.",
+          "en": "A vase has too many triangles for Hollow. The message now names the vase's own way: “Hollow with wall” under Build, and a lid on the Accessories card."
+        }
+      },
+      {
+        "title": {
+          "de": "Teile bündig in eine Fläche versenken (Umschalt)",
+          "en": "Sink parts into a face, flush at the top (Shift)"
+        },
+        "body": {
+          "de": "Hältst du Umschalt, wenn du eine neue Form oder ein mit C aufgenommenes Teil auf eine Fläche setzt, sinkt es aufrecht in die Fläche, mit der Oberseite bündig: gut für Senkungen und Senkbohrungen. Umschalt+D setzt die Auswahl mit der Oberseite auf die Arbeitsebene. Senkung, Senkbohrung und Doppelsenkung entstehen jetzt gleich als Loch.",
+          "en": "Hold Shift when you place a new shape or a part picked up with C on a face and it sinks into the face, upright, with its top flush: good for countersinks and counterbores. Shift+D drops the selection with its top on the workplane. Countersink, counterbore and double countersink now start as a hole."
+        }
+      },
+      {
+        "title": {
+          "de": "Eine offene Skizze übersteht das Neuladen",
+          "en": "An open sketch survives a reload"
+        },
+        "body": {
+          "de": "Wer mitten in einer Skizze war, etwa mit einem eingefügten Bild und einer nachgezeichneten Linie, verlor sie beim Neuladen, auch nach einem Update. Die offene Skizze wird jetzt in diesem Browser mitgespeichert und ist danach wieder da.",
+          "en": "If you were in the middle of a sketch, with a picture inserted and a line traced over it, a reload took it, an update included. The open sketch is now kept in this browser as you draw and is there again afterwards."
+        }
+      },
+      {
+        "title": {
+          "de": "Rückgängig mit einem Klick, auch eingeklappt",
+          "en": "Undo in one click, folded too"
+        },
+        "body": {
+          "de": "Ist das Fenster schmal, klappt der Verlauf zu einem Knopf mit dem Rückgängig-Symbol zusammen. Ein Klick darauf nimmt jetzt den letzten Schritt zurück; der kleine Pfeil darunter öffnet Wiederherstellen und den Verlauf.",
+          "en": "In a narrow window, History folds into one button with the Undo icon. A click on it now takes back your last step; the small arrow under it opens Redo and the history."
+        }
+      },
+      {
+        "title": {
+          "de": "Der Schnitt-Knopf schaltet den Schnitt aus",
+          "en": "The section button turns the cut off"
+        },
+        "body": {
+          "de": "Ein Klick auf den Knopf der Schnittansicht schließt bei offenem Fenster jetzt auch den Schnitt. Das X und Esc blenden nur das Fenster aus, der Schnitt bleibt dann an.",
+          "en": "With its window open, a click on the section view button now turns the cut off too. The X and Esc only hide the window and leave the cut on."
+        }
+      },
+      {
+        "title": {
+          "de": "Entwürfe mit Chamfillet öffnen viel schneller",
+          "en": "Designs with Chamfillet open much faster"
+        },
+        "body": {
+          "de": "Chamfillet hat seine Körper viel feiner zerlegt als nötig, bis zu dreißigmal mehr Dreiecke als eine gleich große Rundung. Ein Entwurf mit vielen solchen Kanten wurde dadurch riesig und träge. Jetzt ist Chamfillet so fein wie die übrigen Kanten, und ältere Entwürfe werden beim Öffnen von selbst leicht.",
+          "en": "Chamfillet cut its bodies far finer than needed, up to thirty times the triangles of a fillet of the same size, so a design with many such edges got huge and slow. Chamfillet is now as fine as the other edges, and older designs get light by themselves when you open them."
+        }
+      }
+    ]
+  },
+  {
     "version": "1.131.1",
     "items": [
       {

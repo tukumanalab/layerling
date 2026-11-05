@@ -1,3 +1,4 @@
+import type { CadLidRequest } from "@/lib/cadLid";
 import type { ThreadOutlineTier } from "@/lib/threadOutline";
 import type { ThreadHead } from "@/types/layerling";
 import type { ThreadDriveOutline } from "@/lib/threadGeometry";
@@ -235,6 +236,11 @@ export type CadModifierThreadPart = {
   /** The chamfer at the bottom end, when the part has one (`chamferBottom`). */
   chamferLow: number;
   chamferBottom: boolean;
+  /**
+   * A tapered thread (NPT, #1267): every radius at height y (above the shape's bottom) is shifted
+   * by `slope * (y - at)`, as the mesh draws it. Absent for a straight thread.
+   */
+  taper?: { slope: number; at: number };
   /** A nut body or screw head of outline tiers (#1131): square, flange, wing or star knob. It takes the place of the hexagon or head kind. */
   tiers?: ThreadOutlineTier[];
   /** Screw only. */
@@ -252,9 +258,11 @@ export type CadModifierThreadPart = {
     /** The drive in the free head face (#1052) as its outline in the x/z plane of the shape, and its depth; 0 depth for none. */
     driveOutline?: ThreadDriveOutline;
     socketDepth: number;
+    /** The round collar (#1152) on the head's shaft face, up from `height`; on an outline head it is a tier instead. */
+    collar?: { radius: number; height: number };
   };
-  /** Nut only: its hex across flats, and the face radius of its chamfered rims (0 for sharp). */
-  nut?: { acrossFlats: number; chamferFaceRadius: number };
+  /** Nut only: its hex across flats, and the face radius of its chamfered rims (0 for sharp). The collar (#1175) is a round part on its top face, up from the body, which is `height` less the collar. */
+  nut?: { acrossFlats: number; chamferFaceRadius: number; collar?: { radius: number; height: number } };
   transform?: number[];
   expected?: { bounds: number[]; volume: number };
 };
@@ -336,6 +344,7 @@ export type CadModifierGridfinityPart = {
   gridfinityMagnets: boolean;
   gridfinityHalfGrid?: boolean;
   gridfinityLargePlate?: boolean;
+  gridfinitySwallowtail?: boolean;
   gridfinityLabelBack?: boolean;
   gridfinityLabelFront?: boolean;
   gridfinityLabelLeft?: boolean;
@@ -442,6 +451,10 @@ export type CadFaceInfo = {
   center: { x: number; y: number; z: number };
   /** Out of the body, for flat faces only. */
   normal?: { x: number; y: number; z: number };
+  /** Twice the area over the perimeter: how narrow the face is, for the thin faces Delete face takes along. */
+  width: number;
+  /** The faces it shares an edge with. */
+  neighbours: number[];
 };
 
 /** The prepared body's faces: each face's description and, for picking, the tessellation with the face of every triangle. */
@@ -450,19 +463,39 @@ export type CadModifierFaces = {
   mesh?: { positions: Float32Array; indices: Uint32Array; triangleFaces: Int32Array };
 };
 
+/** Faces a mesh was rebuilt with as an exact solid, by kind; facets are flat pieces of a freeform area. */
+export type CadModifierExactReport = {
+  plane: number;
+  cylinder: number;
+  cone: number;
+  sphere: number;
+  torus: number;
+  facets: number;
+  /** Share of the surface left as facets, 0 to 1. */
+  facetShare: number;
+  /** Faces of the finished solid. */
+  faces: number;
+  triangles: number;
+};
+
 export type CadModifierWorkerRequest =
   // faces: also send the body's faces (Delete face); faceMesh: with their tessellation, for picking.
-  | { type: "prepare"; requestId: number; parts: CadModifierMeshPart[]; sharpAngle: number; suppressTreatmentDetailEdges?: boolean; faces?: boolean; faceMesh?: boolean }
+  // exact: the mesh parts are to be made exact (Make exact): larger meshes and more time than the edge tool allows.
+  | { type: "prepare"; requestId: number; parts: CadModifierMeshPart[]; sharpAngle: number; suppressTreatmentDetailEdges?: boolean; faces?: boolean; faceMesh?: boolean; exact?: boolean }
   | {
       type: "preview";
       requestId: number;
-      kind: CadModifierKind;
+      // "lid" (#1154) changes nothing: it builds the exact lid for the prepared body. "exact" changes nothing either:
+      // it gives back the prepared body itself, the mesh rebuilt as an exact solid (Make exact).
+      kind: CadModifierKind | "lid" | "exact";
       edgeIds: number[];
       amount: number;
       quality: CadModifierQuality;
       chamferAngle: number;
       // Only for "fillet" of one edge (#687): the radius at the edge's end, `amount` the one at its start.
       endAmount?: number;
+      // Only for "fillet" (#1160): a scoop cut out of the edge instead of a rounding, `amount` the radius.
+      concave?: boolean;
       // Only for "shell": which faces stay open; `amount` is the wall thickness.
       shellOpenings?: ShellOpenings;
       shellEdges?: ShellEdges;
@@ -472,6 +505,8 @@ export type CadModifierWorkerRequest =
       offsetSideways?: boolean;
       // Only for "deleteFace": the faces to delete, as the prepare numbered them.
       faceIds?: number[];
+      // Only for "lid" (#1154): the kind, sizes, pockets and place of the lid.
+      lid?: CadLidRequest;
       // The finest deflection the shape's edge-treatment history has needed
       // so far, if any - a floor beneath this operation's own deflection.
       minDeflection?: CadModifierDeflection;
@@ -483,7 +518,8 @@ export type CadModifierWorkerRequest =
   | { type: "dispose"; requestId: number };
 
 export type CadModifierWorkerResponse =
-  | { type: "ready"; requestId: number; edges: CadModifierEdge[]; selectableEdgeIds: number[]; sourceType: string; faces?: CadModifierFaces }
+  // exactReport: what the mesh parts were rebuilt from (planes, cylinders, ... and facets), when any was.
+  | { type: "ready"; requestId: number; edges: CadModifierEdge[]; selectableEdgeIds: number[]; sourceType: string; faces?: CadModifierFaces; exactReport?: CadModifierExactReport }
   | {
       type: "preview";
       requestId: number;
@@ -497,6 +533,10 @@ export type CadModifierWorkerResponse =
       // The deflection actually used for this operation - request.minDeflection
       // folded in, so the caller can carry it forward as the new floor.
       deflection: CadModifierDeflection;
+      // Short corner edges the worker took along so a refused chamfer or fillet went through (#1178).
+      cornerEdgeIds?: number[];
+      /** Sharp inner corners at the ends of the picked edges, rounded or chamfered first at `amount` so they went through. */
+      innerCorners?: { count: number; amount: number };
     }
   | { type: "disposed"; requestId: number }
   // failedEdgeIds: the selected edges the kernel could not treat together.

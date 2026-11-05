@@ -15,6 +15,8 @@ import { shapeDefaultsFromShape } from "@/lib/shapeDefaults";
 import { canonicalizeShape, workplaneShapesEqual } from "@/lib/workplaneShapes";
 import type { WorkplaneShape } from "@/types/layerling";
 import {
+  DEFAULT_GRIDFINITY_SWALLOWTAIL_CLEARANCE,
+  GRIDFINITY_FOOT_HEIGHT,
   GRIDFINITY_LABEL_WALL_KEYS,
   GRIDFINITY_LIP_HEIGHT,
   GRIDFINITY_OPEN_WALL_KEYS,
@@ -47,6 +49,7 @@ import {
   gridfinityDrawerPatch,
   gridfinityDrawerSize,
   gridfinityFloorFits,
+  gridfinityFloorFullHeight,
   gridfinityFloorHeight,
   gridfinityFloorMaxHeight,
   gridfinityFloorMinHeight,
@@ -90,10 +93,18 @@ import {
   gridfinityScoopPieces,
   gridfinityScoopRadius,
   gridfinityScoopsLeftOut,
+  gridfinitySceneWithKeys,
   gridfinityShapePatch,
+  gridfinitySwallowtailClearance,
+  gridfinitySwallowtailKeyCount,
+  gridfinitySwallowtailKeyOutline,
+  gridfinitySwallowtailKeyPlaces,
+  gridfinitySwallowtailKeyProfile,
+  gridfinitySwallowtailKeys,
   gridfinityTriangles,
   gridfinityUnitCompartments,
   gridfinityUnits,
+  gridfinityWallFits,
   gridfinityWallMaxThickness,
   gridfinityWallProfile,
   gridfinityWallSolid,
@@ -1096,20 +1107,16 @@ describe("gridfinity floor height", () => {
   /** The inside of a 2 x 1 bin: 81.6 x 39.6 mm with corners of 2.8 mm. */
   const insideArea = 81.6 * 39.6 - (4 - Math.PI) * 2.8 * 2.8;
 
-  it("leaves a bin with the floor unset or at 5.95 mm, a bin of 1 height unit with the lip and a baseplate exactly as they were", () => {
+  it("leaves a bin with the floor unset or at 5.95 mm and a baseplate exactly as they were", () => {
     expect(gridfinityTriangles(bin({ gridfinityFloorHeight: 5.95 }))).toEqual(gridfinityTriangles(bin()));
     expect(gridfinityTriangles(bin({ gridfinityFloorHeight: 2 }))).toEqual(gridfinityTriangles(bin()));
-    // 1 unit with the lip: its support reaches the wall at 7 - 1.65 = 5.35, under the floor, so there is nothing to raise.
-    const low = { height: 7 + GRIDFINITY_LIP_HEIGHT };
-    expect(gridfinityFloorFits(bin(low))).toBe(false);
-    expect(gridfinityTriangles(bin({ ...low, gridfinityFloorHeight: 20 }))).toEqual(gridfinityTriangles(bin(low)));
     expect(gridfinityTriangles(plate({ gridfinityFloorHeight: 4 }))).toEqual(gridfinityTriangles(plate()));
   });
 
   it("rises to where the lip's support leaves the wall, 1.65 mm under the top, or to the top of a bin without the lip", () => {
     expect(gridfinityFloorHeight(bin())).toBeCloseTo(5.95, 9);
     expect(gridfinityFloorMaxHeight(bin())).toBeCloseTo(19.35, 9);
-    expect(gridfinityFloorHeight(bin({ gridfinityFloorHeight: 30 }))).toBeCloseTo(19.35, 9);
+    expect(gridfinityFloorHeight(bin({ gridfinityFloorHeight: 19.35 }))).toBeCloseTo(19.35, 9);
     expect(gridfinityFloorHeight(bin({ gridfinityFloorHeight: 12 }))).toBe(12);
     expect(gridfinityFloorMaxHeight(bin({ gridfinityLip: false, height: 21 }))).toBe(21);
     expect(gridfinityFloorFits(bin({ gridfinityLip: false, height: 7 }))).toBe(true);
@@ -1130,7 +1137,7 @@ describe("gridfinity floor height", () => {
     const plain = signedVolume(gridfinityTriangles(bin()));
     const raised = (gridfinityFloorHeight: number) => signedVolume(gridfinityTriangles(bin({ gridfinityFloorHeight }))) - plain;
     expect(raised(10) / (insideArea * (10 - 5.95))).toBeCloseTo(1, 3);
-    expect(raised(30) / (insideArea * (19.35 - 5.95))).toBeCloseTo(1, 3);
+    expect(raised(19.35) / (insideArea * (19.35 - 5.95))).toBeCloseTo(1, 3);
   });
 
   it("leaves a bin without the lip raised to the top as one solid block", () => {
@@ -1141,6 +1148,70 @@ describe("gridfinity floor height", () => {
     expect(bounds(triangles).max[1]).toBe(21);
   });
 
+  it("fills the lip too from the lip's top up: one solid block with a flat top at the lip's height", () => {
+    const full = 21 + GRIDFINITY_LIP_HEIGHT;
+    expect(gridfinityFloorFullHeight(bin())).toBeCloseTo(full, 9);
+    expect(gridfinityFloorFullHeight(bin({ gridfinityLip: false, height: 21 }))).toBe(21);
+    // From the lip's top up it is the lip's top; under it, up to the highest stacked floor as before.
+    const floor = (value: number, fields = {}) => gridfinityFloorHeight(bin({ ...fields, gridfinityFloorHeight: value }));
+    expect(floor(full)).toBeCloseTo(full, 9);
+    expect(floor(100)).toBeCloseTo(full, 9);
+    expect(floor(19.32)).toBeCloseTo(19.35, 9);
+    // The field's step onto 19.35 lands a hair over it, which still stacks.
+    expect(floor(5.95 + 0.05 * 268)).toBeCloseTo(19.35, 9);
+    expect(floor(full - 0.01)).toBeCloseTo(19.35, 9);
+    expect(floor(20.15, { gridfinityWallThickness: 2.5 })).toBeCloseTo(20.15, 9);
+    expect(floor(20.2, { gridfinityWallThickness: 2.5 })).toBeCloseTo(20.15, 9);
+    // 1 unit with the lip: its support reaches the wall at 7 - 1.65 = 5.35, under the floor, so a stacked bin leaves no
+    // room to raise it; it can only be filled to the lip's top.
+    const low = { height: 7 + GRIDFINITY_LIP_HEIGHT };
+    expect(gridfinityFloorMaxHeight(bin(low))).toBe(5.95);
+    expect(gridfinityFloorFits(bin(low))).toBe(true);
+    expect(floor(7 + GRIDFINITY_LIP_HEIGHT, low)).toBeCloseTo(7 + GRIDFINITY_LIP_HEIGHT, 9);
+    expect(floor(6, low)).toBe(5.95);
+    // A floor saved at the highest that then stands over it, by a thinner wall or the lip switched on, stays at the highest
+    // a stacked bin clears, as before; one unit lower, the highest of 4 units (26.35) is past the lip's top and fills.
+    expect(floor(19.35, { gridfinityWallThickness: 0.8 })).toBeCloseTo(19.2, 9);
+    expect(floor(21)).toBeCloseTo(19.35, 9);
+    expect(floor(26.35)).toBeCloseTo(full, 9);
+    // A thick wall's ledge, 20.15, stacks a floor over the 0.95 mm wall's 19.35 with its wall row and a side opened partly.
+    expect(gridfinityWallFits(bin({ gridfinityWallThickness: 2.5, gridfinityFloorHeight: 20 }))).toBe(true);
+    const opened = gridfinityPlan(bin({
+      gridfinityWallThickness: 2.5, gridfinityFloorHeight: 20, gridfinityOpenBack: true, gridfinityOpenFront: true, gridfinityOpenLeft: true,
+      gridfinityOpenRight: true, gridfinityOpenings: [{ side: "back", width: 20, align: "middle" }],
+    }));
+    expect([opened.floor, opened.wallThickness, opened.notches.length]).toEqual([20, 2.5, 1]);
+    // A bin whose walls meet, one without the lip, a tray and a baseplate are as they were.
+    expect(floor(30, { gridfinityWallThickness: 99 })).toBeCloseTo(20.15, 9);
+    expect(floor(30, { gridfinityLip: false, height: 21 })).toBe(21);
+    const tray = { gridfinityType: "tray" as const, width: 80, depth: 40, height: 20 };
+    expect(floor(100, tray)).toBe(20);
+    expect(gridfinityFloorFullHeight(plate())).toBe(5.95);
+    const triangles = gridfinityTriangles(bin({ gridfinityFloorHeight: full }));
+    // 2 mm under the lip's top a line crosses only the outer walls, and the top is at the lip's height.
+    const across = crossings(triangles, full - 2);
+    expect(across).toHaveLength(2);
+    across.forEach((x, i) => expect(x).toBeCloseTo([-41.75, 41.75][i], 9));
+    expect(bounds(triangles).max[1]).toBeCloseTo(full, 9);
+    // The lip adds the outline's area times its height to the block a bin without it makes.
+    const outlineArea = 83.5 * 41.5 - (4 - Math.PI) * 3.75 * 3.75;
+    const block = signedVolume(gridfinityTriangles(bin({ gridfinityLip: false, height: 21, gridfinityFloorHeight: 21 })));
+    expect((signedVolume(triangles) - block) / (outlineArea * GRIDFINITY_LIP_HEIGHT)).toBeCloseTo(1, 3);
+  });
+
+  it("builds nothing inside a filled bin: no shelves, scoops, dividers, open sides or lip chamfer", () => {
+    const filled = bin({ gridfinityFloorHeight: 30 });
+    const everything = bin({
+      gridfinityFloorHeight: 30, gridfinityLabelBack: true, gridfinityScoopFront: true, gridfinityCompartmentsX: 2,
+      gridfinityOpenLeft: true, gridfinityOpenRight: true, gridfinityLipChamfer: 0.5,
+    });
+    expect(gridfinityHasPieces(everything)).toBe(false);
+    expect(gridfinityPlan(everything).lipChamfer).toBe(0);
+    expect(gridfinityPlan(everything).notches).toHaveLength(0);
+    expect(gridfinityTriangles(everything)).toEqual(gridfinityTriangles(filled));
+    expect(gridfinityLabelledTriangles(runtime, everything)).toEqual(gridfinityTriangles(filled));
+  });
+
   it("is closed, wound outwards and one piece at any height, with the lip or without, shelves, scoops, magnets and the half-size grid", () => {
     for (const fields of [
       { gridfinityFloorHeight: 10 },
@@ -1148,6 +1219,10 @@ describe("gridfinity floor height", () => {
       { gridfinityFloorHeight: 19.345 },
       { gridfinityFloorHeight: 19.34 },
       { gridfinityFloorHeight: 30, gridfinityMagnets: true },
+      { gridfinityFloorHeight: 30, gridfinityBinCornerRadius: 1 },
+      { gridfinityFloorHeight: 30, gridfinityWallThickness: 2.5 },
+      { gridfinityHalfGrid: true, width: 20.5, depth: 41.5, gridfinityFloorHeight: 30 },
+      { height: 7 + GRIDFINITY_LIP_HEIGHT, gridfinityFloorHeight: 7 + GRIDFINITY_LIP_HEIGHT },
       { gridfinityLip: false, height: 21, gridfinityFloorHeight: 21 },
       { gridfinityLip: false, height: 21, gridfinityFloorHeight: 20.99 },
       { gridfinityLip: false, height: 21, gridfinityFloorHeight: 20.999 },
@@ -2684,7 +2759,8 @@ describe("gridfinity wall thickness", { timeout: 60_000 }, () => {
 
   it("ends a low bin's support on the floor exactly as before at the 0.95 mm wall", () => {
     // 2 height units with the lip at its highest floor: the support's foot is 2.6 - (14 - floor), 0.9499999999999997, as before the wall could be set.
-    for (const floor of [12.3, 12.33, 99]) {
+    // 12.35, the highest a stacked bin clears; from the lip's top, 18.4, up the lip is filled (#1126).
+    for (const floor of [12.3, 12.33, 12.35]) {
       for (const halfGrid of [false, true]) {
         const fields = { width: 41.5, depth: 41.5, height: 14 + GRIDFINITY_LIP_HEIGHT, gridfinityFloorHeight: floor, gridfinityHalfGrid: halfGrid };
         const plan = gridfinityPlan(bin(fields));
@@ -2711,7 +2787,9 @@ describe("gridfinity wall thickness", { timeout: 60_000 }, () => {
     expect(profile(1.75)[5][1]).toBeCloseTo(ledge, 9);
     for (const w of [2.5, 5]) expect(profile(w).slice(5), `${w}`).toEqual([[1.75, ledge], [w, ledge], [w, 5.95]]);
     // A floor at the ledge ends the support there.
-    expect(profile(2.5, { gridfinityFloorHeight: 30 }).slice(5)).toEqual([[1.75, ledge]]);
+    expect(profile(2.5, { gridfinityFloorHeight: ledge }).slice(5)).toEqual([[1.75, ledge]]);
+    // Filled to the lip's top: up the outside and flat across it.
+    expect(profile(2.5, { gridfinityFloorHeight: 30 })).toEqual([[0, GRIDFINITY_FOOT_HEIGHT], [0, top + GRIDFINITY_LIP_HEIGHT], [2.5, top + GRIDFINITY_LIP_HEIGHT]]);
     expect(gridfinityWallProfile(gridfinityPlan(bin({ gridfinityLip: false, height: 21, gridfinityWallThickness: 4 }))).slice(2)).toEqual([[4, 21], [4, 5.95]]);
   });
 
@@ -2725,7 +2803,8 @@ describe("gridfinity wall thickness", { timeout: 60_000 }, () => {
     expect(max(1, unit)).toBe(5.95);
     // Within 0.05 mm of the floor there is nothing to raise: up to a wall of 1.6 mm, and from just over it there is.
     expect(max(1.6, unit)).toBe(5.95);
-    expect(gridfinityFloorFits(bin({ ...unit, gridfinityWallThickness: 1.6 }))).toBe(false);
+    // A stacked bin leaves no room, but the floor can still fill the lip (#1126).
+    expect(gridfinityFloorFits(bin({ ...unit, gridfinityWallThickness: 1.6 }))).toBe(true);
     expect(max(1.62, unit)).toBeCloseTo(6.02, 9);
     expect(gridfinityFloorFits(bin({ ...unit, gridfinityWallThickness: 1.62 }))).toBe(true);
     // Where the support runs down to the floor, it never leaves the wall thinner than set.
@@ -4031,5 +4110,177 @@ describe("gridfinity outline", () => {
     expect(gridfinityShapePatch(shape, { type: "bin" })).toMatchObject({ gridfinityType: "bin", gridfinityOutline: undefined });
     expect(gridfinityShapePatch(shape, { type: "tray" })).toMatchObject({ gridfinityType: "tray", gridfinityOutline: undefined });
     expect(gridfinityShapePatch(outlined(rectangle(168, 84)), { lip: false })).not.toHaveProperty("gridfinityOutline");
+  });
+});
+
+describe("gridfinity swallowtail", () => {
+  let runtime: ManifoldToplevel;
+
+  beforeAll(async () => {
+    runtime = await manifoldModule();
+    runtime.setup();
+  });
+
+  const swallowtail = (fields: Record<string, unknown> = {}) => plate({ gridfinitySwallowtail: true, ...fields });
+  const sides = (fields: Record<string, unknown> = {}) => gridfinityPlan(swallowtail(fields)).pockets.map((p) => `${p.side} ${p.x} ${p.z}`).sort();
+  /** The area of the faces lying at y, as the mesh draws its rounded corners. */
+  const areaAt = (triangles: V[][], y: number) => triangles.filter((t) => t.every((v) => Math.abs(v[1] - y) < 1e-9)).reduce((sum, [a, b, c]) => sum + Math.abs((b[0] - a[0]) * (c[2] - a[2]) - (c[0] - a[0]) * (b[2] - a[2])) / 2, 0);
+  // A pocket half: 7 mm in from the side, 6 mm wide there and 10 at its end, 1.4 mm of it over the lip, 7 x 8 mm2; the lip
+  // 0.6 mm, the whole pocket up to the key's slots 2.5 mm in (2.5 x 6.71 mm2), then narrowing to 0.2 mm less on each side at
+  // the end (4.5 x 8.51 mm2): 55.1 mm2.
+  const pocketVolume = 56 * 1.4 + 55.1 * 0.6;
+
+  it("puts the plate on a 2.4 mm floor, 7.4 mm tall, with the switch, and leaves it as it was without", () => {
+    expect(gridfinityTriangles(plate({ gridfinitySwallowtail: false }))).toEqual(gridfinityTriangles(plate()));
+    expect(gridfinityFootprintPatch(swallowtail())).toEqual({ width: 84, depth: 42, height: 7.4 });
+    expect(gridfinityPlan(swallowtail()).size.height).toBe(7.4);
+    expect(gridfinityShapePatch(plate(), { swallowtail: true })).toMatchObject({ gridfinitySwallowtail: true, height: 7.4 });
+    expect(gridfinityShapePatch(swallowtail(), { swallowtail: false })).toMatchObject({ gridfinitySwallowtail: false, height: 5 });
+    // A bin keeps the setting and is built as one; a baseplate made from it is 7.4 mm tall.
+    expect(gridfinityPlan({ width: 83.5, depth: 41.5, height: 25.4, gridfinityType: "bin", gridfinitySwallowtail: true }).size.height).toBe(25.4);
+    expect(gridfinityShapePatch({ width: 83.5, depth: 41.5, height: 25.4, gridfinityType: "bin", gridfinitySwallowtail: true }, { type: "baseplate" })).toMatchObject({ height: 7.4 });
+  });
+
+  it("has a pocket at the middle of each cell on every side without padding", () => {
+    expect(sides()).toEqual(["back -21 -21", "back 21 -21", "front -21 21", "front 21 21", "left -42 0", "right 42 0"]);
+    expect(sides({ gridfinityPaddingRight: 10, width: 94 })).toEqual(["back -26 -21", "back 16 -21", "front -26 21", "front 16 21", "left -47 0"]);
+    expect(gridfinityPlan(swallowtail({ width: 504, depth: 504, gridfinityLargePlate: true })).pockets).toHaveLength(48);
+    expect(gridfinityPlan(swallowtail({ gridfinityPaddingBack: 1, gridfinityPaddingFront: 1, gridfinityPaddingLeft: 1, gridfinityPaddingRight: 1, width: 86, depth: 44 })).pockets).toHaveLength(0);
+    expect(gridfinityPlan(plate()).pockets).toHaveLength(0);
+  });
+
+  it("carries the switch to every place that builds or keeps the plate", async () => {
+    rememberManifoldRuntime(runtime);
+    const shape = canonicalizeShape(binShape(swallowtail({ height: 5 })));
+    expect(shape).toMatchObject({ height: 7.4, gridfinitySwallowtail: true });
+    expect(gridfinityHasPieces(shape)).toBe(true);
+    expect(workplaneShapesEqual(shape, { ...shape, gridfinitySwallowtail: false })).toBe(false);
+    expect(shapeGeometrySignature(shape)).not.toBe(shapeGeometrySignature({ ...shape, gridfinitySwallowtail: false }));
+    expect(tapeShapeTopologyKey(shape)).not.toBe(tapeShapeTopologyKey({ ...shape, gridfinitySwallowtail: false }));
+    const drawn = new THREE.Box3().setFromObject(createShapeObject(shape, false, undefined, false));
+    expect(drawn.max.y - drawn.min.y).toBeCloseTo(7.4, 3);
+    expect(Math.max(...meshForShape(shape).vertices.map(([, y]) => y))).toBeCloseTo(7.4, 6);
+    expect(cadModifierGridfinityForShape(shape)).toMatchObject({ gridfinitySwallowtail: true, height: 7.4 });
+    expect(sceneShape(shape)).toMatchObject({ gridfinitySwallowtail: true });
+    expect(mcpShapeSummary(shape)).toMatchObject({ settings: { gridfinitySwallowtail: true } });
+    expect(normalizeShapeCustomizations({ gridfinity: { gridfinitySwallowtail: true } }, {})).toMatchObject({ gridfinity: { gridfinitySwallowtail: true } });
+    expect(shapeDefaultsFromShape(shape)).toMatchObject({ gridfinitySwallowtail: true });
+    const key = { ...shape, id: "key", gridfinityKeyOf: shape.id };
+    expect(sceneShape(key)).toMatchObject({ gridfinityKeyOf: shape.id });
+    expect(workplaneShapesEqual(key, { ...key, gridfinityKeyOf: undefined })).toBe(false);
+    const asset = toolbarShapeAssets.find((entry) => entry.kind === "gridfinity")!;
+    expect(canonicalizeShape(makeShapeFromAsset(asset, { x: 0, z: 0 }, { gridfinityType: "baseplate", gridfinitySwallowtail: true }))).toMatchObject({ height: 7.4 });
+    const save = (shapes: WorkplaneShape[]) => exportLylProject({ projectId: "swallowtail", projectName: "Swallowtail", createdAt: 1, modifiedAt: 2, shapes, history: [editorHistoryEntry(shapes, [])], historyIndex: 0, assets: [], workspace: DEFAULT_WORKPLANE_WORKSPACE, snapGrid: DEFAULT_SNAP_GRID, placementElevation: 0 });
+    const [loaded, loadedKey] = (await importLylProject(await save([shape, key]))).shapes;
+    expect(loaded).toMatchObject({ height: 7.4, gridfinitySwallowtail: true });
+    expect(loadedKey).toMatchObject({ gridfinityKeyOf: shape.id });
+    await expect(importLylProject(await save([{ ...shape, gridfinitySwallowtail: "yes" } as unknown as WorkplaneShape]))).rejects.toThrow("gridfinitySwallowtail must be true or false");
+  });
+
+  it("is not built on a plate fitted to an outline, which stays 5 mm", () => {
+    const outline = [{ x: -60, z: -30 }, { x: 60, z: -30 }, { x: 60, z: 30 }, { x: -60, z: 30 }];
+    const fitted = { width: 120, depth: 60, height: 5, gridfinityType: "baseplate" as const, gridfinityOutline: outline, gridfinitySwallowtail: true };
+    expect(gridfinityPlan(fitted).swallowtail).toBe(false);
+    expect(gridfinityPlan(fitted).pockets).toHaveLength(0);
+    expect(gridfinityFootprintPatch(fitted)).toMatchObject({ height: 5 });
+  });
+
+  it("brings one key for each pocket at its back and right, laid in a row 4 mm in front of the plate", () => {
+    const count = (fields: Record<string, unknown>) => gridfinitySwallowtailKeyCount({ kind: "gridfinity", ...swallowtail(fields) });
+    expect(count({})).toBe(3);
+    expect(count({ width: 42 })).toBe(2);
+    expect(count({ gridfinityPaddingRight: 10, width: 94 })).toBe(2);
+    expect(count({ gridfinityPaddingBack: 10, gridfinityPaddingRight: 10, width: 94, depth: 52 })).toBe(0);
+    expect(count({ gridfinitySwallowtail: false })).toBe(0);
+    expect(gridfinitySwallowtailKeyCount({ kind: "box", ...swallowtail() })).toBe(0);
+    expect(gridfinitySwallowtailKeyPlaces({ minX: -42, maxZ: 21 }, { width: 14, depth: 10 }, 3)).toEqual([{ x: -35, z: 30 }, { x: -17, z: 30 }, { x: 1, z: 30 }]);
+    // Laid out again, a plate's keys replace the ones laid out for it before, and leave another plate's alone.
+    const key = (id: string, of: string) => ({ ...binShape(plate()), id, gridfinityKeyOf: of });
+    const scene = [binShape(plate()), key("old", "a"), key("other", "b")];
+    expect(gridfinitySceneWithKeys(scene, "a", [key("new", "a")]).map((shape) => shape.id)).toEqual([scene[0].id, "other", "new"]);
+    // The editor's keys: copies of the built key in the plate's colour on its level, each marked as the plate's.
+    const ids = ["k1", "k2", "k3"];
+    const made = gridfinitySwallowtailKeys({ id: "a", color: "#123456" }, { minX: -42, maxZ: 21, minY: 2 }, { ...binShape(plate()), width: 14, hole: true }, 10, 3, "Swallowtail key", () => ids.shift()!);
+    expect(made.map(({ id, name, gridfinityKeyOf, color, hole, x, z, elevation }) => ({ id, name, gridfinityKeyOf, color, hole, x, z, elevation }))).toEqual([-35, -17, 1].map((x, k) => ({ id: `k${k + 1}`, name: "Swallowtail key", gridfinityKeyOf: "a", color: "#123456", hole: false, x, z: 30, elevation: 2 })));
+  });
+
+  it("makes the key two pocket halves smaller by its clearance on every side, with a slot of 1.2 x 4.5 mm into each end", () => {
+    for (const clearance of [0, 0.05, 0.15]) {
+      const key = gridfinitySwallowtailKeyOutline(clearance);
+      const area = key.reduce((sum, p, k) => sum + p.x * key[(k + 1) % key.length].z - key[(k + 1) % key.length].x * p.z, 0) / 2;
+      // Each half a trapezoid 7 mm long, 6 mm wide at the middle and 10 at the end, all less the clearance on every side.
+      expect(Math.abs(area)).toBeCloseTo(2 * (7 - clearance) * (8 - 2 * clearance) - 2 * 1.2 * 4.5, 9);
+      expect(Math.max(...key.map((p) => p.x)) - Math.min(...key.map((p) => p.x))).toBeCloseTo(14 - 2 * clearance, 9);
+      expect(Math.max(...key.map((p) => p.z)) - Math.min(...key.map((p) => p.z))).toBeCloseTo(10 - 2 * clearance, 9);
+    }
+  });
+
+  it("draws the plate's keys at its clearance, the default unless it is set", () => {
+    const width = (plate: Record<string, unknown>) => { const xs = gridfinitySwallowtailKeyProfile(swallowtail(plate)).points.map((p) => p.x); return Math.max(...xs) - Math.min(...xs); };
+    expect(width({ gridfinitySwallowtailClearance: 0.1 })).toBeCloseTo(13.8, 9);
+    expect(width({})).toBeCloseTo(14 - 2 * DEFAULT_GRIDFINITY_SWALLOWTAIL_CLEARANCE, 9);
+  });
+
+  it("reads the keys' clearance from the plate: the default unless set, 0 to 0.15 mm, to 0.01 mm", () => {
+    expect(gridfinitySwallowtailClearance(swallowtail())).toBe(DEFAULT_GRIDFINITY_SWALLOWTAIL_CLEARANCE);
+    expect(gridfinitySwallowtailClearance(swallowtail({ gridfinitySwallowtailClearance: 0.08 }))).toBe(0.08);
+    expect(gridfinitySwallowtailClearance(swallowtail({ gridfinitySwallowtailClearance: 0.123 }))).toBe(0.12);
+    expect(gridfinitySwallowtailClearance(swallowtail({ gridfinitySwallowtailClearance: 0.4 }))).toBe(0.15);
+    expect(gridfinitySwallowtailClearance(swallowtail({ gridfinitySwallowtailClearance: -1 }))).toBe(0);
+    expect(gridfinitySwallowtailClearance(swallowtail({ gridfinitySwallowtailClearance: Number.NaN }))).toBe(DEFAULT_GRIDFINITY_SWALLOWTAIL_CLEARANCE);
+  });
+
+  it("carries the keys' clearance to every place that keeps the plate, and leaves the plate itself as it was", async () => {
+    const shape = canonicalizeShape(binShape(swallowtail({ gridfinitySwallowtailClearance: 0.1 })));
+    const other = { ...shape, gridfinitySwallowtailClearance: 0.05 };
+    // A change of clearance is a change for the editor, so it is committed; the plate is built the same.
+    expect(workplaneShapesEqual(shape, other)).toBe(false);
+    expect(shapeGeometrySignature(shape)).toBe(shapeGeometrySignature(other));
+    const settings = { gridfinitySwallowtail: true, gridfinitySwallowtailClearance: 0.1 };
+    const save = (shapes: WorkplaneShape[]) => exportLylProject({ projectId: "keys", projectName: "Keys", createdAt: 1, modifiedAt: 2, shapes, history: [editorHistoryEntry(shapes, [])], historyIndex: 0, assets: [], workspace: DEFAULT_WORKPLANE_WORKSPACE, snapGrid: DEFAULT_SNAP_GRID, placementElevation: 0 });
+    const [loaded] = (await importLylProject(await save([shape]))).shapes;
+    expect(workplaneShapesEqual(loaded, shape)).toBe(true);
+    await expect(importLylProject(await save([{ ...shape, gridfinitySwallowtailClearance: "loose" } as unknown as WorkplaneShape]))).rejects.toThrow("gridfinitySwallowtailClearance must be a finite number");
+    await expect(importLylProject(await save([{ ...shape, gridfinitySwallowtailClearance: -1 }]))).rejects.toThrow("gridfinitySwallowtailClearance is outside the supported range");
+    expect(sceneShape(shape)).toMatchObject(settings);
+    expect(normalizeShapeCustomizations({ gridfinity: settings }, {})).toMatchObject({ gridfinity: settings });
+    expect(normalizeShapeCustomizations({ gridfinity: { gridfinitySwallowtailClearance: -1 } }, {}).gridfinity?.gridfinitySwallowtailClearance).toBe(0);
+    expect(shapeDefaultsFromShape(shape)).toMatchObject(settings);
+    const asset = toolbarShapeAssets.find((entry) => entry.kind === "gridfinity")!;
+    expect(makeShapeFromAsset(asset, { x: 0, z: 0 }, settings)).toMatchObject(settings);
+    expect(mcpShapeSummary(shape).settings).toMatchObject(settings);
+  });
+
+  it("draws the plate on its floor closed before Manifold has loaded, its sockets ending on the floor", () => {
+    const triangles = gridfinityTriangles(swallowtail());
+    expect(edgeProblems(triangles)).toBe(0);
+    expect(components(triangles)).toBe(1);
+    expect(bounds(triangles).max[1]).toBeCloseTo(7.4, 9);
+    // The floor under the whole plate: its underside's area times 2.4 more than the plate without it.
+    expect(areaAt(triangles, 0)).toBeCloseTo(84 * 42 - (4 - Math.PI) * 16, 0);
+    expect(signedVolume(triangles) - signedVolume(gridfinityTriangles(plate()))).toBeCloseTo(areaAt(triangles, 0) * 2.4, 6);
+  });
+
+  it("cuts the pockets with Manifold: closed, one piece, the pockets' volume less", () => {
+    for (const fields of [{}, { width: 42 }, { gridfinityPaddingRight: 10, width: 94 }, { gridfinityCornerRadius: 0 }, { width: 126, depth: 84 }]) {
+      const triangles = gridfinityLabelledTriangles(runtime, swallowtail(fields));
+      expect(edgeProblems(triangles)).toBe(0);
+      expect(components(triangles)).toBe(1);
+      const pockets = gridfinityPlan(swallowtail(fields)).pockets.length;
+      // Within 0.005 mm3: Manifold's sliver clean-up moves a few points by up to 1e-4 mm.
+      expect(signedVolume(gridfinityTriangles(swallowtail(fields))) - signedVolume(triangles)).toBeCloseTo(pockets * pocketVolume, 2);
+    }
+    // Lines along the side pockets, over the lip and in it. 3.2 mm off their middle, outside the pocket's 3 mm at the side,
+    // the pocket starts 0.7 mm in both times: no lip at the seam, where the key's middle has no slot. 4.9 mm off it the
+    // pocket is reached 6.65 mm in over the lip, and not at all in it: the lip, 0.2 mm wide at the end, holds the key's
+    // slotted ends.
+    const triangles = gridfinityLabelledTriangles(runtime, swallowtail());
+    const at = (y: number, z: number) => crossings(triangles, y, z).map((x) => Math.round(x * 100) / 100);
+    expect(at(1, 0.5)).toEqual([-35, 35]);
+    expect(at(1, 3.2)).toEqual([-42, -41.3, -35, 35, 41.3, 42]);
+    expect(at(0.3, 0.5)).toEqual([-35, 35]);
+    expect(at(0.3, 3.2)).toEqual([-42, -41.3, -35, 35, 41.3, 42]);
+    expect(at(1, 4.9)).toEqual([-42, -35.35, -35, 35, 35.35, 42]);
+    expect(at(0.3, 4.9)).toEqual([-42, 42]);
   });
 });

@@ -19,7 +19,7 @@ import {
   attachmentsFormatVersion,
 } from "@/lib/projectAttachments";
 import { normalizeQrSettings } from "@/lib/qrCode";
-import { MAX_SBC_CLEARANCE, MAX_SBC_REACH, SBC_BOARD_ORDER } from "@/lib/sbcBoards";
+import { MAX_SBC_CLEARANCE, MAX_SBC_REACH, MAX_SBC_UP_REACH, MIN_SBC_UP_REACH, SBC_BOARD_ORDER } from "@/lib/sbcBoards";
 import { importedShapeFromStl } from "@/lib/stlImport";
 import { importedShapeFromSvg } from "@/lib/svgImport";
 import { importedShapeFrom3mf } from "@/lib/threemfImport";
@@ -63,7 +63,7 @@ export const LYL_FILE_TYPES_FORMAT_VERSION = 4;
 /** The newest format this layerling reads. */
 export const LYL_NEWEST_READABLE_FORMAT_VERSION = LYL_FILE_TYPES_FORMAT_VERSION;
 export const LYL_OLDEST_READABLE_FORMAT_VERSION = 1;
-export const LYL_CREATED_WITH_VERSION = "1.131.1";
+export const LYL_CREATED_WITH_VERSION = "1.141.0";
 export const LYL_MEDIA_TYPE = "application/vnd.layerling.project+zip";
 
 export const LYL_LIMITS = {
@@ -81,7 +81,7 @@ export const LYL_LIMITS = {
 
 const SHAPE_KINDS = new Set([
   "box", "roundedBox", "cylinder", "slot", "ellipse", "sphere", "sketch", "scribble", "cone", "pyramid", "roof", "text", "roundRoof",
-  "halfSphere", "paraboloid", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "hirth", "honeycomb", "hinge", "knurl", "dovetail", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "loft", "vase", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
+  "halfSphere", "paraboloid", "curvedCone", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "hirth", "honeycomb", "hinge", "knurl", "dovetail", "screwBoss", "snapFit", "rib", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "loft", "vase", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
 ]);
 
 const FEATURE_TYPES = new Set([
@@ -532,9 +532,19 @@ function encodedAssetPayload(resource: object, encode: () => Uint8Array) {
 // The exact-CAD text of a body (its B-rep) is a string, which a WeakMap cannot
 // key, yet every undo state of an unchanged body carries the very same string.
 // Without this each state encoded and hashed it again on every autosave. The
-// cache is small and keeps the most recently used few.
-const TEXT_PAYLOAD_CACHE_LIMIT = 6;
+// cache keeps the most recently used ones. It once held only six: an autosave
+// walks the bodies of the new state in the same order every time, so with seven
+// exact bodies or more each one had pushed out the next before it was asked for,
+// and nothing was ever found. Now it holds as many as fit in a budget of text,
+// so a design full of large bodies does not keep copies of all of them either.
+const TEXT_PAYLOAD_CACHE_LIMIT = 256;
+const TEXT_PAYLOAD_CACHE_CHARS = 48 * 1024 * 1024;
 const encodedTextPayloads = new Map<string, Promise<EncodedAssetPayload>>();
+let encodedTextChars = 0;
+
+function forgetTextPayload(text: string) {
+  if (encodedTextPayloads.delete(text)) encodedTextChars -= text.length;
+}
 
 function encodedTextPayload(text: string) {
   const cached = encodedTextPayloads.get(text);
@@ -548,15 +558,17 @@ function encodedTextPayload(text: string) {
       const bytes = strToU8(text);
       return { bytes, sha256: await sha256Hex(bytes) };
     } catch (error) {
-      encodedTextPayloads.delete(text);
+      forgetTextPayload(text);
       throw error;
     }
   })();
   encodedTextPayloads.set(text, pending);
-  while (encodedTextPayloads.size > TEXT_PAYLOAD_CACHE_LIMIT) {
+  encodedTextChars += text.length;
+  // The newest stays even when it alone is over the budget: it is the one being written.
+  while (encodedTextPayloads.size > 1 && (encodedTextPayloads.size > TEXT_PAYLOAD_CACHE_LIMIT || encodedTextChars > TEXT_PAYLOAD_CACHE_CHARS)) {
     const oldest = encodedTextPayloads.keys().next();
     if (oldest.done) break;
-    encodedTextPayloads.delete(oldest.value);
+    forgetTextPayload(oldest.value);
   }
   return pending;
 }
@@ -569,6 +581,8 @@ const serializedStateCache = new WeakMap<object, {
   sourceKey: string;
   json: string;
   used: Array<{ record: LylAssetRecordV1; bytes: Uint8Array }>;
+  /** The indexes of the project file when this state is the active one, worked out the first time it is. */
+  indexes?: ReturnType<typeof activeProjectIndexes>;
 }>();
 
 class LylArchiveBuilder {
@@ -1093,6 +1107,7 @@ export async function exportLylProject(input: LylProjectExportInput) {
   const freshStates = new Map<string, LylStateV1>();
   const stateIdByFingerprint = new Map<string, string>();
   const historyEntries: LylProjectDocumentV1["history"]["entries"] = [];
+  const reusedStates = new Map<string, NonNullable<ReturnType<typeof serializedStateCache.get>>>();
 
   for (const entry of exportEntries) {
     let stateId = stateIdByFingerprint.get(entry.fingerprint);
@@ -1102,6 +1117,7 @@ export async function exportLylProject(input: LylProjectExportInput) {
       if (cached && cached.stateId === stateId && cached.sourceKey === sourceKey) {
         builder.adopt(cached.used);
         stateTexts.push(cached.json);
+        reusedStates.set(stateId, cached);
       } else {
         const { result: state, used } = await builder.recording(() => serializeState(stateId as string, entry.shapes, builder, sourceAssetsByArchiveId, normalizeNotes(entry.notes)));
         const json = JSON.stringify(state);
@@ -1121,11 +1137,15 @@ export async function exportLylProject(input: LylProjectExportInput) {
 
   const sceneStateId = historyEntries[hydrated.index]?.stateId;
   const activeStateIndex = sceneStateId ? Number(sceneStateId.slice("state-".length)) - 1 : -1;
-  const activeState = sceneStateId && stateTexts[activeStateIndex] !== undefined
-    ? (freshStates.get(sceneStateId) ?? (JSON.parse(stateTexts[activeStateIndex]) as LylStateV1))
-    : undefined;
-  if (!activeState) throw new Error("Could not identify the active project state");
-  const indexes = activeProjectIndexes(activeState);
+  if (!sceneStateId || stateTexts[activeStateIndex] === undefined) throw new Error("Could not identify the active project state");
+  // A state kept from an earlier save (after an undo, say) is not parsed again on every autosave: its indexes are kept with it.
+  const freshActive = freshStates.get(sceneStateId);
+  const reusedActive = freshActive ? undefined : reusedStates.get(sceneStateId);
+  const indexes = freshActive
+    ? activeProjectIndexes(freshActive)
+    : reusedActive
+      ? (reusedActive.indexes ??= activeProjectIndexes(JSON.parse(reusedActive.json) as LylStateV1))
+      : activeProjectIndexes(JSON.parse(stateTexts[activeStateIndex]) as LylStateV1);
   const now = Date.now();
   const sketchPlacementWorkplane = normalizePlacementWorkplane(input.sketchPlacementWorkplane);
   const view = input.view === undefined ? readDesignView(input.projectId) : normalizeDesignView(input.view);
@@ -1390,6 +1410,10 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   if (definition.textSpacing !== undefined && !(typeof definition.textSpacing === "number" && Number.isFinite(definition.textSpacing) && definition.textSpacing >= -50 && definition.textSpacing <= 300)) {
     throw new Error(`${label}.textSpacing must be a number from -50 to 300`);
   }
+  // How wide curved text's letters are drawn (#1196), in per cent of their own width.
+  if (definition.textLetterWidth !== undefined && !(typeof definition.textLetterWidth === "number" && Number.isFinite(definition.textLetterWidth) && definition.textLetterWidth >= 25 && definition.textLetterWidth <= 400)) {
+    throw new Error(`${label}.textLetterWidth must be a number from 25 to 400`);
+  }
   // The top edge of a text's letters (#225): round or chamfer, with a size.
   if (definition.textEdge !== undefined && !normalizeTextEdge(definition.textEdge)) {
     throw new Error(`${label}.textEdge must be a round or chamfer edge with a size`);
@@ -1411,9 +1435,10 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   if (definition.qrCode !== undefined && !normalizeQrSettings(definition.qrCode)) {
     throw new Error(`${label}.qrCode must hold the code's text`);
   }
-  // An SBC board's settings (#1098): a known board, a clearance of 0 to 2 mm and a reach of 0 to 10 mm. Old projects have none.
+  // An SBC board's settings (#1098): a known board, a clearance of 0 to 2 mm and a reach of 0 to 10 mm;
+  // the openings up and out as true or false, and how far up as 20 to 100 mm. Old projects have none.
   if (definition.sbcBoard !== undefined) {
-    const board = definition.sbcBoard as { board?: unknown; clearance?: unknown; reach?: unknown } | null;
+    const board = definition.sbcBoard as { board?: unknown; clearance?: unknown; reach?: unknown; ribbonUp?: unknown; ribbonSide?: unknown; gpioUp?: unknown; upReach?: unknown } | null;
     if (!board || typeof board !== "object" || !SBC_BOARD_ORDER.includes(board.board as never)) {
       throw new Error(`${label}.sbcBoard.board must be one of ${SBC_BOARD_ORDER.join(", ")}`);
     }
@@ -1422,6 +1447,12 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     }
     if (board.reach !== undefined && (typeof board.reach !== "number" || !Number.isFinite(board.reach) || board.reach < 0 || board.reach > MAX_SBC_REACH)) {
       throw new Error(`${label}.sbcBoard.reach is outside the supported range`);
+    }
+    for (const key of ["ribbonUp", "ribbonSide", "gpioUp"] as const) {
+      if (board[key] !== undefined && typeof board[key] !== "boolean") throw new Error(`${label}.sbcBoard.${key} must be true or false`);
+    }
+    if (board.upReach !== undefined && (typeof board.upReach !== "number" || !Number.isFinite(board.upReach) || board.upReach < MIN_SBC_UP_REACH || board.upReach > MAX_SBC_UP_REACH)) {
+      throw new Error(`${label}.sbcBoard.upReach is outside the supported range`);
     }
   }
   // The corners of a text's line (#215): a layer of a name tag can be bevelled or sharp now, so an
@@ -1472,6 +1503,9 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     }
     if (definition.threadProfile !== undefined && !isThreadProfile(definition.threadProfile)) {
       throw new Error(`${label}.threadProfile is invalid`);
+    }
+    if (definition.threadTaper !== undefined && typeof definition.threadTaper !== "boolean") {
+      throw new Error(`${label}.threadTaper is invalid`);
     }
     if (definition.threadDiameter !== undefined) {
       const threadDiameter = finiteNumber(definition.threadDiameter, `${label}.threadDiameter`);
@@ -1526,7 +1560,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.threadDrive !== undefined && !["hex", "torx", "phillips", "slot", "robertson", "none"].includes(definition.threadDrive as string)) {
       throw new Error(`${label}.threadDrive is invalid`);
     }
-    for (const field of ["threadHeadDiameter", "threadDriveSize", "threadDriveDepth"] as const) {
+    for (const field of ["threadHeadDiameter", "threadDriveSize", "threadDriveDepth", "threadCollarHeight", "threadCollarDiameter"] as const) {
       if (definition[field] === undefined) continue;
       const value = finiteNumber(definition[field], `${label}.${field}`);
       if (value < 0 || value > 640) throw new Error(`${label}.${field} is outside the supported range`);
@@ -1671,6 +1705,22 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
       if (value < 0 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
     }
   }
+  if (kind === "curvedCone") {
+    // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
+    for (const key of ["curvedConeTop", "curvedConeBend"] as const) {
+      if (definition[key] === undefined) continue;
+      const value = finiteNumber(definition[key], `${label}.${key}`);
+      if (value < -1e6 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
+    }
+  }
+  if (kind === "screwBoss" || kind === "snapFit") {
+    // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
+    for (const key of ["screwBossHole", "screwBossHoleDepth", "screwBossDiameter", "screwBossGussets", "screwBossGussetHeight", "screwBossGussetThickness", "snapFitThickness", "snapFitUndercut", "snapFitClearance", "snapFitLeadAngle", "snapFitRetainAngle", "snapFitFoot"] as const) {
+      if (definition[key] === undefined) continue;
+      const value = finiteNumber(definition[key], `${label}.${key}`);
+      if (value < -1e6 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
+    }
+  }
   if (kind === "knurl") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
     for (const key of ["knurlCount", "knurlDepth", "knurlAngle", "knurlChamfer"] as const) {
@@ -1683,14 +1733,14 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     }
   }
   if (kind === "gridfinity") {
-    // The size is rounded to whole grid units on loading (a tray's is kept to its limits), and the geometry clamps the label shelf's, the finger scoop's, the floor's, the lip chamfer's, the wall's, the corners' (a baseplate's and a bin's) and the dividers' values; only nonsense is refused.
+    // The size is rounded to whole grid units on loading (a tray's is kept to its limits), and the geometry clamps the label shelf's, the finger scoop's, the floor's, the lip chamfer's, the wall's, the corners' (a baseplate's and a bin's), the keys' clearance and the dividers' values; only nonsense is refused.
     if (definition.gridfinityType !== undefined && definition.gridfinityType !== "bin" && definition.gridfinityType !== "baseplate" && definition.gridfinityType !== "tray") {
       throw new Error(`${label}.gridfinityType is invalid`);
     }
-    for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLargePlate", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityOpenBack", "gridfinityOpenFront", "gridfinityOpenLeft", "gridfinityOpenRight", "hingePinless"] as const) {
+    for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLargePlate", "gridfinitySwallowtail", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityOpenBack", "gridfinityOpenFront", "gridfinityOpenLeft", "gridfinityOpenRight", "hingePinless"] as const) {
       if (definition[key] !== undefined && typeof definition[key] !== "boolean") throw new Error(`${label}.${key} must be true or false`);
     }
-    for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityOpeningCornerSize", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
+    for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityOpeningCornerSize", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinitySwallowtailClearance", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       // Only an offset runs both ways along a wall.
@@ -2435,6 +2485,31 @@ export async function withLylProjectName(input: ArrayBuffer | Uint8Array, projec
   const raw = JSON.parse(strFromU8(files["project.json"])) as { metadata: { projectName: string } };
   raw.metadata.projectName = name;
   files["project.json"] = strToU8(JSON.stringify(raw));
+  return zipAsync(Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))), 1);
+}
+
+/**
+ * Where a package carries the picture of its design, the one on the design's card: other programs, a file manager or a
+ * library of models, show it without building the design (Discussion #1226). layerling itself does not read it.
+ */
+export const LYL_THUMBNAIL_FILE = "thumbnail.png";
+
+/** The picture as an extra file of the package (`extraFiles`), or nothing when there is none. */
+export function lylThumbnailFiles(png: Uint8Array | null | undefined): Record<string, Uint8Array> | undefined {
+  return png && png.byteLength > 0 ? { [LYL_THUMBNAIL_FILE]: png } : undefined;
+}
+
+/**
+ * The package with the picture of its design in it, in place of one it had; without a picture, as it is. For a package
+ * written before, as the browser keeps it, on its way to the server.
+ */
+export async function withLylThumbnail(input: ArrayBuffer | Uint8Array, png: Uint8Array | null | undefined): Promise<Uint8Array> {
+  const bytes = projectInputBytes(input);
+  const prefix = strFromU8(bytes.subarray(0, Math.min(bytes.length, 64))).trimStart();
+  if (!png || png.byteLength === 0 || prefix.startsWith("{")) return bytes;
+  inspectZipBeforeExpansion(bytes);
+  const files = await unzipAsync(bytes);
+  files[LYL_THUMBNAIL_FILE] = png;
   return zipAsync(Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))), 1);
 }
 

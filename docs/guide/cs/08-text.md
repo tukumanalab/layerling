@@ -18,6 +18,8 @@ V knihovně vyberte {{ui:shape.text}} a položte jej na plochu. Do pole {{ui:pro
 
 Text začíná jako jediné těleso. Pro samostatnou práci s písmeny použijte {{ui:inspector.separateParts}}. Každé písmeno pak bude vlastním tvarem.
 
+**Více řádků:** Text má jeden řádek. Pro ceduli nebo tabulku s více řádky otevřete pod nastavením kartu {{ui:textBlock.title}}: zadejte řádky do {{ui:textBlock.lines}}, zvolte {{ui:textBlock.align}} ({{ui:textBlock.align.left}}, {{ui:textBlock.align.center}} nebo {{ui:textBlock.align.right}}), {{ui:textBlock.gap}} a {{ui:textBlock.step}} - při 80 % je každý řádek o pětinu menší než ten nad ním. Tlačítko udělá z každého řádku samostatný text pod tím nad ním, s písmem, výškou a výplní tohoto textu; první zaujme místo tohoto textu. Potom může každý řádek dostat vlastní velikost, písmo nebo barvu.
+
 Hrany přímého i obloukového textu lze zkosit a zaoblit, viz [Úpravy hran a vytváření dutin](chapter:edges-and-hollowing). Kvůli úzkým tahům používejte malé hodnoty, například 0,2 až 0,5 mm.
 
 ## Vlastní písma
@@ -97,7 +99,7 @@ Karta {{ui:nameTag.title}} obsahuje:
 - **{{ui:nameTag.letterSize}}:** výšku velkých písmen v mm. Všechny vrstvy se přizpůsobují a zůstávají zarovnané.
 - **{{ui:prop.textVertical}}:** postaví jmenovku na výšku, písmena pod sebou, i se všemi vrstvami.
 - **{{ui:nameTag.layers}}:** řádky vrstev shora dolů. Každý má barvu, rozšíření oproti písmenům, výšku a {{ui:nameTag.noHoles}} pro vyplnění otvorů v O a A. {{ui:nameTag.corners}} určuje rohy rozšířených vrstev: {{ui:nameTag.corner.round}}, {{ui:nameTag.corner.bevel}} nebo {{ui:nameTag.corner.miter}}. Horní řádek představuje písmena. **+** přidá spodní vrstvu a **–** ji odebere. Jmenovka má dvě až šest vrstev.
-- **{{ui:nameTag.keyring}}:** přidá ke spodní vrstvě ouško s oblým koncem a otvorem na kroužek. Rozměry ouška rostou s otvorem. Výchozí otvor 3 mm má ouško široké 6,5 mm s přesahem 6,75 mm; okraj otvoru je 2 mm od okraje podložky. Nastavte {{ui:nameTag.keyringDiameter}} a {{ui:nameTag.keyringSide}}: {{ui:nameTag.side.left}}, {{ui:nameTag.side.right}} nebo {{ui:nameTag.side.top}}. Otvor prochází všemi zasaženými vrstvami a ouško se přizpůsobuje textu, velikosti i písmu. {{ui:nameTag.keyringAlong}} posouvá poutko podél jeho strany nahoru nebo dolů (nahoře doleva nebo doprava), až tam, kde by stranu opustilo; 0 je střed. Hodí se, když střed strany narazí na mezeru, třeba vedle písmene J: posuň poutko tam, kde písmeno sahá ven.
+- **{{ui:nameTag.keyring}}:** přidá ke spodní vrstvě rovné ouško s oblým koncem a otvorem na kroužek; ouško roste s otvorem. Výchozí otvor 3 mm má ouško široké 6,5 mm s přesahem 6,75 mm; okraj otvoru je 2 mm od okraje spodní vrstvy. Nastavte {{ui:nameTag.keyringDiameter}} a {{ui:nameTag.keyringSide}}: {{ui:nameTag.side.left}}, {{ui:nameTag.side.right}} nebo {{ui:nameTag.side.top}}. {{ui:nameTag.side.free}} sejme otvor ze jmenovky a postaví vedle ní samostatné {{ui:nameTag.keyringTab}} v barvě a výšce spodní vrstvy: běžný tvar, který posunete a otočíte jeho úchyty tam, kde ho jmenovka potřebuje. Jakmile je na místě, {{ui:nameTag.keyringTabFix}} v jeho vlastnostech z něj udělá součást nejbližší jmenovky přesně tam, kde stojí: otvor prochází každou vrstvou, na kterou dosáhne, ouško se spojí se spodní vrstvou a obojí zůstane u toho rohu písmen, když se změní slova nebo velikost. {{ui:nameTag.side.free}} vytáhne ouško znovu tam, kde bylo, abyste ho mohli zase posunout. Otvor prochází všemi zasaženými vrstvami a ouško se přizpůsobuje textu, velikosti i písmu. {{ui:nameTag.keyringAlong}} posouvá ouško podél jeho strany nahoru nebo dolů (nahoře doleva nebo doprava), až tam, kde by stranu opustilo; 0 je střed. Hodí se, když střed strany narazí na mezeru, třeba vedle písmene J: posuňte ouško tam, kde písmeno sahá ven.
 - **{{ui:nameTag.letterEdge}}:** upraví horní hranu písmen: {{ui:nameTag.edge.none}}, {{ui:nameTag.edge.round}} nebo {{ui:nameTag.edge.chamfer}}. {{ui:nameTag.letterEdgeSize}} začíná na 0,4 mm a nepřekročí výšku vrstvy. Funguje pro libovolné písmo i nápis. Úprava je součástí sítě písmen. Obecný nástroj hran by takový jemný text zpracovával jako náročnou síť, proto použijte tuto volbu.
 
 Změny se projeví ihned. Jmenovka je skupinou: pohybuje se společně, ale vrstvy zůstávají samostatnými barevnými tělesy pro vícebarevný slicer. Pro úpravu hran konkrétní vrstvy použijte {{ui:group.editBundle}}, vyberte vrstvu a pokračujte podle [Úprav hran](chapter:edges-and-hollowing).
@@ -118,6 +120,7 @@ Karta {{ui:iconTag.title}} obsahuje:
 - **{{ui:iconTag.replace}}:** nahradí symbol jiným souborem SVG, PNG nebo JPG při zachování vrstev a šířky.
 - **{{ui:iconTag.iconWidth}}:** šířku horního symbolu v mm; ostatní vrstvy zůstávají zarovnané.
 - **{{ui:nameTag.layers}}:** stejné řádky jako jmenovka: barva, rozšíření, {{ui:nameTag.corners}}, výška, {{ui:nameTag.noHoles}}, **+** a **–**, dvě až šest vrstev. Horní řádek je samotný symbol.
+- **{{ui:nameTag.keyring}}:** jako u jmenovky: otvor na kroužek na klíče přes všechny vrstvy, s ouškem s oblým koncem na spodní vrstvě, mimo ikonu. {{ui:nameTag.keyringDiameter}} a {{ui:nameTag.keyringSide}} určují jeho velikost a místo; {{ui:nameTag.side.free}} dá samostatné ouško, jako u jmenovky. Ouško se tvaruje podle obrysu ikony, takže u velmi členité ikony zkontrolujte, kde se jí dotýká. {{ui:nameTag.keyringAlong}} posouvá ouško podél jeho strany, jako u jmenovky.
 - **{{ui:iconTag.count}}:** počet 1 až 100. {{ui:iconTag.fill}} jej vypočte podle podložky vybrané tiskárny. Tlačítko vytvoří kopie s mezerou 5 mm uprostřed podložky; původní štítek tvoří první kopii.
 
 SVG musí obsahovat uzavřené obrysy. Pouhé otevřené čáry nelze převést na štítek. Náčrt s výplní typu čára ji zachová a symbol tvoří plocha rozšířené čáry.
@@ -151,9 +154,10 @@ Pro nápis podél okraje mince, víčka nebo prstence zapněte {{ui:prop.textCur
 
 ![Text po kružnici. Všechna písmena mají společné účaří.](shot:curved-text)
 
-Písmena se rozmístí po kružnici se společným účařím stejně rovnoměrně jako v přímém textu. K dispozici jsou čtyři volby:
+Písmena se rozmístí po kružnici se společným účařím stejně rovnoměrně jako v přímém textu. K dispozici je pět voleb:
 
 - **{{ui:prop.textRadius}}**, 5 až 500 mm: poloměr kružnice, po níž vede účaří. Písmena přitom zůstávají na svém místě, mění se jen jejich zakřivení.
+- **{{ui:prop.textLetterWidth}}**, 25 až 400 %: jak široce se každé písmeno kreslí, v procentech jeho vlastní šířky. Pod 100 jsou písmena užší, nad 100 širší; jejich výška zůstává a oblouk, který zabírají, se s nimi prodlouží nebo zkrátí. Hodí se třeba pro vysoký úzký nápis na minci. U přímého textu to dělá {{ui:prop.textStretch}} s rámečkem.
 - **{{ui:nameTag.letterSize}}:** velikost písmen nezávislá na šířce tvaru.
 - **{{ui:prop.textInward}}:** přesune text z horního na spodní oblouk; vršky písmen míří do středu.
 - **{{ui:prop.textFlipped}}:** převrátí pouze písmena pro čtení z druhé strany. Poloha textu na kružnici zůstane zachovaná.

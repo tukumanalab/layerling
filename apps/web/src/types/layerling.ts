@@ -14,6 +14,10 @@ export type ShapeKind =
   | "roundRoof"
   | "halfSphere"
   | "paraboloid"
+  | "curvedCone"
+  | "screwBoss"
+  | "snapFit"
+  | "rib"
   | "torus"
   | "tube"
   | "bentTube"
@@ -45,7 +49,7 @@ export type ShapeKind =
   | "mesh";
 
 /** Outline of a port opening (portGeometry.ts): rounded corners, or the lower corners cut as on these sockets. */
-export type PortProfile = "rounded" | "hdmi" | "miniHdmi" | "microHdmi" | "displayPort" | "miniDisplayPort";
+export type PortProfile = "rounded" | "hdmi" | "miniHdmi" | "microHdmi" | "displayPort" | "miniDisplayPort" | "xt60" | "xt30" | "mt60" | "dsub9";
 
 /** Cross-section of a bent tube; the inner one may also be "none" for a solid tube. */
 export type BentTubeProfile = "round" | "square" | "hexagon" | "octagon";
@@ -128,6 +132,37 @@ export type ShapeCustomization = {
   segments?: number;
   topRadius?: number;
   baseRadius?: number;
+  /** Curved cone (#1211): the top's diameter as a share of the bottom's, 0 to 1. */
+  curvedConeTop?: number;
+  /** Curved cone: how far the side bends, -1 inward (a trumpet) to 1 outward (a dome). */
+  curvedConeBend?: number;
+  /** Screw boss: what goes into its hole - a heat-set insert, a self-tapping screw, or a hole of one's own. */
+  screwBossFastener?: "insert" | "selfTapping" | "custom";
+  /** Screw boss: the size from its list (M3, #4-40, ST2.9 ...); the hole follows it unless typed in. */
+  screwBossSize?: string;
+  /** Screw boss: the hole's diameter and depth in mm, when typed in. */
+  screwBossHole?: number;
+  screwBossHoleDepth?: number;
+  /** Screw boss: the post's outer diameter in mm (the footprint may be wider for the gussets). */
+  screwBossDiameter?: number;
+  /** Screw boss: how many gussets brace it (0 to 6), how high they reach and how thick they are, in mm. */
+  screwBossGussets?: number;
+  screwBossGussetHeight?: number;
+  screwBossGussetThickness?: number;
+  /** Snap-fit: the hook and its catch together, or one of them. */
+  snapFitPart?: "both" | "hook" | "catch";
+  /** Snap-fit: the arm's thickness, the barb's undercut and the clearance to the catch, in mm. */
+  snapFitThickness?: number;
+  snapFitUndercut?: number;
+  snapFitClearance?: number;
+  /** Snap-fit: the barb's entry angle and the angle of the face that holds, in degrees from the direction it goes in. */
+  snapFitLeadAngle?: number;
+  snapFitRetainAngle?: number;
+  /** Snap-fit: the foot's thickness under the arm in mm (0: no foot). */
+  snapFitFoot?: number;
+  /** Rib: a straight rib or a gusset, and a straight rib's top. */
+  ribStyle?: "straight" | "gusset";
+  ribTop?: "flat" | "round" | "chamfer";
   topWidth?: number;
   topDepth?: number;
   teeth?: number;
@@ -149,6 +184,8 @@ export type ShapeCustomization = {
   threadHead?: ThreadHead;
   threadHand?: ThreadHand;
   threadProfile?: ThreadProfile;
+  /** Tapered 1 in 16 on the diameter, as the pipe thread NPT (#1267); missing means straight. */
+  threadTaper?: boolean;
   threadDiameter?: number;
   threadPitch?: number;
   threadClearance?: number;
@@ -169,6 +206,9 @@ export type ShapeCustomization = {
   threadDrive?: ThreadDrive;
   threadDriveSize?: number;
   threadDriveDepth?: number;
+  /** Screw (#1152): a round collar between the head and the thread; nut (#1175): on its top face. This high in mm; unset or 0 = none. Its diameter unset = twice the thread. */
+  threadCollarHeight?: number;
+  threadCollarDiameter?: number;
   springTurns?: number;
   springWire?: number;
   springHand?: ThreadHand;
@@ -238,6 +278,10 @@ export type ShapeCustomization = {
   gridfinityHalfGrid?: boolean;
   /** Gridfinity baseplate: up to 12 units across and deep instead of 6, for print beds over 256 mm (#1061); missing means 6. */
   gridfinityLargePlate?: boolean;
+  /** Gridfinity baseplate: Swallowtail, on a 2.4 mm floor with a pocket for a key under each side without padding (#1061); missing means off. */
+  gridfinitySwallowtail?: boolean;
+  /** Gridfinity baseplate with Swallowtail: the clearance of the keys Add keys lays out, in mm on every side; missing means 0.05, at most 0.15; the plate stays as it is (#1061). */
+  gridfinitySwallowtailClearance?: number;
   /** Gridfinity bin: a label shelf along the back wall. */
   gridfinityLabelBack?: boolean;
   /** Gridfinity bin: a label shelf along the front wall. */
@@ -475,6 +519,8 @@ export type WorkplaneWorkspaceSettings = {
   /** The browser asks "Leave site?" when a design is open and the tab is closed or reloaded; off by default (#683 mail). */
   confirmTabClose: boolean;
   dimensionsAlwaysVisible: boolean;
+  /** The value boxes beside a selection take the colour of their axis, red X, green Y, blue Z; off by default (#1279). */
+  dimensionAxisColors: boolean;
   /** A turned body shows its angles about X, Y and Z beside it while it is selected. */
   showRotationAngles: boolean;
   zoomSpeed: number;
@@ -511,7 +557,15 @@ export type AlignHandleStatus = {
   title: string;
   /** The same dot with Alt held: it stretches the parts to the reference instead of moving them (#998). */
   size?: { disabled: boolean; aligned: boolean; title: string };
+  /**
+   * On the middle dot of an axis: the dot beside the line that spreads the parts with equal gaps between them
+   * (alignDistribute.ts). `gapDisabled` and `gapTitle` are for Alt on it, which asks for a gap to type in.
+   */
+  spread?: { disabled: boolean; aligned: boolean; title: string; gapDisabled: boolean; gapTitle: string };
 };
+
+/** Equal gaps on the align dots: null spreads them evenly, a number is the gap typed in, in millimetres. */
+export type AlignSpread = { gap: number | null };
 
 export type SketchPoint = {
   id: string;
@@ -723,6 +777,8 @@ export type EdgeTreatmentFeature = {
   chamferAngle?: number;
   /** Only for a fillet of one edge (#687): the radius at the edge's end, `amount` the one at its start. */
   endAmount?: number;
+  /** Only for a fillet (#1160): the edges were scooped out (a concave fillet) instead of rounded. */
+  concave?: boolean;
   openings?: ShellOpenings;
   /** Only for "shell" and "offset"; missing means "round". */
   shellEdges?: ShellEdges;
@@ -877,6 +933,37 @@ export type WorkplaneShape = {
   segments?: number;
   topRadius?: number;
   baseRadius?: number;
+  /** Curved cone (#1211): the top's diameter as a share of the bottom's, 0 to 1. */
+  curvedConeTop?: number;
+  /** Curved cone: how far the side bends, -1 inward (a trumpet) to 1 outward (a dome). */
+  curvedConeBend?: number;
+  /** Screw boss: what goes into its hole - a heat-set insert, a self-tapping screw, or a hole of one's own. */
+  screwBossFastener?: "insert" | "selfTapping" | "custom";
+  /** Screw boss: the size from its list (M3, #4-40, ST2.9 ...); the hole follows it unless typed in. */
+  screwBossSize?: string;
+  /** Screw boss: the hole's diameter and depth in mm, when typed in. */
+  screwBossHole?: number;
+  screwBossHoleDepth?: number;
+  /** Screw boss: the post's outer diameter in mm (the footprint may be wider for the gussets). */
+  screwBossDiameter?: number;
+  /** Screw boss: how many gussets brace it (0 to 6), how high they reach and how thick they are, in mm. */
+  screwBossGussets?: number;
+  screwBossGussetHeight?: number;
+  screwBossGussetThickness?: number;
+  /** Snap-fit: the hook and its catch together, or one of them. */
+  snapFitPart?: "both" | "hook" | "catch";
+  /** Snap-fit: the arm's thickness, the barb's undercut and the clearance to the catch, in mm. */
+  snapFitThickness?: number;
+  snapFitUndercut?: number;
+  snapFitClearance?: number;
+  /** Snap-fit: the barb's entry angle and the angle of the face that holds, in degrees from the direction it goes in. */
+  snapFitLeadAngle?: number;
+  snapFitRetainAngle?: number;
+  /** Snap-fit: the foot's thickness under the arm in mm (0: no foot). */
+  snapFitFoot?: number;
+  /** Rib: a straight rib or a gusset, and a straight rib's top. */
+  ribStyle?: "straight" | "gusset";
+  ribTop?: "flat" | "round" | "chamfer";
   topWidth?: number;
   topDepth?: number;
   taperTopWidth?: number;
@@ -886,6 +973,8 @@ export type WorkplaneShape = {
   /** Legacy local-dev taper fields kept for compatibility with in-progress projects. */
   taperTopScale?: number;
   taperBottomScale?: number;
+  /** Keep proportions in the Taper card (#1229): Length and Width of one end change together. */
+  taperKeepProportions?: boolean;
   /** Rotates the top face relative to the base, in degrees, for a twisted extrusion. */
   extrudeTwist?: number;
   /** Shifts the top face along the shape's local X axis, in mm. */
@@ -931,6 +1020,8 @@ export type WorkplaneShape = {
   threadHead?: ThreadHead;
   threadHand?: ThreadHand;
   threadProfile?: ThreadProfile;
+  /** Tapered 1 in 16 on the diameter, as the pipe thread NPT (#1267); missing means straight. */
+  threadTaper?: boolean;
   threadDiameter?: number;
   threadPitch?: number;
   threadClearance?: number;
@@ -951,6 +1042,9 @@ export type WorkplaneShape = {
   threadDrive?: ThreadDrive;
   threadDriveSize?: number;
   threadDriveDepth?: number;
+  /** Screw (#1152): a round collar between the head and the thread; nut (#1175): on its top face. This high in mm; unset or 0 = none. Its diameter unset = twice the thread. */
+  threadCollarHeight?: number;
+  threadCollarDiameter?: number;
   springTurns?: number;
   springWire?: number;
   springHand?: ThreadHand;
@@ -1020,6 +1114,10 @@ export type WorkplaneShape = {
   gridfinityHalfGrid?: boolean;
   /** Gridfinity baseplate: up to 12 units across and deep instead of 6, for print beds over 256 mm (#1061); missing means 6. */
   gridfinityLargePlate?: boolean;
+  /** Gridfinity baseplate: Swallowtail, on a 2.4 mm floor with a pocket for a key under each side without padding (#1061); missing means off. */
+  gridfinitySwallowtail?: boolean;
+  /** Gridfinity baseplate with Swallowtail: the clearance of the keys Add keys lays out, in mm on every side; missing means 0.05, at most 0.15; the plate stays as it is (#1061). */
+  gridfinitySwallowtailClearance?: number;
   /** Gridfinity bin: a label shelf along the back wall. */
   gridfinityLabelBack?: boolean;
   /** Gridfinity bin: a label shelf along the front wall. */
@@ -1222,6 +1320,11 @@ export type WorkplaneShape = {
    */
   textSpacing?: number;
   /**
+   * Curved text only (#1196): how wide each letter is drawn, in per cent of its own width - 100 or left out as the
+   * font has it, below narrower, above wider (25 to 400). The letters keep their height; the arc and the box follow.
+   */
+  textLetterWidth?: number;
+  /**
    * Text only (#225): the top edge of the letters rounded or chamfered by `size` mm, as a name
    * tag's letters on top are finished. Built from the outline stepped inwards, so it works for
    * every font and word; the edge tool takes such a text as a mesh.
@@ -1284,6 +1387,8 @@ export type WorkplaneShape = {
   vase?: import("@/lib/vase/vase-geometry.mjs").VaseSettings;
   /** An accessory laid out for a vase (its id): laying them out again replaces it. */
   vasePartOf?: string;
+  /** A Swallowtail key laid out for a Gridfinity plate (its id, #1061): laying them out again replaces it. */
+  gridfinityKeyOf?: string;
   importedMesh?: {
     positions: number[];
     normals?: number[];
@@ -1367,6 +1472,11 @@ export type WorkplaneShape = {
    */
   multicolor?: boolean;
   locked?: boolean;
+  /**
+   * Lock shape (#1277): the part still moves, turns and groups with others, but its size, settings,
+   * name and body stay as they are, and a copy keeps the lock. See lib/shapeLock.
+   */
+  shapeLocked?: boolean;
   hidden?: boolean;
   /** Drawn see-through in its own colour, like the usual "Transparent". Display only - a solid stays a solid. */
   transparent?: boolean;
@@ -1398,6 +1508,10 @@ export type WorkplaneNote = {
   anchor?: WorkplaneNoteAnchor;
   /** Zugeklappt zeigt die Notiz nur ihre Nadel mit der Nummer. */
   collapsed?: boolean;
+  /** A request for the AI agent on the MCP bridge: it reads the note, does the work and answers in `reply` (#1191). */
+  forAi?: boolean;
+  /** The agent's answer to the note, shown under its text. */
+  reply?: string;
   /**
    * "point" makes this a reference point instead of a note: a mark in space
    * that other shapes snap to. It has no text and no anchor, is not counted as
@@ -1411,7 +1525,7 @@ export type QrErrorCorrection = "L" | "M" | "Q" | "H";
 export type QrStyle = "code" | "raised" | "engraved";
 /** What a QR body keeps so it can be made again from the inspector (#553). */
 /** The single-board computers the SBC board shape knows (#1098). */
-export type SbcBoardType = "pi5" | "pi4" | "pi3bPlus" | "zero2w" | "bttPi12";
+export type SbcBoardType = "pi5" | "pi4" | "pi3bPlus" | "zero2w" | "bttPi12" | "xiaoEsp32c6" | "esp32c3SuperMini" | "esp32c6SuperMini";
 
 export type SbcBoardSettings = {
   board: SbcBoardType;
@@ -1419,6 +1533,14 @@ export type SbcBoardSettings = {
   clearance: number;
   /** How much further out in mm the connectors at the edge reach, to cut through a case wall, 0 to 10; none on older boards. */
   reach?: number;
+  /** The ribbon cable connectors (camera, display, PCIe) open up through a lid, by `upReach`. */
+  ribbonUp?: boolean;
+  /** The ribbon cable connectors open out through the nearer wall, across their long side, by `reach`. */
+  ribbonSide?: boolean;
+  /** The GPIO header reaches up through a lid, by `upReach`. */
+  gpioUp?: boolean;
+  /** How far in mm the openings going up reach above their part, 20 to 100 (default 20). */
+  upReach?: number;
 };
 
 export type QrCodeSettings = {

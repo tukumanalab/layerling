@@ -20,7 +20,7 @@ How fast the wheel zooms is set with {{ui:workspace.zoomSpeed}} in the settings,
 
 **Mouse buttons as in your slicer.** If you are used to Bambu Studio or OrcaSlicer, set {{ui:workspace.mouseScheme}} in the settings, under {{ui:workspace.appearance}}, to {{ui:workspace.mouseSchemeSlicer}}. A left drag on empty space then turns the view, the right button shifts it as the middle one does, and Shift with a left drag draws the selection box. A drag on a body still moves it, and a short right click still opens the menu. In a sketch the right button shifts the view too.
 
-**3D mouse.** A SpaceMouse or another 3D mouse turns, shifts and zooms the 3D view: push the cap away to zoom in, slide it to shift the view, tilt it to tilt the view and twist it to turn the view round. In the settings, under {{ui:workspace.appearance}}, click {{ui:workspace.spaceMouseConnect}} and choose the device in the window the browser opens; it remembers the choice, so this is needed only once. This works in Chrome and Edge, which can reach such devices; Firefox and Safari cannot.
+**3D mouse.** A SpaceMouse or another 3D mouse turns, shifts and zooms the 3D view: push the cap away to zoom in, slide it to shift the view, tilt it to tilt the view and twist it to turn the view round. In the settings, under {{ui:workspace.appearance}}, click {{ui:workspace.spaceMouseConnect}} and choose the device in the window the browser opens; it remembers the choice, so this is needed only once. This works in Chrome and Edge, which can reach such devices; Firefox and Safari cannot. If a direction feels the wrong way round, tick it under the button: shifting sideways, shifting up and down, zooming, tilting or twisting.
 
 On a tablet or phone, two fingers zoom (spread and pinch) and move the view (slide together). One finger on empty space turns the view, and a tap there clears the selection; on a shape or a handle it works on the design, just like the left mouse button. To turn the view with a finger that starts on a shape too, switch on {{ui:camera.touchRotate}} in the view bar. That switch shows on devices with a touch screen.
 
@@ -45,6 +45,7 @@ At the left edge is a narrow bar. From the top:
 - {{ui:camera.zoomIn}} and {{ui:camera.zoomOut}} zoom step by step, as do the keys [[+]] and [[−]].
 - {{ui:camera.orthographic}} switches to a flat view in which parallel edges stay parallel. For measuring and lining up edges that is often more comfortable than the perspective view. [[O]] switches back and forth, and a second click returns.
 - {{ui:camera.secondView}} opens a second view of the design in a window of its own, described below. A second click closes it.
+- {{ui:camera.showScrollbars}} puts a scrollbar along the bottom of the view and one down its right edge. Drag a bar to slide the view smoothly, click an arrow at its end to move it a little (hold it to keep going), or click beside the bar to move by most of the view. Nothing turns, and unlike the arrow keys the bars work while a part is selected - handy close up on small details. A second click hides them; this browser remembers the choice.
 - {{ui:camera.hideWorkplane}} (the eye over a grid) hides the plate with its grid, so you can look at the underside of a design from below. Only the view changes: new shapes still land on the workplane. A second click shows it again.
 - {{ui:camera.placeWorkplane}}, the tape measure and the framing square are tools of their own, covered below and in [Measuring and notes](chapter:measuring-and-notes).
 
@@ -74,7 +75,7 @@ You can also keep four views of your own in each design. [[Shift]]+[[7]], [[Shif
 
 The tool window hangs on its button. If it covers something, drag it by its title bar anywhere on the workplane; it opens there next time too. Double-click the title bar or drop it at the button to put it back.
 
-The X and [[Esc]] close the tool window; with a measuring running, [[Esc]] ends it first. The cut stays until you switch it off with {{ui:camera.sectionActive}} or go back to the design overview. While it is on, its button stays highlighted. Anything you place on the side that is cut away only shows once you switch the cut off. A tablet has no [[Esc]], so there the tool window has two more buttons: {{ui:camera.sectionBack}} ends the measuring if one is running and otherwise closes the tool window, and {{ui:camera.sectionConfirm}} closes the tool window in one step. A computer does not show them.
+The X and [[Esc]] close the tool window; with a measuring running, [[Esc]] ends it first. The cut stays until you switch it off with {{ui:camera.sectionActive}}, click its button in the bar while the window is open, or go back to the design overview. While it is on, its button stays highlighted. Anything you place on the side that is cut away only shows once you switch the cut off. A tablet has no [[Esc]], so there the tool window has two more buttons: {{ui:camera.sectionBack}} ends the measuring if one is running and otherwise closes the tool window, and {{ui:camera.sectionConfirm}} closes the tool window in one step. A computer does not show them.
 
 ## The workplane
 
@@ -146,7 +147,7 @@ The sketch view has its own colours: {{ui:workspace.sketchBackground}} for the w
 
 ### Appearance: measures on the workplane
 
-{{ui:workspace.showMoveDimensions}} shows by how much you move while dragging, {{ui:workspace.showOriginDimensions}} the distances of the selection to the origin of the plate, also with several bodies selected. With {{ui:workspace.dimensionsAlwaysVisible}} these measures stay visible permanently, and not only while you drag. While a turned body is selected, its angles show below it on the workplane; {{ui:workspace.showRotationAngles}} switches that off. More in [Measuring and notes](chapter:measuring-and-notes).
+{{ui:workspace.showMoveDimensions}} shows by how much you move while dragging or with the arrow keys, {{ui:workspace.showOriginDimensions}} the distances of the selection to the origin of the plate, also with several bodies selected. With {{ui:workspace.dimensionsAlwaysVisible}} these measures stay visible permanently, and not only while you drag. While a turned body is selected, its angles show below it on the workplane; {{ui:workspace.showRotationAngles}} switches that off. More in [Measuring and notes](chapter:measuring-and-notes).
 
 ### Appearance: selecting and moving
 
@@ -166,7 +167,7 @@ The sketch view has its own colours: {{ui:workspace.sketchBackground}} for the w
 
 {{ui:workspace.zoomSpeed}} is a slider from slow to fast: how fast the wheel and the trackpad zoom; the zoom buttons and keys keep their own small steps. {{ui:workspace.cameraInertia}}: after you let go of the mouse the view turns on for a moment and slows down gently. Switched off, it stops at once, as in Tinkercad and Fusion 360.
 
-{{ui:workspace.overhangAngle}} is the angle from which a face counts as an overhang when you switch on Show overhangs in the visibility menu: those faces are hatched red and white. 30° is careful, 70° counts on good cooling of the print; 45° is the usual start.
+{{ui:workspace.overhangAngle}} is the angle from which a face counts as an overhang when you switch on Show overhangs in the visibility menu: those faces are hatched red and white. 30° is careful, 70° counts on good cooling of the print; 45° is the usual start. While they are shown, a line under the view says the steepest overhang and how many cm² need supports.
 
 {{ui:workspace.booleanTriangleLimit}} limits how many triangles an imported mesh may have when you cut, merge or intersect it, because that is calculated in your browser. A mesh above the limit is not processed; simplify the mesh first, or raise the limit if your computer can take it. A higher limit can freeze the editor for a few seconds.
 

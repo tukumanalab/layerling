@@ -9,6 +9,42 @@ summary: كيف ينشئ مساعد ذكاء اصطناعي مثل Gemini أو C
 
 > **مهم:** جسر MCP موجود في خادم التطوير الذي تشغّله بنفسك على كمبيوترك. أما على layerling.com وفي التثبيتات ذات الاستضافة الثابتة فهو معطّل. والنسخة التي تستضيفها بنفسك، كصورة Docker على NAS، يمكنها تشغيله برمز وصول (Token)؛ انظر "نسخة على NAS أو خادم" أدناه.
 
+## خطوة بخطوة للمبتدئين
+
+لا تحتاج إلى معرفة أي شيء عن البرمجة لهذا.
+
+**أقصر طريق:** أعطِ الذكاء الاصطناعي المفضل لديك عنوان المشروع، `https://github.com/henmedia/layerling`، واطلب منه: «ثبّت layerling على جهازي حتى أتمكن من بناء نماذج ثلاثية الأبعاد معك عبر خادم MCP الخاص به». سيقوم بتنزيل كل شيء وتثبيته بنفسه ويخبرك عندما ينتهي. يعمل هذا مع ذكاء اصطناعي يستطيع العمل على جهازك، مثل تبويب Code في تطبيق Claude أو Codex أو Antigravity أو Gemini CLI. أما المحادثة في المتصفح فلا تستطيع ذلك، لأنها لا تستطيع تثبيت أي شيء على جهازك.
+
+**أو افعلها بنفسك، على Windows مع تطبيق Claude، في خمس خطوات:**
+
+**1. ثبّت layerling.** افتح قائمة ابدأ، واكتب `PowerShell` وافتح Windows PowerShell. انسخ هذا السطر، والصقه في النافذة بنقرة يمنى، ثم اضغط Enter:
+
+```powershell
+irm https://raw.githubusercontent.com/henmedia/layerling/main/scripts/windows-quickstart.ps1 | iex
+```
+
+يثبّت ما يحتاجه layerling، وينزّل layerling في المجلد `layerling` داخل مجلد المستخدم الخاص بك (`C:\Users\<اسمك>\layerling`) ويفتحه في متصفحك. يستغرق ذلك بضع دقائق في المرة الأولى.
+
+![Windows PowerShell مع السطر الملصق. اضغط Enter فيبدأ العمل.](still:ai-quickstart-powershell)
+
+**2. اترك layerling يعمل.** يعمل layerling ما دامت نافذة PowerShell مفتوحة، ولا يستطيع الذكاء الاصطناعي البناء إلا أثناء عمله. في المرة القادمة انقر نقرًا مزدوجًا بدلًا من ذلك على «Start layerling» على سطح المكتب.
+
+**3. ثبّت تطبيق Claude.** ثبّت تطبيق Claude لنظام Windows وسجّل الدخول. تبويب Code المستخدم في الخطوة التالية جزء من خطط Claude المدفوعة.
+
+**4. افتح مجلد layerling في تبويب Code.** في تطبيق Claude، انتقل في الأعلى إلى Code واختر المجلد `layerling` في مجلد المستخدم الخاص بك مجلدًا للعمل. يحمل layerling بالفعل كل ما يحتاجه Claude ليجد أدواته. إذا سألك Claude هل يمكنه استخدام خادم MCP «layerling» الخاص بهذا المجلد، فاسمح له.
+
+**5. أخبر Claude بما يبنيه.** مثلًا: «استخدم أدوات layerling وابنِ لي علبة مستديرة قطرها 60 مم وارتفاعها 40 مم، بجدار سمكه 2.5 مم». إذا لم يكن هناك محرر مفتوح، يفتح Claude واحدًا في متصفحك، ويبني العلبة فيه خطوة بخطوة، ويلتقط صورًا ليتحقق من عمله. أنت تشاهد ويمكنك تغيير أي شيء بنفسك في أي وقت.
+
+**على جهاز Mac** تسير الخطوات بالطريقة نفسها مع هذه التغييرات. في الخطوة 1 افتح تطبيق Terminal (اضغط Cmd+مسافة، واكتب `Terminal`، ثم اضغط Enter)، والصق هذا السطر واضغط Enter:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/henmedia/layerling/main/scripts/mac-quickstart.sh | sh
+```
+
+إذا كان Git أو Node.js غير موجود، فسيخبرك بما عليك تثبيته (يعرض macOS تثبيت Git في نافذة، ويتوفر Node.js كمثبّت على nodejs.org)؛ ثم شغّل السطر نفسه مرة أخرى. في الخطوة 2 يحمل الاختصار على سطح المكتب الاسم "Start layerling" أيضًا. وفي الخطوة 3 ثبّت تطبيق Claude لجهاز Mac.
+
+> **نصيحة:** إذا لم ينجح شيء ما، أخبر Claude بما تراه. يستطيع قراءة الخطأ وغالبًا ما يصلحه بنفسه. وإذا لم يحدث شيء في المحرر، فتحقق أولًا من أن layerling ما زال يعمل (الخطوة 2).
+
 ## الإعداد
 
 1. احصل على layerling من [GitHub](https://github.com/henmedia/layerling) وشغّله في مجلد المشروع بالأمر `npm run dev`. يجب أن يكون Node.js مثبتًا. وعلى Windows يتكفل بذلك سطر البدء السريع في ملف README.
@@ -51,6 +87,7 @@ summary: كيف ينشئ مساعد ذكاء اصطناعي مثل Gemini أو C
 | `layerling_list_objects` | تسرد جميع الأجسام مع الأبعاد والموضع والتدوير والمعرّف (id) |
 | `layerling_select_objects` | تحدد أجسامًا |
 | `layerling_delete_objects` | تحذف أجسامًا |
+| `layerling_move_object` | تنقل جسمًا إلى مكان آخر في قائمة الأجسام |
 | `layerling_create_shape` | تنشئ شكلًا: صندوقًا، أسطوانة، نصًا (منحنيًا أيضًا)، سنًا لولبيًا، ترسًا، جسم رسم تخطيطي وكل الأشكال الأخرى |
 | `layerling_import_file` | تستورد ملفًا كما تفعل نافذة الاستيراد: ملف OBJ أو 3MF الملوّن كجسم واحد لكل لون، وملف 3MF الذي فيه عدة أجسام كجسم واحد لكل منها |
 | `layerling_add_font` | تضيف خطًا خاصًا للنص من ملف TrueType أو OpenType أو WOFF؛ يبقى في المتصفح، ولا يحتفظ التصميم إلا بالحروف التي يستخدمها |
@@ -75,6 +112,7 @@ summary: كيف ينشئ مساعد ذكاء اصطناعي مثل Gemini أو C
 | `layerling_cookie_cutter` | makes a cookie cutter from the objects: a wall and a rim round the outline (Cookie cutter) |
 | `layerling_flexi_joints` | cuts a flat body into links with joints printed in place that swing to the sides (Flexi joints) |
 | `layerling_make_lid` | makes a lid for a body open at the top: pushed in, over the top or flat, with the fit you choose and magnets if you like (Lid) |
+| `layerling_make_cable_channel` | runs a round channel for a cable through a body from an entry to an exit, finding the way itself with gentle bends (Cable channel) |
 | `layerling_loft_sketches` | joins two sketch bodies into a loft from one outline to the other (Loft sketches) |
 | `layerling_separate_parts` | تفصل شكلًا إلى أجزائه المنفصلة، وجسم الرسم التخطيطي إلى جسم لكل حد خارجي |
 | `layerling_split_objects` | تقطع أجسامًا صلبة أو ثقوبًا إلى قسمين بمستوى |
@@ -82,12 +120,14 @@ summary: كيف ينشئ مساعد ذكاء اصطناعي مثل Gemini أو C
 | `layerling_apply_edge_treatment` | تشطف الحواف المختارة أو تنعّمها |
 | `layerling_hollow_object` | تفرّغ جسمًا بجدار متساوي السمك |
 | `layerling_cut_out` | تقصّ جسمًا صلبًا من آخر لكي يتناسبا: تبقى القطعة وتُطرح من الجسم الآخر نسخة مكبّرة بمقدار الخلوص |
+| `layerling_punch` | يثقب محيط جسم، منظورًا على طول x أو y أو z، مستقيمًا عبر جسم آخر؛ يبقى المِثقب ولا يلزم أن يلامسه |
 | `layerling_offset_object` | تزيح كل أوجه الجسم لخلوص التركيب: تكبّره أو تصغّره أو تضيف النسخة المكبّرة كثقب، أو يحرّك الجوانب فقط |
 | `layerling_list_faces` | تسرد أوجه جسم دقيق |
 | `layerling_delete_faces` | تحذف أوجهًا وتسدّ الفجوة |
-| `layerling_array_objects` | تكرّر في صف أو على دائرة |
+| `layerling_array_objects` | تكرّر في صف أو شبكة أو على دائرة |
 | `layerling_bundle_objects` | تحزم الأجسام كما يفعل Ctrl+B: تتحرك معًا، وتحتفظ بلونها ونوعها، وتخرج منفصلة في التصدير |
 | `layerling_layer_text` | تحوّل نصًا إلى طبقات متراكبة لطباعة متعددة الألوان (حروف، وحواف أعرض، ولوحة بلا ثقوب) أو تعيد بناء هذه الطبقات، مع ثقب لحلقة مفاتيح، وزوايا لكل طبقة، وحافة حروف مستديرة أو مشطوفة؛ ومع قائمة أسماء، بطاقة لكل اسم |
+| `layerling_text_block` | تنشئ كتلة نص: يصبح النص أول عدة أسطر، كل سطر نص مستقل تحت الذي فوقه، بمحاذاة لليسار أو للوسط أو لليمين، وكل سطر بالحجم نفسه أو أصغر |
 | `layerling_layer_icon` | تحوّل أيقونة SVG (نص الملف، أو جسم رسم تخطيطي مبثوق) إلى بطاقة أيقونة متعددة الطبقات لطباعة متعددة الألوان - الأيقونة، وحواف أعرض، ولوحة بلا ثقوب - أو تعيد بناءها بعرض أو طبقات جديدة؛ ومع عدد، تملأ اللوحة بنسخ منها |
 | `layerling_create_qr_code` | تنشئ رمز QR من نص أو عنوان ويب، مثل {{ui:shape.qrCode}} في مكتبة الأشكال - الرمز وحده، أو بارزًا على لوح، أو محفورًا، مع تصحيح الأخطاء والعرض والارتفاع والمنطقة الهادئة وكفراغ عند الطلب؛ وتحذّر عندما تصغر الوحدة عن 0.8 مم |
 | `layerling_create_sbc_board` | تضع لوحة SBC بحجمها الحقيقي، مثل {{ui:shape.sbcBoard}} في مكتبة الأشكال - Raspberry Pi 5 أو 4 أو 3 B+ أو Zero 2 W أو BIGTREETECH Pi، مع الثقوب والموصلات والخلوص حول موصلات الحافة والموضع، وكثقب لقطع علبة |
@@ -99,10 +139,16 @@ summary: كيف ينشئ مساعد ذكاء اصطناعي مثل Gemini أو C
 | `layerling_add_reference_points` | تعلّم نقاطًا مرجعية - في مركز الأجسام أو زواياها أو منتصفات حوافها، أو في مواضع دقيقة - تلتقط إليها الأشكال |
 | `layerling_list_reference_points` | تسرد النقاط المرجعية مع معرّفاتها ومواضعها |
 | `layerling_remove_reference_points` | تحذف نقاطًا مرجعية حسب المعرّف، أو كلها |
+| `layerling_list_notes` | يقرأ ملاحظات المستخدم مع نصها والجسم المثبتة عليه كل واحدة وهل هي طلب للذكاء الاصطناعي |
+| `layerling_wait_for_notes` | ينتظر حتى تضع علامة {{ui:note.forAi}} على ملاحظة، ثم يسلّم الطلب فورًا |
+| `layerling_add_note` | يضع ملاحظة على النموذج، مثبتة على كائن أو حرة على اللوحة |
+| `layerling_update_note` | يعدّل ملاحظة أو يرد عليها؛ الرد يغلق الطلب |
+| `layerling_remove_notes` | يحذف ملاحظات بحسب المعرّف |
 | `layerling_inspect_errors` | تعرض آخر رسالة وآخر خطأ، إضافة إلى رسائل الجلسة وأخطائها |
 | `layerling_wrap_around_cylinder` | تلفّ جسمًا مستلقيًا مسطحًا، كملف SVG أو نص مثلًا، حول أسطوانة، للخارج أو للداخل كنقش محفور |
 | `layerling_texture_surface` | تضع على جسم نسيجًا للسطح: أخاديد أو تخريشًا أو خلايا سداسية أو نتوءات، لقبضة أفضل أو للمظهر، وتغيّره أو تزيله لاحقًا |
 | `layerling_simplify_mesh` | تقلّل عدد مثلثات شبكة مستوردة، إلى نسبة مئوية أو إلى عدد محدد من المثلثات |
+| `layerling_make_exact` | تحوّل شبكة مستوردة إلى جسم CAD دقيق: تصير المستويات والأسطوانات والمخاريط والكرات والطارات أوجهًا حقيقية، فتُدوَّر الحواف بنظافة ويحملها STEP |
 | `layerling_save_custom_shape` | تحفظ أجسامًا كشكل مخصص، على الخادم أو في المتصفح، لإدراجها في تصاميم أخرى |
 | `layerling_list_custom_shapes` | تسرد الأشكال المخصصة على الخادم وفي المتصفح |
 | `layerling_insert_custom_shape` | تدرج شكلًا مخصصًا في التصميم المفتوح، في موضع x/z إذا أردت |
@@ -110,6 +156,7 @@ summary: كيف ينشئ مساعد ذكاء اصطناعي مثل Gemini أو C
 | `layerling_show_workplane` | تخفي اللوحة بشبكتها وتظهرها، لالتقاط صورة للجانب السفلي مثلًا (العرض فقط) |
 | `layerling_set_section_view` | تفتح العرض بقطعه على طول مستوى للنظر إلى الداخل (العرض فقط، لا يُقطع شيء فعليًا) |
 | `layerling_measurements` | يُظهر قياسات شريط القياس أو يخفيها ويسردها مع أطوالها، ويخفي الأبعاد حول التحديد أو يظهرها مثل [[Q]] |
+| `layerling_measure_angle` | يقيس زاوية مثل المنقلة: عند ركن ثلاث نقاط أو بين وجهين مستويين، ويعرضها في العرض |
 | `layerling_saved_view` | يحفظ العرض الحالي تحت المفتاح 7 أو 8 أو 9 أو 0 ويعود إليه، مثل Shift+المفتاح والمفتاح وحده (العرض فقط)؛ ويضبط أيضًا عرض البداية للتصاميم الجديدة |
 | `layerling_clear_history` | تحذف كل خطوات التراجع نهائيًا، كما يفعل زر "حذف السجل" في عرض السجل؛ وتحتاج `confirm: true` |
 | `layerling_set_history_view` | تعرض حالة سابقة للمشروع، كعرض السجل (يبقى التصميم الحقيقي دون تغيير؛ وتنتظر الأدوات التي تغيّر التصميم حتى يُغلق) |

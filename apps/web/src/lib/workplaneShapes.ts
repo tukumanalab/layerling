@@ -9,7 +9,7 @@ import { vaseSettingsEqual } from "@/lib/vaseSettings";
 import { qrSettingsEqual } from "@/lib/qrCode";
 import { torusTubeRatio } from "@/lib/torusShape";
 import { shapeHasAlongDeform } from "@/lib/slopeAlong";
-import type { SketchStroke, WorkplaneShape } from "@/types/layerling";
+import type { EdgeTreatmentHistoryEntry, SketchStroke, WorkplaneShape } from "@/types/layerling";
 
 /** Bauwerte der Wabengitter, die es nur noch in alten Entwuerfen gibt: Die Form wird nicht mehr angeboten (#223), bleibt aber bearbeitbar. */
 const LEGACY_BODY_PARAMETER_KEYS = ["honeycombCellSize", "honeycombWallThickness", "honeycombFrameWidth"] as const;
@@ -136,10 +136,11 @@ export function shapeTaperDimensions(shape: WorkplaneShape) {
  * Lineal haben feste Masse, die eine Verjuengung nur verdurbe. Der Tropfen ist
  * der Querschnitt eines waagerechten Lochs; oben und unten gibt es fuer ihn
  * nicht. Seit #111 nehmen Kapsel, abgerundeter Quader, Stern, Herz, Halbmond,
- * Wabe und Schwalbenschwanz sie an. Die Liste steht hier, damit das Merkmalsfeld, die
+ * Wabe und Schwalbenschwanz sie an. Schraubdom, Schnapphaken und Rippe (#1246)
+ * haben feste Masse fuer Einsatz, Haken und Fuss. Die Liste steht hier, damit das Merkmalsfeld, die
  * Vorschau und die MCP-Bruecke nicht je ihre eigene fuehren.
  */
-const SHAPES_WITHOUT_TAPER = new Set<WorkplaneShape["kind"]>(["gear", "hirth", "thread", "spring", "pyramid", "ruler", "hinge", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "bentTube", "loft", "vase", "gridfinity"]);
+const SHAPES_WITHOUT_TAPER = new Set<WorkplaneShape["kind"]>(["gear", "hirth", "thread", "spring", "pyramid", "ruler", "hinge", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "bentTube", "loft", "vase", "gridfinity", "screwBoss", "snapFit", "rib"]);
 
 export function shapeSupportsTaper(kind: WorkplaneShape["kind"]) {
   return !SHAPES_WITHOUT_TAPER.has(kind);
@@ -335,16 +336,44 @@ function edgeTreatmentPreserveZone(shape: WorkplaneShape): number {
  */
 export function hollowStretchSincePicture(shape: WorkplaneShape, entry: NonNullable<WorkplaneShape["edgeTreatmentHistory"]>[number]) {
   const applied = entry.appliedFrame;
-  const width = shapeWidth(shape);
-  const depth = shapeDepth(shape);
   if (!applied) return { x: 1, z: 1, height: 1 };
-  const turn = Math.abs((((entry.before.rotation ?? 0) - applied.rotation) % 180 + 180) % 180);
-  const swapped = Math.abs(turn - 90) < 0.5;
-  return {
-    x: swapped ? depth / Math.max(0.001, applied.depth) : width / Math.max(0.001, applied.width),
-    z: swapped ? width / Math.max(0.001, applied.width) : depth / Math.max(0.001, applied.depth),
-    height: shape.height / Math.max(0.001, applied.height),
+  // The body's own stretch along its width, height and depth.
+  const own = [shapeWidth(shape) / Math.max(0.001, applied.width), shape.height / Math.max(0.001, applied.height), shapeDepth(shape) / Math.max(0.001, applied.depth)];
+  // `before`'s axes in the body's frame: a turn about any axis, tipped over too, not only one about the vertical
+  // (Discussion #1150: a teardrop stood up and hollowed grew in its depth when its height was pulled, an oval).
+  const before = entry.before;
+  const turn = multiplyRotations(transposed(eulerRotation(applied.rotationX, applied.rotation, applied.rotationZ)), eulerRotation(before.rotationX ?? 0, before.rotation ?? 0, before.rotationZ ?? 0));
+  // Each of its axes takes the stretch of the body's axis it lies closest to: exact for quarter turns, and a turn by a
+  // few degrees keeps its axes as they are.
+  const along = (axis: number) => {
+    let closest = axis;
+    turn.forEach((row, index) => {
+      if (Math.abs(row[axis]) > Math.abs(turn[closest][axis]) + 1e-9) closest = index;
+    });
+    return own[closest];
   };
+  return { x: along(0), z: along(2), height: along(1) };
+}
+
+type Rotation = number[][];
+
+/** A turn as three.js makes it from the editor's angles in degrees: Euler "XYZ", the vertical turn about y. */
+function eulerRotation(xDegrees: number, yDegrees: number, zDegrees: number): Rotation {
+  const [a, b, c] = [xDegrees, yDegrees, zDegrees].map((degrees) => (degrees * Math.PI) / 180);
+  const [ca, sa, cb, sb, cc, sc] = [Math.cos(a), Math.sin(a), Math.cos(b), Math.sin(b), Math.cos(c), Math.sin(c)];
+  return [
+    [cb * cc, -cb * sc, sb],
+    [ca * sc + sa * sb * cc, ca * cc - sa * sb * sc, -sa * cb],
+    [sa * sc - ca * sb * cc, sa * cc + ca * sb * sc, ca * cb],
+  ];
+}
+
+function transposed(rotation: Rotation): Rotation {
+  return rotation[0].map((_, column) => rotation.map((row) => row[column]));
+}
+
+function multiplyRotations(left: Rotation, right: Rotation): Rotation {
+  return left.map((row) => right[0].map((_, column) => row.reduce((sum, value, index) => sum + value * right[index][column], 0)));
 }
 
 /**
@@ -557,11 +586,27 @@ export function canonicalizeShape(unrepaired: WorkplaneShape): WorkplaneShape {
     };
   }
   if (shape.edgeTreatmentHistory) {
-    next.edgeTreatmentHistory = shape.edgeTreatmentHistory.map((entry) => ({
-      ...entry,
-      before: canonicalizeShape(entry.before),
-    }));
+    next.edgeTreatmentHistory = canonicalEdgeTreatmentHistory(shape.edgeTreatmentHistory);
   }
+  return next;
+}
+
+const canonicalEdgeTreatmentHistories = new WeakMap<readonly EdgeTreatmentHistoryEntry[], EdgeTreatmentHistoryEntry[]>();
+
+/**
+ * A body's edge history canonicalized once (#1042). Moving a body keeps its history array, and handing back the same
+ * array keeps the fingerprint cache in editorHistory.ts hitting; a new one each time made every step hash all the
+ * stored bodies and meshes of the history again, a quarter of a second for each arrow key on a chamfered group.
+ */
+function canonicalEdgeTreatmentHistory(history: readonly EdgeTreatmentHistoryEntry[]): EdgeTreatmentHistoryEntry[] {
+  const cached = canonicalEdgeTreatmentHistories.get(history);
+  if (cached) return cached;
+  const next = history.map((entry) => ({
+    ...entry,
+    before: canonicalizeShape(entry.before),
+  }));
+  canonicalEdgeTreatmentHistories.set(history, next);
+  canonicalEdgeTreatmentHistories.set(next, next);
   return next;
 }
 
@@ -598,6 +643,25 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.bevel === b.bevel &&
     a.segments === b.segments &&
     a.topRadius === b.topRadius &&
+    a.curvedConeTop === b.curvedConeTop &&
+    a.curvedConeBend === b.curvedConeBend &&
+    a.screwBossFastener === b.screwBossFastener &&
+    a.screwBossSize === b.screwBossSize &&
+    a.screwBossHole === b.screwBossHole &&
+    a.screwBossHoleDepth === b.screwBossHoleDepth &&
+    a.screwBossDiameter === b.screwBossDiameter &&
+    a.screwBossGussets === b.screwBossGussets &&
+    a.screwBossGussetHeight === b.screwBossGussetHeight &&
+    a.screwBossGussetThickness === b.screwBossGussetThickness &&
+    a.snapFitPart === b.snapFitPart &&
+    a.snapFitThickness === b.snapFitThickness &&
+    a.snapFitUndercut === b.snapFitUndercut &&
+    a.snapFitClearance === b.snapFitClearance &&
+    a.snapFitLeadAngle === b.snapFitLeadAngle &&
+    a.snapFitRetainAngle === b.snapFitRetainAngle &&
+    a.snapFitFoot === b.snapFitFoot &&
+    a.ribStyle === b.ribStyle &&
+    a.ribTop === b.ribTop &&
     a.baseRadius === b.baseRadius &&
     a.topWidth === b.topWidth &&
     a.topDepth === b.topDepth &&
@@ -607,6 +671,7 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.taperBottomDepth === b.taperBottomDepth &&
     a.taperTopScale === b.taperTopScale &&
     a.taperBottomScale === b.taperBottomScale &&
+    a.taperKeepProportions === b.taperKeepProportions &&
     a.extrudeTwist === b.extrudeTwist &&
     a.extrudeTopOffsetX === b.extrudeTopOffsetX &&
     a.extrudeTopOffsetZ === b.extrudeTopOffsetZ &&
@@ -632,6 +697,7 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.threadHead === b.threadHead &&
     a.threadHand === b.threadHand &&
     a.threadProfile === b.threadProfile &&
+    a.threadTaper === b.threadTaper &&
     a.threadDiameter === b.threadDiameter &&
     a.threadPitch === b.threadPitch &&
     a.threadClearance === b.threadClearance &&
@@ -648,6 +714,8 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.threadDrive === b.threadDrive &&
     a.threadDriveSize === b.threadDriveSize &&
     a.threadDriveDepth === b.threadDriveDepth &&
+    a.threadCollarHeight === b.threadCollarHeight &&
+    a.threadCollarDiameter === b.threadCollarDiameter &&
     a.parametricSource?.kind === b.parametricSource?.kind &&
     a.parametricSource?.rotation === b.parametricSource?.rotation &&
     a.parametricSource?.rotationX === b.parametricSource?.rotationX &&
@@ -698,6 +766,8 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.gridfinityMagnets === b.gridfinityMagnets &&
     a.gridfinityHalfGrid === b.gridfinityHalfGrid &&
     a.gridfinityLargePlate === b.gridfinityLargePlate &&
+    a.gridfinitySwallowtail === b.gridfinitySwallowtail &&
+    a.gridfinitySwallowtailClearance === b.gridfinitySwallowtailClearance &&
     a.gridfinityLabelBack === b.gridfinityLabelBack &&
     a.gridfinityLabelFront === b.gridfinityLabelFront &&
     a.gridfinityLabelLeft === b.gridfinityLabelLeft &&
@@ -798,6 +868,7 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.surfaceFillOf === b.surfaceFillOf &&
     vaseSettingsEqual(a.vase, b.vase) &&
     a.vasePartOf === b.vasePartOf &&
+    a.gridfinityKeyOf === b.gridfinityKeyOf &&
     a.textRadius === b.textRadius &&
     a.textSize === b.textSize &&
     a.textInward === b.textInward &&
@@ -807,12 +878,17 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     Boolean(a.textStretch) === Boolean(b.textStretch) &&
     Boolean(a.textVertical) === Boolean(b.textVertical) &&
     (a.textSpacing ?? 0) === (b.textSpacing ?? 0) &&
+    (a.textLetterWidth ?? 100) === (b.textLetterWidth ?? 100) &&
     JSON.stringify(a.textKeyring ?? null) === JSON.stringify(b.textKeyring ?? null) &&
     JSON.stringify(a.textEdge ?? null) === JSON.stringify(b.textEdge ?? null) &&
     qrSettingsEqual(a.qrCode, b.qrCode) &&
     (a.sbcBoard?.board ?? null) === (b.sbcBoard?.board ?? null) &&
     (a.sbcBoard?.clearance ?? 0) === (b.sbcBoard?.clearance ?? 0) &&
     (a.sbcBoard?.reach ?? 0) === (b.sbcBoard?.reach ?? 0) &&
+    Boolean(a.sbcBoard?.ribbonUp) === Boolean(b.sbcBoard?.ribbonUp) &&
+    Boolean(a.sbcBoard?.ribbonSide) === Boolean(b.sbcBoard?.ribbonSide) &&
+    Boolean(a.sbcBoard?.gpioUp) === Boolean(b.sbcBoard?.gpioUp) &&
+    (a.sbcBoard?.upReach ?? 0) === (b.sbcBoard?.upReach ?? 0) &&
     a.importedMesh === b.importedMesh &&
     a.imagePlate === b.imagePlate &&
     a.sketchProfile === b.sketchProfile &&
@@ -836,6 +912,7 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.rotationPivot === b.rotationPivot &&
     fieldFormulasEqual(a.formulas, b.formulas) &&
     a.locked === b.locked &&
+    Boolean(a.shapeLocked) === Boolean(b.shapeLocked) &&
     a.hidden === b.hidden &&
     a.transparent === b.transparent
   );

@@ -2,13 +2,14 @@ import { JoinType, type OcctKernel, type ShapeHandle } from "occt-wasm";
 import { isCadModifierWasmMemoryFault } from "@/lib/cadModifierRuntime";
 import { shellOpenSides } from "@/lib/shellLimits";
 import type { ShellEdges, ShellOpenings, ShellSide } from "@/types/layerling";
+import { isKernelMemoryFault } from "@/lib/kernelFault";
 
 // Hollowing ("shell") for the CAD modifier worker. It lives outside the worker
 // so the end-to-end tests can run it against the real OCCT kernel.
 
 export function orientedFaceNormal(cad: OcctKernel, face: ShapeHandle, point: { x: number; y: number; z: number }) {
   const uv = cad.uvFromPoint(face, point);
-  // surfaceNormal already honours the face orientation (see shellOpeningFaces);
+  // surfaceNormal already honours the face orientation (see shellOpeningFacesBySide);
   // flipping a reversed face again turned its normal inward.
   const normal = cad.surfaceNormal(face, uv.u, uv.v);
   const length = Math.hypot(normal.x, normal.y, normal.z) || 1;
@@ -18,7 +19,8 @@ export function orientedFaceNormal(cad: OcctKernel, face: ShapeHandle, point: { 
 function shapeIsValid(cad: OcctKernel, shape: ShapeHandle) {
   try {
     return Boolean(cad.isValid(shape));
-  } catch {
+  } catch (error) {
+    if (isKernelMemoryFault(error)) throw error;
     return false;
   }
 }
@@ -81,11 +83,6 @@ export function shellOpeningFacesBySide(cad: OcctKernel, solid: ShapeHandle, fac
     });
   });
   return found;
-}
-
-/** All the faces a hollowed body leaves open. */
-export function shellOpeningFaces(cad: OcctKernel, solid: ShapeHandle, faces: ShapeHandle[], openings: ShellOpenings) {
-  return [...shellOpeningFacesBySide(cad, solid, faces, openings).values()].flat();
 }
 
 /**
@@ -244,7 +241,8 @@ function withoutSliverFaces(cad: OcctKernel, solid: ShapeHandle): ShapeHandle | 
       const cleaned = cad.defeature(solid, slivers, 1e-4);
       if (cad.isSolid(cleaned) && shapeIsValid(cad, cleaned)) return cleaned;
       cad.release(cleaned);
-    } catch {
+    } catch (error) {
+      if (mustSurface(error)) throw error;
       // The body stays as it is; hollowing it may fail as before.
     }
     return null;

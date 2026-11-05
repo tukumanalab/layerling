@@ -15,8 +15,11 @@ summary: 用八种字体或你自己的字体创建凸起或凹刻的文字，�
 - **尺寸：** 与任何形状一样设置这一行的长度和宽度。拖动手柄或输入尺寸。
 - **{{ui:prop.textSpacing}}：** 在字体原有间距之上增加的字母间距，以字母大小的百分比表示：0 表示保持字体原本的间距，大于 0 时字母分得更开，小于 0 时（最低 -50）更紧凑，你自己的字体常常需要这样。字母大小不变，外框随这一行变化，直线文字和弧形文字都是如此。阿拉伯文和希伯来文的字母相互连写，不应用此间距。
 - **{{ui:prop.textStretch}}：** 初始为关闭：字母保持原有比例并位于外框中间，因此把外框拉得比文字所需更宽或更深时，外框会比字母大。开启后，字母会在两个方向上拉伸以填满整个外框：大写字母可以变矮或变窄，与 Tinkercad 中一样。它适用于直线文字；弧形文字有自己的字母大小。
+- **{{ui:prop.textVertical}}：** 把字母从上到下堆叠，每个字母位于一条竖线的中间，用于门框上的标牌或沿笔杆写的名字。外框变为竖直，字母保持大小；{{ui:prop.textSpacing}} 设定它们之间的间距。在弧形文字上，字母沿圆的左侧排成一列，每个都直立；{{ui:prop.textInwardColumn}} 把这一列放到右侧。
 
 文字最初是一个实体。如果想单独处理每个字母，点击 {{ui:inspector.separateParts}}。之后每个字母都是独立的形状。
+
+**多行文字：** 一段文字只有一行。要做多行的标牌或铭牌，请打开设置下方的 {{ui:textBlock.title}} 卡片：在 {{ui:textBlock.lines}} 中输入各行，选择 {{ui:textBlock.align}}（{{ui:textBlock.align.left}}、{{ui:textBlock.align.center}} 或 {{ui:textBlock.align.right}}）、{{ui:textBlock.gap}} 和 {{ui:textBlock.step}}——设为 80 % 时每行比上一行小五分之一。按钮会把每行做成上一行下方的独立文字，使用此文字的字体、高度和填充；第一行占据此文字的位置。之后每行都可以有自己的大小、字体或颜色。
 
 文字的边也可以倒角或加圆角，直线文字和弧形文字都可以，见[断开边缘与抽壳实体](chapter:edges-and-hollowing)。请使用 0.2 至 0.5 mm 这样的小尺寸，因为字母的笔画很窄。
 
@@ -97,6 +100,7 @@ layerling 无法读取 WOFF2 文件（几乎总能找到 TTF 或 OTF 版本）�
 
 - **{{ui:prop.text}}** 和 **{{ui:prop.font}}**，也包括自己的字体。名牌会随文字增长。
 - **{{ui:nameTag.letterSize}}：** 大写字母的高度，单位为 mm。所有层都会跟随并保持对齐。
+- **{{ui:prop.textVertical}}：** 把名牌竖起来，字母上下排列，所有层一起跟随。
 - **{{ui:nameTag.layers}}：** 每层一行，从上到下排列。每行包含颜色（点击色块）、该层比字母宽出多少、高度以及 {{ui:nameTag.noHoles}}（用于填平 O、A 等字母中的孔）。{{ui:nameTag.corners}} 设置较宽的层如何绕过字母的拐角：{{ui:nameTag.corner.round}}、{{ui:nameTag.corner.bevel}} 或 {{ui:nameTag.corner.miter}}。最上面一行就是字母本身。**+** 在底部添加一层，**–** 移除最底层。名牌可有两到六层。
 - **{{ui:nameTag.keyring}}：** 在底层加上一个末端为圆形的直舌片，并开一个钥匙圈孔；舌片会随孔一起变大。默认的 3 mm 孔会生成一个宽 6.5 mm、伸出 6.75 mm 的舌片，孔边缘距底层边缘 2 mm。选择 {{ui:nameTag.keyringDiameter}} 和 {{ui:nameTag.keyringSide}}：{{ui:nameTag.side.left}}、{{ui:nameTag.side.right}} 或 {{ui:nameTag.side.top}}。{{ui:nameTag.side.free}} 会把孔从名牌上取下，在旁边放一个独立的 {{ui:nameTag.keyringTab}}，颜色和高度与底层相同：这是一个普通形状，你可以用手柄移动和旋转它到名牌需要的任何位置。放好之后，其属性中的 {{ui:nameTag.keyringTabFix}} 会把它并入最近的名牌，并保持在当前位置：孔会穿过它到达的每一层，耳片并入底层，而且文字或尺寸变化时，两者都会保持在该字母的拐角处。{{ui:nameTag.side.free}} 会把舌片重新放回原来的位置，以便再次移动。孔会穿过它接触的每一层，改变文字、字母大小或字体时舌片也会跟着移动。{{ui:nameTag.keyringAlong}} 让舌片沿所在边上下移动（在顶边上则是左右移动），直到将要离开该边的位置；0 表示中间。当边的中点正好遇到空隙时（例如 J 旁边），可以用它把舌片移到字母伸出的部位。
 - **{{ui:nameTag.letterEdge}}：** 对顶层的字母顶边做圆角或倒角，就像打印出的名牌那样收边：{{ui:nameTag.edge.none}}、{{ui:nameTag.edge.round}} 或 {{ui:nameTag.edge.chamfer}}，并设置 {{ui:nameTag.letterEdgeSize}}（初始为 0.4 mm，最大不超过层高）。它适用于所有字体和文字。该边是字母网格的一部分，因此边工具会把这样的文字当作网格处理，对如此精细的文字来说负担很重；请改为在这里选择边处理。
@@ -153,9 +157,10 @@ SVG 需要闭合轮廓；只有开放线条的图形无法成为图标牌。填�
 
 ![文字沿圆周排列。所有字母都立在同一条基线上。](shot:curved-text)
 
-开启后，文字会沿圆周排列。所有字母都立在同一条基线上，与普通文字一样均匀。共有四项设置：
+开启后，文字会沿圆周排列。所有字母都立在同一条基线上，与普通文字一样均匀。共有五项设置：
 
 - **{{ui:prop.textRadius}}**（5 至 500 mm）：字母基线所在圆的半径。字母保持原位，只改变弯曲程度。
+- **{{ui:prop.textLetterWidth}}**（25 至 400 %）：每个字母绘制的宽度，以其自身宽度的百分比表示。小于 100 字母变窄，大于 100 变宽；高度不变，所占的弧长随之变长或变短。例如在硬币上做高而窄的文字。直排文字则用 {{ui:prop.textStretch}} 配合外框实现。
 - **{{ui:nameTag.letterSize}}：** 字母的高度。它不再取决于形状的宽度。
 - **{{ui:prop.textInward}}：** 把文字从圆的顶部移到圆的底部。此时字母的顶部朝向圆心。
 - **{{ui:prop.textFlipped}}：** 只把字母翻转过来，让你可以从另一侧阅读。文字在圆上的位置不变。

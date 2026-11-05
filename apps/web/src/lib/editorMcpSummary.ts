@@ -69,7 +69,7 @@ export function compactShapeSummary(shape: WorkplaneShape, index: number) {
     `${index}:${shape.kind}${shape.hole ? "H" : "S"}${shape.importedMesh ? "I" : ""}${shape.imagePlate ? "P" : ""}`,
     `g${shape.groupedShapes?.length ?? 0}`,
     `tri${shape.importedMesh?.triangleCount ?? 0}`,
-    `edge${shape.edgeTreatments?.map((feature) => `${feature.kind}:${feature.amount}:${feature.edgeCount}:${feature.chamferAngle ?? ""}${feature.endAmount !== undefined ? `>${feature.endAmount}` : ""}`).join("|") ?? ""}`,
+    `edge${shape.edgeTreatments?.map((feature) => `${feature.kind}:${feature.amount}:${feature.edgeCount}:${feature.chamferAngle ?? ""}${feature.endAmount !== undefined ? `>${feature.endAmount}` : ""}${feature.concave ? "~" : ""}`).join("|") ?? ""}`,
     `viewEdges${shape.cadDisplayEdges?.length ?? "auto"}v${shape.cadDisplayEdgesVersion ?? 0}`,
     `edgeResize${shape.edgeResizeMode ?? "scale"}`,
     `brep${shape.cadBrep?.length ?? 0}`,
@@ -127,6 +127,7 @@ export function mcpShapeSummary(shape: WorkplaneShape): LayerlingMcpShapeSummary
     color: shape.color,
     hole: Boolean(shape.hole),
     locked: Boolean(shape.locked),
+    ...(shape.shapeLocked ? { shapeLocked: true } : {}),
     hidden: Boolean(shape.hidden),
     position: {
       x: shape.x,
@@ -161,7 +162,7 @@ export function mcpShapeSummary(shape: WorkplaneShape): LayerlingMcpShapeSummary
       ? { sketchStroke: shape.sketchProfile.stroke ?? null, silhouette: Boolean(shape.sketchProfile.silhouette), sketchInset: shape.sketchProfile.inset ?? null }
       : {}),
     // A text's fill (#215) reads like a sketch body's: its stroke, and whether the counters are left out.
-    ...(shape.kind === "text" ? { textStroke: shape.textStroke ?? null, textSilhouette: Boolean(shape.textSilhouette), textStretch: Boolean(shape.textStretch), textVertical: Boolean(shape.textVertical), textSpacing: shape.textSpacing ?? 0, textEdge: shape.textEdge ?? null } : {}),
+    ...(shape.kind === "text" ? { textStroke: shape.textStroke ?? null, textSilhouette: Boolean(shape.textSilhouette), textStretch: Boolean(shape.textStretch), textVertical: Boolean(shape.textVertical), textSpacing: shape.textSpacing ?? 0, textLetterWidth: shape.textLetterWidth ?? 100, textEdge: shape.textEdge ?? null } : {}),
     // A name tag's key ring hole (#215), on the layers it goes through; the bottom one carries the ear.
     ...(shape.kind === "text" && shape.textKeyring ? { textKeyring: shape.textKeyring } : {}),
     ...(shape.layeredText ? { layeredText: true } : {}),

@@ -128,6 +128,8 @@ export type MoveDimensionSession = {
   deltaX: number;
   deltaZ: number;
   items: Array<Pick<DragItem, "id" | "startX" | "startZ">>;
+  /** Built by the arrow keys (Discussion #1289): the next key step adds to it instead of starting afresh. */
+  keyboard?: boolean;
   /** Set while lifting with the arrow (#979): the way up or down, and where each body's centre started. */
   lift?: MoveDimensionLift & {
     items: Array<{ id: string; centerX: number; centerY: number; centerZ: number; height: number }>;
@@ -148,6 +150,9 @@ type NoteOverlayItem = {
   attached: boolean;
   /** A reference point, not a note: shown as a mark with its coordinates. */
   point: boolean;
+  /** A request for the AI agent (#1191), and the answer it left. */
+  forAi?: boolean;
+  reply?: string;
   x: number;
   y: number;
   z: number;
@@ -775,6 +780,8 @@ export function syncNoteOverlay(
         collapsed: Boolean(note.collapsed),
         attached: Boolean(note.anchor),
         point: note.kind === "point",
+        forAi: Boolean(note.forAi),
+        reply: note.reply ?? "",
         x: note.x,
         y: note.y,
         z: note.z,
@@ -796,6 +803,8 @@ export function syncNoteOverlay(
         && note.collapsed === candidate.collapsed
         && note.attached === candidate.attached
         && note.point === candidate.point
+        && note.forAi === candidate.forAi
+        && note.reply === candidate.reply
         && note.x === candidate.x
         && note.y === candidate.y
         && note.z === candidate.z
@@ -957,6 +966,7 @@ export function NoteOverlay({
   onTextChange,
   onTextCommit,
   onDetach,
+  onForAiChange,
   onRemove,
   onEditingIdChange,
   workspace,
@@ -984,6 +994,8 @@ export function NoteOverlay({
   onTextCommit: (noteId: string) => void;
   /** Left out where a note cannot be released from a body: in a sketch, every note is the sketch body's. */
   onDetach?: (noteId: string) => void;
+  /** Left out where the AI agent has no notes to read: in a sketch. */
+  onForAiChange?: (noteId: string, forAi: boolean) => void;
   onRemove: (noteId: string) => void;
   onEditingIdChange: (noteId: string | null) => void;
 }) {
@@ -1073,6 +1085,18 @@ export function NoteOverlay({
                   }}
                   onChange={(text) => onTextChange(note.id, text)}
                 />
+                {note.reply ? (
+                  <div className="note-reply">
+                    <span className="note-reply-label">{t("note.reply")}</span>
+                    {note.reply}
+                  </div>
+                ) : null}
+                {onForAiChange ? (
+                  <label className="note-for-ai" title={t("note.forAiHint")}>
+                    <input type="checkbox" checked={Boolean(note.forAi)} onChange={(event) => onForAiChange(note.id, event.target.checked)} />
+                    {t("note.forAi")}
+                  </label>
+                ) : null}
                 <div className="note-card-actions">
                   {!onDetach ? <span /> : note.attached ? (
                     <button type="button" className="note-action" onClick={() => onDetach(note.id)}>{t("note.detach")}</button>
@@ -1698,7 +1722,7 @@ const CORNER_RULER_LINE_LIFT = 0.05;
  * Whether a body stands between the camera and the point. What the section view cuts away, see-through bodies
  * and holes hide nothing; neither does `ignoredShapeId`, the body a measurement runs across.
  */
-function worldPointHidden(point: THREE.Vector3, state: ThreeState, ignoredShapeId?: string) {
+export function worldPointHidden(point: THREE.Vector3, state: ThreeState, ignoredShapeId?: string) {
   state.camera.updateMatrixWorld();
   const ndc = point.clone().project(state.camera);
   if (!Number.isFinite(ndc.x) || !Number.isFinite(ndc.y) || Math.abs(ndc.x) > 1.2 || Math.abs(ndc.y) > 1.2) return false;

@@ -20,7 +20,7 @@ Wie schnell das Mausrad zoomt, stellst du in den Einstellungen unter {{ui:worksp
 
 **Maustasten wie im Slicer.** Bist du Bambu Studio oder OrcaSlicer gewohnt, stellst du in den Einstellungen unter {{ui:workspace.appearance}} die {{ui:workspace.mouseScheme}} auf {{ui:workspace.mouseSchemeSlicer}}. Ziehen mit links auf leerer Fläche dreht dann die Ansicht, die rechte Taste verschiebt sie wie die mittlere, und Umschalt mit Ziehen links spannt den Auswahlrahmen. Ziehen an einem Körper verschiebt ihn weiter, und ein kurzer Rechtsklick öffnet weiter das Menü. In einer Skizze verschiebt die rechte Taste die Ansicht ebenfalls.
 
-**3D-Maus.** Eine SpaceMouse oder eine andere 3D-Maus dreht, verschiebt und zoomt die 3D-Ansicht: Kappe wegdrücken zoomt hinein, Schieben verschiebt die Ansicht, Kippen kippt sie, und Verdrehen dreht sie herum. In den Einstellungen unter {{ui:workspace.appearance}} klickst du auf {{ui:workspace.spaceMouseConnect}} und wählst das Gerät in dem Fenster, das der Browser öffnet; er merkt sich die Wahl, das ist also nur einmal nötig. Das geht in Chrome und Edge, die solche Geräte erreichen; Firefox und Safari können es nicht.
+**3D-Maus.** Eine SpaceMouse oder eine andere 3D-Maus dreht, verschiebt und zoomt die 3D-Ansicht: Kappe wegdrücken zoomt hinein, Schieben verschiebt die Ansicht, Kippen kippt sie, und Verdrehen dreht sie herum. In den Einstellungen unter {{ui:workspace.appearance}} klickst du auf {{ui:workspace.spaceMouseConnect}} und wählst das Gerät in dem Fenster, das der Browser öffnet; er merkt sich die Wahl, das ist also nur einmal nötig. Das geht in Chrome und Edge, die solche Geräte erreichen; Firefox und Safari können es nicht. Fühlt sich eine Richtung verkehrt herum an, hake sie unter dem Knopf an: seitlich schieben, hoch und runter schieben, zoomen, kippen oder drehen.
 
 Auf einem Tablet oder Handy zoomen zwei Finger (spreizen und zusammenziehen) und verschieben die Ansicht (gemeinsam schieben). Ein Finger auf leerer Fläche dreht die Ansicht, und ein Antippen dort hebt die Auswahl auf; auf einer Form oder einem Griff arbeitet er am Entwurf, so wie die linke Maustaste. Wer auch mit einem Finger drehen möchte, der auf einer Form beginnt, schaltet in der Ansichtsleiste {{ui:camera.touchRotate}} ein. Der Schalter erscheint auf Geräten mit Touchscreen.
 
@@ -45,6 +45,7 @@ Am linken Rand liegt eine schmale Leiste. Von oben nach unten:
 - {{ui:camera.zoomIn}} und {{ui:camera.zoomOut}} zoomen schrittweise, ebenso die Tasten [[+]] und [[−]].
 - {{ui:camera.orthographic}} schaltet auf eine flache Ansicht um, in der parallele Kanten parallel bleiben. Das ist zum Messen und zum Ausrichten von Kanten oft angenehmer als die perspektivische Ansicht. Mit [[O]] wechselst du hin und her, ein zweiter Klick geht zurück.
 - {{ui:camera.secondView}} öffnet eine zweite Ansicht des Entwurfs in einem eigenen Fenster, siehe unten. Ein zweiter Klick schließt es.
+- {{ui:camera.showScrollbars}} blendet unten und am rechten Rand der Ansicht je eine Bildlaufleiste ein. Ziehst du den Balken, gleitet die Ansicht stufenlos mit; ein Klick auf einen Pfeil am Ende schiebt sie ein kleines Stück (gehalten läuft sie weiter), ein Klick neben den Balken fast um eine ganze Bildbreite. Dabei dreht sich nichts, und anders als die Pfeiltasten gehen die Leisten auch, während ein Teil ausgewählt ist - praktisch, wenn du nah an kleinen Details arbeitest. Ein zweiter Klick blendet sie aus; dieser Browser merkt sich die Wahl.
 - {{ui:camera.hideWorkplane}} (das Auge über dem Gitter) blendet die Platte mit ihrem Gitter aus, damit du die Unterseite eines Entwurfs von unten ansehen kannst. Es ändert sich nur die Ansicht: Neue Formen landen weiter auf der Arbeitsebene. Ein zweiter Klick blendet sie wieder ein.
 - {{ui:camera.placeWorkplane}}, das Maßband und das Winkellineal sind eigene Werkzeuge, sie kommen weiter unten und im Kapitel [Messen und Notizen](chapter:messen-und-notizen) vor.
 
@@ -74,7 +75,7 @@ Du kannst in jedem Entwurf außerdem vier eigene Ansichten festhalten. [[Umschal
 
 Das Fenster hängt an seinem Knopf. Verdeckt es etwas, ziehst du es an seiner Titelleiste frei über die Arbeitsfläche; dort öffnet es sich auch beim nächsten Mal. Ein Doppelklick auf die Titelleiste oder das Ablegen am Knopf bringt es zurück.
 
-Das X und [[Esc]] schließen das Werkzeugfenster; läuft gerade eine Messung, beendet [[Esc]] zuerst sie. Der Schnitt bleibt, bis du ihn mit {{ui:camera.sectionActive}} ausschaltest oder zur Entwurfsübersicht zurückgehst. Solange er an ist, ist der Knopf hervorgehoben. Was du dann auf der weggeschnittenen Seite ablegst, siehst du erst, wenn du den Schnitt ausschaltest. Ein Tablet hat kein [[Esc]], deshalb hat das Werkzeugfenster dort zwei Knöpfe mehr: {{ui:camera.sectionBack}} beendet die Messung, falls eine läuft, und schließt sonst das Fenster, {{ui:camera.sectionConfirm}} schließt das Fenster in einem Schritt. Ein Computer zeigt sie nicht.
+Das X und [[Esc]] schließen das Werkzeugfenster; läuft gerade eine Messung, beendet [[Esc]] zuerst sie. Der Schnitt bleibt, bis du ihn mit {{ui:camera.sectionActive}} ausschaltest, bei offenem Fenster seinen Knopf in der Leiste anklickst oder zur Entwurfsübersicht zurückgehst. Solange er an ist, ist der Knopf hervorgehoben. Was du dann auf der weggeschnittenen Seite ablegst, siehst du erst, wenn du den Schnitt ausschaltest. Ein Tablet hat kein [[Esc]], deshalb hat das Werkzeugfenster dort zwei Knöpfe mehr: {{ui:camera.sectionBack}} beendet die Messung, falls eine läuft, und schließt sonst das Fenster, {{ui:camera.sectionConfirm}} schließt das Fenster in einem Schritt. Ein Computer zeigt sie nicht.
 
 ## Die Arbeitsebene
 
@@ -146,7 +147,7 @@ Die Skizzenansicht hat eigene Farben: {{ui:workspace.sketchBackground}} für das
 
 ### Darstellung: Maße auf der Arbeitsebene
 
-{{ui:workspace.showMoveDimensions}} zeigt beim Verschieben, um wie viel du dich bewegst, {{ui:workspace.showOriginDimensions}} die Abstände der Auswahl zum Nullpunkt der Platte, auch bei mehreren markierten Körpern. Mit {{ui:workspace.dimensionsAlwaysVisible}} bleiben diese Maße dauerhaft sichtbar und nicht nur, solange du ziehst. Ist ein gedrehter Körper ausgewählt, stehen seine Winkel unter ihm auf der Arbeitsebene; {{ui:workspace.showRotationAngles}} schaltet das aus. Mehr unter [Messen und Notizen](chapter:messen-und-notizen).
+{{ui:workspace.showMoveDimensions}} zeigt beim Verschieben mit der Maus oder den Pfeiltasten, um wie viel du dich bewegst, {{ui:workspace.showOriginDimensions}} die Abstände der Auswahl zum Nullpunkt der Platte, auch bei mehreren markierten Körpern. Mit {{ui:workspace.dimensionsAlwaysVisible}} bleiben diese Maße dauerhaft sichtbar und nicht nur, solange du ziehst. Ist ein gedrehter Körper ausgewählt, stehen seine Winkel unter ihm auf der Arbeitsebene; {{ui:workspace.showRotationAngles}} schaltet das aus. Mehr unter [Messen und Notizen](chapter:messen-und-notizen).
 
 ### Darstellung: Auswählen und Verschieben
 
@@ -166,7 +167,7 @@ Die Skizzenansicht hat eigene Farben: {{ui:workspace.sketchBackground}} für das
 
 {{ui:workspace.zoomSpeed}} ist ein Regler von langsam bis schnell: wie schnell Rad und Trackpad zoomen; die Zoomknöpfe und -tasten behalten ihre eigenen kleinen Schritte. {{ui:workspace.cameraInertia}}: Lässt du die Maus nach dem Drehen los, dreht die Ansicht noch kurz weiter und bremst sanft ab. Ausgeschaltet bleibt sie sofort stehen, wie in Tinkercad und Fusion 360.
 
-{{ui:workspace.overhangAngle}} ist der Winkel, ab dem eine Fläche als Überhang gilt, wenn du im Sichtbarkeitsmenü Überhänge zeigen einschaltest: Diese Flächen sind rot und weiß schraffiert. 30° ist vorsichtig, 70° rechnet mit guter Kühlung des Drucks; 45° ist der übliche Start.
+{{ui:workspace.overhangAngle}} ist der Winkel, ab dem eine Fläche als Überhang gilt, wenn du im Sichtbarkeitsmenü Überhänge zeigen einschaltest: Diese Flächen sind rot und weiß schraffiert. 30° ist vorsichtig, 70° rechnet mit guter Kühlung des Drucks; 45° ist der übliche Start. Solange sie gezeigt werden, nennt eine Zeile unter der Ansicht den steilsten Überhang und wie viele cm² Stützen brauchen.
 
 {{ui:workspace.booleanTriangleLimit}} begrenzt, wie viele Dreiecke ein importiertes Netz haben darf, wenn du es schneidest, verschmilzt oder zu einer Schnittmenge machst, denn das wird in deinem Browser gerechnet. Ein Netz über dem Limit wird nicht verarbeitet; vereinfache es zuerst oder hebe das Limit an, wenn dein Rechner es verträgt. Ein höheres Limit kann den Editor für einige Sekunden einfrieren.
 

@@ -17,6 +17,8 @@ export type LayerlingMcpShapeSummary = {
   color: string;
   hole: boolean;
   locked: boolean;
+  /** Lock shape (#1277): moves, turns and groups, but keeps its size, settings, name and body. */
+  shapeLocked?: boolean;
   hidden: boolean;
   position: {
     x: number;
@@ -93,6 +95,7 @@ export type LayerlingMcpCommandName =
   | "list_objects"
   | "select_objects"
   | "delete_objects"
+  | "move_object"
   | "create_shape"
   | "import_mesh"
   | "update_object"
@@ -113,6 +116,7 @@ export type LayerlingMcpCommandName =
   | "cookie_cutter"
   | "flexi_joints"
   | "make_lid"
+  | "make_cable_channel"
   | "loft_sketches"
   | "boolean_cut"
   | "separate_parts"
@@ -120,6 +124,7 @@ export type LayerlingMcpCommandName =
   | "wrap_around_cylinder"
   | "texture_surface"
   | "simplify_mesh"
+  | "make_exact"
   | "save_custom_shape"
   | "list_custom_shapes"
   | "insert_custom_shape"
@@ -131,6 +136,7 @@ export type LayerlingMcpCommandName =
   | "hollow_object"
   | "offset_object"
   | "cut_out"
+  | "punch"
   | "array_objects"
   | "inspect_errors"
   | "estimate_print"
@@ -138,10 +144,15 @@ export type LayerlingMcpCommandName =
   | "add_reference_points"
   | "list_reference_points"
   | "remove_reference_points"
+  | "list_notes"
+  | "add_note"
+  | "update_note"
+  | "remove_notes"
   | "show_overhangs"
   | "measure_section"
   | "bundle_objects"
   | "layer_text"
+  | "text_block"
   | "layer_icon"
   | "create_qr_code"
   | "create_sbc_board"
@@ -153,6 +164,7 @@ export type LayerlingMcpCommandName =
   | "show_workplane"
   | "saved_view"
   | "measurements"
+  | "measure_angle"
   | "export_section_svg"
   | "sketch_from_section"
   | "export_drawing"

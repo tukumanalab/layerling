@@ -87,6 +87,7 @@ export const DEFAULT_WORKPLANE_WORKSPACE: WorkplaneWorkspaceSettings = {
   stlAsDownload: false,
   confirmTabClose: false,
   dimensionsAlwaysVisible: true,
+  dimensionAxisColors: false,
   showRotationAngles: true,
   zoomSpeed: 5,
   mouseScheme: "layerling",
@@ -294,7 +295,7 @@ export function snapGridForUnits(units: string, snap: GridSize): GridSize {
 }
 const customizableShapeKinds: ShapeKind[] = [
   "box", "roundedBox", "cylinder", "slot", "ellipse", "sphere", "sketch", "scribble", "cone", "pyramid", "roof", "text", "roundRoof",
-  "halfSphere", "paraboloid", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "hirth", "honeycomb", "hinge", "knurl", "dovetail", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "loft", "vase", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
+  "halfSphere", "paraboloid", "curvedCone", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "hirth", "honeycomb", "hinge", "knurl", "dovetail", "screwBoss", "snapFit", "rib", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "loft", "vase", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
 ];
 
 function numberOrDefault(value: unknown, fallback: number) {
@@ -368,7 +369,7 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.sides = optionalShapeNumber(source.sides, fallbackEntry?.sides, 12, MAX_HIGH_RESOLUTION_SIDES, true);
       entry.torusTubeRatio = optionalShapeNumber(source.torusTubeRatio, fallbackEntry?.torusTubeRatio, TORUS_MIN_TUBE_RATIO, TORUS_MAX_TUBE_RATIO);
     }
-    if (kind === "cylinder" || kind === "ellipse" || kind === "slot" || kind === "cone" || kind === "tube" || kind === "ring" || kind === "counterbore" || kind === "countersink" || kind === "doubleCountersink" || kind === "finishingWasher" || kind === "teardrop") {
+    if (kind === "cylinder" || kind === "ellipse" || kind === "slot" || kind === "cone" || kind === "curvedCone" || kind === "tube" || kind === "ring" || kind === "counterbore" || kind === "countersink" || kind === "doubleCountersink" || kind === "finishingWasher" || kind === "teardrop") {
       entry.sides = optionalShapeNumber(source.sides, fallbackEntry?.sides, 3, MAX_HIGH_RESOLUTION_SIDES, true);
     } else if (kind === "pyramid" || kind === "polygon") {
       entry.sides = optionalShapeNumber(source.sides, fallbackEntry?.sides, 3, 24, true);
@@ -382,6 +383,10 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
     if (kind === "cone") {
       entry.topRadius = optionalShapeNumber(source.topRadius, fallbackEntry?.topRadius, 0, MAX_CUSTOM_SHAPE_DIMENSION / 2);
       entry.baseRadius = optionalShapeNumber(source.baseRadius, fallbackEntry?.baseRadius, MIN_CUSTOM_SHAPE_DIMENSION, MAX_CUSTOM_SHAPE_DIMENSION / 2);
+    }
+    if (kind === "curvedCone") {
+      entry.curvedConeTop = optionalShapeNumber(source.curvedConeTop, fallbackEntry?.curvedConeTop, 0, 1);
+      entry.curvedConeBend = optionalShapeNumber(source.curvedConeBend, fallbackEntry?.curvedConeBend, -1, 1);
     }
     if (kind === "tube" || kind === "ring") {
       entry.bevel = optionalShapeNumber(source.bevel, fallbackEntry?.bevel, 0.5, 20);
@@ -441,6 +446,8 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.gridfinityMagnets = typeof source.gridfinityMagnets === "boolean" ? source.gridfinityMagnets : fallbackEntry?.gridfinityMagnets;
       entry.gridfinityHalfGrid = typeof source.gridfinityHalfGrid === "boolean" ? source.gridfinityHalfGrid : fallbackEntry?.gridfinityHalfGrid;
       entry.gridfinityLargePlate = typeof source.gridfinityLargePlate === "boolean" ? source.gridfinityLargePlate : fallbackEntry?.gridfinityLargePlate;
+      entry.gridfinitySwallowtail = typeof source.gridfinitySwallowtail === "boolean" ? source.gridfinitySwallowtail : fallbackEntry?.gridfinitySwallowtail;
+      entry.gridfinitySwallowtailClearance = optionalShapeNumber(source.gridfinitySwallowtailClearance, fallbackEntry?.gridfinitySwallowtailClearance, 0, MAX_CUSTOM_SHAPE_DIMENSION);
       entry.gridfinityLabelBack = typeof source.gridfinityLabelBack === "boolean" ? source.gridfinityLabelBack : fallbackEntry?.gridfinityLabelBack;
       entry.gridfinityLabelFront = typeof source.gridfinityLabelFront === "boolean" ? source.gridfinityLabelFront : fallbackEntry?.gridfinityLabelFront;
       entry.gridfinityLabelLeft = typeof source.gridfinityLabelLeft === "boolean" ? source.gridfinityLabelLeft : fallbackEntry?.gridfinityLabelLeft;
@@ -512,6 +519,29 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       for (const key of ["loftOffsetX", "loftOffsetZ"] as const) {
         entry[key] = optionalShapeNumber(source[key], fallbackEntry?.[key], -MAX_CUSTOM_SHAPE_DIMENSION, MAX_CUSTOM_SHAPE_DIMENSION);
       }
+    }
+    if (kind === "screwBoss") {
+      entry.screwBossFastener = source.screwBossFastener === "insert" || source.screwBossFastener === "selfTapping" || source.screwBossFastener === "custom" ? source.screwBossFastener : fallbackEntry?.screwBossFastener;
+      entry.screwBossSize = typeof source.screwBossSize === "string" && source.screwBossSize.length <= 16 ? source.screwBossSize : fallbackEntry?.screwBossSize;
+      entry.screwBossHole = optionalShapeNumber(source.screwBossHole, fallbackEntry?.screwBossHole, 0.4, MAX_CUSTOM_SHAPE_DIMENSION);
+      entry.screwBossHoleDepth = optionalShapeNumber(source.screwBossHoleDepth, fallbackEntry?.screwBossHoleDepth, 0.2, MAX_CUSTOM_SHAPE_DIMENSION);
+      entry.screwBossDiameter = optionalShapeNumber(source.screwBossDiameter, fallbackEntry?.screwBossDiameter, 1, MAX_CUSTOM_SHAPE_DIMENSION);
+      entry.screwBossGussets = optionalShapeNumber(source.screwBossGussets, fallbackEntry?.screwBossGussets, 0, 6, true);
+      entry.screwBossGussetHeight = optionalShapeNumber(source.screwBossGussetHeight, fallbackEntry?.screwBossGussetHeight, 0.5, MAX_CUSTOM_SHAPE_DIMENSION);
+      entry.screwBossGussetThickness = optionalShapeNumber(source.screwBossGussetThickness, fallbackEntry?.screwBossGussetThickness, 0.4, 20);
+    }
+    if (kind === "snapFit") {
+      entry.snapFitPart = source.snapFitPart === "both" || source.snapFitPart === "hook" || source.snapFitPart === "catch" ? source.snapFitPart : fallbackEntry?.snapFitPart;
+      entry.snapFitThickness = optionalShapeNumber(source.snapFitThickness, fallbackEntry?.snapFitThickness, 0.4, 20);
+      entry.snapFitUndercut = optionalShapeNumber(source.snapFitUndercut, fallbackEntry?.snapFitUndercut, 0.2, 10);
+      entry.snapFitClearance = optionalShapeNumber(source.snapFitClearance, fallbackEntry?.snapFitClearance, 0, 2);
+      entry.snapFitLeadAngle = optionalShapeNumber(source.snapFitLeadAngle, fallbackEntry?.snapFitLeadAngle, 10, 60);
+      entry.snapFitRetainAngle = optionalShapeNumber(source.snapFitRetainAngle, fallbackEntry?.snapFitRetainAngle, 30, 90);
+      entry.snapFitFoot = optionalShapeNumber(source.snapFitFoot, fallbackEntry?.snapFitFoot, 0, 20);
+    }
+    if (kind === "rib") {
+      entry.ribStyle = source.ribStyle === "straight" || source.ribStyle === "gusset" ? source.ribStyle : fallbackEntry?.ribStyle;
+      entry.ribTop = source.ribTop === "flat" || source.ribTop === "round" || source.ribTop === "chamfer" ? source.ribTop : fallbackEntry?.ribTop;
     }
     if (kind === "dovetail") {
       entry.dovetailNeckWidth = optionalShapeNumber(source.dovetailNeckWidth, fallbackEntry?.dovetailNeckWidth, 0.1, MAX_CUSTOM_SHAPE_DIMENSION);
@@ -802,6 +832,7 @@ export function normalizeWorkspaceSettings(value: unknown, fallback: WorkplaneWo
     stlAsDownload: booleanOrDefault(candidate.stlAsDownload, fallback.stlAsDownload),
     confirmTabClose: booleanOrDefault(candidate.confirmTabClose, fallback.confirmTabClose),
     dimensionsAlwaysVisible: booleanOrDefault(candidate.dimensionsAlwaysVisible, fallback.dimensionsAlwaysVisible),
+    dimensionAxisColors: booleanOrDefault(candidate.dimensionAxisColors, fallback.dimensionAxisColors),
     showRotationAngles: booleanOrDefault(candidate.showRotationAngles, fallback.showRotationAngles),
     zoomSpeed: numberOrDefault(candidate.zoomSpeed, fallback.zoomSpeed),
     mouseScheme: candidate.mouseScheme === "slicer" ? "slicer" : candidate.mouseScheme === "layerling" ? "layerling" : fallback.mouseScheme,

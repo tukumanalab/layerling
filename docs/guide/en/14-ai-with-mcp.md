@@ -9,6 +9,42 @@ The bridge between AI client and editor runs **locally on your computer**. Keep 
 
 > **Important:** The MCP bridge exists in the development server that you start yourself on your computer. On layerling.com and in installations with static hosting it is switched off. A copy you host yourself, such as the Docker image on a NAS, can switch it on with an access token; see "A copy on a NAS or server" below.
 
+## Step by step for beginners
+
+You do not need to know anything about programming for this.
+
+**The shortest way:** give your favourite AI the address of the project, `https://github.com/henmedia/layerling`, and ask it: "Set up layerling on my computer so that I can build 3D models with you through its MCP server." It downloads and installs everything itself and tells you when it is done. This works with an AI that can work on your computer, such as the Code tab of the Claude app, Codex, Antigravity or Gemini CLI. A chat in the browser cannot do it, because it cannot install anything on your computer.
+
+**Or do it yourself, on Windows with the Claude app, in five steps:**
+
+**1. Install layerling.** Open the Start menu, type `PowerShell` and open Windows PowerShell. Copy this line, paste it into the window with a right-click and press Enter:
+
+```powershell
+irm https://raw.githubusercontent.com/henmedia/layerling/main/scripts/windows-quickstart.ps1 | iex
+```
+
+It installs what layerling needs, downloads layerling into the folder `layerling` in your user folder (`C:\Users\<your name>\layerling`) and opens it in your browser. The first time this takes a few minutes.
+
+![Windows PowerShell with the line pasted in. Press Enter, and it starts.](still:ai-quickstart-powershell)
+
+**2. Keep layerling running.** layerling runs as long as the PowerShell window stays open, and the AI can only build while it runs. Next time, double-click "Start layerling" on your desktop instead.
+
+**3. Install the Claude app.** Install the Claude app for Windows and sign in. The Code tab used in the next step is part of the paid Claude plans.
+
+**4. Open the layerling folder in the Code tab.** In the Claude app, switch to Code at the top and choose the folder `layerling` in your user folder as the folder to work in. layerling already brings everything Claude needs to find its tools. If Claude asks whether it may use the MCP server "layerling" of this folder, allow it.
+
+**5. Tell Claude what to build.** For example: "Use the layerling tools and build me a round box, 60 mm across and 40 mm high, with a 2.5 mm wall." If no editor is open, Claude opens one in your browser, builds the box there step by step and takes pictures to check its work. You watch and can change anything yourself at any time.
+
+**On a Mac** it goes the same way, with these changes. In step 1, open the Terminal app (press Cmd+Space, type `Terminal` and press Enter), paste this line and press Enter:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/henmedia/layerling/main/scripts/mac-quickstart.sh | sh
+```
+
+If Git or Node.js is missing, it tells you what to install (macOS offers Git in a window, Node.js comes as an installer from nodejs.org); afterwards run the same line again. In step 2, the shortcut on your desktop is also called "Start layerling". In step 3, install the Claude app for Mac.
+
+> **Tip:** If something does not work, tell Claude what you see. It can read the error and usually fixes it itself. If nothing happens in the editor, check first that layerling is still running (step 2).
+
 ## Setting up
 
 1. Get layerling from [GitHub](https://github.com/henmedia/layerling) and start it in the project folder with `npm run dev`. Node.js must be installed. On Windows the quick-start line in the README takes care of that.
@@ -51,6 +87,7 @@ The AI works with the same functions as you, through the same path as your opera
 | `layerling_list_objects` | lists all objects with dimensions, position, rotation and id |
 | `layerling_select_objects` | selects objects |
 | `layerling_delete_objects` | deletes objects |
+| `layerling_move_object` | moves an object to another place in the object list |
 | `layerling_create_shape` | creates a shape: box, cylinder, text (also curved), thread, gear, sketch body and all the others |
 | `layerling_import_file` | imports a file as the import window does, a coloured OBJ or 3MF as one body per colour, a 3MF with several objects as one body per object |
 | `layerling_add_font` | adds a font of one's own for text from a TrueType, OpenType or WOFF file; it stays in the browser, a design keeps only the letters it uses |
@@ -75,6 +112,7 @@ The AI works with the same functions as you, through the same path as your opera
 | `layerling_cookie_cutter` | makes a cookie cutter from the objects: a wall with a cutting edge and a rim round the mirrored outline (Cookie cutter) |
 | `layerling_flexi_joints` | cuts a flat body into links with joints printed in place that swing to the sides (Flexi joints) |
 | `layerling_make_lid` | makes a lid for a body open at the top: pushed in, over the top or flat, with the fit you choose and magnets if you like (Lid) |
+| `layerling_make_cable_channel` | runs a round channel for a cable through a body from an entry to an exit, finding the way itself with gentle bends (Cable channel) |
 | `layerling_loft_sketches` | joins two sketch bodies into a loft from one outline to the other (Loft sketches) |
 | `layerling_separate_parts` | separates a shape into its loose parts, a sketch body into one body per outline |
 | `layerling_split_objects` | cuts solids or holes in two with a plane |
@@ -82,12 +120,14 @@ The AI works with the same functions as you, through the same path as your opera
 | `layerling_apply_edge_treatment` | chamfers or fillets chosen edges |
 | `layerling_hollow_object` | hollows a body with an even wall |
 | `layerling_cut_out` | cuts one solid out of another so they fit: the part stays, a copy grown by the clearance is subtracted from the other body |
+| `layerling_punch` | punches the outline of one solid, seen along x, y or z, straight through another; the punch stays and need not touch it |
 | `layerling_offset_object` | builds the clearance of a press fit: grows or shrinks a solid, or adds the grown copy as a hole, or moves only the sides |
 | `layerling_list_faces` | lists the faces of an exact body |
 | `layerling_delete_faces` | deletes faces and closes the gap |
-| `layerling_array_objects` | multiplies in a row or on a circle |
+| `layerling_array_objects` | multiplies in a row, in a grid or on a circle |
 | `layerling_bundle_objects` | bundles objects like Ctrl+B: they move together, keep their colour and kind and go out separately in an export |
 | `layerling_layer_text` | turns a text into a stack of layers for a multicolour print (letters, wider rims, a plate without holes) or builds a stack again, with a key ring hole, the corners per layer and a rounded or chamfered letter edge; with a name list, one tag per name |
+| `layerling_text_block` | makes a text block: a text becomes the first of several lines, each a text of its own under the one above, aligned left, centred or right, each line the same size or smaller |
 | `layerling_layer_icon` | turns an SVG icon (the text of the file, or an extruded sketch body) into a layered icon tag for a multicolour print - the icon, wider rims, a plate without holes - or builds one again with a new width or layers; with a count it fills the plate with copies |
 | `layerling_create_qr_code` | makes a QR code from a text or web address, like {{ui:shape.qrCode}} in the shape library - the code alone, raised on a plate or engraved, with error correction, width, height, quiet zone and as a hole if asked; it warns when a module gets under 0.8 mm |
 | `layerling_create_sbc_board` | places an SBC board true to size, like {{ui:shape.sbcBoard}} in the shape library - Raspberry Pi 5, 4, 3 B+, Zero 2 W or BIGTREETECH Pi, with its holes and connectors, the clearance round the edge connectors, the position and as a hole to cut a case |
@@ -99,10 +139,16 @@ The AI works with the same functions as you, through the same path as your opera
 | `layerling_add_reference_points` | marks reference points - on the centre, corners or edge middles of objects, or at exact positions - that shapes snap to |
 | `layerling_list_reference_points` | lists the reference points with their ids and positions |
 | `layerling_remove_reference_points` | deletes reference points by id, or all of them |
+| `layerling_list_notes` | reads the user's notes with their text, the body each is pinned to and whether it is a request for the AI |
+| `layerling_wait_for_notes` | waits until you tick {{ui:note.forAi}} on a note, and hands the request over at once |
+| `layerling_add_note` | puts a note on the model, pinned to an object or free on the plate |
+| `layerling_update_note` | changes a note or answers it; an answer closes the request |
+| `layerling_remove_notes` | deletes notes by id |
 | `layerling_inspect_errors` | shows the last message and the last error, plus the messages and errors of the session |
 | `layerling_wrap_around_cylinder` | wraps a body lying flat, an SVG or text for example, around a cylinder, outward or inward as an engraving |
 | `layerling_texture_surface` | lays a surface texture onto a body: grooves, knurling, honeycomb or bumps, for grip or for looks, and changes or removes it later |
 | `layerling_simplify_mesh` | reduces the triangle count of an imported mesh, to a share in percent or to a number of triangles |
+| `layerling_make_exact` | turns an imported mesh into an exact CAD body: planes, cylinders, cones, spheres and tori become real faces, so edges round cleanly and STEP carries them |
 | `layerling_save_custom_shape` | keeps bodies as a custom shape, on the server or in the browser, to insert them into other designs |
 | `layerling_list_custom_shapes` | lists the custom shapes on the server and in the browser |
 | `layerling_insert_custom_shape` | inserts a custom shape into the open design, at a spot x/z if you like |
@@ -110,6 +156,7 @@ The AI works with the same functions as you, through the same path as your opera
 | `layerling_show_workplane` | hides and shows the plate with its grid, for a picture of the underside for example (only the view) |
 | `layerling_set_section_view` | cuts the view open along a plane to look inside (only the view, nothing is cut apart) |
 | `layerling_measurements` | shows or hides the measurements of the tape measure and lists them with their lengths, and hides or shows the sizes around the selection like [[Q]] |
+| `layerling_measure_angle` | measures an angle like the protractor: at the corner of three points or between two flat faces, and shows it in the view |
 | `layerling_saved_view` | saves the current view under the key 7, 8, 9 or 0 and goes back to it, like Shift+key and the key (only the view); also sets the start view of new designs |
 | `layerling_clear_history` | deletes every undo step for good, as the History view's "Delete history" button does; needs `confirm: true` |
 | `layerling_set_history_view` | looks back at an earlier state of the project, like the History view (the real design stays untouched; changing tools wait until it is closed) |
