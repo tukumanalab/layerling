@@ -6,7 +6,13 @@ import type { WorkplaneShape } from "@/types/layerling";
  * worker, the work is done on the page instead, and the editor neither crashes nor waits forever.
  * A stand-in Worker plays each case; the page's own functions are stand-ins too.
  */
-const page = vi.hoisted(() => ({ calls: 0, faceReads: 0 }));
+const page = vi.hoisted(() => ({ calls: 0, faceReads: 0, stepExports: 0 }));
+vi.mock("@/lib/stepExport", () => ({
+  exportShapesToStep: async () => {
+    page.stepExports += 1;
+    return { blob: new Blob(["step"]), exportedCount: 1, skipped: [] };
+  },
+}));
 vi.mock("@/lib/editorBooleans", () => ({
   buildGroupedShapeFromSelection: async () => {
     page.calls += 1;
@@ -69,6 +75,7 @@ async function load(build = "") {
 beforeEach(() => {
   page.calls = 0;
   page.faceReads = 0;
+  page.stepExports = 0;
   FakeWorker.instances = [];
   FakeWorker.failOnCreate = false;
   dispatched.length = 0;
@@ -103,6 +110,35 @@ describe("geometry worker on the page's side", () => {
     await buildGroupedShapeOffThread([{ id: "a", kind: "box" }, { id: "b", kind: "box" }] as unknown as WorkplaneShape[], 1000);
     await buildGroupedShapeOffThread([...solidAndHole, { id: "t", kind: "text" } as unknown as WorkplaneShape], 1000);
     expect(FakeWorker.instances).toHaveLength(0);
+    expect(page.calls).toBe(2);
+  });
+
+  it("writes a STEP file with text in it on the page, where the fonts are (#1337)", async () => {
+    const { exportShapesToStepOffThread } = await load();
+    const tag = { id: "tag", kind: "box", groupedShapes: [{ id: "plate", kind: "box" }, { id: "words", kind: "text" }] } as unknown as WorkplaneShape;
+    const result = await exportShapesToStepOffThread([tag]);
+    expect(FakeWorker.instances).toHaveLength(0);
+    expect(page.stepExports).toBe(1);
+    expect(result.exportedCount).toBe(1);
+  });
+
+  it("keeps a Gridfinity bin with letters on its shelves on the page, where the fonts are (#1308)", async () => {
+    const { buildGroupedShapeOffThread } = await load();
+    const bin = (fields: Record<string, unknown>) => ({ id: "g", kind: "gridfinity", gridfinityType: "bin", width: 83.5, depth: 41.5, height: 25.4, ...fields }) as unknown as WorkplaneShape;
+    await buildGroupedShapeOffThread([...solidAndHole, bin({ gridfinityLabelBack: true, gridfinityLabelBackText: "M3" })], 1000);
+    await buildGroupedShapeOffThread([...solidAndHole, bin({ gridfinityCompartmentsX: 2, gridfinityCompartmentLabels: [{ column: 0, row: 0, side: "back", text: "M3" }] })], 1000);
+    expect(FakeWorker.instances).toHaveLength(0);
+    expect(page.calls).toBe(2);
+    // Its STEP file is written on the page too, as one with a text in it (#1337).
+    const { exportShapesToStepOffThread } = await load();
+    await exportShapesToStepOffThread([bin({ gridfinityLabelBack: true, gridfinityLabelBackText: "M3" })]);
+    expect(FakeWorker.instances).toHaveLength(0);
+    expect(page.stepExports).toBe(1);
+    // A text no shelf carries, its shelf switched off, or one that draws nothing goes to the worker as before.
+    void buildGroupedShapeOffThread([...solidAndHole, bin({ gridfinityLabelBackText: "M3" })], 1000);
+    expect(FakeWorker.instances).toHaveLength(1);
+    void buildGroupedShapeOffThread([...solidAndHole, bin({ gridfinityLabelBack: true, gridfinityLabelBackText: " \u200b " })], 1000);
+    expect(FakeWorker.instances).toHaveLength(1);
     expect(page.calls).toBe(2);
   });
 

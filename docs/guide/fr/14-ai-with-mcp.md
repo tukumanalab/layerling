@@ -100,6 +100,8 @@ L'IA fonctionne avec les mêmes fonctions que vous, via le même chemin que votr
 | `layerling_mate_faces` | amène la face d'un objet contre la face d'un autre, face à face ou à fleur |
 | `layerling_open_group` | ouvre un groupe pour que ses parties puissent être modifiées une par une, également un groupe à l'intérieur d'un groupe ouvert |
 | `layerling_close_group` | le referme ("Terminé") ou annule |
+| `layerling_add_to_group` | met des objets libres dans un groupe sans l'ouvrir |
+| `layerling_take_out_of_group` | sort une pièce d'un groupe sans l'ouvrir |
 | `layerling_group_objects` | groupes d'objets |
 | `layerling_ungroup_objects` | dissout les groupes |
 | `layerling_boolean_cut` | coupe les solides avec des trous |
@@ -154,6 +156,7 @@ L'IA fonctionne avec les mêmes fonctions que vous, via le même chemin que votr
 | `layerling_measurements` | affiche ou masque les mesures du ruban à mesurer et les liste avec leurs longueurs, et masque ou affiche les cotes autour de la sélection comme [[Q]] |
 | `layerling_measure_angle` | mesure un angle comme le rapporteur : au sommet de trois points ou entre deux faces planes, et l'affiche dans la vue |
 | `layerling_saved_view` | enregistre la vue actuelle sous la touche 7, 8, 9 ou 0 et y revient, comme Maj+touche et la touche (seulement la vue); règle aussi la vue de départ des nouveaux designs |
+| `layerling_build_plates` | liste, ajoute, nomme, ordonne et retire les plateaux d'impression, déplace des objets sur un plateau et les répartit sur les plateaux, comme la barre des plateaux |
 | `layerling_clear_history` | supprime définitivement chaque étape d'annulation, comme le fait le bouton "Supprimer l'historique" de la vue Historique ; besoins `confirm: true` |
 | `layerling_set_history_view` | revient sur un état antérieur du projet, comme la vue Historique (la conception réelle reste intacte ; les outils de changement attendent qu'il soit fermé) |
 | `layerling_restore_from_history` | ramène des objets (aussi des pièces dans des groupes) d'un état antérieur dans la conception, sous forme de copies, comme « Ramener dans la conception » de la vue Historique - une étape que l'annulation reprend |

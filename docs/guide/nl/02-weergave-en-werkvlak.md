@@ -43,7 +43,7 @@ Aan de linkerrand staat een smalle balk. Van boven naar beneden:
 - {{ui:camera.zoomIn}} en {{ui:camera.zoomOut}} zoomen stap voor stap, net als de toetsen [[+]] en [[−]].
 - {{ui:camera.orthographic}} schakelt naar een platte weergave waarin evenwijdige randen evenwijdig blijven. Voor meten en randen uitlijnen is dat vaak prettiger dan de perspectiefweergave. [[O]] schakelt heen en weer, en een tweede klik zet het terug.
 - {{ui:camera.secondView}} opent een tweede weergave van het ontwerp in een eigen venster, zie hieronder. Een tweede klik sluit het.
-- {{ui:camera.showScrollbars}} zet een schuifbalk onderaan de weergave en een langs de rechterrand. Sleep een balk om de weergave vloeiend te verschuiven, klik op een pijl aan het eind om een klein stukje te schuiven (ingedrukt houden gaat door), of klik naast de balk om bijna een hele weergave verder te gaan. Er draait niets, en anders dan de pijltoetsen werken de balken ook terwijl een onderdeel geselecteerd is - handig van dichtbij bij kleine details. Een tweede klik verbergt ze; deze browser onthoudt de keuze.
+- {{ui:camera.showScrollbars}} zet een schuifbalk onderaan de weergave en een langs de rechterrand. Sleep een balk om de weergave vloeiend te verschuiven, klik op een pijl aan het eind om een klein stukje te schuiven (ingedrukt houden gaat door), of klik naast de balk om bijna een hele weergave verder te gaan. Er draait niets, en anders dan de pijltoetsen werken de balken ook terwijl een onderdeel geselecteerd is - handig van dichtbij bij kleine details. Een tweede klik verbergt ze; {{ui:workspace.startWithScrollbars}} in de instellingen bepaalt of een ontwerp ermee opent. Deze browser onthoudt de keuze bovendien.
 - {{ui:camera.hideWorkplane}} (het oog boven een raster) verbergt de plaat met het raster, zodat je een ontwerp van onderen kunt bekijken. Alleen de weergave verandert: nieuwe vormen komen nog steeds op het werkvlak terecht. Een tweede klik toont de plaat weer.
 - {{ui:camera.placeWorkplane}}, het meetlint en de winkelhaak zijn gereedschappen op zich, die hieronder en in [Meten en notities](chapter:meten-en-notities) aan bod komen.
 
@@ -94,6 +94,19 @@ Een klik naast de plaat of [[Esc]] zet het werkvlak terug op de grondplaat. Nog 
 Zolang een werkvlak op een vlak ligt, verschijnt er een oog naast {{ui:camera.placeWorkplane}}. Dat verbergt het werkvlak zonder het los te laten, voor een vrij zicht op het ontwerp: nieuwe vormen komen nog steeds op dat vlak terecht, en draaien gebeurt nog steeds daaromheen. Een klik op het oog toont het weer, en een nieuw werkvlak neerleggen ook.
 
 Om recht op het werkvlak te kijken, druk je op [[P]] of klik je in de weergavebalk naast {{ui:camera.placeWorkplane}} op {{ui:camera.lookOntoWorkplane}}. De weergave draait tot je het vlak recht van voren ziet, vanaf de kant waar nieuwe vormen naartoe groeien, met de oorsprong in het midden. Op de basisplaat is dat het bovenaanzicht.
+
+## Bouwplaten
+
+Als een ontwerp meer bevat dan één plaat kan printen, bijvoorbeeld een doos met deksel en inzetstukken, kan het meerdere bouwplaten krijgen. Klik op {{ui:editor.tool.buildPlates}} in de groep {{ui:editor.group.arrange}}, of kies {{ui:plates.moveTo}} in het menu van een rechtsklik op een lichaam. Onderaan de weergave verschijnt een balk met één knop per plaat; het getal erop zegt hoeveel lichamen op de plaat staan.
+
+- Elke plaat is zo groot als het werkvlak, en de platen liggen naast elkaar rechts van de eerste, 20 mm uit elkaar. Een lichaam hoort bij de plaat waarop het midden van zijn voetafdruk staat; sleep je het naar de overkant, dan staat het op de andere plaat. Een ontwerp heeft tot 12 platen.
+- Een klik op een plaat in de balk toont die, en nieuwe vormen komen er dan op. {{ui:plates.showAll}} toont ze allemaal. Een dubbelklik op een plaat, of {{ui:plates.rename}}, geeft haar een naam zoals "Deksel", die op de plaat staat.
+- {{ui:plates.moveLeft}} en {{ui:plates.moveRight}} veranderen de volgorde, de lichamen gaan mee met hun plaat. {{ui:plates.remove}} haalt de actieve plaat weg; haar lichamen komen op dezelfde plek op de eerste plaat.
+- {{ui:plates.arrange}} legt de geselecteerde lichamen, of alle, rij voor rij op de platen, de grootste eerst, 5 mm uit elkaar, en voegt platen toe zolang die nodig zijn. Een lichaam dat groter is dan een plaat blijft staan.
+- Met een gekozen printer wordt elk lichaam tegen zijn eigen plaat gecontroleerd, en de bouwhoogte telt vanaf het laagste lichaam op die plaat. Een plaat met een lichaam dat niet past, toont haar getal in rood.
+- In de eigenschappen telt X vanaf het midden van de eigen plaat van het lichaam.
+
+Het exportvenster biedt dan {{ui:export.plates}}: alle platen in één bestand, naast elkaar zoals in het ontwerp; één bestand per plaat, samen in een ZIP (STL, 3MF en OBJ); of één enkele plaat, gezet waar de eerste plaat ligt. Een slicer opent elk bestand als één plaat; wie de platen na elkaar print, neemt dus de bestanden per plaat. Lichamen tussen platen verplaatsen en verdelen kun je ongedaan maken; platen toevoegen, benoemen, ordenen en verwijderen wordt met het ontwerp bewaard, maar niet ongedaan gemaakt.
 
 ## Raster en vastklikken
 
@@ -162,6 +175,8 @@ De schetsweergave heeft eigen kleuren: {{ui:workspace.sketchBackground}} voor he
 ### Weergave: het beeld
 
 {{ui:workspace.startInPerspective}}: de editor opent dan in het perspectiefaanzicht, niet in het vlakke.
+
+{{ui:workspace.startWithScrollbars}}: een ontwerp opent dan met de schuifbalken van de weergave. De instelling wordt met het ontwerp en met {{ui:workspace.makeDefault}} bewaard.
 
 {{ui:workspace.startView}} bepaalt de hoek waarin een nieuw ontwerp opent en waarnaar {{ui:camera.home}} teruggaat. Draai en zoom de weergave zoals je hem graag hebt en klik dan op {{ui:workspace.startViewUseCurrent}}; {{ui:workspace.startViewStandard}} brengt het gewone aanzicht van rechtsvoor terug. Het geldt voor elk ontwerp in deze browser. Een ontwerp dat je opnieuw opent, opent nog steeds zoals je het achterliet.
 

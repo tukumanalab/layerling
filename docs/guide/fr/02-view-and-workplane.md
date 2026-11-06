@@ -41,7 +41,7 @@ Sur le bord gauche se trouve une barre étroite. Du haut :
 - {{ui:camera.zoomIn}} et {{ui:camera.zoomOut}} zooment pas à pas, tout comme les touches [[+]] et [[−]].
 - {{ui:camera.orthographic}} passe à une vue plate dans laquelle les bords parallèles restent parallèles. Pour mesurer et aligner les bords, c'est souvent plus confortable que la vue en perspective. [[O]] bascule d'avant en arrière et un deuxième clic revient.
 - {{ui:camera.secondView}} ouvre une deuxième vue du design dans une fenêtre à part, décrite plus bas. Un second clic la ferme.
-- {{ui:camera.showScrollbars}} affiche une barre de défilement en bas de la vue et une autre le long de son bord droit. Faites glisser une barre pour déplacer la vue en douceur, cliquez sur une flèche à son extrémité pour la déplacer un peu (maintenez pour continuer), ou cliquez à côté de la barre pour avancer de presque toute la vue. Rien ne tourne et, contrairement aux touches fléchées, les barres fonctionnent même quand une pièce est sélectionnée - pratique de près, sur les petits détails. Un second clic les masque ; ce navigateur retient le choix.
+- {{ui:camera.showScrollbars}} affiche une barre de défilement en bas de la vue et une autre le long de son bord droit. Faites glisser une barre pour déplacer la vue en douceur, cliquez sur une flèche à son extrémité pour la déplacer un peu (maintenez pour continuer), ou cliquez à côté de la barre pour avancer de presque toute la vue. Rien ne tourne et, contrairement aux touches fléchées, les barres fonctionnent même quand une pièce est sélectionnée - pratique de près, sur les petits détails. Un second clic les masque ; {{ui:workspace.startWithScrollbars}} dans les réglages décide si un projet s'ouvre avec elles. Ce navigateur retient aussi le choix.
 - {{ui:camera.hideWorkplane}} (l'œil au-dessus d'une grille) cache la plaque avec sa grille, vous pouvez donc regarder le dessous d'un dessin par le bas. Seule la vue change : de nouvelles formes atterrissent toujours sur le plan de travail. Un deuxième clic l'affiche à nouveau.
 - {{ui:camera.placeWorkplane}}, le mètre ruban et l'équerre d'encadrement sont des outils à part entière, abordés ci-dessous et dans [Mesures et notes] (chapter:measuring-and-notes).
 
@@ -92,6 +92,19 @@ Un clic à côté de la plaque ou [[Esc]] ramène le plan de travail à la plaqu
 Lorsqu'un plan de travail repose sur une face, un œil apparaît à côté de {{ui:camera.placeWorkplane}}. Il masque le plan de travail sans le faire tomber, pour une vision claire du design : de nouvelles formes se posent toujours sur cette face, et la rotation tourne toujours autour d'elle. Un clic sur l'œil le montre à nouveau, tout comme la définition d'un nouveau plan de travail.
 
 Pour regarder le plan de travail de face, appuie sur [[P]] ou clique sur {{ui:camera.lookOntoWorkplane}} à côté de {{ui:camera.placeWorkplane}} dans la barre de vue. La vue tourne jusqu'à ce que tu voies le plan de face, du côté vers lequel poussent les nouvelles formes, avec son origine au milieu. Sur la plaque de base, c'est la vue de dessus.
+
+## Plateaux d'impression
+
+Quand un design contient plus qu'un plateau ne peut imprimer, une boîte avec son couvercle et ses inserts par exemple, il peut avoir plusieurs plateaux d'impression. Cliquez sur {{ui:editor.tool.buildPlates}} dans le groupe {{ui:editor.group.arrange}}, ou choisissez {{ui:plates.moveTo}} dans le menu du clic droit sur un corps. Une barre apparaît au pied de la vue, avec un bouton par plateau ; le nombre indique combien de corps s'y trouvent.
+
+- Chaque plateau est aussi grand que le plan de travail, et les plateaux sont côte à côte à droite du premier, à 20 mm l'un de l'autre. Un corps appartient au plateau sur lequel se trouve le milieu de son empreinte ; en le faisant glisser de l'autre côté, il passe sur l'autre plateau. Un design compte jusqu'à 12 plateaux.
+- Un clic sur un plateau dans la barre l'affiche, et les nouvelles formes s'y posent alors. {{ui:plates.showAll}} les affiche tous. Un double-clic sur un plateau, ou {{ui:plates.rename}}, lui donne un nom comme « Couvercle », écrit sur le plateau.
+- {{ui:plates.moveLeft}} et {{ui:plates.moveRight}} changent l'ordre, les corps suivant leur plateau. {{ui:plates.remove}} retire le plateau actif ; ses corps passent sur le premier plateau au même endroit.
+- {{ui:plates.arrange}} dispose les corps sélectionnés, ou tous, rangée par rangée sur les plateaux, les plus grands d'abord, à 5 mm l'un de l'autre, et ajoute des plateaux tant qu'il en faut. Un corps plus grand qu'un plateau reste en place.
+- Avec une imprimante choisie, chaque corps est contrôlé par rapport à son propre plateau, et la hauteur d'impression compte à partir du corps le plus bas de ce plateau. Un plateau avec un corps qui ne tient pas affiche son nombre en rouge.
+- Dans les propriétés, X compte à partir du milieu du plateau du corps.
+
+La fenêtre d'export propose alors {{ui:export.plates}} : tous les plateaux dans un fichier, côte à côte comme dans le design ; un fichier par plateau, réunis dans un ZIP (STL, 3MF et OBJ) ; ou un seul plateau, placé à l'endroit du premier. Un trancheur ouvre chaque fichier comme un seul plateau ; pour imprimer les plateaux l'un après l'autre, prenez donc les fichiers par plateau. Déplacer des corps entre plateaux et les répartir peut être annulé ; ajouter, nommer, ordonner et retirer des plateaux est enregistré avec le design, mais pas annulé.
 
 ## Grille et capture
 
@@ -160,6 +173,8 @@ La vue d'esquisse a ses propres couleurs : {{ui:workspace.sketchBackground}} pou
 ### Apparence : la vue
 
 {{ui:workspace.startInPerspective}} : l'éditeur s'ouvre alors dans la vue en perspective, et non dans la vue plate.
+
+{{ui:workspace.startWithScrollbars}} : un projet s'ouvre alors avec les barres de défilement de la vue. Le réglage est enregistré avec le projet et avec {{ui:workspace.makeDefault}}.
 
 {{ui:workspace.startView}} définit l'angle sous lequel s'ouvre une nouvelle conception et auquel revient {{ui:camera.home}}. Tournez et zoomez la vue comme vous l'aimez, puis cliquez sur {{ui:workspace.startViewUseCurrent}} ; {{ui:workspace.startViewStandard}} ramène la vue habituelle de l'avant droit. Cela vaut pour chaque conception de ce navigateur. Une conception que vous rouvrez s'ouvre toujours comme vous l'avez laissée.
 

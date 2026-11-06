@@ -43,6 +43,8 @@ export type LayerlingMcpShapeSummary = {
   };
   /** The body's own pivot, if it has one, in workplane coordinates. */
   rotationPivot: { x: number; z: number; elevation: number } | null;
+  /** The build plate the object stands on, counted from 1; only while the design has several (Discussion #456). */
+  plate?: number;
   edgeTreatments: unknown[];
   /**
    * Was diese Form ausmacht, ueber die Masse hinaus: Seitenzahl, Gewindegroesse,
@@ -109,6 +111,8 @@ export type LayerlingMcpCommandName =
   | "mate_faces"
   | "open_group"
   | "close_group"
+  | "add_to_group"
+  | "take_out_of_group"
   | "group_objects"
   | "ungroup_objects"
   | "intersect_objects"
@@ -163,6 +167,7 @@ export type LayerlingMcpCommandName =
   | "clear_history"
   | "show_workplane"
   | "saved_view"
+  | "build_plates"
   | "measurements"
   | "measure_angle"
   | "export_section_svg"

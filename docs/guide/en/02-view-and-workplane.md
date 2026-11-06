@@ -45,7 +45,7 @@ At the left edge is a narrow bar. From the top:
 - {{ui:camera.zoomIn}} and {{ui:camera.zoomOut}} zoom step by step, as do the keys [[+]] and [[−]].
 - {{ui:camera.orthographic}} switches to a flat view in which parallel edges stay parallel. For measuring and lining up edges that is often more comfortable than the perspective view. [[O]] switches back and forth, and a second click returns.
 - {{ui:camera.secondView}} opens a second view of the design in a window of its own, described below. A second click closes it.
-- {{ui:camera.showScrollbars}} puts a scrollbar along the bottom of the view and one down its right edge. Drag a bar to slide the view smoothly, click an arrow at its end to move it a little (hold it to keep going), or click beside the bar to move by most of the view. Nothing turns, and unlike the arrow keys the bars work while a part is selected - handy close up on small details. A second click hides them; this browser remembers the choice.
+- {{ui:camera.showScrollbars}} puts a scrollbar along the bottom of the view and one down its right edge. Drag a bar to slide the view smoothly, click an arrow at its end to move it a little (hold it to keep going), or click beside the bar to move by most of the view. Nothing turns, and unlike the arrow keys the bars work while a part is selected - handy close up on small details. A second click hides them; {{ui:workspace.startWithScrollbars}} in the settings decides whether a design opens with them. This browser also remembers the switch.
 - {{ui:camera.hideWorkplane}} (the eye over a grid) hides the plate with its grid, so you can look at the underside of a design from below. Only the view changes: new shapes still land on the workplane. A second click shows it again.
 - {{ui:camera.placeWorkplane}}, the tape measure and the framing square are tools of their own, covered below and in [Measuring and notes](chapter:measuring-and-notes).
 
@@ -94,6 +94,19 @@ A click beside the plate or [[Esc]] returns the workplane to the base plate. Qui
 While a workplane sits on a face, an eye appears next to {{ui:camera.placeWorkplane}}. It hides the workplane without dropping it, for a clear look at the design: new shapes still land on that face, and rotating still turns about it. A click on the eye shows it again, and so does setting a new workplane.
 
 To look straight at the workplane, press [[P]] or click {{ui:camera.lookOntoWorkplane}} next to {{ui:camera.placeWorkplane}} in the view bar. The view turns until you see the workplane square, from the side new shapes grow towards, with its origin in the middle. On the base plate that is the view from above.
+
+## Build plates
+
+When a design holds more than one plate can print, a box with its lid and inserts for example, it can have several build plates. Click {{ui:editor.tool.buildPlates}} in the {{ui:editor.group.arrange}} group, or choose {{ui:plates.moveTo}} in the menu of a right click on a body. A bar appears at the foot of the view with one button per plate; the number on it says how many bodies stand on the plate.
+
+- Every plate is as large as the workplane, and the plates lie side by side to the right of the first one, 20 mm apart. A body belongs to the plate the middle of its footprint stands on, so dragging it across puts it on the other plate. A design holds up to 12 plates.
+- A click on a plate in the bar looks at it, and new shapes then land on it. {{ui:plates.showAll}} looks at all of them. A double click on a plate, or {{ui:plates.rename}}, gives it a name such as "Lid", which is written on the plate.
+- {{ui:plates.moveLeft}} and {{ui:plates.moveRight}} change the order, the bodies moving with their plate. {{ui:plates.remove}} takes the active plate away; its bodies go onto the first plate at the same spot.
+- {{ui:plates.arrange}} lays the selected bodies, or all of them, out row by row on the plates, the largest first, 5 mm apart, and adds plates while they are needed. A body larger than a plate stays where it is.
+- With a printer chosen, every body is checked against its own plate, and the build height counts from the lowest body on that plate. A plate with a body that does not fit shows its number in red.
+- In the properties, X counts from the middle of the body's own plate.
+
+The export window then offers {{ui:export.plates}}: all plates in one file, side by side as in the design; one file per plate, packed in a ZIP (STL, 3MF and OBJ); or a single plate, set where the first plate is. A slicer opens every file as one plate, so to print the plates one after another, take the files per plate. Moving bodies between plates and arranging them can be undone; adding, naming, ordering and removing plates is kept with the design but not undone.
 
 ## Grid and snapping
 
@@ -162,6 +175,8 @@ The sketch view has its own colours: {{ui:workspace.sketchBackground}} for the w
 ### Appearance: the view
 
 {{ui:workspace.startInPerspective}}: the editor then opens in the perspective view, not in the flat one.
+
+{{ui:workspace.startWithScrollbars}}: a design then opens with the view's scrollbars shown. It is saved with the design and with {{ui:workspace.makeDefault}}.
 
 {{ui:workspace.startView}} sets the angle a new design opens in and {{ui:camera.home}} goes back to. Turn and zoom the view the way you like it, then click {{ui:workspace.startViewUseCurrent}}; {{ui:workspace.startViewStandard}} brings back the usual view from the front right. It holds for every design in this browser. A design you open again still opens the way you left it.
 

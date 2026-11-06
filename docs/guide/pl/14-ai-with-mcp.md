@@ -104,6 +104,8 @@ AI pracuje tymi samymi funkcjami co Ty, tą samą drogą co Twoja praca w edytor
 | `layerling_mate_faces` | przykłada ścianę jednego obiektu do ściany drugiego, ściana do ściany, na równo albo dwie okrągłe ściany na jednej osi |
 | `layerling_open_group` | otwiera grupę, żeby zmieniać jej części po kolei, także grupę wewnątrz otwartej |
 | `layerling_close_group` | zamyka ją z powrotem („Gotowe”) albo anuluje |
+| `layerling_add_to_group` | wkłada osobne obiekty do grupy bez jej otwierania |
+| `layerling_take_out_of_group` | wyjmuje jedną część z grupy bez jej otwierania |
 | `layerling_group_objects` | grupuje obiekty |
 | `layerling_ungroup_objects` | rozwiązuje grupy |
 | `layerling_boolean_cut` | wycina otworami materiał z brył |
@@ -158,6 +160,7 @@ AI pracuje tymi samymi funkcjami co Ty, tą samą drogą co Twoja praca w edytor
 | `layerling_measurements` | pokazuje lub ukrywa pomiary narzędzia Zmierz i wypisuje je z ich długościami, oraz ukrywa lub pokazuje wymiary wokół zaznaczenia jak [[Q]] |
 | `layerling_measure_angle` | mierzy kąt jak kątomierz: w wierzchołku z trzech punktów lub między dwiema płaskimi ścianami, i pokazuje go w widoku |
 | `layerling_saved_view` | zapisuje bieżący widok pod klawiszem 7, 8, 9 lub 0 i do niego wraca, jak Shift+klawisz i sam klawisz (tylko widok); ustawia też widok startowy nowych projektów |
+| `layerling_build_plates` | wyświetla, dodaje, nazywa, porządkuje i usuwa stoły robocze, przenosi obiekty na stół i rozkłada je na stołach, jak pasek stołów |
 | `layerling_clear_history` | usuwa na dobre wszystkie kroki cofania, tak jak przycisk „Usuń historię” w widoku historii. Wymaga `confirm: true` |
 | `layerling_set_history_view` | pokazuje wcześniejszy stan projektu, jak widok historii (prawdziwy projekt zostaje nietknięty, a narzędzia zmieniające czekają, aż widok zostanie zamknięty) |
 | `layerling_restore_from_history` | przywraca obiekty (także części wewnątrz grup) z wcześniejszego stanu do projektu jako kopie, jak przycisk Przywróć do projektu w widoku historii. To jeden krok, który cofanie wycofuje |

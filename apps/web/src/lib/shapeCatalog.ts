@@ -5,7 +5,7 @@ import { createLocalId } from "@/lib/localIds";
 import { DEFAULT_CURVED_CONE_BEND, DEFAULT_CURVED_CONE_TOP, normalizeCurvedConeBend, normalizeCurvedConeTop } from "@/lib/curvedCone";
 import { DEFAULT_SCREW_BOSS_FASTENER, DEFAULT_SCREW_BOSS_SIZE, normalizeScrewBossFastener } from "@/lib/screwBoss";
 import { DEFAULT_SNAP_FIT_CLEARANCE, DEFAULT_SNAP_FIT_FOOT, DEFAULT_SNAP_FIT_LEAD_ANGLE, DEFAULT_SNAP_FIT_RETAIN_ANGLE, DEFAULT_SNAP_FIT_THICKNESS, DEFAULT_SNAP_FIT_UNDERCUT, normalizeSnapFitPart } from "@/lib/snapFit";
-import { normalizeRibStyle, normalizeRibTop } from "@/lib/rib";
+import { DEFAULT_RIB_THICKNESS, normalizeRibStyle, normalizeRibTop, ribFootWidthFor } from "@/lib/rib";
 import {
   DEFAULT_GEAR_BACKLASH,
   DEFAULT_GEAR_CENTER_HOLE_SIZE,
@@ -213,7 +213,8 @@ import {
 import { t, type MessageKey } from "@/lib/i18n";
 import { torusTubeRatio } from "@/lib/torusShape";
 import type { ShapeAsset, ShapeCustomization, ShapeKind, WorkplaneShape } from "@/types/layerling";
-import { DEFAULT_HIRTH_BORE, DEFAULT_HIRTH_DIAMETER, DEFAULT_HIRTH_HEIGHT, DEFAULT_HIRTH_TEETH, hirthRightAngleToothHeight, normalizeHirthBore, normalizeHirthTeeth, normalizeHirthToothHeight } from "@/lib/hirthGeometry";
+import { DEFAULT_PULLEY_BELT_WIDTH, DEFAULT_PULLEY_BORE, DEFAULT_PULLEY_FLANGE, DEFAULT_PULLEY_FLANGE_RISE, DEFAULT_PULLEY_HUB_DIAMETER, DEFAULT_PULLEY_HUB_HEIGHT, DEFAULT_PULLEY_TEETH, normalizePulleyTeeth, pulleyFootprint, pulleyFromSize } from "@/lib/pulleyGeometry";
+import { DEFAULT_HIRTH_BORE, DEFAULT_HIRTH_DIAMETER, DEFAULT_HIRTH_HEIGHT, DEFAULT_HIRTH_TEETH, hirthRightAngleToothHeight, normalizeHirthBore, normalizeHirthSteepFlank, normalizeHirthTeeth, normalizeHirthToothHeight } from "@/lib/hirthGeometry";
 
 const SHAPE_LABEL_KEYS: Record<string, MessageKey> = {
   box: "shape.box",
@@ -242,6 +243,7 @@ const SHAPE_LABEL_KEYS: Record<string, MessageKey> = {
   crescent: "shape.crescent",
   gear: "shape.gear",
   hirth: "shape.hirth",
+  pulley: "shape.pulley",
   honeycomb: "shape.honeycomb",
   hinge: "shape.hinge",
   knurl: "shape.knurl",
@@ -298,6 +300,7 @@ export const toolbarShapeAssets: ToolbarShapeAsset[] = [
   { id: "gridfinity", name: "Gridfinity", src: "assets/editor/shape-icons-gray/gridfinity.png", menuIcon: "assets/editor/shape-icons-gray/gridfinity.png", kind: "gridfinity", color: "#4f7fa8" },
   { id: "gear", name: "Gear", src: "assets/editor/gear-types/spur.png", menuIcon: "assets/editor/gear-types/spur.png", kind: "gear", color: "#6f7f8d" },
   { id: "hirth", name: "Hirth Joint", src: "assets/editor/shape-icons-gray/hirth.png", menuIcon: "assets/editor/shape-icons-gray/hirth.png", kind: "hirth", color: "#7d8f9e" },
+  { id: "pulley", name: "GT2 Pulley", src: "assets/editor/shape-icons-gray/pulley.png", menuIcon: "assets/editor/shape-icons-gray/pulley.png", kind: "pulley", color: "#8a96a3" },
   { id: "knurl", name: "Knurl", src: "assets/editor/shape-icons-gray/knurl.png", menuIcon: "assets/editor/shape-icons-gray/knurl.png", kind: "knurl", color: "#7a8a99" },
   { id: "hinge", name: "Hinge", src: "assets/editor/shape-icons-gray/hinge.png", menuIcon: "assets/editor/shape-icons-gray/hinge.png", kind: "hinge", color: "#3f8f6b" },
   { id: "dovetail", name: "Dovetail", src: "assets/editor/shape-icons-gray/dovetail.png", menuIcon: "assets/editor/shape-icons-gray/dovetail.png", kind: "dovetail", color: "#a0522d" },
@@ -514,11 +517,16 @@ export function shapeAssetDefaultDimensions(kind: ShapeKind) {
     return { width: 26, depth: 16, height: 20 };
   }
   if (kind === "hirth") return { width: DEFAULT_HIRTH_DIAMETER, depth: DEFAULT_HIRTH_DIAMETER, height: DEFAULT_HIRTH_HEIGHT };
+  // A GT2 pulley (Discussion #1319): its measures set its box, 20 teeth for a 6 mm belt by default.
+  if (kind === "pulley") {
+    const { width, depth, height } = pulleyFootprint({});
+    return { width, depth, height };
+  }
   if (kind === "curvedCone") return { width: 30, depth: 30, height: 30 };
   // An M3 heat-set insert's boss, a hook with its catch that bends about 1.6 %, a rib 1.6 mm (four lines) thick.
   if (kind === "screwBoss") return { width: 8, depth: 8, height: 10 };
   if (kind === "snapFit") return { width: 8, depth: 9, height: 16 };
-  if (kind === "rib") return { width: 40, depth: 1.6, height: 8 };
+  if (kind === "rib") return { width: 40, depth: DEFAULT_RIB_THICKNESS, height: 8 };
   const roundProfile = kind === "sphere" || kind === "torus" || kind === "ring" || kind === "halfSphere" || kind === "paraboloid";
   const flatProfile = kind === "torus" || kind === "ring" || kind === "text" || kind === "gear";
   // A gear starts as 12 involute teeth of module 2 (#201).
@@ -658,6 +666,17 @@ export function shapeAssetSpecialDefaults(kind: ShapeKind, dimensions = shapeAss
       threadHeadChamfer: 0,
     };
   }
+  if (kind === "pulley") {
+    return {
+      teeth: DEFAULT_PULLEY_TEETH,
+      centerHoleSize: DEFAULT_PULLEY_BORE,
+      pulleyBeltWidth: DEFAULT_PULLEY_BELT_WIDTH,
+      pulleyFlange: DEFAULT_PULLEY_FLANGE,
+      pulleyFlangeRise: DEFAULT_PULLEY_FLANGE_RISE,
+      pulleyHubHeight: DEFAULT_PULLEY_HUB_HEIGHT,
+      pulleyHubDiameter: DEFAULT_PULLEY_HUB_DIAMETER,
+    };
+  }
   if (kind === "hirth") {
     const teeth = DEFAULT_HIRTH_TEETH;
     return {
@@ -732,6 +751,9 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     snapFitFoot: shape.snapFitFoot,
     ribStyle: shape.ribStyle,
     ribTop: shape.ribTop,
+    ribFoot: shape.ribFoot,
+    ribThickness: shape.ribThickness,
+    ribFootThickness: shape.ribFootThickness,
     topWidth: shape.topWidth,
     topDepth: shape.topDepth,
     taperTopWidth: shape.taperTopWidth,
@@ -745,9 +767,17 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     toothSize: shape.toothSize,
     toothWidth: shape.toothWidth,
     centerHoleSize: shape.centerHoleSize,
+    hirthSteepFlank: shape.hirthSteepFlank,
+    hirthReverse: shape.hirthReverse,
+    pulleyBeltWidth: shape.pulleyBeltWidth,
+    pulleyFlange: shape.pulleyFlange,
+    pulleyFlangeRise: shape.pulleyFlangeRise,
+    pulleyHubHeight: shape.pulleyHubHeight,
+    pulleyHubDiameter: shape.pulleyHubDiameter,
     gearType: shape.gearType,
     gearRim: shape.gearRim,
     helixAngle: shape.helixAngle,
+    bevelHelixAngle: shape.bevelHelixAngle,
     helixQuality: shape.helixQuality,
     gearProfile: shape.gearProfile,
     gearPressureAngle: shape.gearPressureAngle,
@@ -838,6 +868,11 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     gridfinityLabelRightOffset: shape.gridfinityLabelRightOffset,
     gridfinityLabelCorner: shape.gridfinityLabelCorner,
     gridfinityLabelCornerSize: shape.gridfinityLabelCornerSize,
+    gridfinityLabelBackText: shape.gridfinityLabelBackText,
+    gridfinityLabelFrontText: shape.gridfinityLabelFrontText,
+    gridfinityLabelLeftText: shape.gridfinityLabelLeftText,
+    gridfinityLabelRightText: shape.gridfinityLabelRightText,
+    gridfinityLabelFont: shape.gridfinityLabelFont,
     gridfinityScoopBack: shape.gridfinityScoopBack,
     gridfinityScoopFront: shape.gridfinityScoopFront,
     gridfinityScoopLeft: shape.gridfinityScoopLeft,
@@ -1062,15 +1097,34 @@ export function makeShapeFromAsset(
       depth: gearType === "rack" ? customization.depth ?? rackToothHeight(DEFAULT_GEAR_MODULE, gearProfile) + DEFAULT_GEAR_RIM : 0,
     })
     : null;
-  const width = gearSize?.width ?? gridfinityFootprint?.width ?? loftFootprint?.width ?? bentTubeFootprint?.width ?? threadFootprint?.width ?? customization.width ?? defaults.width;
+  // A GT2 pulley (Discussion #1319): the measures set the box; a width or height asked for picks the teeth and the belt width.
+  const pulleyFields = asset.kind === "pulley" ? (() => {
+    const fields = {
+      teeth: normalizePulleyTeeth(customization.teeth),
+      centerHoleSize: customization.centerHoleSize ?? DEFAULT_PULLEY_BORE,
+      pulleyBeltWidth: customization.pulleyBeltWidth ?? DEFAULT_PULLEY_BELT_WIDTH,
+      pulleyFlange: customization.pulleyFlange ?? DEFAULT_PULLEY_FLANGE,
+      pulleyFlangeRise: customization.pulleyFlangeRise ?? DEFAULT_PULLEY_FLANGE_RISE,
+      pulleyHubHeight: customization.pulleyHubHeight ?? DEFAULT_PULLEY_HUB_HEIGHT,
+      pulleyHubDiameter: customization.pulleyHubDiameter ?? DEFAULT_PULLEY_HUB_DIAMETER,
+    };
+    const sized = { ...fields, ...pulleyFromSize(fields, { width: customization.teeth === undefined ? customization.width : undefined, height: customization.pulleyBeltWidth === undefined ? customization.height : undefined }) };
+    return { ...sized, ...pulleyFootprint(sized) };
+  })() : null;
+  const width = pulleyFields?.width ?? gearSize?.width ?? gridfinityFootprint?.width ?? loftFootprint?.width ?? bentTubeFootprint?.width ?? threadFootprint?.width ?? customization.width ?? defaults.width;
+  // A rib on its foot (Discussion #1307) keeps its own thickness, a new one's four lines; its box is the foot's width,
+  // three times the rib unless a depth was asked for.
+  const ribOnFoot = asset.kind === "rib" && customization.ribFoot === true;
+  const ribThickness = ribOnFoot ? customization.ribThickness ?? DEFAULT_RIB_THICKNESS : undefined;
+  const ribFootDepth = ribThickness !== undefined && customization.depth === undefined ? ribFootWidthFor(ribThickness) : undefined;
   // A cylinder is always circular - depth follows width here too, so it never
   // snaps between insert and first render (canonicalizeShape enforces this
   // again afterwards as the actual safety net).
-  const depth = asset.kind === "cylinder" ? width : gearSize?.depth ?? gridfinityFootprint?.depth ?? loftFootprint?.depth ?? bentTubeFootprint?.depth ?? threadFootprint?.depth ?? customization.depth ?? defaults.depth;
-  const height = gridfinityFootprint?.height ?? bentTubeFootprint?.height ?? customization.height ?? (threadDefaults ? threadNaturalHeight(threadDefaults) : defaults.height);
+  const depth = asset.kind === "cylinder" ? width : pulleyFields?.depth ?? gearSize?.depth ?? gridfinityFootprint?.depth ?? loftFootprint?.depth ?? bentTubeFootprint?.depth ?? threadFootprint?.depth ?? ribFootDepth ?? customization.depth ?? defaults.depth;
+  const height = pulleyFields?.height ?? gridfinityFootprint?.height ?? bentTubeFootprint?.height ?? customization.height ?? (threadDefaults ? threadNaturalHeight(threadDefaults) : defaults.height);
   const size = Math.max(width, depth);
   const hirthTeeth = asset.kind === "hirth" ? normalizeHirthTeeth(customization.teeth) : undefined;
-  const gearTeeth = asset.kind === "gear" ? normalizeGearTeeth(customization.teeth ?? DEFAULT_GEAR_TEETH) : hirthTeeth;
+  const gearTeeth = asset.kind === "gear" ? normalizeGearTeeth(customization.teeth ?? DEFAULT_GEAR_TEETH) : pulleyFields?.teeth ?? hirthTeeth;
   const gearToothSize = asset.kind === "gear"
     ? normalizeGearToothSize(customization.toothSize ?? DEFAULT_GEAR_TOOTH_SIZE, width, depth)
     : asset.kind === "hirth" ? normalizeHirthToothHeight(customization.toothSize, width, depth, height, hirthTeeth) : undefined;
@@ -1102,6 +1156,8 @@ export function makeShapeFromAsset(
     textSize: asset.kind === "text" ? customization.textSize : undefined,
     textInward: asset.kind === "text" ? customization.textInward : undefined,
     textFlipped: asset.kind === "text" ? customization.textFlipped : undefined,
+    // New texts are kerned (#1297); a text saved without the field keeps its spacing.
+    textKerning: asset.kind === "text" ? customization.textKerning ?? true : undefined,
     steps: asset.kind === "box" ? 10 : asset.kind === "sphere" ? customization.steps ?? 24 : asset.kind === "halfSphere" || asset.kind === "paraboloid" ? customization.steps ?? 32 : asset.kind === "torus" ? customization.steps : undefined,
     torusTubeRatio: asset.kind === "torus" ? customization.torusTubeRatio ?? torusTubeRatio({ width, depth, height }) : undefined,
     sides: asset.kind === "cylinder" || asset.kind === "ellipse" || asset.kind === "slot" || asset.kind === "cone" || asset.kind === "curvedCone" || asset.kind === "tube" || asset.kind === "ring" || asset.kind === "counterbore" || asset.kind === "countersink" || asset.kind === "finishingWasher" || asset.kind === "teardrop" || asset.kind === "torus" ? customization.sides : asset.kind === "roundRoof" ? customization.sides ?? 64 : asset.kind === "pyramid" ? customization.sides ?? 4 : asset.kind === "polygon" ? customization.sides ?? 6 : undefined,
@@ -1128,6 +1184,9 @@ export function makeShapeFromAsset(
     snapFitFoot: asset.kind === "snapFit" ? customization.snapFitFoot ?? DEFAULT_SNAP_FIT_FOOT : undefined,
     ribStyle: asset.kind === "rib" ? normalizeRibStyle(customization.ribStyle) : undefined,
     ribTop: asset.kind === "rib" ? normalizeRibTop(customization.ribTop) : undefined,
+    ribFoot: ribOnFoot ? true : undefined,
+    ribThickness,
+    ribFootThickness: asset.kind === "rib" ? customization.ribFootThickness : undefined,
     topWidth: asset.kind === "pyramid" ? normalizePyramidTop(customization.topWidth, width) : undefined,
     topDepth: asset.kind === "pyramid" ? normalizePyramidTop(customization.topDepth, depth) : undefined,
     teeth: gearTeeth,
@@ -1137,7 +1196,14 @@ export function makeShapeFromAsset(
       : undefined,
     centerHoleSize: asset.kind === "gear"
       ? normalizeGearCenterHoleSize(customization.centerHoleSize ?? DEFAULT_GEAR_CENTER_HOLE_SIZE, width, depth, gearToothSize, { teeth: gearTeeth, gearProfile })
-      : asset.kind === "hirth" ? normalizeHirthBore(customization.centerHoleSize, width, depth) : undefined,
+      : asset.kind === "hirth" ? normalizeHirthBore(customization.centerHoleSize, width, depth) : pulleyFields?.centerHoleSize,
+    pulleyBeltWidth: pulleyFields?.pulleyBeltWidth,
+    pulleyFlange: pulleyFields?.pulleyFlange,
+    pulleyFlangeRise: pulleyFields?.pulleyFlangeRise,
+    pulleyHubHeight: pulleyFields?.pulleyHubHeight,
+    pulleyHubDiameter: pulleyFields?.pulleyHubDiameter,
+    hirthSteepFlank: asset.kind === "hirth" ? normalizeHirthSteepFlank(customization.hirthSteepFlank) : undefined,
+    hirthReverse: asset.kind === "hirth" && normalizeHirthSteepFlank(customization.hirthSteepFlank) !== undefined && customization.hirthReverse === true ? true : undefined,
     gearType,
     gearRim,
     helixAngle: asset.kind === "gear" ? normalizeGearHelixAngle(customization.helixAngle ?? DEFAULT_GEAR_HELIX_ANGLE) : undefined,
@@ -1203,6 +1269,7 @@ export function makeShapeFromAsset(
     gridfinityLabelRightOffset: asset.kind === "gridfinity" ? customization.gridfinityLabelRightOffset : undefined,
     gridfinityLabelCorner: asset.kind === "gridfinity" ? customization.gridfinityLabelCorner : undefined,
     gridfinityLabelCornerSize: asset.kind === "gridfinity" ? customization.gridfinityLabelCornerSize : undefined,
+    gridfinityLabelFont: asset.kind === "gridfinity" ? customization.gridfinityLabelFont : undefined,
     gridfinityScoopBack: asset.kind === "gridfinity" ? customization.gridfinityScoopBack : undefined,
     gridfinityScoopFront: asset.kind === "gridfinity" ? customization.gridfinityScoopFront : undefined,
     gridfinityScoopLeft: asset.kind === "gridfinity" ? customization.gridfinityScoopLeft : undefined,
@@ -1238,7 +1305,8 @@ export function makeShapeFromAsset(
     hingeScrewAcross: asset.kind === "hinge" && (customization.hingeScrewAcross ?? 0) > 0 ? customization.hingeScrewAcross : undefined,
     hingeScrewCountersink: asset.kind === "hinge" && customization.hingeScrewCountersink === false ? false : undefined,
     hingeCornerRadius: asset.kind === "hinge" && (customization.hingeCornerRadius ?? 0) > 0 ? customization.hingeCornerRadius : undefined,
-    hingeLeafStyle: asset.kind === "hinge" && customization.hingeLeafStyle === "fingers" ? "fingers" : undefined,
+    hingeLeafStyle: asset.kind === "hinge" && customization.hingeLeafStyle && customization.hingeLeafStyle !== "plate" ? customization.hingeLeafStyle : undefined,
+    hingeAngle: asset.kind === "hinge" && customization.hingeAngle ? customization.hingeAngle : undefined,
     hingeScrewHead: asset.kind === "hinge" && customization.hingeScrewHead && customization.hingeScrewHead !== "countersunk" ? customization.hingeScrewHead : undefined,
     hingeNutWidth: asset.kind === "hinge" && (customization.hingeNutWidth ?? 0) > 0 ? customization.hingeNutWidth : undefined,
     hingeKnuckles: asset.kind === "hinge" ? normalizeHingeKnuckles(customization.hingeKnuckles ?? DEFAULT_HINGE_KNUCKLES, width, normalizeHingeClearance(customization.hingeClearance)) : undefined,

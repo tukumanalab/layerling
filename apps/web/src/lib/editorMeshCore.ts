@@ -9,6 +9,7 @@ import { torusTessellation } from "@/lib/torusTessellation";
 import { torusRadii, torusTubeRatio } from "@/lib/torusShape";
 import { createGearGeometry } from "@/lib/gearGeometry";
 import { createHirthGeometry } from "@/lib/hirthGeometry";
+import { createPulleyGeometry } from "@/lib/pulleyGeometry";
 import { createFinishingWasherGeometry } from "@/lib/finishingWasherGeometry";
 import { createStarGeometry } from "@/lib/starGeometry";
 import { createHeartGeometry } from "@/lib/heartGeometry";
@@ -17,7 +18,9 @@ import { createSlotGeometry } from "@/lib/slotGeometry";
 import { createDovetailGeometry } from "@/lib/dovetailGeometry";
 import { createLoftGeometry } from "@/lib/loftGeometry";
 import { createHingeGeometry } from "@/lib/hingeGeometry";
-import { createGridfinityGeometry } from "@/lib/gridfinityGeometry";
+import { createGridfinityGeometry, gridfinityLabelTextGiven } from "@/lib/gridfinityGeometry";
+import { gridfinityLabelLetters } from "@/lib/gridfinityLabelText";
+import { customFontRevision, textFontsLoaded } from "@/lib/textFonts";
 import { createKnurlGeometry } from "@/lib/knurlGeometry";
 import { fittedVaseMesh } from "@/lib/vaseShape";
 import { createTeardropGeometry } from "@/lib/teardropGeometry";
@@ -309,7 +312,8 @@ function bufferGeometryToMeshData(name: string, geometry: THREE.BufferGeometry):
   prepared.computeVertexNormals();
   prepared.computeBoundingBox();
   const minY = prepared.boundingBox?.min.y ?? 0;
-  if (Math.abs(minY) > 0.000001) {
+  // A screw boss grouped as a hole stands where it is drawn in its box (see createScrewBossGeometry).
+  if (Math.abs(minY) > 0.000001 && !geometry.userData.keepsItsHeight) {
     prepared.translate(0, -minY, 0);
     prepared.computeBoundingBox();
   }
@@ -606,7 +610,7 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         gridfinityOpeningCorner: shape.gridfinityOpeningCorner,
         gridfinityOpeningCornerSize: shape.gridfinityOpeningCornerSize,
         gridfinityOutline: shape.gridfinityOutline,
-      });
+      }, gridfinityLabelLetters({ ...shape, width, depth, height }));
       break;
     case "loft":
       geometry = createLoftGeometry({ ...shape, width, depth, height });
@@ -633,6 +637,7 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         gearType: shape.gearType,
         gearRim: shape.gearRim,
         helixAngle: shape.helixAngle,
+        bevelHelixAngle: shape.bevelHelixAngle,
         helixQuality: shape.helixQuality,
         gearProfile: shape.gearProfile,
         gearPressureAngle: shape.gearPressureAngle,
@@ -641,6 +646,9 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
       break;
     case "hirth":
       geometry = createHirthGeometry(width, height, depth, shape);
+      break;
+    case "pulley":
+      geometry = createPulleyGeometry(shape);
       break;
     case "honeycomb":
       geometry = createHoneycombGeometry({
@@ -833,7 +841,7 @@ export function meshForShape(shape: WorkplaneShape): MeshData {
 const PLACEMENT_FIELDS = new Set(["id", "name", "color", "x", "z", "elevation", "rotation", "rotationX", "rotationZ"]);
 const MAX_UNPLACED_MESHES = 24;
 const MAX_UNPLACED_MESH_VERTICES = 1_500_000;
-const unplacedMeshCache: Array<{ shape: WorkplaneShape; mesh: MeshData }> = [];
+const unplacedMeshCache: Array<{ shape: WorkplaneShape; mesh: MeshData; fontRevision: number }> = [];
 
 /** Whether two shapes differ only in where they stand and how they are turned, named and coloured. */
 export function sameShapeApartFromPlacement(a: WorkplaneShape, b: WorkplaneShape) {
@@ -849,9 +857,16 @@ export function sameShapeApartFromPlacement(a: WorkplaneShape, b: WorkplaneShape
   return true;
 }
 
+/** A bin with letters on its shelves (#1308): built without them until the fonts are there, and anew when its font's letters change (the Japanese face arriving). */
+function lettered(shape: WorkplaneShape) {
+  return shape.kind === "gridfinity" && gridfinityLabelTextGiven(shape);
+}
+
 function cachedUnplacedMesh(shape: WorkplaneShape) {
   if (shape.kind === "text") return null;
-  const index = unplacedMeshCache.findIndex((entry) => sameShapeApartFromPlacement(entry.shape, shape));
+  // A bin with letters is only kept once the fonts are there (rememberUnplacedMesh), with the revision of its font's letters.
+  const letters = lettered(shape);
+  const index = unplacedMeshCache.findIndex((entry) => sameShapeApartFromPlacement(entry.shape, shape) && (!letters || entry.fontRevision === customFontRevision(shape.gridfinityLabelFont)));
   if (index < 0) return null;
   const [entry] = unplacedMeshCache.splice(index, 1);
   unplacedMeshCache.push(entry);
@@ -859,8 +874,8 @@ function cachedUnplacedMesh(shape: WorkplaneShape) {
 }
 
 function rememberUnplacedMesh(shape: WorkplaneShape, mesh: MeshData) {
-  if (shape.kind === "text" || mesh.vertices.length > MAX_UNPLACED_MESH_VERTICES) return;
-  unplacedMeshCache.push({ shape: { ...shape }, mesh: { name: mesh.name, vertices: mesh.vertices, faces: mesh.faces.map(([a, b, c]) => [a, b, c]) } });
+  if (shape.kind === "text" || (lettered(shape) && !textFontsLoaded()) || mesh.vertices.length > MAX_UNPLACED_MESH_VERTICES) return;
+  unplacedMeshCache.push({ shape: { ...shape }, mesh: { name: mesh.name, vertices: mesh.vertices, faces: mesh.faces.map(([a, b, c]) => [a, b, c]) }, fontRevision: customFontRevision(shape.gridfinityLabelFont) });
   let vertexCount = unplacedMeshCache.reduce((sum, entry) => sum + entry.mesh.vertices.length, 0);
   while (unplacedMeshCache.length > MAX_UNPLACED_MESHES || vertexCount > MAX_UNPLACED_MESH_VERTICES) {
     vertexCount -= unplacedMeshCache.shift()!.mesh.vertices.length;

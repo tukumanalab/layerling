@@ -33,6 +33,7 @@ I vinduet finder du:
 - {{ui:edge.tangentChains}}: et klik vælger så også kanter der glat flyder ind i hinanden, for eksempel alle kanter rundt om en flade med rundede hjørner. Kontakten bestemmer kun hvad et klik vælger: CAD-kernen fører altid en fas eller rund med videre langs sådanne glat fortsættende kanter. Vinduet fortæller dig langs hvor mange flere kanter det sker.
 - {{ui:edge.keepSize}} bevarer fasen eller runding som den er, selvom du skalerer formen senere.
 - {{ui:edge.previewQuality}} ({{ui:edge.draft}}, {{ui:edge.standard}} eller {{ui:edge.fine}}) bestemmer hvor fint forhåndsvisningen beregnes. For vanskelige dele er {{ui:edge.draft}} hurtigere.
+- Vinduet husker sine indstillinger i denne browser, ét sæt hver for affasning, afrunding og affasning med afrunding: størrelse, vinkel, tærskel, forhåndsvisningens kvalitet og kontakterne bliver, som du forlod dem, efter {{ui:edge.apply}}, efter en fortrydelse og næste gang du åbner værktøjet. En størrelse, kroppen ikke kan rumme, viger for den, der regnes ud fra kroppen. Kun {{ui:edge.tangentChains}} starter forfra: til ved en krops første affasning eller afrunding, derefter fra.
 
 Mens du justerer størrelsen, genberegner layerling forhåndsvisningen. Det kan tage et øjeblik. Du må blive ved med at justere; den sidste værdi du valgte er det der beregnes.
 
@@ -128,9 +129,9 @@ Hver flade på et legeme kan flyttes den samme afstand, udad eller indad. Det er
 
 Sæt flueben ved {{ui:offset.sideways}}, når kun omridset skal vokse eller skrumpe: siderne flytter sig med afstanden, mens hver flad over- og underside bliver i sin højde. Et skilt får en kant hele vejen rundt, en sokkel bliver bredere, og legemet bliver ikke højere. På et trappeformet legeme beholder hvert trin sin egen højde. En tekst, der forskydes via sine omrids, beholder så også sin højde.
 
-En tekst, hvis bogstaver kernen ikke kan forskyde som et legeme - i nogle fonte et A, B, M, N, W eller 9 - forskydes gennem dens egne omrids i stedet: den får fyldet {{ui:prop.textWider}} med afstanden (smallere når den krymper) og vokser lige så meget i toppen og bunden. Den bliver en tekst, du kan redigere videre. Det virker på en tekst med udfyldte bogstaver og uden afrunding; en tekst der allerede har en fyld-tilstand afvises som før.
-
 Uden hak forskydes selve legemet. Det bliver et fast, nøjagtigt legeme, som efter en affasning: listen øverst i vinduet tager forskydningen tilbage, og {{ui:edge.editAction}} åbner værktøjet igen med den gamle afstand. Kun nøjagtige CAD-legemer kan forskydes - kasser, cylindre og de andre former, grupper af dem, importerede STEP-dele. Et legeme, der kun er et mesh af trekanter, som mange STL-importer, kan ofte ikke. En afstand, der er for stor til legemet, for eksempel en formindskelse ud over den tyndeste væg, afvises.
+
+En tekst, hvis bogstaver kernen ikke kan forskyde som et legeme - i nogle fonte et A, B, M, N, W eller 9 - forskydes gennem dens egne omrids i stedet: den får fyldet {{ui:prop.textWider}} med afstanden (smallere når den krymper) og vokser lige så meget i toppen og bunden. Den bliver en tekst, du kan redigere videre. Det virker på en tekst med udfyldte bogstaver og uden afrunding; en tekst der allerede har en fyld-tilstand afvises som før.
 
 ## Slet flader
 

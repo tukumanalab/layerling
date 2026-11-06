@@ -45,7 +45,7 @@ Am linken Rand liegt eine schmale Leiste. Von oben nach unten:
 - {{ui:camera.zoomIn}} und {{ui:camera.zoomOut}} zoomen schrittweise, ebenso die Tasten [[+]] und [[−]].
 - {{ui:camera.orthographic}} schaltet auf eine flache Ansicht um, in der parallele Kanten parallel bleiben. Das ist zum Messen und zum Ausrichten von Kanten oft angenehmer als die perspektivische Ansicht. Mit [[O]] wechselst du hin und her, ein zweiter Klick geht zurück.
 - {{ui:camera.secondView}} öffnet eine zweite Ansicht des Entwurfs in einem eigenen Fenster, siehe unten. Ein zweiter Klick schließt es.
-- {{ui:camera.showScrollbars}} blendet unten und am rechten Rand der Ansicht je eine Bildlaufleiste ein. Ziehst du den Balken, gleitet die Ansicht stufenlos mit; ein Klick auf einen Pfeil am Ende schiebt sie ein kleines Stück (gehalten läuft sie weiter), ein Klick neben den Balken fast um eine ganze Bildbreite. Dabei dreht sich nichts, und anders als die Pfeiltasten gehen die Leisten auch, während ein Teil ausgewählt ist - praktisch, wenn du nah an kleinen Details arbeitest. Ein zweiter Klick blendet sie aus; dieser Browser merkt sich die Wahl.
+- {{ui:camera.showScrollbars}} blendet unten und am rechten Rand der Ansicht je eine Bildlaufleiste ein. Ziehst du den Balken, gleitet die Ansicht stufenlos mit; ein Klick auf einen Pfeil am Ende schiebt sie ein kleines Stück (gehalten läuft sie weiter), ein Klick neben den Balken fast um eine ganze Bildbreite. Dabei dreht sich nichts, und anders als die Pfeiltasten gehen die Leisten auch, während ein Teil ausgewählt ist - praktisch, wenn du nah an kleinen Details arbeitest. Ein zweiter Klick blendet sie aus; ob ein Entwurf mit ihnen öffnet, entscheidet {{ui:workspace.startWithScrollbars}} in den Einstellungen. Dieser Browser merkt sich den Schalter außerdem.
 - {{ui:camera.hideWorkplane}} (das Auge über dem Gitter) blendet die Platte mit ihrem Gitter aus, damit du die Unterseite eines Entwurfs von unten ansehen kannst. Es ändert sich nur die Ansicht: Neue Formen landen weiter auf der Arbeitsebene. Ein zweiter Klick blendet sie wieder ein.
 - {{ui:camera.placeWorkplane}}, das Maßband und das Winkellineal sind eigene Werkzeuge, sie kommen weiter unten und im Kapitel [Messen und Notizen](chapter:messen-und-notizen) vor.
 
@@ -94,6 +94,19 @@ Ein Klick neben die Platte oder [[Esc]] holt die Arbeitsebene zurück auf die Gr
 Solange die Arbeitsebene auf einer Fläche liegt, erscheint neben {{ui:camera.placeWorkplane}} ein Auge. Es blendet die Ebene aus, ohne sie aufzuheben, damit du freie Sicht auf den Entwurf hast: Neue Formen landen weiter auf dieser Fläche, und gedreht wird weiter um sie. Ein Klick auf das Auge blendet sie wieder ein, ebenso das Setzen einer neuen Arbeitsebene.
 
 Um gerade auf die Arbeitsebene zu schauen, drücke [[P]] oder klicke in der Ansichtsleiste neben {{ui:camera.placeWorkplane}} auf {{ui:camera.lookOntoWorkplane}}. Die Ansicht dreht sich, bis du die Ebene von vorn siehst, von der Seite, zu der neue Formen wachsen, mit ihrem Ursprung in der Mitte. Auf der Grundplatte ist das die Ansicht von oben.
+
+## Druckplatten
+
+Passt ein Entwurf nicht auf eine Platte, etwa eine Dose mit Deckel und Einsätzen, bekommt er mehrere Druckplatten. Klicke {{ui:editor.tool.buildPlates}} in der Gruppe {{ui:editor.group.arrange}} oder wähle {{ui:plates.moveTo}} im Menü eines Rechtsklicks auf einen Körper. Am unteren Rand der Ansicht erscheint eine Leiste mit einem Knopf je Platte; die Zahl darauf sagt, wie viele Körper auf der Platte stehen.
+
+- Jede Platte ist so groß wie die Arbeitsfläche, die Platten liegen rechts neben der ersten, 20 mm auseinander. Ein Körper gehört zu der Platte, auf der die Mitte seiner Grundfläche steht; zieht man ihn hinüber, steht er auf der anderen Platte. Ein Entwurf hat bis zu 12 Platten.
+- Ein Klick auf eine Platte in der Leiste zeigt sie, und neue Formen landen dann auf ihr. {{ui:plates.showAll}} zeigt alle. Ein Doppelklick auf eine Platte oder {{ui:plates.rename}} gibt ihr einen Namen wie „Deckel“, der auf der Platte steht.
+- {{ui:plates.moveLeft}} und {{ui:plates.moveRight}} ändern die Reihenfolge, die Körper wandern mit ihrer Platte. {{ui:plates.remove}} nimmt die aktive Platte weg; ihre Körper kommen an derselben Stelle auf die erste Platte.
+- {{ui:plates.arrange}} legt die ausgewählten Körper, oder alle, Reihe für Reihe auf die Platten, die größten zuerst, 5 mm auseinander, und fügt Platten hinzu, solange sie gebraucht werden. Ein Körper, der größer als eine Platte ist, bleibt stehen.
+- Mit gewähltem Drucker wird jeder Körper gegen seine eigene Platte geprüft, und die Bauhöhe zählt ab dem tiefsten Körper dieser Platte. Eine Platte mit einem Körper, der nicht passt, zeigt ihre Zahl rot.
+- In den Eigenschaften zählt X ab der Mitte der eigenen Platte des Körpers.
+
+Das Exportfenster bietet dann {{ui:export.plates}}: alle Platten in einer Datei, nebeneinander wie im Entwurf; je Platte eine Datei, zusammen in einer ZIP (STL, 3MF und OBJ); oder eine einzelne Platte, an die Stelle der ersten gesetzt. Ein Slicer öffnet jede Datei als eine Platte; wer die Platten nacheinander druckt, nimmt also die Dateien je Platte. Körper zwischen Platten verschieben und verteilen lässt sich rückgängig machen; Platten hinzufügen, benennen, umsortieren und entfernen wird mit dem Entwurf gespeichert, aber nicht rückgängig gemacht.
 
 ## Gitter und Raster
 
@@ -162,6 +175,8 @@ Die Skizzenansicht hat eigene Farben: {{ui:workspace.sketchBackground}} für das
 ### Darstellung: die Ansicht
 
 {{ui:workspace.startInPerspective}}: Der Editor öffnet dann in der perspektivischen Ansicht, nicht in der flachen.
+
+{{ui:workspace.startWithScrollbars}}: Ein Entwurf öffnet dann mit den Bildlaufleisten der Ansicht. Die Einstellung wird mit dem Entwurf und mit {{ui:workspace.makeDefault}} gespeichert.
 
 {{ui:workspace.startView}} legt den Blickwinkel fest, in dem ein neuer Entwurf öffnet und zu dem {{ui:camera.home}} zurückkehrt. Dreh und zoome die Ansicht, wie du sie magst, und klicke dann {{ui:workspace.startViewUseCurrent}}; {{ui:workspace.startViewStandard}} bringt den gewohnten Blick von vorne rechts zurück. Das gilt für alle Entwürfe in diesem Browser. Ein Entwurf, den du wieder öffnest, öffnet weiter so, wie du ihn verlassen hast.
 

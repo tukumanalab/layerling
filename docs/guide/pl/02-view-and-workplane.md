@@ -46,7 +46,7 @@ Przy lewej krawędzi jest wąski pasek. Od góry:
 - {{ui:camera.zoomIn}} i {{ui:camera.zoomOut}} przybliżają krok po kroku, podobnie jak klawisze [[+]] i [[−]].
 - {{ui:camera.orthographic}} przełącza na płaski widok, w którym równoległe krawędzie zostają równoległe. Do mierzenia i wyrównywania krawędzi bywa wygodniejszy od widoku perspektywicznego. [[O]] przełącza w obie strony, a drugie kliknięcie przywraca poprzedni widok.
 - {{ui:camera.secondView}} otwiera drugi widok projektu we własnym oknie, opisanym niżej. Drugie kliknięcie je zamyka.
-- {{ui:camera.showScrollbars}} pokazuje pasek przewijania u dołu widoku i drugi wzdłuż jego prawej krawędzi. Przeciągnij pasek, aby płynnie przesuwać widok, kliknij strzałkę na jego końcu, aby przesunąć go odrobinę (przytrzymaj, aby przesuwać dalej), albo kliknij obok paska, aby przesunąć o prawie cały widok. Nic się nie obraca, a w przeciwieństwie do klawiszy strzałek paski działają także przy zaznaczonej części - przydatne z bliska przy drobnych szczegółach. Drugie kliknięcie je ukrywa; ta przeglądarka zapamiętuje wybór.
+- {{ui:camera.showScrollbars}} pokazuje pasek przewijania u dołu widoku i drugi wzdłuż jego prawej krawędzi. Przeciągnij pasek, aby płynnie przesuwać widok, kliknij strzałkę na jego końcu, aby przesunąć go odrobinę (przytrzymaj, aby przesuwać dalej), albo kliknij obok paska, aby przesunąć o prawie cały widok. Nic się nie obraca, a w przeciwieństwie do klawiszy strzałek paski działają także przy zaznaczonej części - przydatne z bliska przy drobnych szczegółach. Drugie kliknięcie je ukrywa; to, czy projekt otwiera się z nimi, decyduje {{ui:workspace.startWithScrollbars}} w ustawieniach. Ta przeglądarka dodatkowo zapamiętuje wybór.
 - {{ui:camera.hideWorkplane}} (oko nad siatką) ukrywa płytę z siatką, żeby obejrzeć projekt od spodu. Zmienia się tylko widok: nowe kształty dalej trafiają na płaszczyznę roboczą. Drugie kliknięcie pokazuje ją z powrotem.
 - {{ui:camera.placeWorkplane}}, narzędzie Zmierz i kątownik to osobne narzędzia, opisane niżej i w rozdziale [Pomiary i notatki](chapter:measuring-and-notes).
 
@@ -95,6 +95,19 @@ Kliknięcie obok płyty albo [[Esc]] przywraca płaszczyznę roboczą na płytę
 Dopóki płaszczyzna robocza leży na ścianie, obok {{ui:camera.placeWorkplane}} pojawia się oko. Ukrywa ono płaszczyznę roboczą, nie zdejmując jej, żeby projekt był lepiej widoczny: nowe kształty dalej trafiają na tę ścianę, a obracanie dalej odbywa się wokół niej. Kliknięcie oka pokazuje ją z powrotem, podobnie jak położenie nowej płaszczyzny roboczej.
 
 Aby spojrzeć prostopadle na płaszczyznę roboczą, naciśnij [[P]] albo kliknij {{ui:camera.lookOntoWorkplane}} obok {{ui:camera.placeWorkplane}} na pasku widoku. Widok obraca się, aż zobaczysz płaszczyznę na wprost, od strony, w którą rosną nowe kształty, z jej początkiem pośrodku. Na płycie bazowej to widok z góry.
+
+## Stoły robocze
+
+Gdy projekt zawiera więcej, niż zmieści jeden stół, na przykład pudełko z pokrywką i wkładkami, może mieć kilka stołów roboczych. Kliknij {{ui:editor.tool.buildPlates}} w grupie {{ui:editor.group.arrange}} albo wybierz {{ui:plates.moveTo}} w menu prawego kliknięcia na bryłę. U dołu widoku pojawia się pasek z jednym przyciskiem na stół; liczba na nim mówi, ile brył stoi na stole.
+
+- Każdy stół jest tak duży jak płaszczyzna robocza, a stoły leżą obok siebie na prawo od pierwszego, 20 mm od siebie. Bryła należy do stołu, na którym stoi środek jej podstawy, więc po przeciągnięciu na drugą stronę trafia na inny stół. Projekt ma do 12 stołów.
+- Kliknięcie stołu na pasku pokazuje go, a nowe kształty trafiają potem na niego. {{ui:plates.showAll}} pokazuje wszystkie. Dwukrotne kliknięcie stołu lub {{ui:plates.rename}} nadaje mu nazwę, np. „Pokrywka”, która jest napisana na stole.
+- {{ui:plates.moveLeft}} i {{ui:plates.moveRight}} zmieniają kolejność, a bryły przesuwają się ze swoim stołem. {{ui:plates.remove}} usuwa aktywny stół; jego bryły trafiają na pierwszy stół w to samo miejsce.
+- {{ui:plates.arrange}} układa zaznaczone bryły, albo wszystkie, rząd po rzędzie na stołach, największe najpierw, 5 mm od siebie, i dodaje stoły, dopóki są potrzebne. Bryła większa niż stół zostaje na miejscu.
+- Przy wybranej drukarce każda bryła jest sprawdzana względem własnego stołu, a wysokość druku liczy się od najniższej bryły na tym stole. Stół z bryłą, która się nie mieści, pokazuje swoją liczbę na czerwono.
+- We właściwościach X liczy się od środka własnego stołu bryły.
+
+Okno eksportu oferuje wtedy {{ui:export.plates}}: wszystkie stoły w jednym pliku, obok siebie jak w projekcie; jeden plik na stół, spakowane w ZIP (STL, 3MF i OBJ); albo pojedynczy stół, ustawiony w miejscu pierwszego. Slicer otwiera każdy plik jako jeden stół, więc aby drukować stoły po kolei, użyj plików na stół. Przenoszenie brył między stołami i ich rozkładanie można cofnąć; dodawanie, nazywanie, porządkowanie i usuwanie stołów zapisuje się z projektem, ale się nie cofa.
 
 ## Siatka i przyciąganie
 
@@ -163,6 +176,8 @@ Widok szkicu ma własne kolory: {{ui:workspace.sketchBackground}} dla okna wokó
 ### Wygląd: widok
 
 {{ui:workspace.startInPerspective}}: edytor otwiera się wtedy w widoku perspektywicznym, a nie płaskim.
+
+{{ui:workspace.startWithScrollbars}}: projekt otwiera się wtedy z paskami przewijania widoku. Ustawienie zapisuje się z projektem i przez {{ui:workspace.makeDefault}}.
 
 {{ui:workspace.startView}} ustawia kąt, pod jakim otwiera się nowy projekt i do którego wraca {{ui:camera.home}}. Obróć i przybliż widok tak, jak lubisz, a potem kliknij {{ui:workspace.startViewUseCurrent}}. {{ui:workspace.startViewStandard}} przywraca zwykły widok z prawego przodu. Obowiązuje dla każdego projektu w tej przeglądarce. Projekt otwierany ponownie nadal otwiera się tak, jak go zostawiłeś.
 

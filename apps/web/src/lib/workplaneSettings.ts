@@ -5,10 +5,13 @@ import { normalizeScaleForUnits } from "@/lib/measurementUnits";
 import { DEFAULT_IMPERIAL_GRID_BLOCK_PRESET, DEFAULT_METRIC_GRID_BLOCK_PRESET, DEFAULT_EDGE_LINE_COLOR, DEFAULT_LIGHT_AZIMUTH, DEFAULT_LIGHT_ELEVATION, DEFAULT_SKETCH_BACKGROUND, DEFAULT_SKETCH_GRID_COLOR, DEFAULT_SKETCH_PLATE_COLOR, DEFAULT_WORKPLANE_BACKGROUND, DEFAULT_WORKPLANE_GRID_COLOR, DEFAULT_WORKPLANE_SURFACE_COLOR, inchGridPresetMm } from "@/lib/workplaneGrid";
 import { isThreadProfile } from "@/lib/threadProfiles";
 import { normalizeHexColor } from "@/lib/coloredImport";
+import { normalizePlateNames } from "@/lib/buildPlateNames";
 import { TORUS_MAX_TUBE_RATIO, TORUS_MIN_TUBE_RATIO } from "@/lib/torusShape";
-import { MAX_HIRTH_TEETH, MIN_HIRTH_TEETH, MIN_HIRTH_TOOTH_HEIGHT } from "@/lib/hirthGeometry";
+import { MAX_PULLEY_BELT_WIDTH, MAX_PULLEY_FLANGE, MAX_PULLEY_FLANGE_RISE, MAX_PULLEY_HUB_HEIGHT, MAX_PULLEY_TEETH, MIN_PULLEY_BELT_WIDTH, MIN_PULLEY_FLANGE_RISE, MIN_PULLEY_TEETH } from "@/lib/pulleyGeometry";
+import { MAX_HIRTH_STEEP_FLANK, MAX_HIRTH_TEETH, MIN_HIRTH_STEEP_FLANK, MIN_HIRTH_TEETH, MIN_HIRTH_TOOTH_HEIGHT } from "@/lib/hirthGeometry";
 import { PORT_PROFILES } from "@/lib/portGeometry";
 import { MAX_GEAR_TEETH, MIN_GEAR_TEETH } from "@/lib/gearGeometry";
+import { GRIDFINITY_LABEL_FONTS } from "@/lib/gridfinityGeometry";
 import type { PortProfile } from "@/types/layerling";
 
 export const DEFAULT_SNAP_GRID: GridSize = "1.0 mm";
@@ -89,6 +92,7 @@ export const DEFAULT_WORKPLANE_WORKSPACE: WorkplaneWorkspaceSettings = {
   dimensionsAlwaysVisible: true,
   dimensionAxisColors: false,
   showRotationAngles: true,
+  startWithScrollbars: false,
   zoomSpeed: 5,
   mouseScheme: "layerling",
   units: "Metric (Default)",
@@ -295,7 +299,7 @@ export function snapGridForUnits(units: string, snap: GridSize): GridSize {
 }
 const customizableShapeKinds: ShapeKind[] = [
   "box", "roundedBox", "cylinder", "slot", "ellipse", "sphere", "sketch", "scribble", "cone", "pyramid", "roof", "text", "roundRoof",
-  "halfSphere", "paraboloid", "curvedCone", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "hirth", "honeycomb", "hinge", "knurl", "dovetail", "screwBoss", "snapFit", "rib", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "loft", "vase", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
+  "halfSphere", "paraboloid", "curvedCone", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "hirth", "pulley", "honeycomb", "hinge", "knurl", "dovetail", "screwBoss", "snapFit", "rib", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "loft", "vase", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
 ];
 
 function numberOrDefault(value: unknown, fallback: number) {
@@ -427,6 +431,7 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.hingePinDiameter = optionalShapeNumber(source.hingePinDiameter, fallbackEntry?.hingePinDiameter, 0.2, MAX_CUSTOM_SHAPE_DIMENSION);
       entry.hingeLeafThickness = optionalShapeNumber(source.hingeLeafThickness, fallbackEntry?.hingeLeafThickness, 0.1, MAX_CUSTOM_SHAPE_DIMENSION);
       entry.hingeClearance = optionalShapeNumber(source.hingeClearance, fallbackEntry?.hingeClearance, 0.1, 1);
+      entry.hingeAngle = optionalShapeNumber(source.hingeAngle, fallbackEntry?.hingeAngle, -180, 180);
       entry.hingePinless = typeof source.hingePinless === "boolean" ? source.hingePinless : fallbackEntry?.hingePinless;
       entry.hingeStyle = source.hingeStyle === "cone" || source.hingeStyle === "pinless" || source.hingeStyle === "pin" || source.hingeStyle === "liftOff" ? source.hingeStyle : fallbackEntry?.hingeStyle;
       entry.hingeConeSize = optionalShapeNumber(source.hingeConeSize, fallbackEntry?.hingeConeSize, 0.6, MAX_CUSTOM_SHAPE_DIMENSION);
@@ -436,7 +441,7 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.hingeScrewAcross = optionalShapeNumber(source.hingeScrewAcross, fallbackEntry?.hingeScrewAcross, 0, MAX_CUSTOM_SHAPE_DIMENSION);
       entry.hingeScrewCountersink = typeof source.hingeScrewCountersink === "boolean" ? source.hingeScrewCountersink : fallbackEntry?.hingeScrewCountersink;
       entry.hingeCornerRadius = optionalShapeNumber(source.hingeCornerRadius, fallbackEntry?.hingeCornerRadius, 0, MAX_CUSTOM_SHAPE_DIMENSION);
-      entry.hingeLeafStyle = source.hingeLeafStyle === "fingers" || source.hingeLeafStyle === "plate" ? source.hingeLeafStyle : fallbackEntry?.hingeLeafStyle;
+      entry.hingeLeafStyle = source.hingeLeafStyle === "fingers" || source.hingeLeafStyle === "plate" || source.hingeLeafStyle === "raised" ? source.hingeLeafStyle : fallbackEntry?.hingeLeafStyle;
       entry.hingeScrewHead = source.hingeScrewHead === "countersunk" || source.hingeScrewHead === "straight" || source.hingeScrewHead === "nut" || source.hingeScrewHead === "countersunkNut" ? source.hingeScrewHead : fallbackEntry?.hingeScrewHead;
       entry.hingeNutWidth = optionalShapeNumber(source.hingeNutWidth, fallbackEntry?.hingeNutWidth, 0, 40);
     }
@@ -466,6 +471,7 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.gridfinityLabelRightOffset = optionalShapeNumber(source.gridfinityLabelRightOffset, fallbackEntry?.gridfinityLabelRightOffset, -MAX_CUSTOM_SHAPE_DIMENSION, MAX_CUSTOM_SHAPE_DIMENSION);
       entry.gridfinityLabelCorner = source.gridfinityLabelCorner === "round" || source.gridfinityLabelCorner === "chamfer" ? source.gridfinityLabelCorner : fallbackEntry?.gridfinityLabelCorner;
       entry.gridfinityLabelCornerSize = optionalShapeNumber(source.gridfinityLabelCornerSize, fallbackEntry?.gridfinityLabelCornerSize, 0, MAX_CUSTOM_SHAPE_DIMENSION);
+      entry.gridfinityLabelFont = typeof source.gridfinityLabelFont === "string" && GRIDFINITY_LABEL_FONTS.includes(source.gridfinityLabelFont) ? source.gridfinityLabelFont : fallbackEntry?.gridfinityLabelFont;
       entry.gridfinityScoopBack = typeof source.gridfinityScoopBack === "boolean" ? source.gridfinityScoopBack : fallbackEntry?.gridfinityScoopBack;
       entry.gridfinityScoopFront = typeof source.gridfinityScoopFront === "boolean" ? source.gridfinityScoopFront : fallbackEntry?.gridfinityScoopFront;
       entry.gridfinityScoopLeft = typeof source.gridfinityScoopLeft === "boolean" ? source.gridfinityScoopLeft : fallbackEntry?.gridfinityScoopLeft;
@@ -542,6 +548,10 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
     if (kind === "rib") {
       entry.ribStyle = source.ribStyle === "straight" || source.ribStyle === "gusset" ? source.ribStyle : fallbackEntry?.ribStyle;
       entry.ribTop = source.ribTop === "flat" || source.ribTop === "round" || source.ribTop === "chamfer" ? source.ribTop : fallbackEntry?.ribTop;
+      // The foot (Discussion #1307): false is kept, so a command can switch it off again.
+      entry.ribFoot = typeof source.ribFoot === "boolean" ? source.ribFoot : fallbackEntry?.ribFoot;
+      entry.ribThickness = optionalShapeNumber(source.ribThickness, fallbackEntry?.ribThickness, 0.2, 50);
+      entry.ribFootThickness = optionalShapeNumber(source.ribFootThickness, fallbackEntry?.ribFootThickness, 0.2, 50);
     }
     if (kind === "dovetail") {
       entry.dovetailNeckWidth = optionalShapeNumber(source.dovetailNeckWidth, fallbackEntry?.dovetailNeckWidth, 0.1, MAX_CUSTOM_SHAPE_DIMENSION);
@@ -659,6 +669,19 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.teeth = optionalShapeNumber(source.teeth, fallbackEntry?.teeth, MIN_HIRTH_TEETH, MAX_HIRTH_TEETH, true);
       entry.toothSize = optionalShapeNumber(source.toothSize, fallbackEntry?.toothSize, MIN_HIRTH_TOOTH_HEIGHT, MAX_CUSTOM_SHAPE_DIMENSION / 2);
       entry.centerHoleSize = optionalShapeNumber(source.centerHoleSize, fallbackEntry?.centerHoleSize, 0, MAX_CUSTOM_SHAPE_DIMENSION);
+      // Saw teeth (Discussion #1320); 0 or less stands for symmetric teeth, so a patch can switch them back.
+      entry.hirthSteepFlank = typeof source.hirthSteepFlank === "number" && source.hirthSteepFlank <= 0
+        ? 0
+        : optionalShapeNumber(source.hirthSteepFlank, fallbackEntry?.hirthSteepFlank, MIN_HIRTH_STEEP_FLANK, MAX_HIRTH_STEEP_FLANK);
+      entry.hirthReverse = typeof source.hirthReverse === "boolean" ? source.hirthReverse || undefined : fallbackEntry?.hirthReverse;
+    }    if (kind === "pulley") {
+      entry.teeth = optionalShapeNumber(source.teeth, fallbackEntry?.teeth, MIN_PULLEY_TEETH, MAX_PULLEY_TEETH, true);
+      entry.centerHoleSize = optionalShapeNumber(source.centerHoleSize, fallbackEntry?.centerHoleSize, 0, MAX_CUSTOM_SHAPE_DIMENSION);
+      entry.pulleyBeltWidth = optionalShapeNumber(source.pulleyBeltWidth, fallbackEntry?.pulleyBeltWidth, MIN_PULLEY_BELT_WIDTH, MAX_PULLEY_BELT_WIDTH);
+      entry.pulleyFlange = optionalShapeNumber(source.pulleyFlange, fallbackEntry?.pulleyFlange, 0, MAX_PULLEY_FLANGE);
+      entry.pulleyFlangeRise = optionalShapeNumber(source.pulleyFlangeRise, fallbackEntry?.pulleyFlangeRise, MIN_PULLEY_FLANGE_RISE, MAX_PULLEY_FLANGE_RISE);
+      entry.pulleyHubHeight = optionalShapeNumber(source.pulleyHubHeight, fallbackEntry?.pulleyHubHeight, 0, MAX_PULLEY_HUB_HEIGHT);
+      entry.pulleyHubDiameter = optionalShapeNumber(source.pulleyHubDiameter, fallbackEntry?.pulleyHubDiameter, MIN_CUSTOM_SHAPE_DIMENSION, MAX_CUSTOM_SHAPE_DIMENSION);
     }
     const compact = Object.fromEntries(Object.entries(entry).filter(([, entryValue]) => entryValue !== undefined)) as ShapeCustomization;
     if (Object.keys(compact).length > 0) normalized[kind] = compact;
@@ -785,6 +808,8 @@ export function normalizeWorkspaceSettings(value: unknown, fallback: WorkplaneWo
     sizePreset: stringOrDefault(candidate.sizePreset, fallback.sizePreset),
     // Older settings have no printer; that is "none", not the fallback's choice.
     printer: typeof candidate.printer === "string" ? candidate.printer : candidate.sizePreset === undefined ? fallback.printer : "",
+    // The plates belong to the design: they come only from its own settings, never from a fallback (#456).
+    ...(normalizePlateNames(candidate.plates) ? { plates: normalizePlateNames(candidate.plates) } : {}),
     ...gridBlockForUnits(
       units,
       stringOrDefault(candidate.gridBlockPreset, fallback.gridBlockPreset),
@@ -834,6 +859,7 @@ export function normalizeWorkspaceSettings(value: unknown, fallback: WorkplaneWo
     dimensionsAlwaysVisible: booleanOrDefault(candidate.dimensionsAlwaysVisible, fallback.dimensionsAlwaysVisible),
     dimensionAxisColors: booleanOrDefault(candidate.dimensionAxisColors, fallback.dimensionAxisColors),
     showRotationAngles: booleanOrDefault(candidate.showRotationAngles, fallback.showRotationAngles),
+    startWithScrollbars: booleanOrDefault(candidate.startWithScrollbars, fallback.startWithScrollbars),
     zoomSpeed: numberOrDefault(candidate.zoomSpeed, fallback.zoomSpeed),
     mouseScheme: candidate.mouseScheme === "slicer" ? "slicer" : candidate.mouseScheme === "layerling" ? "layerling" : fallback.mouseScheme,
     units,
@@ -928,6 +954,8 @@ export function workspaceWithSavedDefault(current: WorkplaneWorkspaceSettings, s
     depth: plate.depth,
     sizePreset: plate.sizePreset,
     printer: plate.printer,
+    // The design keeps its plates (#456).
+    plates: current.plates,
     units: current.units,
     inchFormat: current.inchFormat,
     scale: current.scale,
@@ -985,7 +1013,8 @@ export function saveWorkspaceDefault(
   }
   try {
     storage.setItem(WORKSPACE_DEFAULT_STORAGE_KEY, JSON.stringify({
-      workspace: normalizeWorkspaceSettings(workspace),
+      // A design's plates are its own: the default workplane has one plate (#456).
+      workspace: { ...normalizeWorkspaceSettings(workspace), plates: undefined },
       snap: normalizeSnapGrid(snap, DEFAULT_SNAP_GRID),
     }));
     // The server store keeps a copy for every browser (serverWorkspaceDefault.ts).

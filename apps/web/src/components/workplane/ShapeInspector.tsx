@@ -19,12 +19,14 @@ import {
   MIN_GEAR_HELIX_QUALITY,
   gearCenterHoleLimits,
   normalizeGearHelixAngle,
+  normalizeBevelHelixAngle,
   normalizeGearHelixQuality,
   normalizeGearCenterHoleSize,
   normalizeGearToothSize,
   normalizeGearToothWidth,
   normalizeGearType,
   gearTypeHasHelix,
+  bevelGearIsSpiral,
   gearToothPitch,
   DEFAULT_GEAR_BACKLASH,
   involuteGearModule,
@@ -198,7 +200,7 @@ import { MAX_TEXT_LAYERS, MAX_TEXT_LAYER_GROW, MIN_TEXT_LAYER_HEIGHT, nameTagKey
 import { iconKeyringAlongLimit } from "@/lib/sketchKeyring";
 import { DEFAULT_KEYRING_DIAMETER, curvedRadiusPatch, MAX_TEXT_LETTER_WIDTH, MAX_TEXT_SPACING, MIN_KEYRING_DIAMETER, MIN_TEXT_LETTER_WIDTH, MIN_TEXT_SPACING, TEXT_KEYRING_SIDES } from "@/lib/textGeometry";
 import { DEFAULT_TEXT_BLOCK_GAP, MAX_TEXT_BLOCK_GAP, MAX_TEXT_BLOCK_LINES, MAX_TEXT_BLOCK_STEP, MIN_TEXT_BLOCK_STEP, TEXT_BLOCK_ALIGNS, textBlockLines, type TextBlockAlign, type TextBlockOptions } from "@/lib/textBlock";
-import { addTextLayer, MIN_LETTER_SIZE, MIN_NAME_TAG_LAYERS, NAME_TAG_GAP, NAME_TAG_LAYERS, NAME_TAG_LETTER_SIZE, removeTextLayer, textBaselineKeepShift, textLetterSize, textLetterSizePatch, textSpacingPatch, type NameTagStack } from "@/lib/nameTag";
+import { addTextLayer, MIN_LETTER_SIZE, MIN_NAME_TAG_LAYERS, NAME_TAG_GAP, NAME_TAG_LAYERS, NAME_TAG_LETTER_SIZE, removeTextLayer, textBaselineKeepShift, textLetterSize, textLetterSizePatch, textKerningPatch, textSpacingPatch, type NameTagStack } from "@/lib/nameTag";
 import { FONT_MANAGER_OPTION, requestFontManager } from "@/lib/fontManagerEvents";
 import { FontPicker } from "@/components/workplane/FontPicker";
 import { QR_BYTE_CAPACITY, qrByteLength, qrTextFits, type QrCodeSettings } from "@/lib/qrCode";
@@ -214,12 +216,15 @@ import {
   DEFAULT_GRIDFINITY_LABEL_CORNER,
   GRIDFINITY_BASEPLATE_RADIUS,
   GRIDFINITY_BIN_RADIUS,
+  GRIDFINITY_LABEL_FONTS,
+  GRIDFINITY_LABEL_TEXT_KEYS,
   GRIDFINITY_LABEL_WALL_KEYS,
   GRIDFINITY_OPEN_WALL_KEYS,
   GRIDFINITY_PADDING_KEYS,
   GRIDFINITY_SCOOP_WALL_KEYS,
   MAX_GRIDFINITY_DIVIDER_THICKNESS,
   MAX_GRIDFINITY_HEIGHT_UNITS,
+  MAX_GRIDFINITY_LABEL_TEXT_LENGTH,
   MAX_GRIDFINITY_LIP_CHAMFER,
   MAX_GRIDFINITY_PADDING,
   MAX_GRIDFINITY_SWALLOWTAIL_CLEARANCE,
@@ -236,6 +241,8 @@ import {
   MIN_GRIDFINITY_UNITS,
   MIN_GRIDFINITY_WALL_THICKNESS,
   type GridfinityAxis,
+  type GridfinityLabelTextPlace,
+  type GridfinityShapeFields,
   type GridfinityWall,
   gridfinityCompartmentCount,
   gridfinityCompartmentCountPatch,
@@ -262,10 +269,12 @@ import {
   gridfinityFloorMinHeight,
   gridfinityLabelCornerSize,
   gridfinityLabelFits,
+  gridfinityLabelFont,
   gridfinityLabelLength,
   gridfinityLabelLimits,
   gridfinityLabelMaxCornerSize,
   gridfinityLabelMaxWidth,
+  gridfinityLabelTextPlaces,
   gridfinityLabelWidth,
   gridfinityLipChamfer,
   gridfinityMaxUnits,
@@ -293,10 +302,13 @@ import {
   gridfinityWallThickness,
   normalizeGridfinityType,
 } from "@/lib/gridfinityGeometry";
-import { hingeLargestConeSize, hingeLargestCornerRadius, MAX_HINGE_ANGLE, MAX_HINGE_CLEARANCE, MAX_HINGE_KNUCKLES, MAX_HINGE_SCREW_DIAMETER, MAX_HINGE_SCREW_HOLES, MIN_HINGE_CLEARANCE, MIN_HINGE_KNUCKLES, MIN_HINGE_SCREW_DIAMETER, hingePlan, minimumHingeDepth, normalizeHingeAngle, normalizeHingeClearance, normalizeHingeKnuckles, normalizeHingeKnuckleWidth, normalizeHingeLeafThickness, normalizeHingePinDiameter, normalizeHingeScrewDiameter, normalizeHingeScrewHead, normalizeHingeScrewHoles, MAX_HINGE_NUT_WIDTH } from "@/lib/hingeGeometry";
+import { gridfinityLabelTextLeftOut } from "@/lib/gridfinityLabelText";
+import { hingeLargestConeSize, hingeLargestCornerRadius, MAX_HINGE_ANGLE, MIN_HINGE_ANGLE, MAX_HINGE_CLEARANCE, MAX_HINGE_KNUCKLES, MAX_HINGE_SCREW_DIAMETER, MAX_HINGE_SCREW_HOLES, MIN_HINGE_CLEARANCE, MIN_HINGE_KNUCKLES, MIN_HINGE_SCREW_DIAMETER, hingePlan, minimumHingeDepth, normalizeHingeAngle, normalizeHingeClearance, normalizeHingeKnuckles, normalizeHingeKnuckleWidth, normalizeHingeLeafThickness, normalizeHingePinDiameter, normalizeHingeScrewDiameter, normalizeHingeScrewHead, normalizeHingeScrewHoles, MAX_HINGE_NUT_WIDTH } from "@/lib/hingeGeometry";
 import { useLanguage } from "@/lib/useLanguage";
 import { useMovablePanel, type MovablePanelOptions } from "@/lib/useMovablePanel";
 import { meshAabb } from "@/lib/editorMeshCore";
+import { undersideOffset } from "@/lib/positionUnderside";
+import { plateOffsetOfShape } from "@/lib/buildPlates";
 import { isNonSolidShape, resizedShapeSize, shapeDepth, shapeHasTaper, shapeOverallFootprintDimensions, shapeSupportsTaper, shapeTaperDimensions, shapeWidth } from "@/lib/workplaneShapes";
 import { tubeBeforeEdgeTreatments } from "@/lib/edgeTreatmentHistory";
 import { MAX_SKETCH_REVOLVE_TURNS, normalizeSketchRevolveSettings } from "@/lib/sketchRevolve";
@@ -304,7 +316,7 @@ import { roundSideCount } from "@/lib/roundSideCount";
 import { normalizeCurvedConeBend, normalizeCurvedConeTop } from "@/lib/curvedCone";
 import { screwBossFootprint, screwBossPlan, screwBossSize, screwBossSizes, normalizeScrewBossFastener, MAX_SCREW_BOSS_GUSSETS, type ScrewBossFastener } from "@/lib/screwBoss";
 import { snapFitCatchBox, snapFitPlan, SNAP_FIT_STRAIN_PLA, SNAP_FIT_STRAIN_TOUGH, type SnapFitPart } from "@/lib/snapFit";
-import { normalizeRibStyle, normalizeRibTop } from "@/lib/rib";
+import { MIN_RIB_FOOT_OVERHANG, MIN_RIB_FOOT_THICKNESS, normalizeRibStyle, normalizeRibTop, ribFootSwitch, ribSize, ribThicknessOnFootPatch } from "@/lib/rib";
 import { torusTessellation } from "@/lib/torusTessellation";
 import { TORUS_MAX_TUBE_RATIO, TORUS_MIN_TUBE_RATIO, torusTubeRatio, torusTubeThickness } from "@/lib/torusShape";
 import { normalizePyramidTop } from "@/lib/pyramidGeometry";
@@ -352,7 +364,8 @@ import { WASHER_SIZE_ORDER, isWasherSize, washerSizeFor, washerTubeFields } from
 import { finishingWasherFields, finishingWasherSizeFor, finishingWasherSizes, isFinishingWasherSize, isScrewHoleSize, screwHoleFields, screwHoleSizeFor, screwHoleSizesFor } from "@/lib/screwHoleSizes";
 import { finishingWasherMeasures, finishingWasherSeatDepthFor } from "@/lib/finishingWasherGeometry";
 import { NUT_POCKET_SIZE_ORDER, isNutPocketSize, nutPocketFields, nutPocketSizeFor } from "@/lib/nutPocketSizes";
-import { MAX_HIRTH_TEETH, MIN_HIRTH_BASE, MIN_HIRTH_TEETH, MIN_HIRTH_TOOTH_HEIGHT, hirthBoreLimit, hirthFlankAngle, hirthToothHeightLimit, normalizeHirthBore, normalizeHirthTeeth, normalizeHirthToothHeight } from "@/lib/hirthGeometry";
+import { MAX_PULLEY_BELT_WIDTH, MAX_PULLEY_FLANGE, MAX_PULLEY_FLANGE_RISE, MAX_PULLEY_HUB_HEIGHT, MAX_PULLEY_TEETH, MIN_PULLEY_BELT_WIDTH, MIN_PULLEY_FLANGE_RISE, MIN_PULLEY_TEETH, normalizePulleyTeeth, pulleyFootprint, pulleyMeasures, pulleyPitchDiameter } from "@/lib/pulleyGeometry";
+import { DEFAULT_HIRTH_STEEP_FLANK, MAX_HIRTH_STEEP_FLANK, MAX_HIRTH_TEETH, MIN_HIRTH_BASE, MIN_HIRTH_STEEP_FLANK, MIN_HIRTH_TEETH, MIN_HIRTH_TOOTH_HEIGHT, hirthBoreLimit, hirthFlankAngle, hirthGentleFlankAngle, hirthSplit, hirthToothHeightLimit, normalizeHirthBore, normalizeHirthSteepFlank, normalizeHirthTeeth, normalizeHirthToothHeight } from "@/lib/hirthGeometry";
 
 /**
  * Docked at the right edge, full height. Moved away, it floats: no longer
@@ -408,6 +421,7 @@ const PORT_PRESET_LABELS: Record<PortPreset, MessageKey> = {
   usbC: "port.usbC", usbCPlug: "port.usbCPlug", microUsb: "port.microUsb", usbA: "port.usbA",
   hdmi: "port.hdmi", miniHdmi: "port.miniHdmi", microHdmi: "port.microHdmi", displayPort: "port.displayPort", miniDisplayPort: "port.miniDisplayPort", rj45: "port.rj45",
   xt30: "port.xt30", xt60: "port.xt60", mt60: "port.mt60", mpx: "port.mpx", dsub9: "port.dsub9",
+  powerpole1: "port.powerpole1", powerpole2: "port.powerpole2", powerpole3: "port.powerpole3", powerpole4: "port.powerpole4",
 };
 
 const VASE_CHOICES: Partial<Record<VaseChoiceKey, Record<string, MessageKey>>> = {
@@ -525,6 +539,8 @@ type TextPropertyConfig = {
   id: string;
   label: string;
   value: string;
+  /** A line under the row, as a range row has. */
+  hint?: string;
   onChange: (value: string) => void;
 };
 
@@ -581,7 +597,7 @@ function scrollingAncestor(element: HTMLElement): HTMLElement | null {
 }
 
 function propertyUsesLengthUnit(key: string) {
-  return ["textLineWidth", "textBlockGap", "textEdgeSize", "letterSize", "iconWidth", "keyringDiameter", "keyringAlong", "positionX", "positionY", "positionZ", "pivotX", "pivotY", "pivotZ", "radius", "length", "width", "height", "bevel", "topRadius", "baseRadius", "curvedConeTop", "thickness", "outerDiameter", "innerDiameter", "textRadius", "extrudeTopOffsetX", "extrudeTopOffsetZ", "toothSize", "toothWidth", "gearBacklash", "centerHole", "slotSmallEnd", "slotCentreDistance", "torusTube", "sketchLineWidth", "sketchCuttingEdge", "topLength", "topWidth", "bottomLength", "bottomWidth", "diameter", "pitch", "clearance", "axialClearance", "boltClearance", "threadDepth", "threadCoreDiameter", "threadLength", "headHeight", "headDiameter", "collarHeight", "collarDiameter", "driveSize", "driveDepth", "chamfer", "chamferBottom", "headChamfer", "wire", "starOuterSize", "starInnerSize", "starOuterFillet", "starInnerFillet", "heartTipFillet", "crescentThickness", "crescentTipFillet", "honeycombCellSize", "honeycombWallThickness", "honeycombFrameWidth", "cornerFillet", "topBottomFillet", "bentTubeSize", "bentTubeWall", "bentTubeSegmentLength", "bentTubeBendRadius", "dovetailNeckWidth", "dovetailClearance", "screwBossHole", "screwBossHoleDepth", "screwBossDiameter", "screwBossGussetHeight", "screwBossGussetThickness", "screwBossReach", "snapFitThickness", "snapFitUndercut", "snapFitClearance", "snapFitFoot", "portClearance", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeCornerRadius", "hingeScrewDiameter", "hingeScrewSpacing", "hingeScrewAcross", "hingeNutWidth", "screwHoleShaft", "screwHoleHeadDepth", "knurlDepth", "knurlChamfer", "loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftOffsetX", "loftOffsetZ", "loftWall", "loftSectionHeight", "loftSectionWidth", "loftSectionDepth", "loftSectionCorner", "loftSectionOffsetX", "loftSectionOffsetZ", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelBackWidth", "gridfinityLabelCornerSize", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelFrontWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelLeftWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelRightWidth", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityDrawerWidth", "gridfinityDrawerDepth", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinitySwallowtailClearance", "gridfinityDividerThickness", "gridfinityDividerPositionX", "gridfinityDividerPositionZ", "gridfinityCompartmentLabelWidth", "gridfinityOpeningCornerSize", "gridfinityOpeningDepthBack", "gridfinityOpeningDepthFront", "gridfinityOpeningDepthLeft", "gridfinityOpeningDepthRight", "gridfinityOpeningWidthBack", "gridfinityOpeningWidthFront", "gridfinityOpeningWidthLeft", "gridfinityOpeningWidthRight", "gridfinityOpeningDistanceBack", "gridfinityOpeningDistanceFront", "gridfinityOpeningDistanceLeft", "gridfinityOpeningDistanceRight", "surfaceSpacing", "surfaceDepth", "surfaceFade", "surfaceCrackWidth", "surfaceCrackRecess", "surfaceTextSize", "surfaceCarbonCross", "surfaceBrickHeight", "surfaceBrickJoint", "surfaceRingWidth", "surfaceTileHeight", "vase.wall", "vase.bottom", "vase.ribDepth", "vase.stripeDepth", "vase.voronoiCell", "vase.voronoiGap", "vase.voronoiDepth", "vase.waveAmplitude", "vaseFloor.drainDiameter", "vaseFloor.floorSlope", "vaseFloor.footHeight", "vaseFloor.rubberFootDiameter", "vaseFloor.rubberFootDepth", "vaseFloor.cutoutSize", "vaseFloor.cutoutWeb", "vaseFloor.lampHole", "vaseFloor.puckDiameter", "vaseFloor.lampNotch", "vaseFloor.lampNotchHeight", "vaseFloor.reinforceDepth", "vaseFloor.slitWidth", "vaseFloor.lineWidth", "vasePrint.lineWidth", "vaseParts.legHeight", "vaseParts.legDiameter", "vaseParts.saucerHeight", "vaseParts.saucerGap", "vaseParts.saucerWall", "vaseParts.insertWall", "vaseParts.insertStandoff", "vaseParts.reservoirHeight", "vaseParts.frogHole", "vaseParts.tubeDiameter", "vaseParts.lidClearance", "vaseParts.lidThickness", "vaseParts.lidDepth", "vaseParts.lidHeight", "vaseParts.lidJoint", "vaseParts.threadPitch", "vaseParts.fitClearance"].includes(key);
+  return ["textLineWidth", "textBlockGap", "textEdgeSize", "letterSize", "iconWidth", "keyringDiameter", "keyringAlong", "positionX", "positionY", "positionZ", "pivotX", "pivotY", "pivotZ", "radius", "length", "width", "height", "bevel", "topRadius", "baseRadius", "curvedConeTop", "thickness", "outerDiameter", "innerDiameter", "textRadius", "extrudeTopOffsetX", "extrudeTopOffsetZ", "toothSize", "toothWidth", "gearBacklash", "centerHole", "slotSmallEnd", "slotCentreDistance", "torusTube", "sketchLineWidth", "sketchCuttingEdge", "topLength", "topWidth", "bottomLength", "bottomWidth", "diameter", "pitch", "clearance", "axialClearance", "boltClearance", "threadDepth", "threadCoreDiameter", "threadLength", "headHeight", "headDiameter", "collarHeight", "collarDiameter", "driveSize", "driveDepth", "chamfer", "chamferBottom", "headChamfer", "wire", "starOuterSize", "starInnerSize", "starOuterFillet", "starInnerFillet", "heartTipFillet", "crescentThickness", "crescentTipFillet", "honeycombCellSize", "honeycombWallThickness", "honeycombFrameWidth", "cornerFillet", "topBottomFillet", "bentTubeSize", "bentTubeWall", "bentTubeSegmentLength", "bentTubeBendRadius", "dovetailNeckWidth", "dovetailClearance", "screwBossHole", "screwBossHoleDepth", "screwBossDiameter", "screwBossGussetHeight", "screwBossGussetThickness", "screwBossReach", "snapFitThickness", "snapFitUndercut", "snapFitClearance", "snapFitFoot", "ribThickness", "ribFootThickness", "portClearance", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeCornerRadius", "hingeScrewDiameter", "hingeScrewSpacing", "hingeScrewAcross", "hingeNutWidth", "screwHoleShaft", "screwHoleHeadDepth", "knurlDepth", "knurlChamfer", "loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftOffsetX", "loftOffsetZ", "loftWall", "loftSectionHeight", "loftSectionWidth", "loftSectionDepth", "loftSectionCorner", "loftSectionOffsetX", "loftSectionOffsetZ", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelBackWidth", "gridfinityLabelCornerSize", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelFrontWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelLeftWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelRightWidth", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityDrawerWidth", "gridfinityDrawerDepth", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinitySwallowtailClearance", "gridfinityDividerThickness", "gridfinityDividerPositionX", "gridfinityDividerPositionZ", "gridfinityCompartmentLabelWidth", "gridfinityOpeningCornerSize", "gridfinityOpeningDepthBack", "gridfinityOpeningDepthFront", "gridfinityOpeningDepthLeft", "gridfinityOpeningDepthRight", "gridfinityOpeningWidthBack", "gridfinityOpeningWidthFront", "gridfinityOpeningWidthLeft", "gridfinityOpeningWidthRight", "gridfinityOpeningDistanceBack", "gridfinityOpeningDistanceFront", "gridfinityOpeningDistanceLeft", "gridfinityOpeningDistanceRight", "surfaceSpacing", "surfaceDepth", "surfaceFade", "surfaceCrackWidth", "surfaceCrackRecess", "surfaceTextSize", "surfaceCarbonCross", "surfaceBrickHeight", "surfaceBrickJoint", "surfaceTileGap", "surfaceRingWidth", "surfaceTileHeight", "vase.wall", "vase.bottom", "vase.ribDepth", "vase.stripeDepth", "vase.voronoiCell", "vase.voronoiGap", "vase.voronoiDepth", "vase.waveAmplitude", "vaseFloor.drainDiameter", "vaseFloor.floorSlope", "vaseFloor.footHeight", "vaseFloor.rubberFootDiameter", "vaseFloor.rubberFootDepth", "vaseFloor.cutoutSize", "vaseFloor.cutoutWeb", "vaseFloor.lampHole", "vaseFloor.puckDiameter", "vaseFloor.lampNotch", "vaseFloor.lampNotchHeight", "vaseFloor.reinforceDepth", "vaseFloor.slitWidth", "vaseFloor.lineWidth", "vasePrint.lineWidth", "vaseParts.legHeight", "vaseParts.legDiameter", "vaseParts.saucerHeight", "vaseParts.saucerGap", "vaseParts.saucerWall", "vaseParts.insertWall", "vaseParts.insertStandoff", "vaseParts.reservoirHeight", "vaseParts.frogHole", "vaseParts.tubeDiameter", "vaseParts.lidClearance", "vaseParts.lidThickness", "vaseParts.lidDepth", "vaseParts.lidHeight", "vaseParts.lidJoint", "vaseParts.threadPitch", "vaseParts.fitClearance"].includes(key);
 }
 
 /**
@@ -1670,6 +1686,8 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         if (limits.offset > 0) {
           properties.push({ id: keys.offset, label: t("prop.gridfinityLabelOffset"), value: clamp(shape[keys.offset] ?? 0, -limits.offset, limits.offset), min: -limits.offset, max: limits.offset, step: 1, onChange: (value) => onUpdate({ [keys.offset]: value }) });
         }
+        // The letters raised on the shelf (#1308); none on a tray, where they would stand above its top.
+        if (plan.type === "bin") properties.push(gridfinityLabelTextProperty(fields, wall, shape[GRIDFINITY_LABEL_TEXT_KEYS[wall]], (text) => onUpdate({ [GRIDFINITY_LABEL_TEXT_KEYS[wall]]: text })));
       });
       const shelves = compartments
         ? compartments.cells.some((cell) => gridfinityCompartmentLabel(fields, cell.column, cell.row))
@@ -1686,6 +1704,20 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
           },
           { id: "gridfinityLabelCornerSize", label: t("prop.gridfinityLabelCornerSize"), value: gridfinityLabelCornerSize(fields), min: 0, max: gridfinityLabelMaxCornerSize(plan), step: 0.5, onChange: (value) => onUpdate({ gridfinityLabelCornerSize: value }) },
         );
+      }
+      // One font for the letters on every shelf of the bin, the built-in ones (#1308), once a shelf that is built has a text.
+      const lettered = gridfinityLabelTextPlaces(fields);
+      if (lettered.length > 0) {
+        const builtIn = t("font.builtInGroup");
+        properties.push({
+          type: "select",
+          id: "gridfinityLabelFont",
+          label: t("prop.font"),
+          value: gridfinityLabelFont(fields),
+          options: GRIDFINITY_LABEL_FONTS.map((value) => ({ value, label: value, group: builtIn })),
+          fontSample: lettered[0].text,
+          onChange: (font) => onUpdate({ gridfinityLabelFont: font }),
+        });
       }
     }
     if (gridfinityScoopFits(fields)) {
@@ -1713,7 +1745,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
     const plan = hingePlan({ ...shape, depth });
     return [
       { id: "width", label: t("prop.hingeLength"), value: width, min: MIN_SHAPE_SIZE, max: 300, onChange: setWidth },
-      { id: "length", label: t("prop.hingeOpenWidth"), value: depth, min: minimumHingeDepth(shape.height, plan.leaf, plan.clearance), max: 300, onChange: setDepth },
+      { id: "length", label: t("prop.hingeOpenWidth"), value: depth, min: minimumHingeDepth(shape.height, plan.leaf, plan.clearance, plan.lift), max: 300, onChange: setDepth },
       { id: "height", label: t("prop.hingeKnuckleDiameter"), value: shape.height, min: 2, max: 60, onChange: setHeight },
       {
         type: "select",
@@ -1774,7 +1806,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         label: t("prop.hingeLeafThickness"),
         value: plan.leaf,
         min: 0.4,
-        max: plan.style === "cone" ? shape.height : Math.max(0.5, plan.radius - plan.boreRadius),
+        max: plan.style === "cone" ? (plan.raised ? (shape.height - plan.clearance) / 2 : shape.height) : Math.max(0.5, plan.radius - plan.boreRadius),
         step: 0.1,
         onChange: (value) => onUpdate({ hingeLeafThickness: normalizeHingeLeafThickness(value, shape.height, plan.pinRadius * 2, plan.clearance, plan.style) }),
       },
@@ -1782,17 +1814,17 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         type: "select",
         id: "hingeLeafStyle",
         label: t("prop.hingeLeafStyle"),
-        value: plan.fingers ? "fingers" : "plate",
-        options: [{ value: "plate", label: t("hinge.leafPlate") }, { value: "fingers", label: t("hinge.leafFingers") }],
-        hint: plan.fingers ? t("hinge.leafFingersHint") : undefined,
-        onChange: (value) => onUpdate({ hingeLeafStyle: value === "fingers" ? "fingers" : undefined }),
+        value: plan.fingers ? "fingers" : plan.raised ? "raised" : "plate",
+        options: [{ value: "plate", label: t("hinge.leafPlate") }, { value: "fingers", label: t("hinge.leafFingers") }, { value: "raised", label: t("hinge.leafRaised") }],
+        hint: plan.fingers ? t("hinge.leafFingersHint") : plan.raised ? t("hinge.leafRaisedHint") : undefined,
+        onChange: (value) => onUpdate({ hingeLeafStyle: value === "fingers" || value === "raised" ? value : undefined }),
       },
       {
         id: "hingeCornerRadius",
         label: t("prop.hingeCornerRadius"),
         value: plan.cornerRadius,
         min: 0,
-        max: Math.max(0.5, hingeLargestCornerRadius(plan.fingers ? plan.knuckleLength : width, depth, plan.leafStart)),
+        max: Math.max(0.5, hingeLargestCornerRadius(plan.fingers ? plan.knuckleLength : width, depth, plan.leafStartB)),
         step: 0.5,
         onChange: (value) => onUpdate({ hingeCornerRadius: value > 0 ? value : undefined }),
       },
@@ -1867,7 +1899,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
           onChange: (value: number) => onUpdate({ hingeScrewAcross: value > 0 ? value : undefined }),
         },
       ] : []),
-      { id: "hingeAngle", label: t("prop.hingeAngle"), value: plan.angle, min: 0, max: MAX_HINGE_ANGLE, step: 1, onChange: (value) => onUpdate({ hingeAngle: normalizeHingeAngle(value) }) },
+      { id: "hingeAngle", label: t("prop.hingeAngle"), value: plan.angle, min: MIN_HINGE_ANGLE, max: MAX_HINGE_ANGLE, step: 1, onChange: (value) => onUpdate({ hingeAngle: normalizeHingeAngle(value) }) },
       {
         id: "hingeClearance",
         label: t("prop.hingeClearance"),
@@ -2170,6 +2202,11 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
 
   if (shape.kind === "rib") {
     const style = normalizeRibStyle(shape.ribStyle);
+    // On its foot (Discussion #1307) the box's depth is the foot's width, the rib's thickness a field of its own; the
+    // depth's field id ("length") goes with the depth, so the dimension on the work area stays the same field.
+    const onFoot = shape.ribFoot === true;
+    const size = ribSize({ ...shape, width, depth });
+    const footPatch = (patch: Partial<WorkplaneShape>): Partial<WorkplaneShape> => (patch.depth === undefined ? patch : { ...patch, size: resizedShapeSize(width, patch.depth) });
     const properties: ShapePropertyConfig[] = [
       {
         type: "select",
@@ -2183,7 +2220,9 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
       },
       { id: "width", label: t(style === "gusset" ? "prop.ribGussetFoot" : "prop.ribLength"), value: width, min: 0.2, max: 500, onChange: setWidth },
       { id: "height", label: t(style === "gusset" ? "prop.ribGussetLeg" : "prop.height"), value: shape.height, min: 0.2, max: 300, onChange: setHeight },
-      { id: "length", label: t("prop.ribThickness"), value: depth, min: 0.2, max: 50, step: 0.1, hint: t("rib.thicknessHint"), onChange: setDepth },
+      onFoot
+        ? { id: "ribThickness", label: t("prop.ribThickness"), value: size.thickness, min: 0.2, max: 50, step: 0.1, hint: t("rib.thicknessHint"), onChange: (value) => onUpdate(footPatch(ribThicknessOnFootPatch({ ...shape, width, depth }, value))) }
+        : { id: "length", label: t("prop.ribThickness"), value: depth, min: 0.2, max: 50, step: 0.1, hint: t("rib.thicknessHint"), onChange: setDepth },
     ];
     if (style === "straight") {
       properties.push({
@@ -2194,6 +2233,14 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         options: [{ value: "flat", label: t("rib.topFlat") }, { value: "round", label: t("rib.topRound") }, { value: "chamfer", label: t("rib.topChamfer") }],
         onChange: (value) => onUpdate({ ribTop: normalizeRibTop(value) }),
       });
+    }
+    // Switched on or off the box follows the foot, centred on the rib, so the rib stays where it stands.
+    properties.push({ type: "toggle", id: "ribFoot", label: t("prop.ribFoot"), value: onFoot, onChange: (value) => onUpdate(footPatch(ribFootSwitch({ ...shape, width, depth }, value))) });
+    if (onFoot) {
+      properties.push(
+        { id: "length", label: t("prop.ribFootWidth"), value: depth, min: Math.round((size.thickness + 2 * MIN_RIB_FOOT_OVERHANG) * 100) / 100, max: 100, step: 0.1, hint: t("rib.footHint"), onChange: (value) => onUpdate(footPatch({ depth: value })) },
+        { id: "ribFootThickness", label: t("prop.ribFootThickness"), value: size.foot?.thickness ?? MIN_RIB_FOOT_THICKNESS, min: MIN_RIB_FOOT_THICKNESS, max: Math.max(MIN_RIB_FOOT_THICKNESS, shape.height / 2), step: 0.1, hint: t("rib.footThicknessHint"), onChange: (value) => onUpdate({ ribFootThickness: value }) },
+      );
     }
     return properties;
   }
@@ -3148,12 +3195,117 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
     return properties;
   }
 
+  if (shape.kind === "pulley") {
+    // A GT2 pulley (Discussion #1319): the teeth set the size (2 mm of belt each), the belt width, the
+    // flanges and the hub the height. Every change carries the box it gives, so nothing else rescales it.
+    const measures = pulleyMeasures(shape);
+    const applyPulley = (patch: Partial<WorkplaneShape>) => onUpdate({ ...patch, ...pulleyFootprint({ ...shape, ...patch }) });
+    // A bore or hub asked far too wide: what the pulley then allows is its limit.
+    const boreLimit = 2 * pulleyMeasures({ ...shape, centerHoleSize: 1e6 }).boreRadius;
+    const hubLimit = 2 * pulleyMeasures({ ...shape, pulleyHubDiameter: 1e6 }).hubRadius;
+    const pulleyProperties: ShapePropertyConfig[] = [
+      {
+        id: "teeth",
+        label: t("prop.teeth"),
+        value: measures.teeth,
+        min: MIN_PULLEY_TEETH,
+        max: MAX_PULLEY_TEETH,
+        step: 1,
+        hint: t("inspector.pulleyHint", { outside: plainNumber(Math.round(measures.outsideRadius * 200) / 100), pitch: plainNumber(Math.round(pulleyPitchDiameter(measures.teeth) * 100) / 100) }),
+        onChange: (value) => applyPulley({ teeth: normalizePulleyTeeth(value) }),
+      },
+      {
+        id: "pulleyBeltWidth",
+        label: t("prop.pulleyBeltWidth"),
+        value: measures.beltWidth,
+        min: MIN_PULLEY_BELT_WIDTH,
+        max: MAX_PULLEY_BELT_WIDTH,
+        step: 0.5,
+        hint: t("inspector.pulleyBeltHint"),
+        onChange: (value) => applyPulley({ pulleyBeltWidth: value }),
+      },
+      {
+        id: "centerHole",
+        label: t("prop.centerHole"),
+        value: 2 * measures.boreRadius,
+        min: 0,
+        max: boreLimit,
+        step: 0.1,
+        onChange: (value) => applyPulley({ centerHoleSize: Math.min(value, boreLimit) }),
+      },
+      {
+        id: "pulleyFlange",
+        label: t("prop.pulleyFlange"),
+        value: measures.flange,
+        min: 0,
+        max: MAX_PULLEY_FLANGE,
+        step: 0.1,
+        hint: t("inspector.pulleyFlangeHint"),
+        onChange: (value) => applyPulley({ pulleyFlange: value }),
+      },
+    ];
+    if (measures.flange > 0) {
+      pulleyProperties.push({
+        id: "pulleyFlangeRise",
+        label: t("prop.pulleyFlangeRise"),
+        value: measures.flangeRadius - measures.outsideRadius,
+        min: MIN_PULLEY_FLANGE_RISE,
+        max: MAX_PULLEY_FLANGE_RISE,
+        step: 0.1,
+        onChange: (value) => applyPulley({ pulleyFlangeRise: value }),
+      });
+    }
+    pulleyProperties.push({
+      id: "pulleyHubHeight",
+      label: t("prop.pulleyHubHeight"),
+      value: measures.hubHeight,
+      min: 0,
+      max: MAX_PULLEY_HUB_HEIGHT,
+      step: 0.5,
+      hint: t("inspector.pulleyHubHint"),
+      onChange: (value) => applyPulley({ pulleyHubHeight: value }),
+    });
+    if (measures.hubHeight > 0) {
+      pulleyProperties.push({
+        id: "pulleyHubDiameter",
+        label: t("prop.pulleyHubDiameter"),
+        value: 2 * measures.hubRadius,
+        min: MIN_SHAPE_SIZE,
+        max: hubLimit,
+        step: 0.1,
+        onChange: (value) => applyPulley({ pulleyHubDiameter: Math.min(value, hubLimit) }),
+      });
+    }
+    return pulleyProperties;
+  }
+
   if (shape.kind === "hirth") {
     // A Hirth joint (#1016): teeth round the ring, their height at the rim and the bore. Changing the
     // teeth or the size keeps the angle between the flanks; only the tooth height changes it.
     const teeth = normalizeHirthTeeth(shape.teeth);
     const toothHeight = normalizeHirthToothHeight(shape.toothSize, baseWidth, baseDepth, shape.height, teeth);
     const bore = normalizeHirthBore(shape.centerHoleSize, baseWidth, baseDepth);
+    // Saw teeth (Discussion #1320): one flank steep, up to a straight step, the other the rest of the tooth.
+    const steepFlank = normalizeHirthSteepFlank(shape.hirthSteepFlank);
+    const split = hirthSplit(baseWidth, baseDepth, teeth, toothHeight, steepFlank, shape.hirthReverse);
+    const sawProperties: ShapePropertyConfig[] = steepFlank === undefined ? [] : [
+      {
+        id: "hirthSteepFlank",
+        label: t("prop.hirthSteepFlank"),
+        value: steepFlank,
+        min: MIN_HIRTH_STEEP_FLANK,
+        max: MAX_HIRTH_STEEP_FLANK,
+        step: 1,
+        onChange: (value) => onUpdate({ hirthSteepFlank: normalizeHirthSteepFlank(value) ?? DEFAULT_HIRTH_STEEP_FLANK }),
+      },
+      {
+        type: "toggle",
+        id: "hirthReverse",
+        label: t("prop.hirthReverse"),
+        value: shape.hirthReverse === true,
+        onChange: (value) => onUpdate({ hirthReverse: value || undefined }),
+      },
+    ];
     const keepAngle = (patch: Partial<WorkplaneShape>, nextTeeth = teeth, options?: ShapeInspectorUpdateOptions) => {
       const nextWidth = patch.width ?? baseWidth;
       const nextDepth = patch.depth ?? baseDepth;
@@ -3172,7 +3324,9 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         min: MIN_HIRTH_TEETH,
         max: MAX_HIRTH_TEETH,
         step: 1,
-        hint: t("inspector.hirthHint", { angle: plainNumber(hirthFlankAngle(baseWidth, baseDepth, teeth, toothHeight)), step: plainNumber(360 / teeth) }),
+        hint: steepFlank === undefined || split === 0.5
+          ? t("inspector.hirthHint", { angle: plainNumber(hirthFlankAngle(baseWidth, baseDepth, teeth, toothHeight)), step: plainNumber(360 / teeth) })
+          : t("inspector.hirthSawHint", { angle: plainNumber(hirthGentleFlankAngle(baseWidth, baseDepth, teeth, toothHeight, split)), step: plainNumber(360 / teeth) }),
         onChange: (value) => {
           const nextTeeth = normalizeHirthTeeth(value);
           keepAngle({ teeth: nextTeeth }, nextTeeth);
@@ -3187,6 +3341,15 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         step: 0.1,
         onChange: (value) => onUpdate({ toothSize: normalizeHirthToothHeight(value, baseWidth, baseDepth, shape.height, teeth) }),
       },
+      {
+        type: "select",
+        id: "hirthProfile",
+        label: t("prop.hirthProfile"),
+        value: steepFlank === undefined ? "symmetric" : "saw",
+        options: [{ value: "symmetric", label: t("hirth.profileSymmetric") }, { value: "saw", label: t("hirth.profileSaw") }],
+        onChange: (value) => onUpdate({ hirthSteepFlank: value === "saw" ? steepFlank ?? DEFAULT_HIRTH_STEEP_FLANK : undefined }),
+      },
+      ...sawProperties,
       {
         id: "centerHole",
         label: t("prop.centerHole"),
@@ -3214,7 +3377,7 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         value: shape.height,
         min: MIN_HIRTH_BASE + MIN_HIRTH_TOOTH_HEIGHT,
         max: 160,
-        // A lower joint keeps a base under the roots: the teeth give way first.
+        // The teeth reach down to the bottom at most: on a lower joint they give way first.
         onChange: (height) => onUpdate({ height, toothSize: normalizeHirthToothHeight(toothHeight, baseWidth, baseDepth, height, teeth) }, { resizeAxis: "height" }),
       },
     ];
@@ -3398,6 +3561,20 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         step: 1,
         onChange: (helixAngle) => onUpdate({ helixAngle }),
       });
+    }
+    // A bevel gear's teeth can turn while they taper, a spiral bevel gear (Discussion #1299); 0 keeps them straight.
+    if (normalizeGearType(shape.gearType) === "bevel") {
+      properties.push({
+        id: "bevelHelixAngle",
+        label: t("prop.helixAngle"),
+        value: normalizeBevelHelixAngle(shape.bevelHelixAngle),
+        min: MIN_GEAR_HELIX_ANGLE,
+        max: MAX_GEAR_HELIX_ANGLE,
+        step: 1,
+        onChange: (bevelHelixAngle) => onUpdate({ bevelHelixAngle: bevelHelixAngle || undefined }),
+      });
+    }
+    if (gearTypeHasHelix(shape.gearType) || (normalizeGearType(shape.gearType) === "bevel" && bevelGearIsSpiral(shape.bevelHelixAngle))) {
       properties.push({
         id: "quality",
       label: t("prop.quality"),
@@ -3471,6 +3648,14 @@ function getShapePropertiesWithAppLimits(shape: WorkplaneShape, onUpdate: ShapeI
         hint: t("prop.textSpacingHint"),
         onChange: (spacing: number) => onUpdate(textSpacingPatch(shape, spacing)),
       },
+      // Automatic kerning (#1297): pairs such as AY or To move closer; the letters keep their size and the box follows.
+      ...(shape.textVertical ? [] : [{
+        type: "toggle",
+        id: "textKerning",
+        label: t("prop.textKerning"),
+        value: Boolean(shape.textKerning),
+        onChange: (kerning: boolean) => onUpdate(textKerningPatch(shape, kerning)),
+      } satisfies ShapePropertyConfig]),
       // The letters stacked top to bottom (#981). Straight: the box turns upright and the letters keep their size. Curved: the
       // column runs along the circle at its left side, the letters standing upright; the box follows in curvedTextPatch.
       {
@@ -3756,6 +3941,21 @@ function textFontProperty(shape: WorkplaneShape, onUpdate: ShapeInspectorUpdate)
   };
 }
 
+/**
+ * The text raised on a Gridfinity shelf (#1308), the wall's or a compartment's, at most 24 characters; empty is none.
+ * A note under it says when its letters would come out under 3 mm and are left out.
+ */
+function gridfinityLabelTextProperty(fields: GridfinityShapeFields, shelf: GridfinityLabelTextPlace["shelf"], value: string | undefined, onChange: (text: string | undefined) => void): ShapePropertyConfig {
+  return {
+    type: "text",
+    id: typeof shelf === "string" ? GRIDFINITY_LABEL_TEXT_KEYS[shelf] : "gridfinityCompartmentLabelText",
+    label: t("prop.text"),
+    value: value ?? "",
+    hint: gridfinityLabelTextLeftOut(fields, shelf) ? t("gridfinity.labelTextTooSmallHint") : undefined,
+    onChange: (text) => onChange(text.slice(0, MAX_GRIDFINITY_LABEL_TEXT_LENGTH) || undefined),
+  };
+}
+
 /** The fonts a text stuck on a surface can take: the built-in ones, then the fonts of one's own this browser keeps. */
 function surfaceTextFontOptions(current: string): SelectPropertyOption[] {
   const builtIn = t("font.builtInGroup");
@@ -3960,7 +4160,7 @@ export function ShapeInspector({
     ? properties.filter((property) => ["gearProfile", "teeth", "gearModule", "gearPressureAngle", "gearBacklash", "gearRim", "toothSize", "toothWidth"].includes(property.id))
     : [];
   const gearHelixProperties = shape.kind === "gear"
-    ? properties.filter((property) => ["helixAngle", "quality"].includes(property.id))
+    ? properties.filter((property) => ["helixAngle", "bevelHelixAngle", "quality"].includes(property.id))
     : [];
   const taper = shapeTaperDimensions(shape);
   const taperDimensionMax = shapeDimensionLimit(workspace, shape.kind, DEFAULT_TAPER_DIMENSION_MAX);
@@ -4161,15 +4361,19 @@ export function ShapeInspector({
    * Arbeitsflaeche), Z als Hoehe seiner Unterkante. Die Regler reichen so weit
    * wie das Ziehen, eine Plattengroesse ueber jeden Rand.
    */
+  const undersideBelow = useMemo(() => undersideOffset(shape), [shape]);
+  const plateOffsetX = useMemo(() => plateOffsetOfShape(workspace, shape), [shape, workspace]);
   const reachX = workspace.width * 1.5;
   const reachY = workspace.depth * 1.5;
   // Up, the slider reaches as far as the plate does and the printer is high; any number can be typed (#425).
   const reachZ = positionReach(workspace, printerPresetById(workspace.printer)?.height);
   const positionProperties: RangePropertyConfig[] = [
-    { id: "positionX", label: t("prop.positionX"), value: shape.x, min: -reachX, max: reachX, step: 0.5, onChange: (x) => onUpdate({ x }) },
+    // X counts from the middle of the body's own build plate (Discussion #456); on the first plate, as always.
+    { id: "positionX", label: t("prop.positionX"), value: shape.x - plateOffsetX, min: -reachX, max: reachX, step: 0.5, onChange: (x) => onUpdate({ x: x + plateOffsetX }) },
     // Y counts towards the back, right-handed (#182); inside, z runs towards the viewer.
     { id: "positionY", label: t("prop.positionY"), value: displayY(shape.z), min: -reachY, max: reachY, step: 0.5, onChange: (y) => onUpdate({ z: insideZ(y) }) },
-    { id: "positionZ", label: t("prop.positionZ"), value: shape.elevation ?? 0, min: -Math.max(180, reachZ), max: reachZ, step: 0.5, onChange: (elevation) => onUpdate({ elevation }) },
+    // Z is the height of the underside as the body stands, also tilted (Discussion #1303).
+    { id: "positionZ", label: t("prop.positionZ"), value: (shape.elevation ?? 0) + undersideBelow, min: -Math.max(180, reachZ), max: reachZ, step: 0.5, onChange: (z) => onUpdate({ elevation: z - undersideBelow }) },
   ];
   // The body's turn about X, Y and Z, as it is drawn. A new angle turns it
   // about its centre, or about its own pivot if it has one.
@@ -4221,7 +4425,7 @@ export function ShapeInspector({
     ? positionProperties.map((property): RangePropertyConfig => {
         if (property.id === "positionX") {
           const offset = shape.x - edges.minX;
-          return { ...property, label: t("prop.positionXEdge"), value: edges.minX, onChange: (x) => onUpdate({ x: x + offset }) };
+          return { ...property, label: t("prop.positionXEdge"), value: edges.minX - plateOffsetX, onChange: (x) => onUpdate({ x: x + plateOffsetX + offset }) };
         }
         if (property.id === "positionY") {
           // Y runs towards the back, so the front edge is the smaller Y.
@@ -4968,7 +5172,7 @@ export function ShapeInspector({
           ) : null}
         </div>
       ) : null}
-      {gearTypeHasHelix(gearType ?? undefined) ? (
+      {gearHelixProperties.length ? (
         <div className={`property-card ${gearHelixOpen ? "" : "collapsed"}`}>
           <button
             className="property-card-header"
@@ -5987,6 +6191,8 @@ const BUMP_SHAPES = ["dome", "pointed", "round", "flat"] as const;
 const SURFACE_SPACING_LABEL: Partial<Record<SurfaceTexturePattern, MessageKey>> = {
   cells: "inspector.surfaceSpacingCells",
   bricks: "inspector.surfaceSpacingBricks",
+  squares: "inspector.surfaceSpacingSquares",
+  triangles: "inspector.surfaceSpacingTriangles",
   knit: "inspector.surfaceSpacingKnit",
   rope: "inspector.surfaceSpacingRope",
   weave: "inspector.surfaceSpacingWeave",
@@ -6172,6 +6378,8 @@ export function SurfaceTextureCard({
   const carbon = settings.pattern === "carbon";
   // Bricks: a bond, a course's height and the joint's width in mm instead of a share of the spacing.
   const bricks = settings.pattern === "bricks";
+  // Squares and triangles: the gap in mm, and the first row at the bottom edge if wanted.
+  const tiles = settings.pattern === "squares" || settings.pattern === "triangles";
   // Bark and wood: a tree and a wood of their own, and the annual rings on a log's ends.
   const bark = settings.pattern === "bark";
   const wood = settings.pattern === "wood";
@@ -6456,6 +6664,13 @@ export function SurfaceTextureCard({
                       <p className="cylinder-wrap-hint">{t("inspector.surfaceBrickHint")}</p>
                     </>
                   ) : null}
+                  {tiles ? (
+                    <>
+                      {range("surfaceTileGap", t("inspector.surfaceTileGap"), settings.tileGap, [SURFACE_TEXTURE_LIMITS.tileGap[0], 20], 0.1, (tileGap) => set({ tileGap }))}
+                      <ToggleProperty label={t("inspector.surfaceTileFromBottom")} value={settings.tileFromBottom} disabled={disabled || busy} onChange={(tileFromBottom) => set({ tileFromBottom })} />
+                      <p className="cylinder-wrap-hint">{t("inspector.surfaceTileHint")}</p>
+                    </>
+                  ) : null}
                   {settings.pattern === "cells" || grain ? (
                     <>
                       {range("surfaceSeed", t("inspector.surfaceSeed"), settings.seed, [1, 999], 1, (seed) => set({ seed }))}
@@ -6607,7 +6822,7 @@ export function SurfaceTextureCard({
                         </>
                       ) : null}
                     </>
-                  ) : (
+                  ) : tiles ? null : (
                     range(
                       "surfaceCoverage",
                       t(SURFACE_COVERAGE_LABEL[settings.pattern] ?? "inspector.surfaceCoverage"),
@@ -6625,6 +6840,8 @@ export function SurfaceTextureCard({
                           label={t("inspector.surfaceProfile")}
                           value={settings.profile}
                           options={options(SURFACE_TEXTURE_PROFILES, (value) => t(SURFACE_TEXTURE_LABELS.profile[value]))}
+                          // Squares and triangles: what the profile makes of a tile.
+                          hint={tiles ? t("inspector.surfaceTileProfileHint") : undefined}
                           disabled={disabled || busy}
                           onChange={(value) => set({ profile: value as SurfaceTextureSettings["profile"] })}
                         />
@@ -6659,7 +6876,7 @@ export function SurfaceTextureCard({
                           <p className="cylinder-wrap-hint">{t(SURFACE_TEXTURE_LABELS.capEdgeHint[capEdgeShown])}</p>
                         </>
                       ) : null}
-                      {grain || cracks || bricks || wood || bark ? null : (
+                      {grain || cracks || bricks || tiles || wood || bark ? null : (
                         <>
                           {range("surfaceFaceTurn", t("inspector.surfaceFaceTurn"), settings.faceTurn, SURFACE_TEXTURE_LIMITS.faceTurn, 1, (faceTurn) => set({ faceTurn }))}
                           <p className="cylinder-wrap-hint">{t("inspector.surfaceFaceTurnHint")}</p>
@@ -6983,9 +7200,10 @@ function GridfinityCompartmentsCard({
         const maxWidth = gridfinityCompartmentLabelMaxWidth(fields, cell, built.side);
         const change = (changes: Partial<GridfinityCompartmentLabel>) => {
           const next: GridfinityCompartmentLabel = { ...stored, ...changes };
-          // 100 % and the middle are what a label has unset, so they are written as unset.
+          // 100 % and the middle are what a label has unset, so they are written as unset, and so is no text.
           if (next.length === undefined || next.length >= 100) delete next.length;
           if (next.align === "middle") delete next.align;
+          if (!next.text) delete next.text;
           writeLabel(next);
         };
         // A shelf that comes out shorter than 4 mm is left out, which the row says rather than leave it unexplained.
@@ -7003,6 +7221,7 @@ function GridfinityCompartmentsCard({
           });
         }
         properties.push({ id: "gridfinityCompartmentLabelWidth", label: t("prop.gridfinityLabelWidth"), value: built.width, min: MIN_GRIDFINITY_LABEL_WIDTH, max: Math.max(MIN_GRIDFINITY_LABEL_WIDTH, maxWidth), step: 0.5, onChange: (value) => change({ width: clamp(value, MIN_GRIDFINITY_LABEL_WIDTH, maxWidth) }) });
+        if (normalizeGridfinityType(fields.gridfinityType) === "bin") properties.push(gridfinityLabelTextProperty(fields, { column, row }, stored.text, (text) => change({ text })));
       }
     }
   }
@@ -7609,7 +7828,7 @@ function RangeProperty({
  * field is uncontrolled: the shape's text is written into it only while it is not being edited,
  * and a word being composed (Japanese, Chinese, Korean) is committed once, when it is done.
  */
-function TextProperty({ label, value, disabled, maxLength = 24, onChange, onInteractionActiveChange }: Omit<TextPropertyConfig, "id"> & { id?: string } & { disabled?: boolean; maxLength?: number; onInteractionActiveChange?: (active: boolean) => void }) {
+function TextProperty({ label, value, hint, disabled, maxLength = 24, onChange, onInteractionActiveChange }: Omit<TextPropertyConfig, "id"> & { id?: string } & { disabled?: boolean; maxLength?: number; onInteractionActiveChange?: (active: boolean) => void }) {
   const holdInteraction = useInteractionHold(onInteractionActiveChange);
   const field = useRef<HTMLInputElement>(null);
   const editing = useRef(false);
@@ -7617,7 +7836,7 @@ function TextProperty({ label, value, disabled, maxLength = 24, onChange, onInte
   useEffect(() => {
     if (field.current && !editing.current && field.current.value !== value) field.current.value = value;
   }, [value]);
-  return (
+  const row = (
     <label className="text-property">
       <span>{label}</span>
       <input
@@ -7651,6 +7870,7 @@ function TextProperty({ label, value, disabled, maxLength = 24, onChange, onInte
       />
     </label>
   );
+  return hint ? <>{row}<p className="property-hint">{hint}</p></> : row;
 }
 
 function SelectProperty({ label, value, options, hint, fontSample, disabled, onChange, onReset }: Omit<SelectPropertyConfig, "id"> & { id?: string } & { disabled?: boolean; onReset?: () => void }) {

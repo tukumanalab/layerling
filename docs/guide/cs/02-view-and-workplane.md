@@ -43,7 +43,7 @@ U levého okraje je úzká lišta. Shora obsahuje:
 - {{ui:camera.zoomIn}} a {{ui:camera.zoomOut}} mění přiblížení po krocích, stejně jako [[+]] a [[−]].
 - {{ui:camera.orthographic}} zapne rovnoběžné promítání bez perspektivy. Rovnoběžné hrany zůstávají rovnoběžné, což usnadňuje měření a zarovnávání. Přepíná je i [[O]]; dalším kliknutím se vrátíte.
 - {{ui:camera.secondView}} otevře druhý pohled na projekt ve vlastním okně, popsaném níže. Druhé kliknutí ho zavře.
-- {{ui:camera.showScrollbars}} zobrazí posuvník u dolního okraje pohledu a druhý podél pravého okraje. Tažením posuvníku se pohled plynule posouvá, klik na šipku na jeho konci jím posune o kousek (podržením pokračuje) a klik vedle posuvníku o téměř celý pohled. Nic se neotáčí a na rozdíl od šipek na klávesnici posuvníky fungují i s vybraným dílem - šikovné zblízka u drobných detailů. Druhý klik je skryje; tento prohlížeč si volbu pamatuje.
+- {{ui:camera.showScrollbars}} zobrazí posuvník u dolního okraje pohledu a druhý podél pravého okraje. Tažením posuvníku se pohled plynule posouvá, klik na šipku na jeho konci jím posune o kousek (podržením pokračuje) a klik vedle posuvníku o téměř celý pohled. Nic se neotáčí a na rozdíl od šipek na klávesnici posuvníky fungují i s vybraným dílem - šikovné zblízka u drobných detailů. Druhý klik je skryje; zda se návrh otevře s nimi, určuje {{ui:workspace.startWithScrollbars}} v nastavení. Tento prohlížeč si volbu navíc pamatuje.
 - {{ui:camera.hideWorkplane}}, oko nad mřížkou, skryje podložku, aby bylo vidět spodní strany modelu. Mění pouze zobrazení; nové tvary stále dopadají na pracovní rovinu. Další kliknutí ji ukáže.
 - {{ui:camera.placeWorkplane}}, měření vzdáleností a úhelník jsou samostatné nástroje popsané níže a v kapitole [Měření a poznámky](chapter:measuring-and-notes).
 
@@ -94,6 +94,19 @@ Kliknutí mimo podložku nebo [[Esc]] vrátí rovinu na základní podložku. Ry
 Při umístění na ploše se vedle {{ui:camera.placeWorkplane}} objeví oko. Skryje rovinu bez zrušení jejího umístění: nové tvary dál dopadají na příslušnou plochu a otáčení používá její orientaci. Znovu ji ukáže oko nebo nastavení nové roviny.
 
 Chceš-li se na pracovní rovinu podívat kolmo, stiskni [[P]] nebo klikni na {{ui:camera.lookOntoWorkplane}} vedle {{ui:camera.placeWorkplane}} v liště pohledu. Pohled se otočí, až rovinu vidíš zpříma, ze strany, kam rostou nové tvary, s jejím počátkem uprostřed. Na základní desce je to pohled shora.
+
+## Tiskové podložky
+
+Když se návrh nevejde na jednu podložku, třeba krabička s víkem a vložkami, může mít více tiskových podložek. Klikněte na {{ui:editor.tool.buildPlates}} ve skupině {{ui:editor.group.arrange}} nebo zvolte {{ui:plates.moveTo}} v nabídce pravého kliknutí na těleso. Dole v pohledu se objeví lišta s tlačítkem pro každou podložku; číslo na něm udává, kolik těles na podložce stojí.
+
+- Každá podložka je velká jako pracovní plocha a podložky leží vedle sebe vpravo od první, 20 mm od sebe. Těleso patří k podložce, na které stojí střed jeho půdorysu, takže přetažením na druhou stranu se dostane na jinou podložku. Návrh má nejvýše 12 podložek.
+- Kliknutí na podložku v liště ji ukáže a nové tvary pak přistanou na ní. {{ui:plates.showAll}} ukáže všechny. Dvojklik na podložku nebo {{ui:plates.rename}} jí dá název, třeba „Víko“, který je na podložce napsán.
+- {{ui:plates.moveLeft}} a {{ui:plates.moveRight}} mění pořadí, tělesa se posouvají se svou podložkou. {{ui:plates.remove}} odebere aktivní podložku; její tělesa přejdou na první podložku na stejné místo.
+- {{ui:plates.arrange}} rozloží vybraná tělesa, nebo všechna, řadu po řadě na podložky, největší první, 5 mm od sebe, a přidává podložky, dokud jsou potřeba. Těleso větší než podložka zůstane na místě.
+- Se zvolenou tiskárnou se každé těleso kontroluje proti své podložce a výška tisku se počítá od nejnižšího tělesa na ní. Podložka s tělesem, které se nevejde, ukáže své číslo červeně.
+- Ve vlastnostech se X počítá od středu vlastní podložky tělesa.
+
+Okno exportu pak nabízí {{ui:export.plates}}: všechny podložky v jednom souboru, vedle sebe jako v návrhu; jeden soubor na podložku, zabalené v ZIP (STL, 3MF a OBJ); nebo jedinou podložku, umístěnou na místo první. Slicer otevře každý soubor jako jednu podložku, takže pro tisk podložek jedné po druhé použijte soubory po podložkách. Přesun těles mezi podložkami a jejich rozmístění lze vrátit zpět; přidání, pojmenování, řazení a odebrání podložek se ukládá s návrhem, ale nevrací se.
 
 ## Mřížka a přichytávání
 
@@ -162,6 +175,8 @@ Pohled náčrtu má vlastní barvy: {{ui:workspace.sketchBackground}} pro okno k
 ### Vzhled: pohled
 
 {{ui:workspace.startInPerspective}}: editor se pak otevře v perspektivním pohledu, ne v plochém.
+
+{{ui:workspace.startWithScrollbars}}: návrh se pak otevře se zobrazenými posuvníky pohledu. Nastavení se ukládá s návrhem i pomocí {{ui:workspace.makeDefault}}.
 
 {{ui:workspace.startView}} určuje úhel, ve kterém se otevře nový projekt a ke kterému se vrací {{ui:camera.home}}. Otočte a přibližte pohled, jak se vám líbí, a pak klikněte na {{ui:workspace.startViewUseCurrent}}; {{ui:workspace.startViewStandard}} vrátí obvyklý pohled zepředu zprava. Platí pro každý projekt v tomto prohlížeči. Projekt, který znovu otevřete, se stále otevře tak, jak jste ho opustili.
 

@@ -100,6 +100,8 @@ Umetna inteligenca dela z istimi funkcijami kot ti, teče po isti poti kot tvoje
 | `layerling_mate_faces` | položi ploskev enega objekta na ploskev drugega, drugo proti drugemu ali poravnano |
 | `layerling_open_group` | odpre skupino, da so njeni deli posamezno spremenljivi, tudi skupino v odprti |
 | `layerling_close_group` | jo spet zapre (»Končano«) ali prekine |
+| `layerling_add_to_group` | doda samostojne predmete v skupino, ne da bi jo odprl |
+| `layerling_take_out_of_group` | vzame en del iz skupine, ne da bi jo odprl |
 | `layerling_group_objects` | združi objekte v skupino |
 | `layerling_ungroup_objects` | razpusti skupine |
 | `layerling_boolean_cut` | reže telesa z luknjami |
@@ -154,6 +156,7 @@ Umetna inteligenca dela z istimi funkcijami kot ti, teče po isti poti kot tvoje
 | `layerling_measurements` | prikaže ali skrije meritve merilnega traku in jih našteje z njihovimi dolžinami, ter skrije ali prikaže mere okoli izbora kot [[Q]] |
 | `layerling_measure_angle` | izmeri kot, kakor kotomer: v oglišču treh točk ali med dvema ravnima ploskvama, in ga pokaže v pogledu |
 | `layerling_saved_view` | shrani trenutni pogled pod tipko 7, 8, 9 ali 0 in se vrne nanj, kot Shift+tipka in tipka (samo pogled); nastavi tudi začetni pogled novih osnutkov |
+| `layerling_build_plates` | našteje, doda, poimenuje, razvrsti in odstrani tiskalne plošče, premakne predmete na ploščo in jih razporedi po ploščah, kot vrstica plošč |
 | `layerling_clear_history` | za vedno izbriše vse korake razveljavitve, kot gumb »Izbriši zgodovino« v pogledu zgodovine; potrebuje `confirm: true` |
 | `layerling_set_history_view` | pogleda nazaj na prejšnje stanje projekta, kot pogled zgodovine (pravi načrt ostane nedotaknjen; orodja, ki spreminjajo, počakajo, da se zapre) |
 | `layerling_restore_from_history` | vrne objekte (tudi dele v skupinah) iz prejšnjega stanja v načrt kot kopije, kot »Vrni v načrt« v pogledu zgodovine - en korak, ki ga razveljavitev vzame nazaj |

@@ -5,6 +5,7 @@ import { packValue, packedTransfer, unpackValue } from "@/lib/geometryTransfer";
 import { articulateShapes, type FlexiOptions, type FlexiShapesResult } from "@/lib/flexiJoints";
 import { lidForShapes, type LidOptions, type LidShapeResult } from "@/lib/lidTool";
 import { resultMeshes, type GeometryTask, type GeometryWorkerRequest, type GeometryWorkerResponse } from "@/lib/geometryWorkerTypes";
+import { gridfinityHasLabelText } from "@/lib/gridfinityGeometry";
 import { rememberPreparedDisplay } from "@/lib/importedMeshDisplay";
 import { getLanguage, t } from "@/lib/i18n";
 import type { ModelSplitPlane } from "@/lib/modelSplit";
@@ -224,7 +225,8 @@ export function warmGeometryWorker() {
 }
 
 function containsText(shapes: readonly WorkplaneShape[]): boolean {
-  return shapes.some((shape) => shape.kind === "text" || (shape.groupedShapes ? containsText(shape.groupedShapes) : false));
+  // A Gridfinity bin's letters (#1308) are drawn with the fonts too.
+  return shapes.some((shape) => shape.kind === "text" || (shape.kind === "gridfinity" && gridfinityHasLabelText(shape)) || (shape.groupedShapes ? containsText(shape.groupedShapes) : false));
 }
 
 function containsKernelWork(shapes: readonly WorkplaneShape[]): boolean {
@@ -312,9 +314,14 @@ export function importedShapesFromStepOffThread(fileName: string, buffer: ArrayB
 /**
  * A STEP file written off the page (exportShapesToStep in lib/stepExport.ts): reading every part back into the kernel
  * and writing the file held the page for about 3 s at 390 parts. A design with nothing STEP can carry still rejects
- * with a StepExportEmptyError by name.
+ * with a StepExportEmptyError by name. A design with text in it is written on the page, as every other task with text:
+ * the fonts are loaded there, and the worker stopped such an export with "fonts are not loaded" (#1337).
  */
 export async function exportShapesToStepOffThread(shapes: readonly WorkplaneShape[]): Promise<StepExportResult> {
+  if (containsText(shapes)) {
+    const { exportShapesToStep } = await import("@/lib/stepExport");
+    return exportShapesToStep([...shapes]);
+  }
   const result = await runGeometryTask<{ text: string; exportedCount: number; skipped: StepExportResult["skipped"] }>("stepExport", { shapes: [...shapes] }, async () => {
     const { exportShapesToStep } = await import("@/lib/stepExport");
     const { blob, exportedCount, skipped } = await exportShapesToStep([...shapes]);

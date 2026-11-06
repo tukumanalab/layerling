@@ -9,6 +9,7 @@ import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeome
 import { type ResolvedAppTheme } from "@/lib/appTheme";
 import { createGearGeometry } from "@/lib/gearGeometry";
 import { createHirthGeometry } from "@/lib/hirthGeometry";
+import { createPulleyGeometry } from "@/lib/pulleyGeometry";
 import { createFinishingWasherGeometry } from "@/lib/finishingWasherGeometry";
 import { createStarGeometry } from "@/lib/starGeometry";
 import { createHeartGeometry } from "@/lib/heartGeometry";
@@ -22,7 +23,8 @@ import { createSnapFitGeometry } from "@/lib/snapFit";
 import { createRibGeometry } from "@/lib/rib";
 import { createLoftGeometry } from "@/lib/loftGeometry";
 import { createHingeGeometry } from "@/lib/hingeGeometry";
-import { createGridfinityGeometry } from "@/lib/gridfinityGeometry";
+import { createGridfinityGeometry, gridfinityLabelTextGiven } from "@/lib/gridfinityGeometry";
+import { gridfinityLabelLetters } from "@/lib/gridfinityLabelText";
 import { createKnurlGeometry } from "@/lib/knurlGeometry";
 import { createVaseGeometry, fittedVaseMesh } from "@/lib/vaseShape";
 import { createTeardropGeometry } from "@/lib/teardropGeometry";
@@ -36,6 +38,7 @@ import { createSpringGeometry } from "@/lib/springGeometry";
 import { textDisplayGeometry } from "@/lib/textFill";
 import { loadedManifoldRuntime, manifoldRevision, requestManifoldRuntime } from "@/lib/manifoldHandle";
 import { buildGroupDisplayMesh } from "@/lib/editorBooleans";
+import { boundsForShapesOfVertices } from "@/lib/editorMeshCore";
 import { customFontRevision } from "@/lib/textFonts";
 import { rulerTicks } from "@/lib/rulerDimensions";
 import { horizontalPlacementWorkplane, placementWorkplaneIsBase, placementWorkplaneQuaternion, type PlacementWorkplane } from "@/lib/placementWorkplane";
@@ -281,6 +284,9 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     snapFitFoot: shape.snapFitFoot,
     ribStyle: shape.ribStyle,
     ribTop: shape.ribTop,
+    ribFoot: shape.ribFoot,
+    ribThickness: shape.ribThickness,
+    ribFootThickness: shape.ribFootThickness,
     topWidth: shape.topWidth,
     topDepth: shape.topDepth,
     taperTopWidth: shape.taperTopWidth,
@@ -303,9 +309,17 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     toothSize: shape.toothSize,
     toothWidth: shape.toothWidth,
     centerHoleSize: shape.centerHoleSize,
+    hirthSteepFlank: shape.hirthSteepFlank,
+    hirthReverse: shape.hirthReverse,
+    pulleyBeltWidth: shape.pulleyBeltWidth,
+    pulleyFlange: shape.pulleyFlange,
+    pulleyFlangeRise: shape.pulleyFlangeRise,
+    pulleyHubHeight: shape.pulleyHubHeight,
+    pulleyHubDiameter: shape.pulleyHubDiameter,
     gearType: shape.gearType,
     gearRim: shape.gearRim,
     helixAngle: shape.helixAngle,
+    bevelHelixAngle: shape.bevelHelixAngle,
     threadRole: shape.threadRole,
     threadHead: shape.threadHead,
     threadHand: shape.threadHand,
@@ -395,6 +409,13 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     gridfinityLabelRightOffset: shape.gridfinityLabelRightOffset,
     gridfinityLabelCorner: shape.gridfinityLabelCorner,
     gridfinityLabelCornerSize: shape.gridfinityLabelCornerSize,
+    gridfinityLabelBackText: shape.gridfinityLabelBackText,
+    gridfinityLabelFrontText: shape.gridfinityLabelFrontText,
+    gridfinityLabelLeftText: shape.gridfinityLabelLeftText,
+    gridfinityLabelRightText: shape.gridfinityLabelRightText,
+    gridfinityLabelFont: shape.gridfinityLabelFont,
+    // The letters on the shelves are laid out against the mirroring, so they come out of it the right way round (#1308).
+    gridfinityLabelMirror: shape.kind === "gridfinity" && gridfinityLabelTextGiven(shape) ? [shape.mirrorX, shape.mirrorY, shape.mirrorZ] : undefined,
     gridfinityScoopBack: shape.gridfinityScoopBack,
     gridfinityScoopFront: shape.gridfinityScoopFront,
     gridfinityScoopLeft: shape.gridfinityScoopLeft,
@@ -478,6 +499,7 @@ export function tapeShapeTopologyKey(shape: WorkplaneShape): string {
     textStretch: shape.textStretch,
     textVertical: shape.textVertical,
     textSpacing: shape.textSpacing,
+    textKerning: shape.textKerning,
     textLetterWidth: shape.textLetterWidth,
     textKeyring: shape.textKeyring,
     textEdge: shape.textEdge,
@@ -669,6 +691,9 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     snapFitFoot: shape.snapFitFoot,
     ribStyle: shape.ribStyle,
     ribTop: shape.ribTop,
+    ribFoot: shape.ribFoot,
+    ribThickness: shape.ribThickness,
+    ribFootThickness: shape.ribFootThickness,
     topWidth: shape.topWidth,
     topDepth: shape.topDepth,
     taperTopWidth: shape.taperTopWidth,
@@ -691,9 +716,17 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     toothSize: shape.toothSize,
     toothWidth: shape.toothWidth,
     centerHoleSize: shape.centerHoleSize,
+    hirthSteepFlank: shape.hirthSteepFlank,
+    hirthReverse: shape.hirthReverse,
+    pulleyBeltWidth: shape.pulleyBeltWidth,
+    pulleyFlange: shape.pulleyFlange,
+    pulleyFlangeRise: shape.pulleyFlangeRise,
+    pulleyHubHeight: shape.pulleyHubHeight,
+    pulleyHubDiameter: shape.pulleyHubDiameter,
     gearType: shape.gearType,
     gearRim: shape.gearRim,
     helixAngle: shape.helixAngle,
+    bevelHelixAngle: shape.bevelHelixAngle,
     threadRole: shape.threadRole,
     threadHead: shape.threadHead,
     threadHand: shape.threadHand,
@@ -783,6 +816,13 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     gridfinityLabelRightOffset: shape.gridfinityLabelRightOffset,
     gridfinityLabelCorner: shape.gridfinityLabelCorner,
     gridfinityLabelCornerSize: shape.gridfinityLabelCornerSize,
+    gridfinityLabelBackText: shape.gridfinityLabelBackText,
+    gridfinityLabelFrontText: shape.gridfinityLabelFrontText,
+    gridfinityLabelLeftText: shape.gridfinityLabelLeftText,
+    gridfinityLabelRightText: shape.gridfinityLabelRightText,
+    gridfinityLabelFont: shape.gridfinityLabelFont,
+    // The letters on the shelves are laid out against the mirroring, so they come out of it the right way round (#1308).
+    gridfinityLabelMirror: shape.kind === "gridfinity" && gridfinityLabelTextGiven(shape) ? [shape.mirrorX, shape.mirrorY, shape.mirrorZ] : undefined,
     gridfinityScoopBack: shape.gridfinityScoopBack,
     gridfinityScoopFront: shape.gridfinityScoopFront,
     gridfinityScoopLeft: shape.gridfinityScoopLeft,
@@ -866,6 +906,7 @@ export function shapeGeometrySignature(shape: WorkplaneShape): string {
     textStretch: shape.textStretch,
     textVertical: shape.textVertical,
     textSpacing: shape.textSpacing,
+    textKerning: shape.textKerning,
     textLetterWidth: shape.textLetterWidth,
     textKeyring: shape.textKeyring,
     textEdge: shape.textEdge,
@@ -1828,6 +1869,14 @@ export function createShapeObject(
     // Measured on the real vertices: the box of a turned part's own bounding box is wider than
     // the part, which stretched the content to a smaller size (a bundle shrank, #152).
     const contentBox = new THREE.Box3().setFromObject(content, true);
+    // A hidden part still counts for the group's size, as it does when the group is measured,
+    // exported or aligned (meshForShape): measured without it, the parts left were stretched
+    // to fill the group's box (#1323).
+    const hiddenParts = shape.groupedShapes.filter((child) => child.hidden);
+    if (hiddenParts.length) {
+      const hidden = boundsForShapesOfVertices(hiddenParts);
+      contentBox.union(new THREE.Box3(new THREE.Vector3(hidden.minX, hidden.minY, hidden.minZ), new THREE.Vector3(hidden.maxX, hidden.maxY, hidden.maxZ)));
+    }
     const contentSize = contentBox.getSize(new THREE.Vector3());
     content.scale.set(
       shapeWidth(shape) / Math.max(0.001, contentSize.x),
@@ -2004,7 +2053,7 @@ export function createShapeObject(
         gridfinityOpeningCorner: shape.gridfinityOpeningCorner,
         gridfinityOpeningCornerSize: shape.gridfinityOpeningCornerSize,
         gridfinityOutline: shape.gridfinityOutline,
-      })), material, shape);
+      }, gridfinityLabelLetters({ ...shape, width, depth, height }))), material, shape);
       break;
     case "loft":
       addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createLoftGeometry({ ...shape, width, depth, height })), material, shape);
@@ -2121,6 +2170,7 @@ export function createShapeObject(
         gearType: shape.gearType,
         gearRim: shape.gearRim,
         helixAngle: shape.helixAngle,
+        bevelHelixAngle: shape.bevelHelixAngle,
         helixQuality: shape.helixQuality,
         gearProfile: shape.gearProfile,
         gearPressureAngle: shape.gearPressureAngle,
@@ -2129,6 +2179,9 @@ export function createShapeObject(
       break;
     case "hirth":
       addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createHirthGeometry(width, height, depth, shape)), material, shape);
+      break;
+    case "pulley":
+      addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createPulleyGeometry(shape)), material, shape);
       break;
     case "honeycomb":
       addMesh(group, sharedShapeGeometry(geometryCacheKey, () => createHoneycombGeometry({
@@ -2563,7 +2616,7 @@ export function addShapeEdgeDecorations(group: THREE.Group, mesh: THREE.Mesh, pr
   const complexEdges =
     shape.kind === "mesh" ||
     Boolean(shape.importedMesh) ||
-    ["cone", "pyramid", "roof", "roundRoof", "halfSphere", "paraboloid", "curvedCone", "torus", "tube", "ring", "star", "gear", "hirth", "wedge", "polygon", "heart", "crescent", "slot", "dovetail", "screwBoss", "snapFit", "rib", "hinge", "gridfinity", "knurl", "teardrop", "port", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "honeycomb", "loft"].includes(shape.kind);
+    ["cone", "pyramid", "roof", "roundRoof", "halfSphere", "paraboloid", "curvedCone", "torus", "tube", "ring", "star", "gear", "hirth", "pulley", "wedge", "polygon", "heart", "crescent", "slot", "dovetail", "screwBoss", "snapFit", "rib", "hinge", "gridfinity", "knurl", "teardrop", "port", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "honeycomb", "loft"].includes(shape.kind);
   const importedTriangleCount = shape.importedMesh?.triangleCount ?? 0;
   // A vase's relief has an edge at every rib: drawn like a heavy imported mesh, without the lines.
   const skipHeavyImportedEdges = (Boolean(shape.importedMesh) && importedTriangleCount > IMPORTED_SELECTED_EDGE_TRIANGLE_LIMIT)

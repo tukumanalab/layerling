@@ -104,6 +104,8 @@ The AI works with the same functions as you, through the same path as your opera
 | `layerling_mate_faces` | brings a face of one object against a face of another, face to face or flush, or puts two round faces on one axis |
 | `layerling_open_group` | opens a group so its parts can be changed one by one, also a group inside an open one |
 | `layerling_close_group` | closes it again ("Done") or cancels |
+| `layerling_add_to_group` | puts loose objects into a group without opening it |
+| `layerling_take_out_of_group` | takes one part out of a group without opening it |
 | `layerling_group_objects` | groups objects |
 | `layerling_ungroup_objects` | dissolves groups |
 | `layerling_boolean_cut` | cuts solids with holes |
@@ -158,6 +160,7 @@ The AI works with the same functions as you, through the same path as your opera
 | `layerling_measurements` | shows or hides the measurements of the tape measure and lists them with their lengths, and hides or shows the sizes around the selection like [[Q]] |
 | `layerling_measure_angle` | measures an angle like the protractor: at the corner of three points or between two flat faces, and shows it in the view |
 | `layerling_saved_view` | saves the current view under the key 7, 8, 9 or 0 and goes back to it, like Shift+key and the key (only the view); also sets the start view of new designs |
+| `layerling_build_plates` | lists, adds, names, orders and removes the build plates, moves objects onto a plate and arranges them on the plates, like the plate bar |
 | `layerling_clear_history` | deletes every undo step for good, as the History view's "Delete history" button does; needs `confirm: true` |
 | `layerling_set_history_view` | looks back at an earlier state of the project, like the History view (the real design stays untouched; changing tools wait until it is closed) |
 | `layerling_restore_from_history` | brings objects (also parts inside groups) back from an earlier state into the design as copies, as the History view's Bring into design does - one step that undo takes back |

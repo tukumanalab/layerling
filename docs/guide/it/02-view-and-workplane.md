@@ -44,7 +44,7 @@ Sul bordo sinistro trovi una barra sottile. Dall’alto:
 - {{ui:camera.focusSelection}} ingrandisce la selezione ([[F]] o [[Shift]]+[[F]]).
 - {{ui:camera.zoomIn}} e {{ui:camera.zoomOut}} ingrandiscono o rimpiccioliscono a scatti, come i tasti [[+]] e [[−]].
 - {{ui:camera.orthographic}} attiva una vista piatta, in cui gli spigoli paralleli restano paralleli. Per misurare e allineare gli spigoli è spesso più comoda della prospettiva. Premi [[O]] per alternare le due viste; un secondo clic torna alla vista precedente.
-- {{ui:camera.showScrollbars}} mostra una barra di scorrimento in basso nella vista e una lungo il bordo destro. Trascina una barra per spostare la vista in modo fluido, fai clic su una freccia all’estremità per spostarla di poco (tienila premuta per continuare), oppure fai clic accanto alla barra per avanzare di quasi tutta la vista. Non ruota nulla e, a differenza dei tasti freccia, le barre funzionano anche con una parte selezionata: comodo da vicino sui piccoli dettagli. Un secondo clic le nasconde; questo browser ricorda la scelta.
+- {{ui:camera.showScrollbars}} mostra una barra di scorrimento in basso nella vista e una lungo il bordo destro. Trascina una barra per spostare la vista in modo fluido, fai clic su una freccia all’estremità per spostarla di poco (tienila premuta per continuare), oppure fai clic accanto alla barra per avanzare di quasi tutta la vista. Non ruota nulla e, a differenza dei tasti freccia, le barre funzionano anche con una parte selezionata: comodo da vicino sui piccoli dettagli. Un secondo clic le nasconde; {{ui:workspace.startWithScrollbars}} nelle impostazioni decide se un progetto si apre con le barre. Questo browser ricorda inoltre la scelta.
 - {{ui:camera.hideWorkplane}} (l’occhio sopra una griglia) nasconde il piano con la griglia, così puoi guardare da sotto il lato inferiore del progetto. Cambia solo la vista: le nuove forme continuano a essere posizionate sul piano di lavoro. Fai di nuovo clic per mostrarlo.
 - {{ui:camera.placeWorkplane}}, il metro a nastro e la squadra sono strumenti separati, descritti qui sotto e in [Misurazioni e annotazioni](chapter:measuring-and-notes).
 
@@ -93,6 +93,19 @@ Fai clic accanto alla piastra o premi [[Esc]] per riportare il piano di lavoro s
 Quando il piano di lavoro è posizionato su una faccia, accanto a {{ui:camera.placeWorkplane}} appare un occhio. Puoi nascondere il piano di lavoro senza rimuoverlo, per osservare meglio il progetto: le nuove forme continueranno a essere posizionate su quella faccia e la rotazione continuerà a farle ruotare attorno a essa. Fai clic sull’occhio per mostrarlo di nuovo; anche impostare un nuovo piano di lavoro lo rende visibile.
 
 Per guardare il piano di lavoro di fronte, premi [[P]] o fai clic su {{ui:camera.lookOntoWorkplane}} accanto a {{ui:camera.placeWorkplane}} nella barra della vista. La vista ruota finché vedi il piano di fronte, dal lato verso cui crescono le nuove forme, con la sua origine al centro. Sulla piastra di base è la vista dall'alto.
+
+## Piatti di stampa
+
+Quando un progetto contiene più di quanto un piatto possa stampare, per esempio una scatola con il coperchio e gli inserti, può avere più piatti di stampa. Fai clic su {{ui:editor.tool.buildPlates}} nel gruppo {{ui:editor.group.arrange}}, oppure scegli {{ui:plates.moveTo}} nel menu del clic destro su un corpo. In fondo alla vista compare una barra con un pulsante per piatto; il numero indica quanti corpi ci sono sopra.
+
+- Ogni piatto è grande quanto il piano di lavoro, e i piatti stanno uno accanto all'altro a destra del primo, a 20 mm di distanza. Un corpo appartiene al piatto su cui si trova il centro della sua base, quindi trascinandolo dall'altra parte passa sull'altro piatto. Un progetto ha fino a 12 piatti.
+- Un clic su un piatto nella barra lo mostra, e le nuove forme finiscono poi su di esso. {{ui:plates.showAll}} li mostra tutti. Un doppio clic su un piatto, o {{ui:plates.rename}}, gli dà un nome come «Coperchio», scritto sul piatto.
+- {{ui:plates.moveLeft}} e {{ui:plates.moveRight}} cambiano l'ordine, e i corpi seguono il loro piatto. {{ui:plates.remove}} toglie il piatto attivo; i suoi corpi passano sul primo piatto nello stesso punto.
+- {{ui:plates.arrange}} dispone i corpi selezionati, o tutti, fila per fila sui piatti, i più grandi per primi, a 5 mm di distanza, e aggiunge piatti finché servono. Un corpo più grande di un piatto resta dov'è.
+- Con una stampante scelta, ogni corpo viene controllato rispetto al proprio piatto, e l'altezza di stampa conta dal corpo più basso di quel piatto. Un piatto con un corpo che non ci sta mostra il suo numero in rosso.
+- Nelle proprietà, X conta dal centro del piatto del corpo stesso.
+
+La finestra di esportazione offre allora {{ui:export.plates}}: tutti i piatti in un file, uno accanto all'altro come nel progetto; un file per piatto, raccolti in uno ZIP (STL, 3MF e OBJ); oppure un solo piatto, messo al posto del primo. Uno slicer apre ogni file come un solo piatto, quindi per stampare i piatti uno dopo l'altro conviene usare i file per piatto. Spostare corpi tra i piatti e distribuirli si può annullare; aggiungere, nominare, ordinare e togliere piatti viene salvato con il progetto, ma non annullato.
 
 ## Griglia e aggancio
 
@@ -161,6 +174,8 @@ Con {{ui:workspace.frameByDirection}}, trascinando un riquadro verso destra sele
 ### Aspetto: vista
 
 Con {{ui:workspace.startInPerspective}} l’editor si apre nella vista prospettica invece che in quella piatta.
+
+Con {{ui:workspace.startWithScrollbars}} un progetto si apre con le barre di scorrimento della vista. L’impostazione si salva con il progetto e con {{ui:workspace.makeDefault}}.
 
 {{ui:workspace.startView}} fissa l'angolo da cui si apre un nuovo progetto e a cui torna {{ui:camera.home}}. Ruota e ingrandisci la vista come ti piace, poi fai clic su {{ui:workspace.startViewUseCurrent}}; {{ui:workspace.startViewStandard}} riporta la vista consueta da davanti a destra. Vale per ogni progetto in questo browser. Un progetto che riapri si apre comunque come lo hai lasciato.
 

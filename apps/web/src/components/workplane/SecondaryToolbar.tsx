@@ -15,7 +15,7 @@ import { useLanguage } from "@/lib/useLanguage";
 import { useSimpleMode } from "@/lib/useSimpleMode";
 import { simpleModeKeepsShape, simpleModeKeepsTool } from "@/lib/simpleMode";
 import { normalizePolygonSides, normalizeStarInnerPercent, SKETCH_POLYGON_MAX_SIDES, SKETCH_POLYGON_MIN_SIDES, SKETCH_STAR_MAX_INNER_PERCENT, SKETCH_STAR_MIN_INNER_PERCENT } from "@/lib/sketchPrimitives";
-import { SketchBoltCircleIcon, SketchEllipseIcon, SketchHalfCircleIcon, SketchPieSliceIcon, ToolbarAlignIcon, ToolbarAttachmentsIcon, ToolbarCenterOnWorkplaneIcon, ToolbarChamferIcon, ToolbarCaretDownIcon, ToolbarCookieCutterIcon, ToolbarFlexiIcon, ToolbarLidIcon,
+import { SketchBoltCircleIcon, SketchEllipseIcon, SketchHalfCircleIcon, SketchPieSliceIcon, ToolbarAlignIcon, ToolbarAttachmentsIcon, ToolbarBuildPlatesIcon, ToolbarCenterOnWorkplaneIcon, ToolbarChamferIcon, ToolbarCaretDownIcon, ToolbarCookieCutterIcon, ToolbarFlexiIcon, ToolbarLidIcon,
   ToolbarCableChannelIcon, ToolbarCopyIcon, ToolbarDuplicateIcon, ToolbarDropToWorkplaneIcon, ToolbarBundleIcon, ToolbarGroupIcon, ToolbarGuideIcon, ToolbarHideSelectedIcon, ToolbarHomeIcon, ToolbarImportIcon, ToolbarIntersectionIcon,ToolbarClearanceIcon, ToolbarHullIcon, ToolbarLoftSketchesIcon, ToolbarKeyboardIcon, ToolbarFilletIcon, ToolbarHistoryIcon, ToolbarHollowIcon, ToolbarOffsetIcon, ToolbarCutOutIcon, ToolbarPunchIcon, ToolbarDeleteFaceIcon, ToolbarSimplifyIcon, ToolbarMakeExactIcon, ToolbarSurfaceTextureIcon, ToolbarMirrorIcon, ToolbarRotationPivotIcon, ToolbarPatternIcon, ToolbarHolePatternIcon, ToolbarFaceToolIcon, ToolbarConstructionLineIcon, ToolbarMiddleLineIcon, ToolbarLayFlatIcon, ToolbarMateFacesIcon, ToolbarNoteIcon, ToolbarSplitIcon, ToolbarPasteIcon, ToolbarRedoIcon, ToolbarSnapGridIcon, ToolbarSettingsIcon, ToolbarShapeAddIcon, ToolbarTrashIcon, ToolbarUngroupIcon, ToolbarUndoIcon, ToolbarVectorExportIcon } from "../icons";
 import { type SketchPrimitive, type SketchTool } from "../SketchWorkspace";
 import { CommandPalette, type PaletteCommand } from "./CommandPalette";
@@ -290,6 +290,8 @@ export function SecondaryToolbar({
   onDelete,
   onDuplicate,
   onCenterOnWorkplane,
+  onBuildPlates,
+  buildPlatesActive,
   onDropToWorkplane,
   onLayFlat,
   layFlatActive,
@@ -455,6 +457,9 @@ export function SecondaryToolbar({
   onDelete: () => void;
   onDuplicate: () => void;
   onCenterOnWorkplane: () => void;
+  /** Shows or hides the bar of build plates (Discussion #456). */
+  onBuildPlates?: () => void;
+  buildPlatesActive?: boolean;
   onDropToWorkplane: () => void;
   onLayFlat: () => void;
   layFlatActive: boolean;
@@ -758,7 +763,7 @@ export function SecondaryToolbar({
     // while a field has the focus - the browsers' own use of the key (a search
     // bar) is not worth keeping here.
     const openOnShortcut = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey || event.key.toLowerCase() !== "k") return;
+      if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey || (event.key ?? "").toLowerCase() !== "k") return;
       event.preventDefault();
       openPaletteRef.current();
     };
@@ -908,6 +913,7 @@ export function SecondaryToolbar({
     { id: "layFlat", label: t("editor.tool.layFlat"), icon: ToolbarLayFlatIcon, action: onLayFlat, enabled: canModifySelection, active: layFlatActive, needs: need("selection") },
     { id: "mateFaces", label: t("editor.tool.mateFaces"), icon: ToolbarMateFacesIcon, action: onMateFaces, enabled: canModifySelection, active: mateFacesActive, needs: need("selection") },
     { id: "center", label: t("editor.tool.centerOnWorkplane"), icon: ToolbarCenterOnWorkplaneIcon, action: onCenterOnWorkplane, enabled: canModifySelection, needs: need("selection") },
+    ...(onBuildPlates ? [{ id: "buildPlates", label: t("editor.tool.buildPlates"), icon: ToolbarBuildPlatesIcon, action: onBuildPlates, enabled: true, active: Boolean(buildPlatesActive) }] : []),
   ];
   // "Modify" holds some 16 tools; named sections with a fine line between them let one be found by what it does
   // (Stefan 31.10.2026). Their names stand in the label row above them, the group's name only on the folded button.

@@ -45,7 +45,7 @@ En el borde izquierdo hay una barra estrecha. De arriba abajo:
 - {{ui:camera.zoomIn}} y {{ui:camera.zoomOut}} hacen zoom paso a paso, igual que las teclas [[+]] y [[−]].
 - {{ui:camera.orthographic}} cambia a una vista plana en la que las aristas paralelas siguen siendo paralelas. Para medir y alinear aristas suele ser más cómoda que la vista en perspectiva. [[O]] alterna entre las dos, y un segundo clic vuelve a la de antes.
 - {{ui:camera.secondView}} abre una segunda vista del diseño en una ventana propia, descrita más abajo. Un segundo clic la cierra.
-- {{ui:camera.showScrollbars}} pone una barra de desplazamiento en la parte inferior de la vista y otra a lo largo de su borde derecho. Arrastra una barra para desplazar la vista con suavidad, haz clic en una flecha de su extremo para moverla un poco (mantenla pulsada para seguir), o haz clic junto a la barra para avanzar casi una vista entera. Nada gira y, a diferencia de las teclas de flecha, las barras funcionan con una pieza seleccionada: útil de cerca, en detalles pequeños. Un segundo clic las oculta; este navegador recuerda la elección.
+- {{ui:camera.showScrollbars}} pone una barra de desplazamiento en la parte inferior de la vista y otra a lo largo de su borde derecho. Arrastra una barra para desplazar la vista con suavidad, haz clic en una flecha de su extremo para moverla un poco (mantenla pulsada para seguir), o haz clic junto a la barra para avanzar casi una vista entera. Nada gira y, a diferencia de las teclas de flecha, las barras funcionan con una pieza seleccionada: útil de cerca, en detalles pequeños. Un segundo clic las oculta; {{ui:workspace.startWithScrollbars}} en los ajustes decide si un diseño se abre con ellas. Este navegador también recuerda la elección.
 - {{ui:camera.hideWorkplane}} (el ojo sobre una cuadrícula) oculta la placa con su cuadrícula, para que puedas mirar desde abajo la parte inferior de un diseño. Solo cambia la vista: las formas nuevas siguen apareciendo en el plano de trabajo. Un segundo clic vuelve a mostrarla.
 - {{ui:camera.placeWorkplane}}, la cinta métrica y la escuadra son herramientas aparte; se explican más abajo y en [Medidas y notas](chapter:measuring-and-notes).
 
@@ -94,6 +94,19 @@ Un clic fuera de la placa o [[Esc]] devuelve el plano de trabajo a la placa base
 Mientras hay un plano de trabajo sobre una cara, aparece un ojo junto a {{ui:camera.placeWorkplane}}. Oculta el plano de trabajo sin quitarlo, para que veas el diseño sin estorbos: las formas nuevas siguen apareciendo en esa cara y los giros se siguen haciendo respecto a ella. Un clic en el ojo vuelve a mostrarlo, y lo mismo ocurre al colocar un plano de trabajo nuevo.
 
 Para mirar el plano de trabajo de frente, pulsa [[P]] o haz clic en {{ui:camera.lookOntoWorkplane}} junto a {{ui:camera.placeWorkplane}} en la barra de vista. La vista gira hasta que ves el plano de frente, desde el lado hacia el que crecen las formas nuevas, con su origen en el centro. Sobre la placa base es la vista desde arriba.
+
+## Placas de impresión
+
+Cuando un diseño contiene más de lo que cabe en una placa, por ejemplo una caja con su tapa y sus insertos, puede tener varias placas de impresión. Haz clic en {{ui:editor.tool.buildPlates}} en el grupo {{ui:editor.group.arrange}}, o elige {{ui:plates.moveTo}} en el menú del clic derecho sobre un cuerpo. Al pie de la vista aparece una barra con un botón por placa; el número indica cuántos cuerpos hay en ella.
+
+- Cada placa es tan grande como el plano de trabajo, y las placas están una junto a otra a la derecha de la primera, a 20 mm. Un cuerpo pertenece a la placa en la que está el centro de su base, así que al arrastrarlo al otro lado pasa a la otra placa. Un diseño tiene hasta 12 placas.
+- Un clic en una placa de la barra la muestra, y las formas nuevas aparecen entonces en ella. {{ui:plates.showAll}} las muestra todas. Un doble clic en una placa, o {{ui:plates.rename}}, le da un nombre como «Tapa», que aparece escrito en la placa.
+- {{ui:plates.moveLeft}} y {{ui:plates.moveRight}} cambian el orden, y los cuerpos van con su placa. {{ui:plates.remove}} quita la placa activa; sus cuerpos pasan a la primera placa en el mismo sitio.
+- {{ui:plates.arrange}} coloca los cuerpos seleccionados, o todos, fila a fila en las placas, los más grandes primero, a 5 mm, y añade placas mientras hagan falta. Un cuerpo más grande que una placa se queda donde está.
+- Con una impresora elegida, cada cuerpo se comprueba con su propia placa, y la altura de impresión cuenta desde el cuerpo más bajo de esa placa. Una placa con un cuerpo que no cabe muestra su número en rojo.
+- En las propiedades, X cuenta desde el centro de la placa del propio cuerpo.
+
+La ventana de exportación ofrece entonces {{ui:export.plates}}: todas las placas en un archivo, una junto a otra como en el diseño; un archivo por placa, reunidos en un ZIP (STL, 3MF y OBJ); o una sola placa, colocada donde está la primera. Un laminador abre cada archivo como una sola placa, así que para imprimir las placas una tras otra conviene usar los archivos por placa. Mover cuerpos entre placas y repartirlos se puede deshacer; añadir, nombrar, ordenar y quitar placas se guarda con el diseño, pero no se deshace.
 
 ## Cuadrícula y ajuste
 
@@ -162,6 +175,8 @@ La vista de boceto tiene sus propios colores: {{ui:workspace.sketchBackground}} 
 ### Aspecto: la vista
 
 {{ui:workspace.startInPerspective}}: el editor se abre entonces en la vista en perspectiva, no en la plana.
+
+{{ui:workspace.startWithScrollbars}}: un diseño se abre entonces con las barras de desplazamiento de la vista. Se guarda con el diseño y con {{ui:workspace.makeDefault}}.
 
 {{ui:workspace.startView}} fija el ángulo en que se abre un diseño nuevo y al que vuelve {{ui:camera.home}}. Gira la vista y haz zoom hasta que te guste, y haz clic en {{ui:workspace.startViewUseCurrent}}; {{ui:workspace.startViewStandard}} recupera la vista habitual, desde delante a la derecha. Vale para todos los diseños de este navegador. Un diseño que vuelves a abrir se sigue abriendo tal como lo dejaste.
 

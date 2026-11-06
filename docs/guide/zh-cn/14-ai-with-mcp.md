@@ -104,6 +104,8 @@ AI 使用与你相同的功能，走的是与你在编辑器中的操作相同�
 | `layerling_mate_faces` | 把一个对象的面贴到另一个对象的面，可面对面或齐平 |
 | `layerling_open_group` | 打开分组，以便逐个修改其部件，打开的分组内也可再打开分组 |
 | `layerling_close_group` | 再次关闭分组（“完成”）或取消 |
+| `layerling_add_to_group` | 不打开组就把单独的对象放进组里 |
+| `layerling_take_out_of_group` | 不打开组就从组中取出一个部件 |
 | `layerling_group_objects` | 对对象分组 |
 | `layerling_ungroup_objects` | 解散分组 |
 | `layerling_boolean_cut` | 用孔切割实体 |
@@ -158,6 +160,7 @@ AI 使用与你相同的功能，走的是与你在编辑器中的操作相同�
 | `layerling_measurements` | 显示或隐藏卷尺的测量，并列出它们及其长度，并像 [[Q]] 一样隐藏或显示所选对象周围的尺寸 |
 | `layerling_measure_angle` | 像量角器一样测量角度：三点的顶点处或两个平面之间，并在视图中显示 |
 | `layerling_saved_view` | 把当前视图保存在按键 7、8、9 或 0 下，并可回到该视图，如同 Shift+按键和单独按该键（仅改变视图）；也可设置新设计的起始视图 |
+| `layerling_build_plates` | 列出、添加、命名、排序和删除打印板，把对象移到某个打印板并分布到各打印板上，如同打印板栏 |
 | `layerling_clear_history` | 永久删除所有撤销步骤，如同历史记录视图的“删除历史记录”按钮；需要 `confirm: true` |
 | `layerling_set_history_view` | 回看项目更早的状态，如同历史记录视图（实际设计不受影响；会改动设计的工具会等到它关闭） |
 | `layerling_restore_from_history` | 把对象（也包括分组内的部件）从更早的状态作为副本带回设计，如同历史记录视图的“带入设计”——撤销会一次性撤回这一步 |

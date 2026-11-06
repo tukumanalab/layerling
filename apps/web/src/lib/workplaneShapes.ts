@@ -2,6 +2,7 @@ import { createLocalId } from "@/lib/localIds";
 import { repairClampedMeshBase } from "@/lib/importedMeshBase";
 import { fieldFormulasEqual } from "@/lib/fieldFormulas";
 import { threadFootprintPatch } from "@/lib/threadGeometry";
+import { pulleyFootprint } from "@/lib/pulleyGeometry";
 import { GRIDFINITY_PADDING_KEYS, gridfinityCompartmentLabelsEqual, gridfinityDividerPositionsEqual, gridfinityFootprintPatch, gridfinityOpeningsEqual, gridfinityOutlinesEqual, normalizeGridfinityPadding } from "@/lib/gridfinityGeometry";
 import { MCP_SHAPE_SETTING_KEYS } from "@/lib/mcpShapeSettings";
 import { bentTubeSegmentsEqual } from "@/lib/bentTubeGeometry";
@@ -140,7 +141,7 @@ export function shapeTaperDimensions(shape: WorkplaneShape) {
  * haben feste Masse fuer Einsatz, Haken und Fuss. Die Liste steht hier, damit das Merkmalsfeld, die
  * Vorschau und die MCP-Bruecke nicht je ihre eigene fuehren.
  */
-const SHAPES_WITHOUT_TAPER = new Set<WorkplaneShape["kind"]>(["gear", "hirth", "thread", "spring", "pyramid", "ruler", "hinge", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "bentTube", "loft", "vase", "gridfinity", "screwBoss", "snapFit", "rib"]);
+const SHAPES_WITHOUT_TAPER = new Set<WorkplaneShape["kind"]>(["gear", "hirth", "pulley", "thread", "spring", "pyramid", "ruler", "hinge", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "bentTube", "loft", "vase", "gridfinity", "screwBoss", "snapFit", "rib"]);
 
 export function shapeSupportsTaper(kind: WorkplaneShape["kind"]) {
   return !SHAPES_WITHOUT_TAPER.has(kind);
@@ -409,7 +410,23 @@ export function edgeTreatmentsAfterShell(shape: WorkplaneShape) {
 export function shellRebuildReference(shape: WorkplaneShape, entry: NonNullable<WorkplaneShape["edgeTreatmentHistory"]>[number]) {
   const history = shape.edgeTreatmentHistory ?? [];
   const lastFrame = history[history.length - 1]?.appliedFrame;
-  return lastFrame && history[history.length - 1] !== entry ? { ...entry, appliedFrame: lastFrame } : entry;
+  if (!lastFrame || history[history.length - 1] === entry) return entry;
+  // The place, though, goes from the hollowing's frame plus only what each fillet itself moved the middle by. A body
+  // moved between the hollowing and its fillets otherwise came back where it was hollowed, shifted by the current
+  // move: a copy of a copy with its height changed jumped across the plate and down to it (#1314).
+  const shellFrame = entry.appliedFrame;
+  if (!shellFrame) return { ...entry, appliedFrame: lastFrame };
+  const middle = (frame: { elevation?: number; height: number }) => (frame.elevation ?? 0) + frame.height / 2;
+  let x = shellFrame.x;
+  let z = shellFrame.z;
+  let height = middle(shellFrame);
+  for (const later of history.slice(history.indexOf(entry) + 1)) {
+    if (!later.appliedFrame) continue;
+    x += later.appliedFrame.x - later.before.x;
+    z += later.appliedFrame.z - later.before.z;
+    height += middle(later.appliedFrame) - middle(later.before);
+  }
+  return { ...entry, appliedFrame: { ...lastFrame, x, z, elevation: height - lastFrame.height / 2 } };
 }
 
 export function shellRebuildEntry(shape: WorkplaneShape) {
@@ -559,6 +576,8 @@ export function canonicalizeShape(unrepaired: WorkplaneShape): WorkplaneShape {
     Object.assign(next, footprint);
     next.size = resizedShapeSize(footprint.width, footprint.depth);
   }
+  // A GT2 pulley (Discussion #1319): the teeth, the belt width, the flanges and the hub set its box.
+  if (shape.kind === "pulley") Object.assign(next, pulleyFootprint(next));
   // A cylinder's cross-section must always stay circular - width is
   // authoritative, depth follows. This is the single enforcement point: every
   // creation, edit and project load runs through canonicalizeShape.
@@ -662,6 +681,9 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.snapFitFoot === b.snapFitFoot &&
     a.ribStyle === b.ribStyle &&
     a.ribTop === b.ribTop &&
+    a.ribFoot === b.ribFoot &&
+    a.ribThickness === b.ribThickness &&
+    a.ribFootThickness === b.ribFootThickness &&
     a.baseRadius === b.baseRadius &&
     a.topWidth === b.topWidth &&
     a.topDepth === b.topDepth &&
@@ -686,8 +708,16 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.toothSize === b.toothSize &&
     a.toothWidth === b.toothWidth &&
     a.centerHoleSize === b.centerHoleSize &&
+    a.hirthSteepFlank === b.hirthSteepFlank &&
+    a.hirthReverse === b.hirthReverse &&
+    a.pulleyBeltWidth === b.pulleyBeltWidth &&
+    a.pulleyFlange === b.pulleyFlange &&
+    a.pulleyFlangeRise === b.pulleyFlangeRise &&
+    a.pulleyHubHeight === b.pulleyHubHeight &&
+    a.pulleyHubDiameter === b.pulleyHubDiameter &&
     a.gearType === b.gearType &&
     a.helixAngle === b.helixAngle &&
+    a.bevelHelixAngle === b.bevelHelixAngle &&
     a.helixQuality === b.helixQuality &&
     a.gearProfile === b.gearProfile &&
     a.gearPressureAngle === b.gearPressureAngle &&
@@ -786,6 +816,11 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     a.gridfinityLabelRightOffset === b.gridfinityLabelRightOffset &&
     a.gridfinityLabelCorner === b.gridfinityLabelCorner &&
     a.gridfinityLabelCornerSize === b.gridfinityLabelCornerSize &&
+    a.gridfinityLabelBackText === b.gridfinityLabelBackText &&
+    a.gridfinityLabelFrontText === b.gridfinityLabelFrontText &&
+    a.gridfinityLabelLeftText === b.gridfinityLabelLeftText &&
+    a.gridfinityLabelRightText === b.gridfinityLabelRightText &&
+    a.gridfinityLabelFont === b.gridfinityLabelFont &&
     a.gridfinityScoopBack === b.gridfinityScoopBack &&
     a.gridfinityScoopFront === b.gridfinityScoopFront &&
     a.gridfinityScoopLeft === b.gridfinityScoopLeft &&
@@ -878,6 +913,7 @@ export function workplaneShapesEqual(a: WorkplaneShape, b: WorkplaneShape) {
     Boolean(a.textStretch) === Boolean(b.textStretch) &&
     Boolean(a.textVertical) === Boolean(b.textVertical) &&
     (a.textSpacing ?? 0) === (b.textSpacing ?? 0) &&
+    Boolean(a.textKerning) === Boolean(b.textKerning) &&
     (a.textLetterWidth ?? 100) === (b.textLetterWidth ?? 100) &&
     JSON.stringify(a.textKeyring ?? null) === JSON.stringify(b.textKeyring ?? null) &&
     JSON.stringify(a.textEdge ?? null) === JSON.stringify(b.textEdge ?? null) &&
