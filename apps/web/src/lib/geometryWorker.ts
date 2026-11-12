@@ -1,17 +1,19 @@
 import { buildsDiffer, BUILD_ID, isBuildMessage, reportWorkerBuild } from "@/lib/buildStamp";
 import { checkClearance, type ClearanceOptions, type ClearanceResult } from "@/lib/clearanceCheck";
-import { buildGroupedShapeFromSelection, exportSolidVolume, faceReadJoins, faceReadPositions, splitShapeIfCrossed, splitShapesByPlane, type ExportSolidVolume, type GroupBuildResult, type SplitShapesOutcome } from "@/lib/editorBooleans";
+import { buildGroupedShapeFromSelection, exportSolidVolume, faceReadJoins, faceReadPositions, previewSplitConnectors, splitShapeIfCrossed, splitShapesByPlane, type ExportSolidVolume, type GroupBuildResult, type SplitConnectorPreview, type SplitShapesOutcome } from "@/lib/editorBooleans";
 import { packValue, packedTransfer, unpackValue } from "@/lib/geometryTransfer";
 import { articulateShapes, type FlexiOptions, type FlexiShapesResult } from "@/lib/flexiJoints";
-import { lidForShapes, type LidOptions, type LidShapeResult } from "@/lib/lidTool";
+import { lidForShapes, lidTopForShapes, type LidOptions, type LidShapeResult } from "@/lib/lidTool";
+import { checkPrint, type PrintCheckOptions, type PrintCheckResult } from "@/lib/printCheck";
 import { resultMeshes, type GeometryTask, type GeometryWorkerRequest, type GeometryWorkerResponse } from "@/lib/geometryWorkerTypes";
 import { gridfinityHasLabelText } from "@/lib/gridfinityGeometry";
 import { rememberPreparedDisplay } from "@/lib/importedMeshDisplay";
 import { getLanguage, t } from "@/lib/i18n";
 import type { ModelSplitPlane } from "@/lib/modelSplit";
+import type { SplitConnectorOptions } from "@/lib/splitConnectors";
 import { simplifyTrianglePositions, type SimplifiedMesh, type SimplifyOptions } from "@/lib/meshSimplify";
 import { importedShapesFromObj, type ObjImportResult } from "@/lib/objImport";
-import { importedShapeFromStl } from "@/lib/stlImport";
+import { importedShapeFromStl, type StlReadOptions } from "@/lib/stlImport";
 import { importedShapesFromStepFile, type StepFileImport } from "@/lib/stepFileImport";
 import type { StepExportResult } from "@/lib/stepExport";
 import type { WorkplaneShape } from "@/types/layerling";
@@ -253,15 +255,27 @@ export function buildGroupedShapeOffThread(selected: WorkplaneShape[], triangleL
 
 type SplitPlane = Pick<ModelSplitPlane, "axis" | "normal" | "position">;
 
-function splitShapeOffThread(shape: WorkplaneShape, plane: SplitPlane, signal?: AbortSignal) {
-  const onPage = () => splitShapeIfCrossed(shape, plane);
+function splitShapeOffThread(shape: WorkplaneShape, plane: SplitPlane, connectors: SplitConnectorOptions | undefined, signal?: AbortSignal) {
+  const onPage = () => splitShapeIfCrossed(shape, plane, connectors);
   if (containsText([shape])) return onPage();
-  return runGeometryTask<Awaited<ReturnType<typeof splitShapeIfCrossed>>>("split", { shape, plane }, onPage, () => ({ parts: null, error: t("status.computeTimedOut") }), signal);
+  return runGeometryTask<Awaited<ReturnType<typeof splitShapeIfCrossed>>>("split", { shape, plane, ...(connectors ? { connectors } : {}) }, onPage, () => ({ parts: null, error: t("status.computeTimedOut") }), signal);
 }
 
-/** splitShapesByPlane (lib/editorBooleans.ts) with each cut made off the page. */
-export function splitShapesByPlaneOffThread(targets: readonly WorkplaneShape[], plane: SplitPlane, stillCurrent: () => boolean, signal?: AbortSignal): Promise<SplitShapesOutcome> {
-  return splitShapesByPlane(targets, plane, stillCurrent, (shape, shapePlane) => splitShapeOffThread(shape, shapePlane, signal));
+/** splitShapesByPlane (lib/editorBooleans.ts) with each cut made off the page, with connectors when they are asked for. */
+export function splitShapesByPlaneOffThread(targets: readonly WorkplaneShape[], plane: SplitPlane, stillCurrent: () => boolean, signal?: AbortSignal, connectors?: SplitConnectorOptions): Promise<SplitShapesOutcome> {
+  return splitShapesByPlane(targets, plane, stillCurrent, (shape, shapePlane, asked) => splitShapeOffThread(shape, shapePlane, asked, signal), connectors);
+}
+
+/**
+ * previewSplitConnectors (lib/editorBooleans.ts) off the page, quietly: where the Split panel's connectors would go, while
+ * the plane is moved. A preview the signal calls off (the plane moved on) never answers.
+ */
+export function previewSplitConnectorsOffThread(targets: readonly WorkplaneShape[], plane: SplitPlane, connectors: SplitConnectorOptions, signal?: AbortSignal): Promise<SplitConnectorPreview> {
+  const onPage = () => previewSplitConnectors([...targets], plane, connectors);
+  if (containsText([...targets])) return onPage();
+  return runGeometryTask<SplitConnectorPreview>("splitConnectors", { targets: [...targets], plane, connectors }, onPage, () => {
+    throw new Error(t("status.computeTimedOut"));
+  }, signal, true);
 }
 
 /** articulateShapes (lib/flexiJoints.ts) off the page: the links of a flexi body. */
@@ -283,6 +297,18 @@ export function checkClearanceOffThread(source: readonly WorkplaneShape[], optio
   }, signal);
 }
 
+/**
+ * checkPrint (lib/printCheck.ts) off the page: the walls of a 200,000-triangle body take a ray each, about a second in
+ * the worker. A check the signal calls off (a new one started) never answers; text is checked on the page.
+ */
+export function checkPrintOffThread(source: readonly WorkplaneShape[], options: Partial<PrintCheckOptions>, signal?: AbortSignal): Promise<PrintCheckResult> {
+  const onPage = () => checkPrint([...source], options);
+  if (containsText([...source])) return onPage();
+  return runGeometryTask<PrintCheckResult>("printCheck", { source: [...source], options }, onPage, () => {
+    throw new Error(t("status.computeTimedOut"));
+  }, signal);
+}
+
 /** lidForShapes (lib/lidTool.ts) off the page: the lid for a body open at the top (#1009). */
 export function lidForShapesOffThread(targets: readonly WorkplaneShape[], options: LidOptions, signal?: AbortSignal): Promise<LidShapeResult> {
   const onPage = () => lidForShapes([...targets], options);
@@ -291,12 +317,23 @@ export function lidForShapesOffThread(targets: readonly WorkplaneShape[], option
 }
 
 /**
+ * lidTopForShapes (lib/lidTool.ts) off the page: the body's top as a standard's screw lid measures it, which the lid
+ * panel shows while it is open (issue #1482). Quiet, as the warm-up is: the panel says it is measuring. A measurement the
+ * signal calls off (the body changed) never answers; one that times out is no measurement.
+ */
+export function lidTopOffThread(targets: readonly WorkplaneShape[], signal?: AbortSignal): ReturnType<typeof lidTopForShapes> {
+  const onPage = () => lidTopForShapes([...targets]);
+  if (containsText([...targets])) return onPage();
+  return runGeometryTask("lidTop", { targets: [...targets] }, onPage, () => null, signal, true);
+}
+
+/**
  * An STL file read off the page (importedShapeFromStl in lib/stlImport.ts): reading a 300,000-triangle
  * file held the page for over a second. The import window shows its own progress, so this says
  * nothing of its own.
  */
-export function importedShapeFromStlOffThread(fileName: string, buffer: ArrayBuffer): Promise<WorkplaneShape> {
-  return runGeometryTask("stl", { fileName, buffer }, async () => importedShapeFromStl(fileName, buffer), () => {
+export function importedShapeFromStlOffThread(fileName: string, buffer: ArrayBuffer, options: StlReadOptions = {}): Promise<WorkplaneShape> {
+  return runGeometryTask("stl", { fileName, buffer, options }, async () => importedShapeFromStl(fileName, buffer, options), () => {
     throw new Error(t("status.computeTimedOut"));
   }, undefined, true);
 }
@@ -307,7 +344,8 @@ export function importedShapeFromStlOffThread(fileName: string, buffer: ArrayBuf
  */
 export function importedShapesFromStepOffThread(fileName: string, buffer: ArrayBuffer): Promise<StepFileImport> {
   return runGeometryTask("step", { fileName, buffer }, async () => importedShapesFromStepFile(fileName, buffer), () => {
-    throw new Error(t("status.computeTimedOut"));
+    // A file the kernel gets stuck on (a damaged one, #286) says so, not "fewer or simpler objects".
+    throw new Error(t("status.importStepTimedOut", { minutes: Math.round(GEOMETRY_WORKER_TIMEOUT_MS / 60_000) }));
   }, undefined, true);
 }
 

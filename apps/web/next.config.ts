@@ -8,6 +8,10 @@ const isStaticExport = process.env.STATIC_EXPORT === "true";
 const basePath = (process.env.LAYERLING_BASE_PATH ?? "").trim().replace(/\/+$/, "");
 if (basePath && !basePath.startsWith("/")) throw new Error(`LAYERLING_BASE_PATH must start with "/", got "${basePath}"`);
 const buildCpus = Math.max(0, Math.floor(Number(process.env.LAYERLING_BUILD_CPUS)) || 0);
+// Set by whoever runs `npm run typecheck` (tsc, incremental, about 5 s) beside or before the build: the release script
+// and the CI. `next build` then leaves out its own check of the types, the largest step of the static export
+// (26 of 55 s, 06.11.2026). Left unset - a build by hand, the deploy scripts - it checks them as before.
+const typesCheckedElsewhere = process.env.LAYERLING_TYPES_CHECKED === "1";
 const extraAllowedDevOrigins = (process.env.LAYERLING_ALLOWED_DEV_ORIGINS ?? "")
   .split(",")
   .map((origin) => origin.trim())
@@ -49,6 +53,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true
   },
+  ...(typesCheckedElsewhere ? { typescript: { ignoreBuildErrors: true } } : {}),
   // Next.js 16 builds with Turbopack by default and refuses a `webpack` hook
   // without a `turbopack` entry. The empty entry accepts Turbopack's defaults
   // there; Next.js 15 ignores it for webpack builds (#217).

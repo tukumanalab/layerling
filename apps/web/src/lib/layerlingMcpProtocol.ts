@@ -1,4 +1,4 @@
-import type { GridSize, ShapeKind, WorkplaneWorkspaceSettings } from "@/types/layerling";
+import type { GridSize, GroupResizeMode, ShapeKind, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { withBasePath } from "@/lib/basePath";
 
 export const LAYERLING_MCP_ROUTE = withBasePath("/api/layerling-mcp");
@@ -52,6 +52,10 @@ export type LayerlingMcpShapeSummary = {
    */
   settings?: Record<string, string | number | boolean>;
   groupedCount: number;
+  /** Groups and bundles: what the group does with its parts when it is resized (Discussion #526). */
+  groupResize?: GroupResizeMode;
+  /** A hull: whether the holes and hollows of its parts stay open (Discussion #1440). */
+  keepHoles?: boolean;
   importedTriangles: number;
   cadDisplayEdgeCount: number | null;
   sketchPointCount: number;
@@ -96,6 +100,8 @@ export type LayerlingMcpCommandName =
   | "get_scene"
   | "list_objects"
   | "select_objects"
+  | "hide_others"
+  | "rename_project"
   | "delete_objects"
   | "move_object"
   | "create_shape"
@@ -107,6 +113,9 @@ export type LayerlingMcpCommandName =
   | "perforate_face"
   | "sweep_sketch"
   | "push_face"
+  | "paint_object"
+  | "support_rib"
+  | "stencil_bridges"
   | "scale_objects"
   | "mate_faces"
   | "open_group"
@@ -145,6 +154,8 @@ export type LayerlingMcpCommandName =
   | "inspect_errors"
   | "estimate_print"
   | "check_clearance"
+  | "printer_play"
+  | "check_print"
   | "add_reference_points"
   | "list_reference_points"
   | "remove_reference_points"
@@ -166,6 +177,7 @@ export type LayerlingMcpCommandName =
   | "restore_from_history"
   | "clear_history"
   | "show_workplane"
+  | "focus_mode"
   | "saved_view"
   | "build_plates"
   | "measurements"

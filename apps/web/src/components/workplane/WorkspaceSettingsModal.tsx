@@ -2,12 +2,17 @@
 
 import { BUILT_IN_FONTS } from "@/lib/textFonts";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
+import { RibbonButtonsSetting } from "@/components/workplane/RibbonButtonsSetting";
 import type { GuideSection } from "@/lib/guideLinks";
 import { MAX_OVERHANG_ANGLE, MIN_OVERHANG_ANGLE } from "@/lib/overhangLimits";
-import { Box as BoxIcon, ChevronDown, Grid3X3, History, Palette, Plus, RotateCcw, Ruler, Trash2, X } from "lucide-react";
+import { Box as BoxIcon, ChevronDown, Grid3X3, History, Palette, PanelTop, Plus, RotateCcw, Ruler, Trash2, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMovablePanel } from "@/lib/useMovablePanel";
 import { SpaceMouseSetting } from "@/components/workplane/SpaceMouseSetting";
+import { printerPlayShapeStart } from "@/lib/printerPlay";
+import { usePrinterPlayFor } from "@/lib/usePrinterPlay";
+import { PrinterPlaySetting } from "@/components/workplane/PrinterPlaySetting";
+import { SettingsFileButtons } from "@/components/workplane/SettingsFileButtons";
 import { createPortal } from "react-dom";
 import { HexColorInput, HexColorPicker } from "react-colorful";
 import { APP_THEME_OPTIONS, type AppThemePreference } from "@/lib/appTheme";
@@ -24,6 +29,7 @@ import { automaticSideCount } from "@/lib/roundSideCount";
 import { torusTessellation } from "@/lib/torusTessellation";
 import { printerPresetById } from "@/lib/printBed";
 import { PRINTER_PRESETS } from "@/lib/printerPresets.generated";
+import { maxDovetailNeckWidth } from "@/lib/dovetailGeometry";
 import {
   DEFAULT_THREAD_CLEARANCE,
   DEFAULT_THREAD_BOLT_CLEARANCE,
@@ -87,22 +93,25 @@ import {
 } from "@/lib/bentTubeGeometry";
 import { numberLocale, t, type MessageKey } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
+import { readStartWithCornerRuler, writeStartWithCornerRuler } from "@/lib/cornerRulerStore";
 import { measurementOptionLabel, normalizeScaleForUnits, parseMeasurementInput, scaleOptionsForUnits, WORKSPACE_UNIT_OPTIONS } from "@/lib/measurementUnits";
 import { shapeAssetDefaultDimensions, shapeAssetLabel, shapeAssetSpecialDefaults, toolbarShapeAssets } from "@/lib/shapeCatalog";
-import { BOOLEAN_TRIANGLE_LIMIT_PRESETS, BOOLEAN_TRIANGLE_LIMIT_STEP, DEFAULT_WORKPLANE_WORKSPACE, ZOOM_SPEED_SLIDER_MAX, MAX_BOOLEAN_TRIANGLE_LIMIT, MAX_CUSTOM_SHAPE_DIMENSION, MAX_HIGH_RESOLUTION_SIDES, MAX_HIGH_RESOLUTION_STEPS, MIN_BOOLEAN_TRIANGLE_LIMIT, MIN_CUSTOM_SHAPE_DIMENSION, booleanTriangleLimitPreset, workspaceForUnits, snapGridForUnits, type BooleanTriangleLimitPreset, DEFAULT_SNAP_GRID, MAX_CUSTOM_SNAP_GRID, MAX_CUSTOM_SNAP_GRID_NAME, MAX_CUSTOM_SNAP_GRIDS, MIN_CUSTOM_SNAP_GRID, customSnapGridDivisors, customSnapGridLabel, customSnapGridSize, parseCustomSnapGrid, readWorkspaceDefault, resetGridInSavedDefault, snapGridOptions, standardGridSettings, workspaceWithSavedDefault } from "@/lib/workplaneSettings";
+import { BOOLEAN_TRIANGLE_LIMIT_PRESETS, BOOLEAN_TRIANGLE_LIMIT_STEP, DEFAULT_WORKPLANE_WORKSPACE, HOLE_OPACITY_MAX, HOLE_OPACITY_MIN, effectiveHoleOpacity, ZOOM_SPEED_SLIDER_MAX, PAN_SPEED_SLIDER_MAX, MAX_BOOLEAN_TRIANGLE_LIMIT, MAX_CUSTOM_SHAPE_DIMENSION, MAX_HIGH_RESOLUTION_SIDES, MAX_HIGH_RESOLUTION_STEPS, MIN_BOOLEAN_TRIANGLE_LIMIT, MIN_CUSTOM_SHAPE_DIMENSION, booleanTriangleLimitPreset, workspaceForUnits, snapGridForUnits, type BooleanTriangleLimitPreset, DEFAULT_SNAP_GRID, MAX_CUSTOM_SNAP_GRID, MAX_CUSTOM_SNAP_GRID_NAME, MAX_CUSTOM_SNAP_GRIDS, MIN_CUSTOM_SNAP_GRID, customSnapGridDivisors, customSnapGridLabel, customSnapGridSize, parseCustomSnapGrid, readWorkspaceDefault, resetGridInSavedDefault, snapGridOptions, standardGridSettings, workspaceWithSavedDefault } from "@/lib/workplaneSettings";
 import { DEFAULT_SKETCH_BACKGROUND, DEFAULT_SKETCH_GRID_COLOR, DEFAULT_SKETCH_PLATE_COLOR, IMPERIAL_GRID_BLOCK_PRESETS, inchGridPresetMm, workplaneGridPalette } from "@/lib/workplaneGrid";
 import type { BentTubeProfile, CustomSnapGrid, GearProfile, GearType, GridSize, ShapeCustomization, ShapeKind, ThreadHand, ThreadHead, ThreadProfile, ThreadRole, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { DEFAULT_LOFT } from "@/lib/loftGeometry";
 import { DEFAULT_GRIDFINITY_TRAY_SIZE, normalizeGridfinityType } from "@/lib/gridfinityGeometry";
 import { selectWholeValue } from "@/lib/numberField";
 import { DEFAULT_PULLEY_BELT_WIDTH, DEFAULT_PULLEY_BORE, DEFAULT_PULLEY_FLANGE, DEFAULT_PULLEY_FLANGE_RISE, DEFAULT_PULLEY_HUB_DIAMETER, DEFAULT_PULLEY_HUB_HEIGHT, DEFAULT_PULLEY_TEETH, MAX_PULLEY_BELT_WIDTH, MAX_PULLEY_FLANGE, MAX_PULLEY_FLANGE_RISE, MAX_PULLEY_HUB_HEIGHT, MAX_PULLEY_TEETH, MIN_PULLEY_BELT_WIDTH, MIN_PULLEY_FLANGE_RISE, MIN_PULLEY_TEETH } from "@/lib/pulleyGeometry";
+import { MAX_TEXT_LENGTH } from "@/lib/textLength";
 import { DEFAULT_HIRTH_BORE, DEFAULT_HIRTH_TEETH, MAX_HIRTH_TEETH, MIN_HIRTH_TEETH, MIN_HIRTH_TOOTH_HEIGHT, hirthBoreLimit, hirthToothHeightLimit } from "@/lib/hirthGeometry";
 
 type WorkspaceSettings = WorkplaneWorkspaceSettings;
-type WorkspaceSettingsSection = "appearance" | "measurement" | "workplane" | "shapes" | "history";
+type WorkspaceSettingsSection = "appearance" | "ribbon" | "measurement" | "workplane" | "shapes" | "history";
 // The question mark of each tab opens that tab's own part of the guide.
 const SETTINGS_HELP_SECTION: Record<WorkspaceSettingsSection, GuideSection> = {
   appearance: "settingsAppearance",
+  ribbon: "ribbonButtons",
   measurement: "settingsMeasurement",
   workplane: "settingsWorkplane",
   shapes: "shapeSettings",
@@ -233,8 +242,10 @@ function specialFieldsForShape(
   kind: ShapeKind,
   dimensions: { width: number; depth: number; height: number },
   customization: ShapeCustomization,
+  printerPlay: number | null = null,
 ): ShapeSpecialField[] {
-  const defaults = shapeAssetSpecialDefaults(kind, dimensions);
+  // A clearance that follows the printer's play starts from it here too, as a new shape of the kind does.
+  const defaults = { ...shapeAssetSpecialDefaults(kind, dimensions), ...printerPlayShapeStart(kind, printerPlay) };
   // Ohne eigene Angabe folgt die Seitenzahl der Groesse; hier steht, was das
   // bei den Vorgabemassen ergibt. Eine eingetragene Zahl haelt sie fest.
   // The curved cone's top and bend are kept as shares; "Save as default" on its card keeps them.
@@ -281,7 +292,7 @@ function specialFieldsForShape(
   }
   if (kind === "text") {
     return [
-      { type: "text", key: "text", label: t("prop.text"), defaultValue: defaults.text ?? "TEXT", maxLength: 24 },
+      { type: "text", key: "text", label: t("prop.text"), defaultValue: defaults.text ?? "TEXT", maxLength: MAX_TEXT_LENGTH },
       { type: "select", key: "font", label: t("prop.font"), defaultValue: defaults.font ?? "Multilanguage", options: BUILT_IN_FONTS.map((value) => ({ value, label: value })) },
       { type: "number", key: "bevel", label: t("prop.bevel"), defaultValue: defaults.bevel ?? 0, min: 0, max: 8, unit: "mm" },
       { type: "number", key: "segments", label: t("prop.segments"), defaultValue: defaults.segments ?? 0, min: 0, max: 24, step: 1 },
@@ -446,7 +457,7 @@ function specialFieldsForShape(
   }
   if (kind === "dovetail") {
     return [
-      { type: "number", key: "dovetailNeckWidth", label: t("prop.dovetailNeckWidth"), defaultValue: defaults.dovetailNeckWidth ?? dimensions.width / 2, min: 0.1, max: Math.max(0.2, dimensions.width * 0.95), unit: "mm" },
+      { type: "number", key: "dovetailNeckWidth", label: t("prop.dovetailNeckWidth"), defaultValue: defaults.dovetailNeckWidth ?? dimensions.width / 2, min: 0.1, max: maxDovetailNeckWidth(dimensions.width), unit: "mm" },
       { type: "number", key: "dovetailClearance", label: t("prop.dovetailClearance"), defaultValue: defaults.dovetailClearance ?? 0.2, min: 0, max: 2, step: 0.05, unit: "mm" },
     ];
   }
@@ -519,6 +530,7 @@ export function WorkspaceSettingsModal({
   onSaveStartView,
   onResetStartView,
   onMakeDefault,
+  onMakeFitTest,
   onClose,
 }: {
   workspace: WorkspaceSettings;
@@ -538,13 +550,19 @@ export function WorkspaceSettingsModal({
   onSaveStartView: () => void;
   onResetStartView: () => void;
   onMakeDefault: () => void;
+  /** Puts the fit test on the plate (fitTest.ts); the window closes for it. */
+  onMakeFitTest?: () => void;
   onClose: () => void;
 }) {
   const [defaultSaved, setDefaultSaved] = useState(false);
   // A default saved earlier or just now: what "Use my default" puts on this design (#754).
   const savedDefault = useMemo(() => readWorkspaceDefault(), [defaultSaved]);
   useLanguage();
+  // The play of the printer chosen here (Discussion #1406), as a new shape for it starts from.
+  const { play: printerPlay } = usePrinterPlayFor(workspace.printer ?? "");
   const [activeSection, setActiveSection] = useState<WorkspaceSettingsSection>("appearance");
+  // A setting of this browser, not of the design: read when the window opens (#1386).
+  const [startWithCornerRuler, setStartWithCornerRuler] = useState(readStartWithCornerRuler);
   const toolbarSize = useToolbarSize();
   const shapeColors = useShapeColors();
   const viewCubePosition = useViewCubePosition();
@@ -593,7 +611,9 @@ export function WorkspaceSettingsModal({
     depth: selectedShapeCustomization.depth ?? selectedShapeAppDefaults.depth,
     height: selectedShapeCustomization.height ?? selectedShapeAppDefaults.height,
   };
-  const selectedShapeSpecialFields = specialFieldsForShape(selectedShapeKind, selectedShapeEffectiveDimensions, selectedShapeCustomization);
+  const selectedShapeSpecialFields = specialFieldsForShape(selectedShapeKind, selectedShapeEffectiveDimensions, selectedShapeCustomization, printerPlay);
+  // The fields whose starting value comes from the fit test: their line says so instead of "App".
+  const selectedShapePlayStart = printerPlayShapeStart(selectedShapeKind, printerPlay) as Record<string, number | undefined>;
   // Breite und Tiefe eines Gewindes folgen dem Durchmesser; nur die Hoehe
   // laesst sich sinnvoll vorgeben. Ein Zylinder ist immer kreisrund, daher
   // nur ein Durchmesser- (= Breiten-)Feld statt Breite und Tiefe getrennt.
@@ -781,6 +801,10 @@ export function WorkspaceSettingsModal({
               <Palette size={18} />
               <span>{t("workspace.appearance")}</span>
             </button>
+            <button className={activeSection === "ribbon" ? "active" : ""} data-help={t("workspace.ribbon")} aria-current={activeSection === "ribbon" ? "page" : undefined} onClick={() => setActiveSection("ribbon")}>
+              <PanelTop size={18} />
+              <span>{t("workspace.ribbon")}</span>
+            </button>
             <button className={activeSection === "measurement" ? "active" : ""} aria-current={activeSection === "measurement" ? "page" : undefined} onClick={() => setActiveSection("measurement")}>
               <Ruler size={18} />
               <span>{t("workspace.measurement")}</span>
@@ -823,19 +847,6 @@ export function WorkspaceSettingsModal({
                       {APP_THEME_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
                           {t(THEME_LABEL_KEYS[option.value])}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="workspace-select" data-help={t("workspace.toolbarSize")}>
-                    <span>{t("workspace.toolbarSize")}</span>
-                    <select
-                      value={toolbarSize}
-                      onChange={(event) => setToolbarSize(event.currentTarget.value as ToolbarSize)}
-                    >
-                      {TOOLBAR_SIZE_OPTIONS.map((size) => (
-                        <option key={size} value={size}>
-                          {t(TOOLBAR_SIZE_LABEL_KEYS[size])}
                         </option>
                       ))}
                     </select>
@@ -900,6 +911,24 @@ export function WorkspaceSettingsModal({
                     checked={workspace.strongHoles}
                     onChange={(strongHoles) => patchWorkspace({ strongHoles })}
                   />
+                  <label className="workspace-range" data-help={t("workspace.holeOpacityHint")}>
+                    <span>
+                      {t("workspace.holeOpacity")}: {effectiveHoleOpacity(workspace)} %
+                      {workspace.holeOpacity ? "" : ` (${t("workspace.holeOpacityAuto")})`}
+                    </span>
+                    <input
+                      type="range"
+                      min={HOLE_OPACITY_MIN}
+                      max={HOLE_OPACITY_MAX}
+                      value={effectiveHoleOpacity(workspace)}
+                      onChange={(event) => patchWorkspace({ holeOpacity: Number(event.currentTarget.value) })}
+                      onDoubleClick={() => patchWorkspace({ holeOpacity: DEFAULT_WORKPLANE_WORKSPACE.holeOpacity })}
+                    />
+                    <small>
+                      <span>{t("workspace.holeOpacityClear")}</span>
+                      <span>{t("workspace.holeOpacitySolid")}</span>
+                    </small>
+                  </label>
                   <ColorSettingControl
                     label={t("workspace.sketchBackground")}
                     color={sketchBackground}
@@ -968,6 +997,12 @@ export function WorkspaceSettingsModal({
                     checked={workspace.startWithScrollbars}
                     onChange={(startWithScrollbars) => patchWorkspace({ startWithScrollbars })}
                   />
+                  <WorkspaceToggle
+                    label={t("workspace.viewBarOpensOnHover")}
+                    description={t("workspace.viewBarOpensOnHoverHint")}
+                    checked={workspace.viewBarOpensOnHover}
+                    onChange={(viewBarOpensOnHover) => patchWorkspace({ viewBarOpensOnHover })}
+                  />
                   <div className="workspace-reset-row" data-help={t("workspace.startViewHint")}>
                     <span>{t("workspace.startView")}</span>
                     <div className="property-defaults-actions">
@@ -1022,6 +1057,12 @@ export function WorkspaceSettingsModal({
                     description={t("workspace.stlAsDownloadHint")}
                     checked={workspace.stlAsDownload}
                     onChange={(stlAsDownload) => patchWorkspace({ stlAsDownload })}
+                  />
+                  <WorkspaceToggle
+                    label={t("workspace.lylAsDownload")}
+                    description={t("workspace.lylAsDownloadHint")}
+                    checked={workspace.lylAsDownload}
+                    onChange={(lylAsDownload) => patchWorkspace({ lylAsDownload })}
                   />
                   <WorkspaceToggle
                     label={t("workspace.confirmTabClose")}
@@ -1180,6 +1221,21 @@ export function WorkspaceSettingsModal({
                       <span>{t("workspace.fast")}</span>
                     </small>
                   </label>
+                  <label className="workspace-range" data-help={t("workspace.panSpeedHint")}>
+                    <span>{t("workspace.panSpeed")}</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={PAN_SPEED_SLIDER_MAX}
+                      value={workspace.panSpeed}
+                      onChange={(event) => patchWorkspace({ panSpeed: Number(event.currentTarget.value) })}
+                      onDoubleClick={() => patchWorkspace({ panSpeed: DEFAULT_WORKPLANE_WORKSPACE.panSpeed })}
+                    />
+                    <small>
+                      <span>{t("workspace.slow")}</span>
+                      <span>{t("workspace.fast")}</span>
+                    </small>
+                  </label>
                   <label className="workspace-select" data-help={t("workspace.mouseScheme")}>
                     <span>{t("workspace.mouseScheme")}</span>
                     <select
@@ -1234,6 +1290,28 @@ export function WorkspaceSettingsModal({
                 </>
               ) : null}
 
+              {activeSection === "ribbon" ? (
+                <>
+                  <div className="workspace-section-heading">
+                    <strong>{t("workspace.ribbon")}</strong>
+                    <span>{t("workspace.ribbonHint")}</span>
+                  </div>
+                  <label className="workspace-select" data-help={t("workspace.toolbarSize")}>
+                    <span>{t("workspace.toolbarSize")}</span>
+                    <select
+                      value={toolbarSize}
+                      onChange={(event) => setToolbarSize(event.currentTarget.value as ToolbarSize)}
+                    >
+                      {TOOLBAR_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {t(TOOLBAR_SIZE_LABEL_KEYS[size])}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <RibbonButtonsSetting />
+                </>
+              ) : null}
               {activeSection === "measurement" ? (
                 <>
                   <div className="workspace-section-heading">
@@ -1297,6 +1375,15 @@ export function WorkspaceSettingsModal({
                       else if (!customSnapGrids.some((grid) => grid.size === current.size)) onSnapChange(workspace.units === "Imperial" ? "1/8 in" : DEFAULT_SNAP_GRID);
                     }}
                   />
+                  <WorkspaceToggle
+                    label={t("workspace.startWithCornerRuler")}
+                    description={t("workspace.startWithCornerRulerHint")}
+                    checked={startWithCornerRuler}
+                    onChange={(on) => {
+                      setStartWithCornerRuler(on);
+                      writeStartWithCornerRuler(on);
+                    }}
+                  />
                 </>
               ) : null}
 
@@ -1326,6 +1413,11 @@ export function WorkspaceSettingsModal({
                         : t("workspace.printerInfo", { width: chosenPrinter.width, depth: chosenPrinter.depth, height: chosenPrinter.height })
                       : t("workspace.printerHint")}
                   </p>
+                  <PrinterPlaySetting
+                    onMakeFitTest={onMakeFitTest}
+                    printer={chosenPrinter?.id ?? ""}
+                    printerName={chosenPrinter ? `${chosenPrinter.vendor} ${chosenPrinter.model}` : ""}
+                  />
                   <WorkspaceToggle
                     label={t("workspace.showPlateLabels")}
                     description={t("workspace.showPlateLabelsHint")}
@@ -1547,7 +1639,7 @@ export function WorkspaceSettingsModal({
                                     if (event.key === "Enter") event.currentTarget.blur();
                                   }}
                                 />
-                                <small>{t("workspace.appDefault", {
+                                <small>{t(selectedShapePlayStart[field.key] !== undefined ? "workspace.fitTestDefault" : "workspace.appDefault", {
                                     value: `${field.step === 1 ? Math.round(field.defaultValue) : Number(field.defaultValue.toFixed(workspace.accuracy))}${field.unit ? ` ${field.unit}` : ""}`,
                                   })}</small>
                               </label>
@@ -1652,6 +1744,7 @@ export function WorkspaceSettingsModal({
                     {t("workspace.useMyDefault")}
                   </button>
                 ) : null}
+                <SettingsFileButtons workspace={workspace} snap={snap} onWorkspaceChange={onWorkspaceChange} onSnapChange={onSnapChange} />
                 <button
                   className="make-default-button"
                   onClick={() => {

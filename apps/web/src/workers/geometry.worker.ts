@@ -3,18 +3,20 @@
 import { buildMessage } from "@/lib/buildStamp";
 import { checkClearance, type ClearanceOptions } from "@/lib/clearanceCheck";
 import { articulateShapes, type FlexiOptions } from "@/lib/flexiJoints";
-import { lidForShapes, type LidOptions } from "@/lib/lidTool";
-import { buildGroupedShapeFromSelection, exportSolidVolume, faceReadPositions, splitShapeIfCrossed } from "@/lib/editorBooleans";
+import { lidForShapes, lidTopForShapes, type LidOptions } from "@/lib/lidTool";
+import { checkPrint, type PrintCheckOptions } from "@/lib/printCheck";
+import { buildGroupedShapeFromSelection, exportSolidVolume, faceReadPositions, previewSplitConnectors, splitShapeIfCrossed } from "@/lib/editorBooleans";
 import { getManifoldRuntime, setManifoldAssetBase } from "@/lib/editorMeshCore";
 import { packValue, packedTransfer, unpackValue } from "@/lib/geometryTransfer";
 import { resultMeshes, type GeometryWorkerRequest, type GeometryWorkerResponse } from "@/lib/geometryWorkerTypes";
 import { prepareImportedMeshDisplay } from "@/lib/importedMeshDisplay";
 import { simplifyTrianglePositions, type SimplifyOptions } from "@/lib/meshSimplify";
 import { importedShapesFromObj } from "@/lib/objImport";
-import { importedShapeFromStl } from "@/lib/stlImport";
+import { importedShapeFromStl, type StlReadOptions } from "@/lib/stlImport";
 import { importedShapesFromStepFile } from "@/lib/stepFileImport";
 import { setLanguage } from "@/lib/i18n";
 import type { ModelSplitPlane } from "@/lib/modelSplit";
+import type { SplitConnectorOptions } from "@/lib/splitConnectors";
 import type { WorkplaneShape } from "@/types/layerling";
 
 /**
@@ -41,20 +43,29 @@ self.onmessage = async (event: MessageEvent<GeometryWorkerRequest>) => {
       const { selected, triangleLimit } = args as { selected: WorkplaneShape[]; triangleLimit: number };
       result = await buildGroupedShapeFromSelection(selected, triangleLimit);
     } else if (request.task === "split") {
-      const { shape, plane } = args as { shape: WorkplaneShape; plane: Pick<ModelSplitPlane, "axis" | "normal" | "position"> };
-      result = await splitShapeIfCrossed(shape, plane);
+      const { shape, plane, connectors } = args as { shape: WorkplaneShape; plane: Pick<ModelSplitPlane, "axis" | "normal" | "position">; connectors?: SplitConnectorOptions };
+      result = await splitShapeIfCrossed(shape, plane, connectors);
+    } else if (request.task === "splitConnectors") {
+      const { targets, plane, connectors } = args as { targets: WorkplaneShape[]; plane: Pick<ModelSplitPlane, "axis" | "normal" | "position">; connectors: SplitConnectorOptions };
+      result = await previewSplitConnectors(targets, plane, connectors);
     } else if (request.task === "flexi") {
       const { targets, options } = args as { targets: WorkplaneShape[]; options: FlexiOptions };
       result = await articulateShapes(targets, options);
     } else if (request.task === "clearance") {
       const { source, options } = args as { source: WorkplaneShape[]; options: Partial<ClearanceOptions> };
       result = await checkClearance(source, options);
+    } else if (request.task === "printCheck") {
+      const { source, options } = args as { source: WorkplaneShape[]; options: Partial<PrintCheckOptions> };
+      result = await checkPrint(source, options);
     } else if (request.task === "lid") {
       const { targets, options } = args as { targets: WorkplaneShape[]; options: LidOptions };
       result = await lidForShapes(targets, options);
+    } else if (request.task === "lidTop") {
+      const { targets } = args as { targets: WorkplaneShape[] };
+      result = await lidTopForShapes(targets);
     } else if (request.task === "stl") {
-      const { fileName, buffer } = args as { fileName: string; buffer: ArrayBuffer };
-      result = importedShapeFromStl(fileName, buffer);
+      const { fileName, buffer, options } = args as { fileName: string; buffer: ArrayBuffer; options?: StlReadOptions };
+      result = importedShapeFromStl(fileName, buffer, options);
     } else if (request.task === "obj") {
       const { fileName, text, mtlSources } = args as { fileName: string; text: string; mtlSources: string[] };
       result = importedShapesFromObj(fileName, text, mtlSources);

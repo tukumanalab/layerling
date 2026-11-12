@@ -7,13 +7,14 @@ import { curveStretches } from "@/lib/sketchCurveThroughPoints";
 import { markEscapeHandled } from "@/lib/escapeHandled";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
 import { SnapGridControl } from "@/components/workplane/ShapeInspector";
+import { SnapGridPointerMenu } from "@/components/workplane/SnapGridMenu";
 import { SketchRevolvePreview } from "@/components/SketchRevolvePreview";
 import { SketchNotes } from "@/components/SketchNotes";
 import { SketchLockBadge, SketchRotateHandles, SketchTurnRing } from "@/components/SketchHandles";
 import { lockBadgeSpot, rotateHandleSpots } from "@/lib/sketchHandleSpots";
 import { SKETCH_DOUBLE_CLICK_PIXELS, useSketchViewSlide } from "@/lib/useSketchViewSlide";
 import { ToolbarConstructionLineIcon, ToolbarNoteIcon } from "@/components/toolbarIcons";
-import { CAMERA_BAR_PANEL, CameraBarHandle } from "@/components/workplane/CameraBarHandle";
+import { CAMERA_BAR_PANEL, CameraBarHandle, useCameraBarPeek } from "@/components/workplane/CameraBarHandle";
 import { constructionCrossings } from "@/lib/sketchConstruction";
 import { movingSelectionCentre, outlineSideMiddles, selectionSnapTargets, sketchSnapPoints, snappedSelectionTarget } from "@/lib/sketchSnapPoints";
 import { openEndPoints } from "@/lib/sketchPointJoin";
@@ -32,6 +33,8 @@ import { pickTouchTarget, type TouchCandidate } from "@/lib/sketchTouch";
 import { isSketchPrimitive, type SketchPrimitive } from "@/lib/sketchPrimitives";
 import { meshForShape } from "@/lib/editorMeshCore";
 import { mirrorSign, resizedImportedMeshPositions } from "@/lib/workplaneShapes";
+import { loadedManifoldRuntime, manifoldRevision, onManifoldReady, requestManifoldRuntime } from "@/lib/manifoldHandle";
+import { meshTopSilhouette, silhouettePath, type SilhouetteLoop } from "@/lib/meshSilhouette";
 import { DEFAULT_SNAP_GRID, DEFAULT_WORKPLANE_WORKSPACE, keyboardNudgeCoarseFactor, keyboardNudgeStep, normalizeSnapGrid, normalizeWorkspaceSettings, snapGridForShortcut, snapGridOptions, snapGridStep as snapStep, orbitControlsZoomSpeed, zoomDistanceScale, ZOOM_STEP_IN, ZOOM_STEP_OUT } from "@/lib/workplaneSettings";
 import type { GridSize, SketchImage, SketchNote, SketchOperation, SketchPoint, SketchProfile, SketchSegment, SketchStroke, SketchStrokeAlign, SketchStrokeCap, SketchStrokeJoin, SweepAnchor, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { resizePointerOnGrid } from "@/lib/sketchFrameResize";
@@ -51,6 +54,7 @@ import { displayY, insideZ } from "@/lib/displayAxes";
 import { clampNudge, constrainToAxis, sketchSegmentDragPointIds, sketchSelectedPointIds, sketchSelectedSegmentIds, sketchSelectionMovePointIds, type SketchSelectableEntity, type SketchSelection } from "@/lib/sketchSelection";
 import { closedPathAt, closedPathRegions, cubicPoint, curveControls, isInsideEdges, orderedPaths, pathEdges, type DisplayPath, type PlaneEdge } from "@/lib/sketchPaths";
 import { capturePointer } from "@/lib/pointerCapture";
+import { useMiddleClick } from "@/lib/middleClick";
 import { sketchBoardSize, sketchFarthestReach, sketchMinZoom, sketchPointerReach } from "@/lib/sketchBoard";
 import { arcPreviewPoints, arcThroughThreePoints, type SketchArcEnd } from "@/lib/sketchArc";
 import { constrainToAngle, sketchLineAngle, sketchPolarPoint, splitTypedLine } from "@/lib/sketchPolar";
@@ -532,12 +536,40 @@ function boundaryPath(points: Array<{ x: number; z: number }>, triangles: number
   return commands.join(" ");
 }
 
+/** Each imported mesh's outline from above, kept until the mesh or its size changes: the kernel works it out once. */
+const silhouetteCache = new WeakMap<object, { key: string; edges: unknown; loops: SilhouetteLoop[] | null }>();
+
+/** The outline of an imported mesh seen from above, in its own frame (Discussion #1366); null before the kernel is there or when it refuses the mesh. */
+function importedMeshSilhouette(shape: WorkplaneShape): SilhouetteLoop[] | null {
+  const mesh = shape.importedMesh;
+  if (!mesh) return null;
+  const key = `${shape.width}|${shape.depth}|${shape.height}|${shape.size}`;
+  const cached = silhouetteCache.get(mesh);
+  if (cached && cached.key === key && cached.edges === shape.edgeTreatments) return cached.loops;
+  const runtime = loadedManifoldRuntime();
+  if (!runtime) {
+    requestManifoldRuntime();
+    return null;
+  }
+  const loops = meshTopSilhouette(runtime, resizedImportedMeshPositions(shape));
+  silhouetteCache.set(mesh, { key, edges: shape.edgeTreatments, loops });
+  return loops;
+}
+
 export function importedMeshFootprint(shape: WorkplaneShape): SketchReferenceFootprint | null {
   if (!shape.importedMesh) return null;
-  const positions = resizedImportedMeshPositions(shape);
   const project = (x: number, z: number) => sketchReferencePoint(shape, x, z);
-  const size = Math.max(shape.width, shape.depth, shape.height);
   const counts = shape.importedMesh.partTriangleCounts;
+  if (!counts?.length) {
+    // The mesh as it is seen from above, not only the part it stands on (#1366): an imported Benchy showed the strip of its keel.
+    const silhouette = importedMeshSilhouette(shape);
+    if (silhouette) {
+      const d = silhouettePath(silhouette.map((loop) => loop.map((point) => project(point.x, point.z))));
+      return { fillD: d, outlineD: d };
+    }
+  }
+  const positions = resizedImportedMeshPositions(shape);
+  const size = Math.max(shape.width, shape.depth, shape.height);
   if (!counts?.length) return footprintOfPositions(positions, project, size, shape.height);
   // On a workplane set on a face (#778) each part shows as it is seen from the plane: the face on the plane alone was a thin
   // strip when the plane stood a little askew, and a group left out its parts behind the plane.
@@ -787,6 +819,14 @@ export function SketchWorkspace({
   const cameraBarMove = useMovablePanel<HTMLDivElement>("layerling.sketch.cameraBarPosition", CAMERA_BAR_PANEL);
   const [cameraBarCollapsed, setCameraBarCollapsed] = useState(false);
   const workspace = useMemo(() => normalizeWorkspaceSettings(initialWorkspace, DEFAULT_WORKPLANE_WORKSPACE), [initialWorkspace]);
+  // The same "Open the view bar on hover" as in the 3D view (Discussion #1552).
+  const cameraBarPeek = useCameraBarPeek({
+    enabled: workspace.viewBarOpensOnHover,
+    collapsed: cameraBarCollapsed,
+    onOpen: () => setCameraBarCollapsed(false),
+    onFold: () => setCameraBarCollapsed(true),
+    keepOpen: () => cameraBarMove.dragging,
+  });
   setLengthUnit(workspace);
   const unitLabel = lengthDisplayUnit(workspace).label;
   const [snap, setSnap] = useState<GridSize>(() => normalizeSnapGrid(initialSnap, DEFAULT_SNAP_GRID));
@@ -872,6 +912,13 @@ export function SketchWorkspace({
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapRef = useRef<HTMLElement | null>(null);
+  // A middle drag moves the plate; a short middle click opens the snap menu where it happened (Discussion #1439).
+  const [snapMenuAt, setSnapMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const closeSnapMenuAt = useCallback(() => setSnapMenuAt(null), []);
+  useMiddleClick(wrapRef, (x, y) => {
+    setSnapOpen(false);
+    setSnapMenuAt({ x, y });
+  });
   // Width or height of the selected shape, while its value is typed (#168).
   const [editingBoxSize, setEditingBoxSize] = useState<{ axis: "x" | "z"; value: string; sketchPos: { x: number; z: number } } | null>(null);
   const boxSizeEditDoneRef = useRef(false);
@@ -2234,9 +2281,13 @@ export function SketchWorkspace({
   })();
   // The corner whose angle is being typed, for the line that will turn.
   const editingCorner = editingAngle ? sketchCornerAt(displayProfile, editingAngle.pointId) : null;
+  // An imported mesh's outline from above needs the kernel: drawn again when it has loaded.
+  const [kernelRevision, setKernelRevision] = useState(() => manifoldRevision());
+  useEffect(() => onManifoldReady(() => setKernelRevision(manifoldRevision())), []);
   const referenceFootprints = useMemo(
     () => new Map(referenceShapes.map((shape) => [shape.id, importedMeshFootprint(shape) ?? shapeMeshFootprint(shape)])),
-    [referenceShapes],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- kernelRevision only asks for the outlines again
+    [referenceShapes, kernelRevision],
   );
   // The corners of the bodies shown underneath, in sketch coordinates: where a point snaps to them.
   const referenceSnapPoints = useMemo(() => {
@@ -2351,8 +2402,9 @@ export function SketchWorkspace({
         style={cameraBarMove.style}
         aria-label={t("sketch.viewControls")}
         data-help-section="cameraBar"
+        {...cameraBarPeek.barProps}
       >
-        <CameraBarHandle move={cameraBarMove} collapsed={cameraBarCollapsed} onToggle={() => setCameraBarCollapsed((folded) => !folded)} />
+        <CameraBarHandle move={cameraBarMove} collapsed={cameraBarCollapsed || cameraBarPeek.peeking} onToggle={() => cameraBarPeek.toggle(() => setCameraBarCollapsed((folded) => !folded))} />
         {cameraBarCollapsed ? null : (<>
         <div className="camera-group">
           <button aria-label={t("sketch.resetView")} aria-keyshortcuts="Home" title={t("camera.shortcut", { label: t("sketch.resetView"), keys: "Home" })} onClick={resetView}><Home size={24} strokeWidth={2.25} /></button>
@@ -3709,6 +3761,9 @@ export function SketchWorkspace({
       <div className="grid-settings">
         <SnapGridControl units={workspace.units} customGrids={workspace.customSnapGrids} snap={snap} snapOpen={snapOpen} onSnapChange={chooseSnap} onSnapOpenChange={setSnapOpen} />
       </div>
+      {snapMenuAt ? (
+        <SnapGridPointerMenu x={snapMenuAt.x} y={snapMenuAt.y} units={workspace.units} customGrids={workspace.customSnapGrids} snap={snap} onSnapChange={chooseSnap} onClose={closeSnapMenuAt} />
+      ) : null}
     </main>
   );
 }

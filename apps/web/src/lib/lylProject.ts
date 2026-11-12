@@ -19,8 +19,8 @@ import {
   attachmentsFormatVersion,
 } from "@/lib/projectAttachments";
 import { normalizeQrSettings } from "@/lib/qrCode";
-import { MAX_SBC_CLEARANCE, MAX_SBC_REACH, MAX_SBC_UP_REACH, MIN_SBC_UP_REACH, SBC_BOARD_ORDER } from "@/lib/sbcBoards";
-import { importedShapeFromStl } from "@/lib/stlImport";
+import { MAX_SBC_BUTTON_REACH, MAX_SBC_CLEARANCE, MAX_SBC_REACH, MAX_SBC_UP_REACH, MIN_SBC_UP_REACH, SBC_BOARD_ORDER } from "@/lib/sbcBoards";
+import { importedShapeFromStl, stlReadBeforeZUp, type StlReadOptions } from "@/lib/stlImport";
 import { importedShapeFromSvg } from "@/lib/svgImport";
 import { importedShapeFrom3mf } from "@/lib/threemfImport";
 import { normalizeDesignView, normalizeSavedViews, readDesignView, readSavedViews, type DesignView, type SavedDesignViews } from "@/lib/designView";
@@ -31,6 +31,7 @@ import { findSketchOutlineIntersection } from "@/lib/sketchProfileValidation";
 import { isReferenceImageOpacity } from "@/lib/referenceImage";
 import { isThreadProfile } from "@/lib/threadProfiles";
 import { PORT_PROFILES } from "@/lib/portGeometry";
+import { normalizePaintStroke, PAINT_MAX_STROKES } from "@/lib/paint";
 import { MAX_GEAR_TEETH, MIN_GEAR_TEETH } from "@/lib/gearGeometry";
 import { GRIDFINITY_LABEL_FONTS, GRIDFINITY_LABEL_TEXT_KEYS, MAX_GRIDFINITY_LABEL_TEXT_LENGTH, MAX_GRIDFINITY_OUTLINE_POINTS } from "@/lib/gridfinityGeometry";
 import type { PortProfile } from "@/types/layerling";
@@ -63,7 +64,7 @@ export const LYL_FILE_TYPES_FORMAT_VERSION = 4;
 /** The newest format this layerling reads. */
 export const LYL_NEWEST_READABLE_FORMAT_VERSION = LYL_FILE_TYPES_FORMAT_VERSION;
 export const LYL_OLDEST_READABLE_FORMAT_VERSION = 1;
-export const LYL_CREATED_WITH_VERSION = "1.145.0";
+export const LYL_CREATED_WITH_VERSION = "1.156.1";
 export const LYL_MEDIA_TYPE = "application/vnd.layerling.project+zip";
 
 export const LYL_LIMITS = {
@@ -166,17 +167,23 @@ export type LylFontV1 = { id: string; name: string; typeface: unknown };
 const LYL_MAX_FONTS = 64;
 
 /**
- * The letters each font of one's own needs in these states: every character of every text that
- * uses it, in every undo state, so going back in the history still finds its letters.
+ * The letters each font of one's own needs in these states: every character of every text and of
+ * every Gridfinity bin's shelves that use it, in every undo state, so going back in the history
+ * still finds its letters.
  */
 function embeddedFonts(states: WorkplaneShape[][]): LylFontV1[] {
   const characters = new Map<string, Set<string>>();
+  const use = (font: string, texts: string[]) => {
+    const used = characters.get(font) ?? new Set<string>();
+    const glyphs = customFontEntry(font)?.data.glyphs as Record<string, unknown> | undefined;
+    texts.forEach((text) => textCharacters(text.trim() || " ", glyphs).forEach((character) => used.add(character)));
+    characters.set(font, used);
+  };
   const visit = (shape: WorkplaneShape) => {
-    if (isCustomFontId(shape.font) && shape.kind === "text") {
-      const used = characters.get(shape.font) ?? new Set<string>();
-      const glyphs = customFontEntry(shape.font)?.data.glyphs as Record<string, unknown> | undefined;
-      textCharacters((shape.text ?? "TEXT").trim() || " ", glyphs).forEach((character) => used.add(character));
-      characters.set(shape.font, used);
+    if (isCustomFontId(shape.font) && shape.kind === "text") use(shape.font, [shape.text ?? "TEXT"]);
+    // A bin's letters (#1308) and the H their size is measured on: without it they would come out another size elsewhere.
+    if (isCustomFontId(shape.gridfinityLabelFont) && shape.kind === "gridfinity") {
+      use(shape.gridfinityLabelFont, ["H", ...Object.values(GRIDFINITY_LABEL_TEXT_KEYS).map((key) => shape[key] ?? ""), ...(shape.gridfinityCompartmentLabels ?? []).map((label) => label.text ?? "")]);
     }
     shape.groupedShapes?.forEach(visit);
   };
@@ -233,9 +240,9 @@ export type LylProjectDocumentV1 = {
   /** The files kept with the design (#820), in the order they are listed; a version 3 package only. */
   attachments?: LylAttachmentV3[];
   /**
-   * Fonts of one's own the texts use (#customFonts): only the letters they use, as outlines in the
-   * three.js typeface format - never the font file. Older readers pass over them and draw those
-   * texts in the default font.
+   * Fonts of one's own the texts and Gridfinity bins' letters use (#customFonts): only the letters
+   * they use, as outlines in the three.js typeface format - never the font file. Older readers pass
+   * over them and draw those texts in the default font; 1.145.0 refuses a bin in such a font.
    */
   fonts?: LylFontV1[];
   editor: {
@@ -323,7 +330,8 @@ export type LylProjectPackageSummary = {
   formatVersion: number;
 };
 
-export type LylSourceImporter = (asset: ProjectAsset) => Promise<NonNullable<WorkplaneShape["importedMesh"]>>;
+/** Reads an imported file again. `stl.yUp` reads an STL as it was read before 1.151.0 (Issue #1518). */
+export type LylSourceImporter = (asset: ProjectAsset, options?: { stl?: StlReadOptions }) => Promise<NonNullable<WorkplaneShape["importedMesh"]>>;
 
 export type ImportLylOptions = {
   sourceImporter?: LylSourceImporter;
@@ -1399,6 +1407,16 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
       if (typeof text !== "string" || text.length > 80) throw new Error(`${label}.formulas.${field} must be a short text`);
     }
   }
+  // Paint on the body (paint.ts): strokes, each of which must be one.
+  if (definition.paint !== undefined) {
+    if (!Array.isArray(definition.paint) || definition.paint.length > PAINT_MAX_STROKES || definition.paint.some((stroke) => !normalizePaintStroke(stroke))) {
+      throw new Error(`${label}.paint must be a list of at most ${PAINT_MAX_STROKES} paint strokes`);
+    }
+  }
+  // What a group does with its parts when it is resized (Discussion #526).
+  if (definition.groupResize !== undefined && definition.groupResize !== "stretch" && definition.groupResize !== "keepParts") {
+    throw new Error(`${label}.groupResize must be stretch or keepParts`);
+  }
   // A text's fill mode (#215): a stroke like a sketch's, and the silhouette switch.
   if (definition.textStroke !== undefined && !normalizeSketchStroke(definition.textStroke)) {
     throw new Error(`${label}.textStroke must be a stroke with a width above 0`);
@@ -1447,7 +1465,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   // An SBC board's settings (#1098): a known board, a clearance of 0 to 2 mm and a reach of 0 to 10 mm;
   // the openings up and out as true or false, and how far up as 20 to 100 mm. Old projects have none.
   if (definition.sbcBoard !== undefined) {
-    const board = definition.sbcBoard as { board?: unknown; clearance?: unknown; reach?: unknown; ribbonUp?: unknown; ribbonSide?: unknown; gpioUp?: unknown; upReach?: unknown } | null;
+    const board = definition.sbcBoard as { board?: unknown; clearance?: unknown; reach?: unknown; ribbonUp?: unknown; ribbonSide?: unknown; gpioUp?: unknown; lensUp?: unknown; upReach?: unknown; buttonReach?: unknown } | null;
     if (!board || typeof board !== "object" || !SBC_BOARD_ORDER.includes(board.board as never)) {
       throw new Error(`${label}.sbcBoard.board must be one of ${SBC_BOARD_ORDER.join(", ")}`);
     }
@@ -1457,11 +1475,14 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (board.reach !== undefined && (typeof board.reach !== "number" || !Number.isFinite(board.reach) || board.reach < 0 || board.reach > MAX_SBC_REACH)) {
       throw new Error(`${label}.sbcBoard.reach is outside the supported range`);
     }
-    for (const key of ["ribbonUp", "ribbonSide", "gpioUp"] as const) {
+    for (const key of ["ribbonUp", "ribbonSide", "gpioUp", "lensUp"] as const) {
       if (board[key] !== undefined && typeof board[key] !== "boolean") throw new Error(`${label}.sbcBoard.${key} must be true or false`);
     }
     if (board.upReach !== undefined && (typeof board.upReach !== "number" || !Number.isFinite(board.upReach) || board.upReach < MIN_SBC_UP_REACH || board.upReach > MAX_SBC_UP_REACH)) {
       throw new Error(`${label}.sbcBoard.upReach is outside the supported range`);
+    }
+    if (board.buttonReach !== undefined && (typeof board.buttonReach !== "number" || !Number.isFinite(board.buttonReach) || board.buttonReach < 0 || board.buttonReach > MAX_SBC_BUTTON_REACH)) {
+      throw new Error(`${label}.sbcBoard.buttonReach is outside the supported range`);
     }
   }
   // The corners of a text's line (#215): a layer of a name tag can be bevelled or sharp now, so an
@@ -1535,6 +1556,11 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.threadAxialClearance !== undefined) {
       const threadAxialClearance = finiteNumber(definition.threadAxialClearance, `${label}.threadAxialClearance`);
       if (threadAxialClearance < 0 || threadAxialClearance > 1) throw new Error(`${label}.threadAxialClearance is outside the supported range`);
+    }
+    // Starts (#1348): a whole number of threads side by side.
+    if (definition.threadStarts !== undefined) {
+      const threadStarts = finiteNumber(definition.threadStarts, `${label}.threadStarts`);
+      if (!Number.isInteger(threadStarts) || threadStarts < 1 || threadStarts > 8) throw new Error(`${label}.threadStarts is outside the supported range`);
     }
     if (definition.threadDepth !== undefined) {
       const threadDepth = finiteNumber(definition.threadDepth, `${label}.threadDepth`);
@@ -1712,11 +1738,20 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "counterbore" || kind === "countersink" || kind === "doubleCountersink" || kind === "finishingWasher") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["screwHoleShaft", "screwHoleHeadDepth", "screwHoleAngle"] as const) {
+    for (const key of ["screwHoleShaft", "screwHoleHeadDepth", "screwHoleAngle", "screwHoleRecess"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       if (value < 0 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
     }
+  }
+  if ((kind === "counterbore" || kind === "countersink" || kind === "doubleCountersink") && definition.screwHoleSlot !== undefined && typeof definition.screwHoleSlot !== "boolean") {
+    // A slotted screw hole (Discussion #1531): on or off.
+    throw new Error(`${label}.screwHoleSlot must be true or false`);
+  }
+  if ((kind === "cylinder" || kind === "counterbore" || kind === "countersink" || kind === "doubleCountersink") && definition.drillPointAngle !== undefined) {
+    // The drill point (Discussion #621). Lenient on purpose: 0 is a flat bottom and the geometry clamps the rest.
+    const drillPointAngle = finiteNumber(definition.drillPointAngle, `${label}.drillPointAngle`);
+    if (drillPointAngle < 0 || drillPointAngle > 1e6) throw new Error(`${label}.drillPointAngle is outside the supported range`);
   }
   if (kind === "curvedCone") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
@@ -1737,6 +1772,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   if (kind === "rib") {
     // The foot (Discussion #1307). Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
     if (definition.ribFoot !== undefined && typeof definition.ribFoot !== "boolean") throw new Error(`${label}.ribFoot must be true or false`);
+    if (definition.ribFootShape !== undefined && definition.ribFootShape !== "square" && definition.ribFootShape !== "oval") throw new Error(`${label}.ribFootShape must be "square" or "oval"`);
     for (const key of ["ribThickness", "ribFootThickness"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
@@ -1762,7 +1798,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLargePlate", "gridfinitySwallowtail", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityOpenBack", "gridfinityOpenFront", "gridfinityOpenLeft", "gridfinityOpenRight", "hingePinless"] as const) {
       if (definition[key] !== undefined && typeof definition[key] !== "boolean") throw new Error(`${label}.${key} must be true or false`);
     }
-    for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityOpeningCornerSize", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinitySwallowtailClearance", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
+    for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityLabelTextSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityOpeningCornerSize", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinitySwallowtailClearance", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       // Only an offset runs both ways along a wall.
@@ -1771,12 +1807,15 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.gridfinityLabelCorner !== undefined && definition.gridfinityLabelCorner !== "round" && definition.gridfinityLabelCorner !== "chamfer") {
       throw new Error(`${label}.gridfinityLabelCorner is invalid`);
     }
-    // The letters on the shelves (#1308): a text as long as a text shape's, in a built-in font, as a bin does not bring a font of its own along.
+    // The letters on the shelves (#1308): a text as long as a text shape's, in a built-in font or a font of one's own, whose letters the design brings along.
     for (const key of Object.values(GRIDFINITY_LABEL_TEXT_KEYS)) {
       if (definition[key] !== undefined && (typeof definition[key] !== "string" || definition[key].length > MAX_GRIDFINITY_LABEL_TEXT_LENGTH)) throw new Error(`${label}.${key} must be a string of at most ${MAX_GRIDFINITY_LABEL_TEXT_LENGTH} characters`);
     }
-    if (definition.gridfinityLabelFont !== undefined && !GRIDFINITY_LABEL_FONTS.includes(definition.gridfinityLabelFont as string)) {
+    if (definition.gridfinityLabelFont !== undefined && !GRIDFINITY_LABEL_FONTS.includes(definition.gridfinityLabelFont as string) && !isCustomFontId(definition.gridfinityLabelFont)) {
       throw new Error(`${label}.gridfinityLabelFont is invalid`);
+    }
+    if (definition.gridfinityLabelColor !== undefined && (typeof definition.gridfinityLabelColor !== "string" || !/^#[0-9a-f]{6}$/i.test(definition.gridfinityLabelColor))) {
+      throw new Error(`${label}.gridfinityLabelColor must be a colour as #rrggbb`);
     }
     if (definition.gridfinityOpeningCorner !== undefined && definition.gridfinityOpeningCorner !== "round" && definition.gridfinityOpeningCorner !== "chamfer") {
       throw new Error(`${label}.gridfinityOpeningCorner is invalid`);
@@ -1863,7 +1902,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "loft") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftBottomSides", "loftTopSides", "loftOffsetX", "loftOffsetZ", "loftWall", "loftTwist", "loftTiltX", "loftTiltZ", "loftSmooth", "loftSegments"] as const) {
+    for (const key of ["loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftBottomSides", "loftTopSides", "loftOffsetX", "loftOffsetZ", "loftWall", "loftTopWall", "loftTwist", "loftTiltX", "loftTiltZ", "loftSmooth", "loftSegments"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       if (Math.abs(value) > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
@@ -1942,6 +1981,10 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.topBottomFillet !== undefined) {
       const topBottomFillet = finiteNumber(definition.topBottomFillet, `${label}.topBottomFillet`);
       if (topBottomFillet < 0 || topBottomFillet > 1e6) throw new Error(`${label}.topBottomFillet is outside the supported range`);
+    }
+    if (definition.bottomFillet !== undefined) {
+      const bottomFillet = finiteNumber(definition.bottomFillet, `${label}.bottomFillet`);
+      if (bottomFillet < 0 || bottomFillet > 1e6) throw new Error(`${label}.bottomFillet is outside the supported range`);
     }
     if (definition.roundedBoxQuality !== undefined) {
       const roundedBoxQuality = finiteNumber(definition.roundedBoxQuality, `${label}.roundedBoxQuality`);
@@ -2172,14 +2215,14 @@ function sharedImportedMesh(decoded: object, reference: string, create: () => Im
   return mesh;
 }
 
-async function defaultSourceImporter(asset: ProjectAsset) {
+async function defaultSourceImporter(asset: ProjectAsset, options: { stl?: StlReadOptions } = {}) {
   if (asset.sourceFormat === "stl") {
     // In the browser the file is read off the page (lib/geometryWorker.ts); the server reads it here.
     if (typeof window !== "undefined") {
       const { importedShapeFromStlOffThread } = await import("@/lib/geometryWorker");
-      return (await importedShapeFromStlOffThread(asset.name, exactArrayBuffer(asset.bytes))).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
+      return (await importedShapeFromStlOffThread(asset.name, exactArrayBuffer(asset.bytes), options.stl)).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
     }
-    return importedShapeFromStl(asset.name, exactArrayBuffer(asset.bytes)).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
+    return importedShapeFromStl(asset.name, exactArrayBuffer(asset.bytes), options.stl).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
   }
   if (asset.sourceFormat === "obj") return importedShapeFromObj(asset.name, strFromU8(asset.bytes), true).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
   if (asset.sourceFormat === "svg") return importedShapeFromSvg(asset.name, strFromU8(asset.bytes)).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
@@ -2250,8 +2293,20 @@ async function restoreShapeFromNode(
       promise = sourceImporter(sourceAsset);
       sourceMeshCache.set(sourceAsset.id, promise);
     }
-    const regenerated = await promise;
-    importedMesh = sharedImportedMesh(regenerated, sourceAsset.id, () => ({ ...regenerated, assetId: sourceAsset.id }));
+    let regenerated = await promise;
+    let meshKey = sourceAsset.id;
+    // An STL imported before 1.151.0 may have been read Y-up; read Z-up now, it would open turned and stretched (Issue #1518).
+    if (sourceAsset.sourceFormat === "stl" && stlReadBeforeZUp(regenerated, node.importedMesh, definition as { width?: number; depth?: number; height?: number })) {
+      meshKey = `${sourceAsset.id}#y-up`;
+      let legacy = sourceMeshCache.get(meshKey);
+      if (!legacy) {
+        legacy = sourceImporter(sourceAsset, { stl: { yUp: true } });
+        sourceMeshCache.set(meshKey, legacy);
+      }
+      regenerated = await legacy;
+    }
+    const mesh = regenerated;
+    importedMesh = sharedImportedMesh(mesh, meshKey, () => ({ ...mesh, assetId: sourceAsset.id }));
   } else if (node.importedMesh?.meshAssetId) {
     const meshRecord = assetById.get(node.importedMesh.meshAssetId);
     if (!meshRecord) throw new Error(`Object '${node.objectId}' is missing its derived mesh`);

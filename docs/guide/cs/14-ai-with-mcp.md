@@ -78,10 +78,12 @@ AI používá stejné funkce a stejné zpracování příkazů jako ruční ovl�
 | Nástroj | Funkce |
 | --- | --- |
 | `layerling_list_editors` | vypíše otevřené editory |
+| `layerling_rename_project` | pojmenuje projekt, stejně jako tužka vedle názvu projektu |
 | `layerling_open_editor` | otevře editor ve výchozím prohlížeči a počká na připojení, pouze na místním počítači |
 | `layerling_read_scene` | přečte scénu, výběr, jednotky a přesné rozměry objektů |
 | `layerling_list_objects` | vypíše objekty s rozměry, polohou, natočením a identifikátorem |
 | `layerling_select_objects` | vybere objekty |
+| `layerling_hide_others` | skryje vše kromě výběru nebo zadaných objektů, v jednom kroku zpět |
 | `layerling_delete_objects` | odstraní objekty |
 | `layerling_move_object` | přesune objekt na jiné místo v seznamu objektů |
 | `layerling_create_shape` | vytvoří kvádr, válec, text i po oblouku, závit, ozubené kolo, těleso z náčrtu a další tvary |
@@ -94,9 +96,12 @@ AI používá stejné funkce a stejné zpracování příkazů jako ruční ovl�
 | `layerling_scale_objects` | změní velikost o procenta společně nebo samostatně na místě |
 | `layerling_lay_flat` | položí objekt vybranou plochou na podložku |
 | `layerling_place_on_face` | umístí objekty na plochu jiného tělesa, i šikmou, jako klávesa C |
-| `layerling_perforate_face` | vytvoří rastr otvorů na rovinné ploše; výřezy zůstanou sloučené s tělesem |
+| `layerling_perforate_face` | vytvoří rastr otvorů na rovinné ploše nebo dokola na stěně válce, trubky či díry; výřezy zůstanou sloučené s tělesem |
 | `layerling_sweep_sketch` | protáhne obdélníkový nebo kruhový průřez podél dráhy z bodů jako jedno přesné těleso; uzavřená dráha dá prstenec |
 | `layerling_push_face` | vysune rovinnou plochu ven nebo do ní vyřízne kapsu, s odsazením od okraje a poloměrem rohů; nový díl je těleso z náčrtu sloučené s tělesem |
+| `layerling_paint` | obarví části tělesa vlastními barvami pro tisk více barvami (Malování): vyplnit plochu k ostrým hranám, kulatá skvrna nebo laso v rovinném pohledu; gumovat, smazat vše; uloží se s tělesem a do 3MF se zapíše jako obarvené plochy |
+| `layerling_support_rib` | postaví tenké podpěrné žebro pod spodní plochu dílu tištěného šikmo na hraně, s můstky vysokými jednu vrstvu (Podpěrné žebro) |
+| `layerling_stencil_bridges` | drží části desky s textem prořezaným skrz, které by vypadly, můstky seskupenými s deskou, o zadané šířce a výšce (Můstky šablony) |
 | `layerling_mate_faces` | přiloží plochy dvou objektů proti sobě nebo do společné roviny |
 | `layerling_open_group` | otevře sloučený celek k úpravě částí, i uvnitř jiného otevřeného celku |
 | `layerling_close_group` | potvrdí úpravu celku nebo ji zruší |
@@ -134,6 +139,8 @@ AI používá stejné funkce a stejné zpracování příkazů jako ruční ovl�
 | `layerling_show_overhangs` | zapne šrafování převisů, nastaví úhel a oznámí plochu vyžadující podpěry pro každé těleso |
 | `layerling_estimate_print` | odhadne objem, hmotnost a délku filamentu výběru nebo projektu, pro plný tisk i přibližně se stěnami a výplní |
 | `layerling_check_clearance` | před tiskem zkontroluje, které díly se překrývají, dotýkají nebo jsou blíž než minimální vůle (Zkontrolovat vůli), i oddělené díly jednoho objektu |
+| `layerling_printer_play` | načte, nastaví nebo smaže vůli tiskárny ({{ui:workspace.printerPlay}} v nastavení) a položí test vůle, který ji změří |
+| `layerling_check_print` | před tiskem zkontroluje, co by se pokazilo: příliš tenké stěny pro trysku, díly ve vzduchu, malou opěru na podložce, převisy a otevřené sítě (Zkontrolovat tisk) |
 | `layerling_add_reference_points` | vytvoří referenční body na středech, rozích, středech hran nebo zadaných souřadnicích |
 | `layerling_list_reference_points` | vypíše referenční body s identifikátory a polohami |
 | `layerling_remove_reference_points` | odstraní vybrané nebo všechny referenční body |
@@ -152,8 +159,9 @@ AI používá stejné funkce a stejné zpracování příkazů jako ruční ovl�
 | `layerling_insert_custom_shape` | vloží vlastní tvar do otevřeného projektu, případně na zadanou polohu x/z |
 | `layerling_delete_custom_shape` | odstraní uložený vlastní tvar; vložená tělesa zůstanou |
 | `layerling_show_workplane` | skryje nebo zobrazí podložku s mřížkou, pouze změna pohledu |
+| `layerling_focus_mode` | zapne a vypne režim soustředění: skryje titulní řádek a zápatí pro více místa (jen rámec editoru) |
 | `layerling_set_section_view` | zapne pohled v řezu, aniž by skutečně rozdělil tělesa |
-| `layerling_measurements` | zobrazí nebo skryje měření měřicího nástroje a vypíše je s jejich délkami, a skryje nebo zobrazí rozměry kolem výběru jako [[Q]] |
+| `layerling_measurements` | zobrazí nebo skryje měření měřicího nástroje a vypíše je s jejich délkami, a skryje nebo zobrazí rozměry kolem výběru jako [[Q]], a zadá délku pro jedno z nich, což posune těleso na jeho konci jako kliknutí na číslo |
 | `layerling_measure_angle` | měří úhel jako úhloměr: ve vrcholu ze tří bodů nebo mezi dvěma rovnými plochami, a ukáže ho v pohledu |
 | `layerling_saved_view` | uloží aktuální pohled pod klávesu 7, 8, 9 nebo 0 a vrátí se k němu, jako Shift+klávesa a klávesa (jen pohled); nastaví také úvodní pohled nových návrhů |
 | `layerling_build_plates` | vypíše, přidá, pojmenuje, seřadí a odebere tiskové podložky, přesune objekty na podložku a rozmístí je na podložky, jako lišta podložek |

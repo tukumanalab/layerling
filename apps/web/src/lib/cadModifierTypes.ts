@@ -123,6 +123,12 @@ export type CadModifierProfilePart = {
    * also lays the extrusion on its side).
    */
   kind: "extrusion" | "revolution" | "sweep" | "loft";
+  /**
+   * Revolution only: a slotted screw hole (Discussion #1531). The half-section is turned whole at each end of a slot
+   * `length` long, and the whole section, both halves, is pushed along the slot between them. The slot runs along
+   * the local y axis, or along x with `alongX`, centred on the axis.
+   */
+  slot?: { length: number; alongX: boolean };
   /** Sweep only: the centre line, piece by piece. */
   path?: CadModifierSweepPiece[];
   /** Loft only: the section at the top, loop for loop and piece for piece the partner of `loops`. */
@@ -174,6 +180,11 @@ export type CadModifierProfilePart = {
   tilt?: { x: number; z: number };
   /** Extrusion only: round every edge of the two flat ends by this radius (a rounded box). */
   capFillet?: number;
+  /**
+   * Extrusion only, with `capFillet`: the bottom end (y = 0) on its own. `capFillet` is then the top
+   * end alone (0 when it stays flat); without this the two ends share `capFillet`.
+   */
+  capFilletBottom?: number;
   /**
    * Extrusion only, a GT2 pulley (Discussion #1319): `loops` is the toothed band alone, pushed up
    * from `teethBottom` to `teethTop`; the round discs (flanges, hub) on the y axis are joined to it
@@ -235,6 +246,8 @@ export type CadModifierThreadPart = {
   major: number;
   minor: number;
   pitch: number;
+  /** Threads side by side (#1348), each `pitch` from the next, each climbing `pitch * starts` a turn; 1 when absent. */
+  starts?: number;
   /** 1: the thread climbs as the angle from +x towards +z grows, a left-hand thread about +y; -1 the other way, a right-hand one. */
   hand: 1 | -1;
   height: number;
@@ -573,4 +586,5 @@ export type CadModifierWorkerResponse =
     }
   | { type: "disposed"; requestId: number }
   // failedEdgeIds: the selected edges the kernel could not treat together.
-  | { type: "error"; requestId: number; message: string; resetSession?: boolean; failedEdgeIds?: number[] };
+  // tightestBend: a fillet refused because a picked curve bends round the outside tighter than its radius, in mm (#1473).
+  | { type: "error"; requestId: number; message: string; resetSession?: boolean; failedEdgeIds?: number[]; tightestBend?: number };

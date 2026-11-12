@@ -5,7 +5,7 @@ import { createLocalId } from "@/lib/localIds";
 import { DEFAULT_CURVED_CONE_BEND, DEFAULT_CURVED_CONE_TOP, normalizeCurvedConeBend, normalizeCurvedConeTop } from "@/lib/curvedCone";
 import { DEFAULT_SCREW_BOSS_FASTENER, DEFAULT_SCREW_BOSS_SIZE, normalizeScrewBossFastener } from "@/lib/screwBoss";
 import { DEFAULT_SNAP_FIT_CLEARANCE, DEFAULT_SNAP_FIT_FOOT, DEFAULT_SNAP_FIT_LEAD_ANGLE, DEFAULT_SNAP_FIT_RETAIN_ANGLE, DEFAULT_SNAP_FIT_THICKNESS, DEFAULT_SNAP_FIT_UNDERCUT, normalizeSnapFitPart } from "@/lib/snapFit";
-import { DEFAULT_RIB_THICKNESS, normalizeRibStyle, normalizeRibTop, ribFootWidthFor } from "@/lib/rib";
+import { DEFAULT_RIB_THICKNESS, normalizeRibStyle, normalizeRibTop, ribBoxWidth, ribFootWidthFor } from "@/lib/rib";
 import {
   DEFAULT_GEAR_BACKLASH,
   DEFAULT_GEAR_CENTER_HOLE_SIZE,
@@ -45,6 +45,7 @@ import {
   normalizeThreadClearance,
   normalizeThreadBoltClearance,
   normalizeThreadAxialClearance,
+  normalizeThreadStarts,
   DEFAULT_THREAD_BOLT_CLEARANCE,
   DEFAULT_THREAD_AXIAL_CLEARANCE,
   normalizeThreadDiameter,
@@ -124,6 +125,7 @@ import {
   normalizeScrewHoleHeadDepth,
   normalizeScrewHoleShaft,
 } from "@/lib/screwHoleGeometry";
+import { normalizeDrillPointAngle } from "@/lib/drillPoint";
 import {
   DEFAULT_FINISHING_WASHER_HEIGHT,
   DEFAULT_FINISHING_WASHER_SEAT_DEPTH,
@@ -198,6 +200,7 @@ import {
   DEFAULT_ROUNDED_BOX_TOP_BOTTOM_FILLET,
   DEFAULT_ROUNDED_BOX_QUALITY,
   normalizeCornerFillet,
+  normalizeEndFillets,
   normalizeTopBottomFillet,
   normalizeRoundedBoxQuality,
 } from "@/lib/roundedBoxGeometry";
@@ -754,6 +757,7 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     ribFoot: shape.ribFoot,
     ribThickness: shape.ribThickness,
     ribFootThickness: shape.ribFootThickness,
+    ribFootShape: shape.ribFootShape,
     topWidth: shape.topWidth,
     topDepth: shape.topDepth,
     taperTopWidth: shape.taperTopWidth,
@@ -792,6 +796,7 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     threadClearance: shape.threadClearance,
     threadBoltClearance: shape.threadBoltClearance,
     threadAxialClearance: shape.threadAxialClearance,
+    threadStarts: shape.threadStarts,
     threadDepth: shape.threadDepth,
     threadFlankAngle: shape.threadFlankAngle,
     threadQuality: shape.threadQuality,
@@ -873,6 +878,8 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     gridfinityLabelLeftText: shape.gridfinityLabelLeftText,
     gridfinityLabelRightText: shape.gridfinityLabelRightText,
     gridfinityLabelFont: shape.gridfinityLabelFont,
+    gridfinityLabelColor: shape.gridfinityLabelColor,
+    gridfinityLabelTextSize: shape.gridfinityLabelTextSize,
     gridfinityScoopBack: shape.gridfinityScoopBack,
     gridfinityScoopFront: shape.gridfinityScoopFront,
     gridfinityScoopLeft: shape.gridfinityScoopLeft,
@@ -921,6 +928,7 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     loftOffsetX: shape.loftOffsetX,
     loftOffsetZ: shape.loftOffsetZ,
     loftWall: shape.loftWall,
+    loftTopWall: shape.loftTopWall,
     loftTwist: shape.loftTwist,
     loftSmooth: shape.loftSmooth,
     loftSegments: shape.loftSegments,
@@ -931,10 +939,15 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     screwHoleShaft: shape.screwHoleShaft,
     screwHoleHeadDepth: shape.screwHoleHeadDepth,
     screwHoleAngle: shape.screwHoleAngle,
+    drillPointAngle: shape.drillPointAngle,
+    screwHoleSlot: shape.screwHoleSlot,
+    screwHoleRecess: shape.screwHoleRecess,
     portProfile: shape.portProfile,
     portClearance: shape.portClearance,
     cornerFillet: shape.cornerFillet,
+    cornerFillets: shape.cornerFillets,
     topBottomFillet: shape.topBottomFillet,
+    bottomFillet: shape.bottomFillet,
     roundedBoxQuality: shape.roundedBoxQuality,
     bentTubeProfile: shape.bentTubeProfile,
     bentTubeInnerProfile: shape.bentTubeInnerProfile,
@@ -954,6 +967,7 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     surfaceTextureLayers: shape.surfaceTextureLayers,
     surfaceTextureMask: shape.surfaceTextureMask,
     surfaceFillOf: shape.surfaceFillOf,
+    paint: shape.paint,
     vase: shape.vase,
     vasePartOf: shape.vasePartOf,
     gridfinityKeyOf: shape.gridfinityKeyOf,
@@ -1009,6 +1023,7 @@ export function makeShapeFromAsset(
     threadClearance: customization.threadClearance,
     threadBoltClearance: customization.threadBoltClearance,
     threadAxialClearance: customization.threadAxialClearance,
+    threadStarts: customization.threadStarts,
     threadDepth: customization.threadDepth,
     threadFlankAngle: customization.threadFlankAngle,
     threadQuality: customization.threadQuality,
@@ -1052,6 +1067,7 @@ export function makeShapeFromAsset(
     offsetX: customization.loftOffsetX,
     offsetZ: customization.loftOffsetZ,
     wall: customization.loftWall,
+    topWall: customization.loftTopWall,
     twist: customization.loftTwist,
     smooth: customization.loftSmooth,
     segments: customization.loftSegments,
@@ -1111,7 +1127,7 @@ export function makeShapeFromAsset(
     const sized = { ...fields, ...pulleyFromSize(fields, { width: customization.teeth === undefined ? customization.width : undefined, height: customization.pulleyBeltWidth === undefined ? customization.height : undefined }) };
     return { ...sized, ...pulleyFootprint(sized) };
   })() : null;
-  const width = pulleyFields?.width ?? gearSize?.width ?? gridfinityFootprint?.width ?? loftFootprint?.width ?? bentTubeFootprint?.width ?? threadFootprint?.width ?? customization.width ?? defaults.width;
+  const naturalWidth = pulleyFields?.width ?? gearSize?.width ?? gridfinityFootprint?.width ?? loftFootprint?.width ?? bentTubeFootprint?.width ?? threadFootprint?.width ?? customization.width ?? defaults.width;
   // A rib on its foot (Discussion #1307) keeps its own thickness, a new one's four lines; its box is the foot's width,
   // three times the rib unless a depth was asked for.
   const ribOnFoot = asset.kind === "rib" && customization.ribFoot === true;
@@ -1120,8 +1136,14 @@ export function makeShapeFromAsset(
   // A cylinder is always circular - depth follows width here too, so it never
   // snaps between insert and first render (canonicalizeShape enforces this
   // again afterwards as the actual safety net).
-  const depth = asset.kind === "cylinder" ? width : pulleyFields?.depth ?? gearSize?.depth ?? gridfinityFootprint?.depth ?? loftFootprint?.depth ?? bentTubeFootprint?.depth ?? threadFootprint?.depth ?? ribFootDepth ?? customization.depth ?? defaults.depth;
+  const depth = asset.kind === "cylinder" ? naturalWidth : pulleyFields?.depth ?? gearSize?.depth ?? gridfinityFootprint?.depth ?? loftFootprint?.depth ?? bentTubeFootprint?.depth ?? threadFootprint?.depth ?? ribFootDepth ?? customization.depth ?? defaults.depth;
   const height = pulleyFields?.height ?? gridfinityFootprint?.height ?? bentTubeFootprint?.height ?? customization.height ?? (threadDefaults ? threadNaturalHeight(threadDefaults) : defaults.height);
+  // On an oval foot the box is the ellipse's: the new rib is as long as without, the box longer by what reaches past
+  // its ends, unless a width was asked for, which is the box's as a depth asked for is the foot's width.
+  const ribFootShape = asset.kind === "rib" && (customization.ribFootShape === "square" || customization.ribFootShape === "oval") ? customization.ribFootShape : undefined;
+  const width = ribOnFoot && ribFootShape === "oval" && customization.width === undefined
+    ? ribBoxWidth({ width: naturalWidth, depth, height, ribFoot: true, ribThickness, ribFootThickness: customization.ribFootThickness, ribFootShape }, naturalWidth)
+    : naturalWidth;
   const size = Math.max(width, depth);
   const hirthTeeth = asset.kind === "hirth" ? normalizeHirthTeeth(customization.teeth) : undefined;
   const gearTeeth = asset.kind === "gear" ? normalizeGearTeeth(customization.teeth ?? DEFAULT_GEAR_TEETH) : pulleyFields?.teeth ?? hirthTeeth;
@@ -1187,6 +1209,7 @@ export function makeShapeFromAsset(
     ribFoot: ribOnFoot ? true : undefined,
     ribThickness,
     ribFootThickness: asset.kind === "rib" ? customization.ribFootThickness : undefined,
+    ribFootShape,
     topWidth: asset.kind === "pyramid" ? normalizePyramidTop(customization.topWidth, width) : undefined,
     topDepth: asset.kind === "pyramid" ? normalizePyramidTop(customization.topDepth, depth) : undefined,
     teeth: gearTeeth,
@@ -1220,6 +1243,9 @@ export function makeShapeFromAsset(
     threadPitch: asset.kind === "thread" ? normalizeThreadPitch(customization.threadPitch ?? DEFAULT_THREAD_PITCH, threadDiameter ?? DEFAULT_THREAD_DIAMETER) : undefined,
     threadClearance: asset.kind === "thread" ? normalizeThreadClearance(customization.threadClearance ?? DEFAULT_THREAD_CLEARANCE) : undefined,
     threadBoltClearance: asset.kind === "thread" ? normalizeThreadBoltClearance(customization.threadBoltClearance ?? DEFAULT_THREAD_BOLT_CLEARANCE) : undefined,
+    threadStarts: asset.kind === "thread" && customization.threadStarts !== undefined
+      ? normalizeThreadStarts(customization.threadStarts, threadDiameter ?? DEFAULT_THREAD_DIAMETER, normalizeThreadPitch(customization.threadPitch ?? DEFAULT_THREAD_PITCH, threadDiameter ?? DEFAULT_THREAD_DIAMETER), customization.threadTaper === true)
+      : undefined,
     threadAxialClearance: asset.kind === "thread" ? normalizeThreadAxialClearance(customization.threadAxialClearance ?? DEFAULT_THREAD_AXIAL_CLEARANCE, normalizeThreadPitch(customization.threadPitch ?? DEFAULT_THREAD_PITCH, threadDiameter ?? DEFAULT_THREAD_DIAMETER)) : undefined,
     threadDepth: asset.kind === "thread" ? customization.threadDepth : undefined,
     threadFlankAngle: asset.kind === "thread" ? customization.threadFlankAngle : undefined,
@@ -1270,6 +1296,8 @@ export function makeShapeFromAsset(
     gridfinityLabelCorner: asset.kind === "gridfinity" ? customization.gridfinityLabelCorner : undefined,
     gridfinityLabelCornerSize: asset.kind === "gridfinity" ? customization.gridfinityLabelCornerSize : undefined,
     gridfinityLabelFont: asset.kind === "gridfinity" ? customization.gridfinityLabelFont : undefined,
+    gridfinityLabelColor: asset.kind === "gridfinity" ? customization.gridfinityLabelColor : undefined,
+    gridfinityLabelTextSize: asset.kind === "gridfinity" ? customization.gridfinityLabelTextSize : undefined,
     gridfinityScoopBack: asset.kind === "gridfinity" ? customization.gridfinityScoopBack : undefined,
     gridfinityScoopFront: asset.kind === "gridfinity" ? customization.gridfinityScoopFront : undefined,
     gridfinityScoopLeft: asset.kind === "gridfinity" ? customization.gridfinityScoopLeft : undefined,
@@ -1333,11 +1361,22 @@ export function makeShapeFromAsset(
     screwHoleHeadDepth: asset.kind === "counterbore" ? normalizeScrewHoleHeadDepth(customization.screwHoleHeadDepth ?? DEFAULT_SCREW_HOLE_HEAD_DEPTH, height)
       : asset.kind === "finishingWasher" ? customization.screwHoleHeadDepth ?? DEFAULT_FINISHING_WASHER_SEAT_DEPTH : undefined,
     screwHoleAngle: asset.kind === "countersink" || asset.kind === "doubleCountersink" || asset.kind === "finishingWasher" ? normalizeScrewHoleAngle(customization.screwHoleAngle ?? DEFAULT_SCREW_HOLE_ANGLE) : undefined,
+    // A drill point saved with the defaults (Discussion #621); a new cylinder is solid and takes it once it is a hole.
+    drillPointAngle: asset.kind === "cylinder" || asset.kind === "counterbore" || asset.kind === "countersink" ? normalizeDrillPointAngle(customization.drillPointAngle) : undefined,
+    // A slotted hole and a recessed head (Discussion #1531); left out when off, as the editor leaves them.
+    screwHoleSlot: (asset.kind === "counterbore" || asset.kind === "countersink" || asset.kind === "doubleCountersink") && customization.screwHoleSlot ? true : undefined,
+    screwHoleRecess: (asset.kind === "countersink" || asset.kind === "doubleCountersink") && (customization.screwHoleRecess ?? 0) > 0 ? customization.screwHoleRecess : undefined,
     cornerFillet: asset.kind === "roundedBox" ? normalizeCornerFillet(customization.cornerFillet ?? DEFAULT_ROUNDED_BOX_CORNER_FILLET, Math.min(width, depth) / 2)
       : asset.kind === "port" ? normalizePortCorner(customization.cornerFillet, width, height, customization.portProfile) : undefined,
     portProfile: asset.kind === "port" ? normalizePortProfile(customization.portProfile) : undefined,
     portClearance: asset.kind === "port" && normalizePortClearance(customization.portClearance) > 0 ? normalizePortClearance(customization.portClearance) : undefined,
-    topBottomFillet: asset.kind === "roundedBox" ? normalizeTopBottomFillet(customization.topBottomFillet ?? DEFAULT_ROUNDED_BOX_TOP_BOTTOM_FILLET, height / 2) : undefined,
+    ...(asset.kind === "roundedBox"
+      ? (() => {
+          // Top and bottom on their own: the two have to fit in the height together.
+          const [top, bottom] = normalizeEndFillets(customization.topBottomFillet ?? DEFAULT_ROUNDED_BOX_TOP_BOTTOM_FILLET, customization.bottomFillet, height);
+          return { topBottomFillet: top, bottomFillet: customization.bottomFillet === undefined ? undefined : bottom };
+        })()
+      : { topBottomFillet: undefined, bottomFillet: undefined }),
     roundedBoxQuality: asset.kind === "roundedBox" ? normalizeRoundedBoxQuality(customization.roundedBoxQuality ?? DEFAULT_ROUNDED_BOX_QUALITY) : undefined,
     ...(bentTube ?? {}),
     ...(loftMeasures ? loftFieldsFromMeasures(loftMeasures) : {}),

@@ -7,9 +7,32 @@ import { wheelBaseStep, wheelNextValue } from "@/lib/wheelValueStep";
 import { displayStepFromMillimeters, displayToMillimeters, formatMeasurementNumber, lengthDisplayUnit, millimetersToDisplay, parseMeasurementInput } from "@/lib/measurementUnits";
 import { SPLIT_AXIS_DISPLAY_ORDER, splitAxisLabel, splitRotationAxes, type SplitRotation } from "@/lib/modelSplit";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
+import { EdgeModifierSlider } from "@/components/workplane/EdgeModifierPanel";
 import { MovableToolPanel } from "@/components/workplane/MovableToolPanel";
 import { t } from "@/lib/i18n";
+import { fromPrinterPlay } from "@/lib/printerPlay";
+import {
+  MAX_CONNECTOR_CLEARANCE,
+  MAX_CONNECTOR_COUNT,
+  MAX_CONNECTOR_DEPTH,
+  MAX_CONNECTOR_DIAMETER,
+  MAX_DOVETAIL_ANGLE,
+  MAX_DOVETAIL_DEPTH,
+  MAX_DOVETAIL_TURN,
+  MAX_DOVETAIL_WIDTH,
+  MIN_CONNECTOR_DEPTH,
+  MIN_CONNECTOR_DIAMETER,
+  MIN_DOVETAIL_ANGLE,
+  MIN_DOVETAIL_DEPTH,
+  MIN_DOVETAIL_WIDTH,
+  SPLIT_CONNECTOR_KINDS,
+  type SplitConnectorKind,
+  type SplitConnectorOptions,
+  type SplitConnectorTally,
+  type SplitTongueOutline,
+} from "@/lib/splitConnectors";
 import { useLanguage } from "@/lib/useLanguage";
+import { usePrinterPlay } from "@/lib/usePrinterPlay";
 import { selectWholeValue } from "@/lib/numberField";
 import type { AlignAxis, WorkplaneWorkspaceSettings } from "@/types/layerling";
 
@@ -20,6 +43,37 @@ const SPLIT_WORKPLANE_DIRECTIONS = [
   { direction: "acrossX", label: "split.workplaneAcrossX", hint: "split.workplaneAcrossXHint" },
   { direction: "acrossY", label: "split.workplaneAcrossY", hint: "split.workplaneAcrossYHint" },
 ] as const satisfies ReadonlyArray<{ direction: SplitWorkplaneDirection; label: string; hint: string }>;
+
+/**
+ * Where the connectors would go, as the editor last worked it out for the plane and settings shown (Discussion #832):
+ * nothing yet, being worked out, or what fits, with the middles the view marks on the plane - or a dovetail's tongues.
+ */
+export type SplitConnectorPreviewState =
+  | { state: "idle" }
+  | { state: "working" }
+  | { state: "done"; tally: SplitConnectorTally; holes: number; points: Array<[number, number, number]>; tongues?: SplitTongueOutline[] };
+
+/**
+ * What the panel says under the connectors' settings: how many fit and on how many cut faces, and why some got none - in
+ * a dovetail's own words where the dowels' would not fit it.
+ */
+export function splitConnectorSummary(preview: SplitConnectorPreviewState, kind: SplitConnectorKind = "dowels"): string[] {
+  if (preview.state === "working") return [t("split.connectorsFinding")];
+  if (preview.state !== "done") return [];
+  const { tally, holes } = preview;
+  const dovetail = kind === "dovetail";
+  const lines: string[] = [];
+  if (tally.faces > 0 && tally.placed === 0) {
+    lines.push(t(dovetail ? "split.dovetailNoRoom" : "split.connectorsNoRoom"));
+  } else if (tally.placed > 0) {
+    lines.push(tally.faces === 1 ? t("split.connectorsFitOne", { count: tally.placed }) : t("split.connectorsFitMany", { count: tally.placed, faces: tally.faces }));
+    if (tally.tooSmall === 1) lines.push(t(dovetail ? "split.dovetailTooSmallOne" : "split.connectorsTooSmallOne"));
+    else if (tally.tooSmall > 1) lines.push(t(dovetail ? "split.dovetailTooSmallMany" : "split.connectorsTooSmallMany", { count: tally.tooSmall }));
+  }
+  if (tally.tooThin > 0) lines.push(t("split.connectorsTooThin", { count: tally.tooThin }));
+  if (holes > 0) lines.push(t("split.connectorsHoles"));
+  return lines;
+}
 
 export function SplitPanel({
   axis,
@@ -32,11 +86,14 @@ export function SplitPanel({
   busy,
   error,
   picking,
+  connectors,
+  connectorPreview,
   onPickToggle,
   onAxisChange,
   onAlignToWorkplane,
   onRotationChange,
   onPositionChange,
+  onConnectorsChange,
   onApply,
   onCancel,
 }: {
@@ -51,16 +108,22 @@ export function SplitPanel({
   error: string | null;
   /** The next click on a face moves the plane there. */
   picking: boolean;
+  /** Dowels, plugs or a dovetail that line the halves up again, or none (Discussion #832). */
+  connectors: SplitConnectorOptions;
+  connectorPreview: SplitConnectorPreviewState;
   onPickToggle: () => void;
   onAxisChange: (axis: AlignAxis) => void;
   /** Lays the plane on the workplane, or square to it along its X or Y (#644). */
   onAlignToWorkplane: (direction: SplitWorkplaneDirection) => void;
   onRotationChange: (index: 0 | 1, rotation: number) => void;
   onPositionChange: (position: number) => void;
+  onConnectorsChange: (patch: Partial<SplitConnectorOptions>) => void;
   onApply: () => void;
   onCancel: () => void;
 }) {
   useLanguage();
+  // The clearance says when it is still what the printer's play gave it (printerPlay.ts).
+  const printerPlay = usePrinterPlay();
   // A cut across Y counts towards the back like the position fields (#182); inside it runs along z.
   const sign = axis === "z" ? -1 : 1;
   const displayPosition = millimetersToDisplay(sign * position, workspace) || 0;
@@ -222,6 +285,129 @@ export function SplitPanel({
           onChange={(value) => onRotationChange(index as 0 | 1, rotationAxis === "z" ? -value || 0 : value)}
         />
       ))}
+
+      <fieldset className="split-axis-control split-connector-control" disabled={busy}>
+        <legend>{t("split.connectors")}</legend>
+        <div>
+          {SPLIT_CONNECTOR_KINDS.map((kind) => (
+            <button
+              type="button"
+              className={connectors.kind === kind ? "active" : ""}
+              aria-pressed={connectors.kind === kind}
+              key={kind}
+              title={t(`split.connectors.${kind}Hint`)}
+              onClick={() => onConnectorsChange({ kind })}
+            >
+              {t(`split.connectors.${kind}`)}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      {connectors.kind === "none" ? null : (<>
+        <p className="split-panel-help">{t(`split.connectors.${connectors.kind}Hint`)}</p>
+        <EdgeModifierSlider
+          label={t("split.connectorCount")}
+          value={connectors.count}
+          min={0}
+          max={MAX_CONNECTOR_COUNT}
+          step={1}
+          decimals={0}
+          workspace={workspace}
+          disabled={busy}
+          onChange={(value) => onConnectorsChange({ count: value })}
+        />
+        {connectors.kind === "dovetail" ? (<>
+          <EdgeModifierSlider
+            label={t("split.dovetailWidth")}
+            value={connectors.dovetailWidth}
+            min={MIN_DOVETAIL_WIDTH}
+            max={MAX_DOVETAIL_WIDTH}
+            step={0.5}
+            workspace={workspace}
+            length
+            disabled={busy}
+            onChange={(value) => onConnectorsChange({ dovetailWidth: value })}
+          />
+          <EdgeModifierSlider
+            label={t("split.dovetailDepth")}
+            value={connectors.dovetailDepth}
+            min={MIN_DOVETAIL_DEPTH}
+            max={MAX_DOVETAIL_DEPTH}
+            step={0.5}
+            workspace={workspace}
+            length
+            disabled={busy}
+            onChange={(value) => onConnectorsChange({ dovetailDepth: value })}
+          />
+          <EdgeModifierSlider
+            label={t("split.dovetailAngle")}
+            value={connectors.dovetailAngle}
+            min={MIN_DOVETAIL_ANGLE}
+            max={MAX_DOVETAIL_ANGLE}
+            step={1}
+            unit="°"
+            workspace={workspace}
+            disabled={busy}
+            onChange={(value) => onConnectorsChange({ dovetailAngle: value })}
+          />
+          <EdgeModifierSlider
+            label={t("split.dovetailTurn")}
+            value={connectors.dovetailTurn}
+            min={-MAX_DOVETAIL_TURN}
+            max={MAX_DOVETAIL_TURN}
+            step={1}
+            unit="°"
+            workspace={workspace}
+            disabled={busy}
+            onChange={(value) => onConnectorsChange({ dovetailTurn: value })}
+          />
+        </>) : (<>
+          <EdgeModifierSlider
+            label={t("split.connectorDiameter")}
+            value={connectors.diameter}
+            min={MIN_CONNECTOR_DIAMETER}
+            max={MAX_CONNECTOR_DIAMETER}
+            step={0.5}
+            workspace={workspace}
+            length
+            disabled={busy}
+            onChange={(value) => onConnectorsChange({ diameter: value })}
+          />
+          <EdgeModifierSlider
+            label={t("split.connectorDepth")}
+            value={connectors.depth}
+            min={MIN_CONNECTOR_DEPTH}
+            max={MAX_CONNECTOR_DEPTH}
+            step={0.5}
+            workspace={workspace}
+            length
+            disabled={busy}
+            onChange={(value) => onConnectorsChange({ depth: value })}
+          />
+          {connectors.kind === "dowels" ? (
+            // For a printer whose bed moves, where the standing dowels wobble loose (breakawayBase.ts).
+            <label className="edge-modifier-check" title={t("split.dowelBaseHint")}>
+              <input type="checkbox" checked={connectors.dowelBase} disabled={busy} onChange={(event) => onConnectorsChange({ dowelBase: event.currentTarget.checked })} />
+              <span>{t("split.dowelBase")}</span>
+            </label>
+          ) : null}
+        </>)}
+        <EdgeModifierSlider
+          label={t("split.connectorClearance")}
+          value={connectors.clearance}
+          min={0}
+          max={MAX_CONNECTOR_CLEARANCE}
+          step={0.05}
+          workspace={workspace}
+          length
+          disabled={busy}
+          onChange={(value) => onConnectorsChange({ clearance: value })}
+        />
+        {fromPrinterPlay("split.connectorClearance", connectors.clearance, printerPlay) ? <span className="shell-openings-summary">{t("printerPlay.fromFitTest")}</span> : null}
+        <div className="split-connector-summary" role="status">
+          {splitConnectorSummary(connectorPreview, connectors.kind).map((line) => <span key={line}>{line}</span>)}
+        </div>
+      </>)}
 
       <p className="split-panel-help">{t("split.help")}</p>
       {error ? <div className="split-panel-error" role="alert">{error}</div> : null}

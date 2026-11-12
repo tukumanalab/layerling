@@ -4,14 +4,16 @@ import type { CustomSnapGrid, CustomSnapGridSize, GridSize, HistoryRetentionLimi
 import { normalizeScaleForUnits } from "@/lib/measurementUnits";
 import { DEFAULT_IMPERIAL_GRID_BLOCK_PRESET, DEFAULT_METRIC_GRID_BLOCK_PRESET, DEFAULT_EDGE_LINE_COLOR, DEFAULT_LIGHT_AZIMUTH, DEFAULT_LIGHT_ELEVATION, DEFAULT_SKETCH_BACKGROUND, DEFAULT_SKETCH_GRID_COLOR, DEFAULT_SKETCH_PLATE_COLOR, DEFAULT_WORKPLANE_BACKGROUND, DEFAULT_WORKPLANE_GRID_COLOR, DEFAULT_WORKPLANE_SURFACE_COLOR, inchGridPresetMm } from "@/lib/workplaneGrid";
 import { isThreadProfile } from "@/lib/threadProfiles";
+import { MAX_TEXT_LENGTH } from "@/lib/textLength";
 import { normalizeHexColor } from "@/lib/coloredImport";
 import { normalizePlateNames } from "@/lib/buildPlateNames";
 import { TORUS_MAX_TUBE_RATIO, TORUS_MIN_TUBE_RATIO } from "@/lib/torusShape";
 import { MAX_PULLEY_BELT_WIDTH, MAX_PULLEY_FLANGE, MAX_PULLEY_FLANGE_RISE, MAX_PULLEY_HUB_HEIGHT, MAX_PULLEY_TEETH, MIN_PULLEY_BELT_WIDTH, MIN_PULLEY_FLANGE_RISE, MIN_PULLEY_TEETH } from "@/lib/pulleyGeometry";
 import { MAX_HIRTH_STEEP_FLANK, MAX_HIRTH_TEETH, MIN_HIRTH_STEEP_FLANK, MIN_HIRTH_TEETH, MIN_HIRTH_TOOTH_HEIGHT } from "@/lib/hirthGeometry";
 import { PORT_PROFILES } from "@/lib/portGeometry";
+import { MAX_DRILL_POINT_ANGLE, MIN_DRILL_POINT_ANGLE } from "@/lib/drillPoint";
 import { MAX_GEAR_TEETH, MIN_GEAR_TEETH } from "@/lib/gearGeometry";
-import { GRIDFINITY_LABEL_FONTS } from "@/lib/gridfinityGeometry";
+import { GRIDFINITY_LABEL_FONTS, MIN_GRIDFINITY_LABEL_TEXT_SIZE } from "@/lib/gridfinityGeometry";
 import type { PortProfile } from "@/types/layerling";
 
 export const DEFAULT_SNAP_GRID: GridSize = "1.0 mm";
@@ -47,6 +49,18 @@ export function booleanTriangleLimitPreset(limit: number): BooleanTriangleLimitP
   return BOOLEAN_TRIANGLE_LIMIT_PRESETS.find((preset) => preset.limit === limit)?.id ?? null;
 }
 
+/** The hole opacity slider's range in percent (#1566); 0 stands for automatic. */
+export const HOLE_OPACITY_MIN = 10;
+export const HOLE_OPACITY_MAX = 90;
+/** What automatic means: holes as they were drawn before the slider, plain and with Show holes more clearly. */
+export const HOLE_OPACITY_AUTO = 52;
+export const HOLE_OPACITY_AUTO_STRONG = 72;
+
+/** The hole opacity in percent the view uses, with automatic resolved. */
+export function effectiveHoleOpacity(workspace: Pick<WorkplaneWorkspaceSettings, "holeOpacity" | "strongHoles">) {
+  return workspace.holeOpacity || (workspace.strongHoles ? HOLE_OPACITY_AUTO_STRONG : HOLE_OPACITY_AUTO);
+}
+
 export const DEFAULT_WORKPLANE_WORKSPACE: WorkplaneWorkspaceSettings = {
   width: 200,
   depth: 200,
@@ -65,6 +79,7 @@ export const DEFAULT_WORKPLANE_WORKSPACE: WorkplaneWorkspaceSettings = {
   edgeLines: false,
   edgeColor: DEFAULT_EDGE_LINE_COLOR,
   strongHoles: false,
+  holeOpacity: 0,
   showShadows: true,
   cameraInertia: true,
   fastMode: false,
@@ -88,12 +103,15 @@ export const DEFAULT_WORKPLANE_WORKSPACE: WorkplaneWorkspaceSettings = {
   doubleClickCentersView: true,
   objectSnap: true,
   stlAsDownload: false,
+  lylAsDownload: false,
   confirmTabClose: false,
   dimensionsAlwaysVisible: true,
   dimensionAxisColors: false,
   showRotationAngles: true,
   startWithScrollbars: false,
+  viewBarOpensOnHover: false,
   zoomSpeed: 5,
+  panSpeed: 5,
   mouseScheme: "layerling",
   units: "Metric (Default)",
   inchFormat: "fraction",
@@ -129,6 +147,23 @@ export function orbitControlsZoomSpeed(slider: number): number {
     : DEFAULT_WORKPLANE_WORKSPACE.zoomSpeed;
   const slowest = DEFAULT_ORBIT_ZOOM_SPEED / ZOOM_SPEED_STEP ** (DEFAULT_WORKPLANE_WORKSPACE.zoomSpeed - ZOOM_SPEED_SLIDER_MIN);
   return slowest * ZOOM_SPEED_STEP ** (position - ZOOM_SPEED_SLIDER_MIN);
+}
+
+const PAN_SPEED_SLIDER_MIN = 1;
+export const PAN_SPEED_SLIDER_MAX = 9;
+/** Each pan slider step changes the rate by this factor: the left end is half the middle, the right end twice. */
+const PAN_SPEED_STEP = 2 ** (1 / 4);
+
+/**
+ * Maps the pan slider onto OrbitControls.panSpeed (#1553).
+ * At 1 the point you grab at the depth of the view's centre stays under the cursor; the middle of the
+ * slider gives that. It was fixed at 0.65 before, so the view moved slower than the mouse.
+ */
+export function orbitControlsPanSpeed(slider: number): number {
+  const position = Number.isFinite(slider)
+    ? Math.min(PAN_SPEED_SLIDER_MAX, Math.max(PAN_SPEED_SLIDER_MIN, slider))
+    : DEFAULT_WORKPLANE_WORKSPACE.panSpeed;
+  return PAN_SPEED_STEP ** (position - DEFAULT_WORKPLANE_WORKSPACE.panSpeed);
 }
 
 /**
@@ -306,6 +341,12 @@ function numberOrDefault(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+/** A hole's opacity in percent, 10 to 90, or 0 for automatic (#1566). */
+function holeOpacityOrAuto(value: unknown, fallback: number) {
+  const percent = Math.round(numberOrDefault(value, fallback));
+  return percent <= 0 ? 0 : Math.max(HOLE_OPACITY_MIN, Math.min(HOLE_OPACITY_MAX, percent));
+}
+
 function stringOrDefault(value: unknown, fallback: string) {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
@@ -425,6 +466,19 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.screwHoleHeadDepth = optionalShapeNumber(source.screwHoleHeadDepth, fallbackEntry?.screwHoleHeadDepth, 0.1, MAX_CUSTOM_SHAPE_DIMENSION);
       entry.screwHoleAngle = optionalShapeNumber(source.screwHoleAngle, fallbackEntry?.screwHoleAngle, 30, 150);
     }
+    if (kind === "counterbore" || kind === "countersink" || kind === "doubleCountersink") {
+      // A slotted hole and a recessed head (Discussion #1531), so a shape made through the AI bridge keeps them.
+      entry.screwHoleSlot = typeof source.screwHoleSlot === "boolean" ? source.screwHoleSlot : fallbackEntry?.screwHoleSlot;
+    }
+    if (kind === "countersink" || kind === "doubleCountersink") {
+      entry.screwHoleRecess = optionalShapeNumber(source.screwHoleRecess, fallbackEntry?.screwHoleRecess, 0, MAX_CUSTOM_SHAPE_DIMENSION);
+    }
+    if (kind === "cylinder" || kind === "counterbore" || kind === "countersink") {
+      // A drill point at the bottom of a blind hole (Discussion #621); 0 or less stands for a flat bottom, so a patch can switch it back.
+      entry.drillPointAngle = typeof source.drillPointAngle === "number" && source.drillPointAngle <= 0
+        ? 0
+        : optionalShapeNumber(source.drillPointAngle, fallbackEntry?.drillPointAngle, MIN_DRILL_POINT_ANGLE, MAX_DRILL_POINT_ANGLE);
+    }
     if (kind === "hinge") {
       entry.hingeKnuckles = optionalShapeNumber(source.hingeKnuckles, fallbackEntry?.hingeKnuckles, 3, 15, true);
       entry.hingeKnuckleWidth = optionalShapeNumber(source.hingeKnuckleWidth, fallbackEntry?.hingeKnuckleWidth, 1, MAX_CUSTOM_SHAPE_DIMENSION);
@@ -472,6 +526,10 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.gridfinityLabelCorner = source.gridfinityLabelCorner === "round" || source.gridfinityLabelCorner === "chamfer" ? source.gridfinityLabelCorner : fallbackEntry?.gridfinityLabelCorner;
       entry.gridfinityLabelCornerSize = optionalShapeNumber(source.gridfinityLabelCornerSize, fallbackEntry?.gridfinityLabelCornerSize, 0, MAX_CUSTOM_SHAPE_DIMENSION);
       entry.gridfinityLabelFont = typeof source.gridfinityLabelFont === "string" && GRIDFINITY_LABEL_FONTS.includes(source.gridfinityLabelFont) ? source.gridfinityLabelFont : fallbackEntry?.gridfinityLabelFont;
+      entry.gridfinityLabelColor = normalizeHexColor(typeof source.gridfinityLabelColor === "string" ? source.gridfinityLabelColor : undefined) ?? fallbackEntry?.gridfinityLabelColor;
+      // A letter size under 3 mm is stored as 3, as the settings row stores it (#1308); MCP comes through here too.
+      const letterSize = optionalShapeNumber(source.gridfinityLabelTextSize, fallbackEntry?.gridfinityLabelTextSize, 0, MAX_CUSTOM_SHAPE_DIMENSION);
+      entry.gridfinityLabelTextSize = letterSize ? Math.max(letterSize, MIN_GRIDFINITY_LABEL_TEXT_SIZE) : letterSize;
       entry.gridfinityScoopBack = typeof source.gridfinityScoopBack === "boolean" ? source.gridfinityScoopBack : fallbackEntry?.gridfinityScoopBack;
       entry.gridfinityScoopFront = typeof source.gridfinityScoopFront === "boolean" ? source.gridfinityScoopFront : fallbackEntry?.gridfinityScoopFront;
       entry.gridfinityScoopLeft = typeof source.gridfinityScoopLeft === "boolean" ? source.gridfinityScoopLeft : fallbackEntry?.gridfinityScoopLeft;
@@ -511,7 +569,7 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       for (const key of ["loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth"] as const) {
         entry[key] = optionalShapeNumber(source[key], fallbackEntry?.[key], 1, MAX_CUSTOM_SHAPE_DIMENSION);
       }
-      for (const key of ["loftBottomCorner", "loftTopCorner", "loftWall"] as const) {
+      for (const key of ["loftBottomCorner", "loftTopCorner", "loftWall", "loftTopWall"] as const) {
         entry[key] = optionalShapeNumber(source[key], fallbackEntry?.[key], 0, MAX_CUSTOM_SHAPE_DIMENSION / 2);
       }
       entry.loftTwist = optionalShapeNumber(source.loftTwist, fallbackEntry?.loftTwist, -360, 360);
@@ -552,6 +610,7 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.ribFoot = typeof source.ribFoot === "boolean" ? source.ribFoot : fallbackEntry?.ribFoot;
       entry.ribThickness = optionalShapeNumber(source.ribThickness, fallbackEntry?.ribThickness, 0.2, 50);
       entry.ribFootThickness = optionalShapeNumber(source.ribFootThickness, fallbackEntry?.ribFootThickness, 0.2, 50);
+      entry.ribFootShape = source.ribFootShape === "square" || source.ribFootShape === "oval" ? source.ribFootShape : fallbackEntry?.ribFootShape;
     }
     if (kind === "dovetail") {
       entry.dovetailNeckWidth = optionalShapeNumber(source.dovetailNeckWidth, fallbackEntry?.dovetailNeckWidth, 0.1, MAX_CUSTOM_SHAPE_DIMENSION);
@@ -566,6 +625,7 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
     if (kind === "roundedBox") {
       entry.cornerFillet = optionalShapeNumber(source.cornerFillet, fallbackEntry?.cornerFillet, 0, MAX_CUSTOM_SHAPE_DIMENSION / 2);
       entry.topBottomFillet = optionalShapeNumber(source.topBottomFillet, fallbackEntry?.topBottomFillet, 0, MAX_CUSTOM_SHAPE_DIMENSION / 2);
+      entry.bottomFillet = optionalShapeNumber(source.bottomFillet, fallbackEntry?.bottomFillet, 0, MAX_CUSTOM_SHAPE_DIMENSION / 2);
       entry.roundedBoxQuality = optionalShapeNumber(source.roundedBoxQuality, fallbackEntry?.roundedBoxQuality, 1, 32, true);
     }
     if (kind === "bentTube") {
@@ -585,7 +645,7 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.bentTubeQuality = optionalShapeNumber(source.bentTubeQuality, fallbackEntry?.bentTubeQuality, 12, 96, true);
     }
     if (kind === "text") {
-      entry.text = optionalShapeText(source.text, fallbackEntry?.text, 24);
+      entry.text = optionalShapeText(source.text, fallbackEntry?.text, MAX_TEXT_LENGTH);
       // An older name of the Japanese face is kept as its current one.
       const font = builtInFontName(typeof source.font === "string" ? source.font : undefined);
       entry.font = source.font === undefined ? fallbackEntry?.font : font !== undefined && BUILT_IN_FONTS.includes(font) ? font : fallbackEntry?.font;
@@ -636,6 +696,7 @@ export function normalizeShapeCustomizations(value: unknown, fallback: ShapeCust
       entry.threadClearance = optionalShapeNumber(source.threadClearance, fallbackEntry?.threadClearance, 0, 1.5);
       entry.threadBoltClearance = optionalShapeNumber(source.threadBoltClearance, fallbackEntry?.threadBoltClearance, 0, 1);
       entry.threadAxialClearance = optionalShapeNumber(source.threadAxialClearance, fallbackEntry?.threadAxialClearance, 0, 1);
+      entry.threadStarts = optionalShapeNumber(source.threadStarts, fallbackEntry?.threadStarts, 1, 8);
       entry.threadDepth = optionalShapeNumber(source.threadDepth, fallbackEntry?.threadDepth, 0.01, 40);
       entry.threadFlankAngle = optionalShapeNumber(source.threadFlankAngle, fallbackEntry?.threadFlankAngle, 10, 90);
       entry.threadQuality = optionalShapeNumber(source.threadQuality, fallbackEntry?.threadQuality, 12, 96, true);
@@ -827,6 +888,7 @@ export function normalizeWorkspaceSettings(value: unknown, fallback: WorkplaneWo
     edgeLines: booleanOrDefault(candidate.edgeLines, fallback.edgeLines),
     edgeColor: colorOrDefault(candidate.edgeColor, fallback.edgeColor),
     strongHoles: booleanOrDefault(candidate.strongHoles, fallback.strongHoles),
+    holeOpacity: holeOpacityOrAuto(candidate.holeOpacity, fallback.holeOpacity),
     showShadows: booleanOrDefault(candidate.showShadows, fallback.showShadows),
     cameraInertia: booleanOrDefault(candidate.cameraInertia, fallback.cameraInertia),
     fastMode: booleanOrDefault(candidate.fastMode, fallback.fastMode),
@@ -855,12 +917,15 @@ export function normalizeWorkspaceSettings(value: unknown, fallback: WorkplaneWo
     doubleClickCentersView: booleanOrDefault(candidate.doubleClickCentersView, fallback.doubleClickCentersView),
     objectSnap: booleanOrDefault(candidate.objectSnap, fallback.objectSnap),
     stlAsDownload: booleanOrDefault(candidate.stlAsDownload, fallback.stlAsDownload),
+    lylAsDownload: booleanOrDefault(candidate.lylAsDownload, fallback.lylAsDownload),
     confirmTabClose: booleanOrDefault(candidate.confirmTabClose, fallback.confirmTabClose),
     dimensionsAlwaysVisible: booleanOrDefault(candidate.dimensionsAlwaysVisible, fallback.dimensionsAlwaysVisible),
     dimensionAxisColors: booleanOrDefault(candidate.dimensionAxisColors, fallback.dimensionAxisColors),
     showRotationAngles: booleanOrDefault(candidate.showRotationAngles, fallback.showRotationAngles),
     startWithScrollbars: booleanOrDefault(candidate.startWithScrollbars, fallback.startWithScrollbars),
+    viewBarOpensOnHover: booleanOrDefault(candidate.viewBarOpensOnHover, fallback.viewBarOpensOnHover),
     zoomSpeed: numberOrDefault(candidate.zoomSpeed, fallback.zoomSpeed),
+    panSpeed: numberOrDefault(candidate.panSpeed, fallback.panSpeed),
     mouseScheme: candidate.mouseScheme === "slicer" ? "slicer" : candidate.mouseScheme === "layerling" ? "layerling" : fallback.mouseScheme,
     units,
     inchFormat: candidate.inchFormat === "decimal" ? "decimal" : "fraction",
