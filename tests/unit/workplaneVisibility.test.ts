@@ -80,8 +80,8 @@ describe("hiding the workplane from the camera bar", () => {
 
   it("joins the tools in the two-column bar of a flat window, so plus and minus stay side by side", () => {
     const css = read("apps/web/src/app/globals.css");
-    const compact = css.slice(css.indexOf("@container workplane (max-height: 600px)"));
-    expect(compact).toMatch(/\.camera-controls > \.workplane-display-control-group,[^{]*\{\s*order: 2;/);
+    const compact = css.slice(css.indexOf("@container workplane (max-height: 740px)"));
+    expect(compact).toMatch(/\.camera-controls > \.camera-group \{\s*display: grid;\s*grid-template-columns: repeat\(2, auto\);\s*grid-column: 1 \/ -1;/);
   });
 });
 
@@ -101,10 +101,10 @@ describe("workplane visibility labels and guide", () => {
     expect(MESSAGES_EN["camera.showWorkplane"]).toBe("Show workplane");
   });
 
-  it("describes the button in the camera bar section of both guides", () => {
+  it("describes the button in the view bar section of both guides", () => {
     const chapters = {
-      "docs/guide/en/02-view-and-workplane.md": "### The camera bar",
-      "docs/guide/de/02-ansicht-und-arbeitsebene.md": "### Die Kameraleiste",
+      "docs/guide/en/02-view-and-workplane.md": "### The view bar",
+      "docs/guide/de/02-ansicht-und-arbeitsebene.md": "### Die Ansichtsleiste",
     };
     for (const [chapter, heading] of Object.entries(chapters)) {
       const text = read(chapter);

@@ -37,9 +37,22 @@ export const CUSTOM_SHAPES_BACKUP_FOLDER = "Custom shapes";
 export const CUSTOM_SHAPES_MANIFEST = "custom-shapes.json";
 const inCustomShapesFolder = (path: string) => path.startsWith(`${CUSTOM_SHAPES_BACKUP_FOLDER}/`);
 
-export function backupFileName(date: Date) {
+/**
+ * The day and the time (hours and minutes), so each backup gets a name of its own: the save dialog of Chrome, Edge
+ * and the desktop app replaces a file of the same name instead of adding (2) as a download does (Discussion #1621).
+ */
+export function backupFileName(date: Date, prefix = "layerling-backup") {
   const pad = (value: number) => String(value).padStart(2, "0");
-  return `layerling-backup-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}.zip`;
+  return `${prefix}-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}.zip`;
+}
+
+/**
+ * The start of a backup's file name after what it holds - a folder, or the one design chosen (Discussion #1317) -
+ * so several backups stay apart in the downloads: `layerling-` and the name, made safe for every system.
+ */
+export function backupNamePrefix(name: string) {
+  const safe = name.replace(/[\\/:*?"<>|\s\u0000-\u001f]+/g, "-").replace(/^[-.]+|-+$/g, "").slice(0, 100);
+  return safe ? `layerling-${safe}` : "layerling-backup";
 }
 
 /** File names for the designs: readable, safe on every system, never twice the same. */

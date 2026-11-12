@@ -207,22 +207,37 @@ export function cornerRulerDimensionMatchesFromCorner(
 const CORNER_RULER_SIDE_TOLERANCE = 0.01;
 
 /**
- * Teilstriche fuer einen Arm des Winkellineal-Werkzeugs, einer je Millimeter -
- * dieselbe Dichte wie die verworfene Tick-Textur (`createRulerTickTexture`),
- * nur als reine Zahlenliste statt als Zeichnung, damit die Bildschirm-Anzeige
- * jeden Strich einzeln ueber `projectToScreen` platzieren kann.
+ * Teilstriche fuer einen Arm des Winkellineal-Werkzeugs, als reine Zahlenliste,
+ * damit die Bildschirm-Anzeige jeden Strich einzeln ueber `projectToScreen`
+ * platzieren kann. Metrisch einer je Millimeter mit Zahl alle 10 mm; mit Zoll
+ * (oder Fuss) eingestellt einer je 1/16" mit Zahl an jedem ganzen Zoll, wie auf
+ * einem echten Winkel (Discussion #1618: vorher immer Millimeter).
+ * `offset` ist immer in Millimetern, `height` der Anteil der Armbreite.
  */
 export type CornerRulerTick = {
   offset: number;
-  isTen: boolean;
-  isFive: boolean;
+  height: number;
+  label?: string;
 };
 
-export function cornerRulerTicks(length: number): CornerRulerTick[] {
+const CORNER_RULER_INCH_STEPS = 16;
+
+export function cornerRulerTicks(length: number, unitLabel = "mm"): CornerRulerTick[] {
   const ticks: CornerRulerTick[] = [];
+  if (unitLabel === "in" || unitLabel === "ft") {
+    const step = 25.4 / CORNER_RULER_INCH_STEPS;
+    const last = Math.max(0, Math.floor(length / step + 1e-6));
+    for (let index = 0; index <= last; index += 1) {
+      const height = index % 16 === 0 ? 0.62 : index % 8 === 0 ? 0.48 : index % 4 === 0 ? 0.38 : index % 2 === 0 ? 0.3 : 0.22;
+      const inches = index / CORNER_RULER_INCH_STEPS;
+      ticks.push({ offset: index * step, height, label: index > 0 && index % 16 === 0 ? (unitLabel === "ft" ? `${inches}"` : String(inches)) : undefined });
+    }
+    return ticks;
+  }
   const last = Math.max(0, Math.floor(length));
   for (let value = 0; value <= last; value += 1) {
-    ticks.push({ offset: value, isTen: value % 10 === 0, isFive: value % 5 === 0 });
+    const isTen = value % 10 === 0;
+    ticks.push({ offset: value, height: isTen ? 0.62 : value % 5 === 0 ? 0.42 : 0.26, label: isTen && value > 0 ? String(value) : undefined });
   }
   return ticks;
 }
@@ -298,6 +313,91 @@ export function rotateCornerRulerFrame(frame: CornerRulerFrame): CornerRulerFram
  */
 export function cornerRulerFrameForWorkplane(workplane: { xAxis: CornerRulerVector; zAxis: CornerRulerVector; normal: CornerRulerVector }): CornerRulerFrame {
   return rotateCornerRulerFrame({ xAxis: workplane.xAxis, zAxis: workplane.zAxis, normal: workplane.normal });
+}
+
+/** An arm dragged at its end stays this long at least and this long at most, in whole millimetres (Discussion #1469). */
+export const CORNER_RULER_MIN_ARM = 10;
+export const CORNER_RULER_MAX_ARM = 5000;
+
+/**
+ * How long an arm becomes when its end is dragged to `point`: the distance from the corner along that arm, rounded
+ * to whole millimetres and kept between CORNER_RULER_MIN_ARM and CORNER_RULER_MAX_ARM. A point behind the corner
+ * leaves the shortest arm (Discussion #1469).
+ */
+export function cornerRulerArmLength(ruler: { corner: CornerRulerVector; frame: CornerRulerFrame }, arm: "x" | "z", point: CornerRulerVector) {
+  const axis = toVector(arm === "x" ? ruler.frame.xAxis : ruler.frame.zAxis).normalize();
+  const along = toVector(point).sub(toVector(ruler.corner)).dot(axis);
+  return Math.min(CORNER_RULER_MAX_ARM, Math.max(CORNER_RULER_MIN_ARM, Math.round(along)));
+}
+
+/** How long the third arm, the one standing up from the corner along the square's normal, is to begin with (Discussion #1649). */
+export const CORNER_RULER_DEFAULT_ARM_ELEVATION = 50;
+
+/** Which arms a framing square shows when it says nothing: the two in its plane, not the third (Discussion #1649). */
+const CORNER_RULER_ARMS_DEFAULT: Record<CornerRulerAxis, boolean> = { x: true, z: true, elevation: false };
+
+/** Which of its three arms a framing square shows: the two in its plane unless switched off, the third only when switched on. */
+export function cornerRulerArmsShown(arms?: Partial<Record<CornerRulerAxis, boolean>>): Record<CornerRulerAxis, boolean> {
+  return {
+    x: typeof arms?.x === "boolean" ? arms.x : CORNER_RULER_ARMS_DEFAULT.x,
+    z: typeof arms?.z === "boolean" ? arms.z : CORNER_RULER_ARMS_DEFAULT.z,
+    elevation: typeof arms?.elevation === "boolean" ? arms.elevation : CORNER_RULER_ARMS_DEFAULT.elevation,
+  };
+}
+
+/**
+ * One arm switched on or off, the others as they were (Discussion #1649). The last arm shown stays on. What is kept
+ * names only the arms that differ from the start, so a square as it always was keeps nothing (undefined).
+ */
+export function toggledCornerRulerArms(arms: Partial<Record<CornerRulerAxis, boolean>> | undefined, arm: CornerRulerAxis): Partial<Record<CornerRulerAxis, boolean>> | undefined {
+  const shown = cornerRulerArmsShown(arms);
+  const next = { ...shown, [arm]: !shown[arm] };
+  return keptCornerRulerArms(CORNER_RULER_AXES.some((entry) => next[entry]) ? next : shown);
+}
+
+/**
+ * What is kept of the arms a square shows: only those that differ from the start, undefined when none does. Arms
+ * with none shown are no square's: they keep nothing, so the square shows its two arms again.
+ */
+export function keptCornerRulerArms(arms: Partial<Record<CornerRulerAxis, boolean>> | undefined): Partial<Record<CornerRulerAxis, boolean>> | undefined {
+  const shown = cornerRulerArmsShown(arms);
+  if (!CORNER_RULER_AXES.some((entry) => shown[entry])) return undefined;
+  const result: Partial<Record<CornerRulerAxis, boolean>> = {};
+  CORNER_RULER_AXES.forEach((entry) => { if (shown[entry] !== CORNER_RULER_ARMS_DEFAULT[entry]) result[entry] = shown[entry]; });
+  return Object.keys(result).length ? result : undefined;
+}
+
+/**
+ * How long the third arm becomes when its end is dragged (Discussion #1649): the arm stands out of the square's
+ * plane, so the pointer's ray is taken, and the point of the arm's line closest to that ray. Whole millimetres,
+ * between CORNER_RULER_MIN_ARM and CORNER_RULER_MAX_ARM. Null when the ray runs almost along the arm, as when looking
+ * straight down onto a square on the plate: then the place along it cannot be told.
+ */
+export function cornerRulerElevationArmLength(
+  ruler: { corner: CornerRulerVector; frame: CornerRulerFrame },
+  ray: { origin: CornerRulerVector; direction: CornerRulerVector },
+): number | null {
+  const arm = toVector(ruler.frame.normal).normalize();
+  const along = toVector(ray.direction).normalize();
+  const offset = toVector(ruler.corner).sub(toVector(ray.origin));
+  const b = arm.dot(along);
+  const denominator = 1 - b * b;
+  // Less than about 3 degrees between the ray and the arm.
+  if (denominator < 0.0025) return null;
+  const t = (b * along.dot(offset) - arm.dot(offset)) / denominator;
+  return Math.min(CORNER_RULER_MAX_ARM, Math.max(CORNER_RULER_MIN_ARM, Math.round(t)));
+}
+
+/**
+ * Both arms as long as the build plate: the arm that runs more along the plate's width (x) gets the width, the other
+ * its depth, so a square turned a quarter still spans the plate (Discussion #1469).
+ */
+export function cornerRulerPlateArms(frame: CornerRulerFrame, width: number, depth: number) {
+  const alongWidth = (axis: CornerRulerVector) => Math.abs(axis.x) >= Math.abs(axis.z);
+  return {
+    armLengthX: Math.round(alongWidth(frame.xAxis) ? width : depth),
+    armLengthZ: Math.round(alongWidth(frame.zAxis) ? width : depth),
+  };
 }
 
 /**
@@ -460,6 +560,36 @@ function boxesOverlap(a: ScreenBox, b: ScreenBox) {
   return Math.abs(a.x - b.x) < a.halfWidth + b.halfWidth && Math.abs(a.y - b.y) < a.halfHeight + b.halfHeight;
 }
 
+/** Space left between the height number and the body's outline, in screen pixels. */
+const ELEVATION_FIELD_GAP = 6;
+/** Half the width of the body's own height box at its corner, which the height number must not cover either. */
+const ELEVATION_ARROW_CLEARANCE = 30;
+
+/**
+ * Where the height number goes when its spot lies on the measured body (#1279). At height 0 its arrow
+ * has no length, so the middle of the arrow is the body's own corner and the field covered the body.
+ * It now moves sideways out of the body's outline on the screen, to the side nearer the arrow, at the
+ * same height on the screen. A field that is already clear of the body stays where it is.
+ */
+export function cornerRulerElevationFieldBesideBody(
+  field: ScreenPoint,
+  arrowX: number,
+  body: ScreenBox,
+  size: { width: number; height: number } = CORNER_RULER_FIELD_SIZE,
+): ScreenPoint {
+  const halfWidth = size.width / 2;
+  const halfHeight = size.height / 2;
+  if (!boxesOverlap({ x: field.x, y: field.y, halfWidth, halfHeight }, body)) return field;
+  const toLeft = arrowX - (body.x - body.halfWidth) <= body.x + body.halfWidth - arrowX;
+  // The arrow's foot is the body's corner, where its grip and its own height box sit: keep clear of them too.
+  const leftEdge = Math.min(body.x - body.halfWidth, arrowX - ELEVATION_ARROW_CLEARANCE);
+  const rightEdge = Math.max(body.x + body.halfWidth, arrowX + ELEVATION_ARROW_CLEARANCE);
+  return {
+    x: toLeft ? leftEdge - halfWidth - ELEVATION_FIELD_GAP : rightEdge + halfWidth + ELEVATION_FIELD_GAP,
+    y: field.y,
+  };
+}
+
 /**
  * Moves the centres of the green number fields apart where they would cover each other or the ruler's
  * own buttons (#777): a body next to the ruler's corner has next to no distance, so all numbers sit
@@ -471,14 +601,19 @@ export function spreadCornerRulerFields(
   fields: ScreenPoint[],
   obstacles: ScreenBox[] = [],
   size: { width: number; height: number } = CORNER_RULER_FIELD_SIZE,
+  /** Places only one field must keep clear of, by its index (the height number and the body, #1279). */
+  fieldObstacles: ReadonlyArray<ScreenBox[] | undefined> = [],
 ): ScreenPoint[] {
   const halfWidth = size.width / 2;
   const halfHeight = size.height / 2;
   const placed: ScreenBox[] = [];
-  return fields.map((field) => {
+  return fields.map((field, index) => {
+    const own = fieldObstacles[index] ?? [];
     const free = (x: number, y: number) => {
       const box = { x, y, halfWidth, halfHeight };
-      return !placed.some((other) => boxesOverlap(box, other)) && !obstacles.some((other) => boxesOverlap(box, other));
+      return !placed.some((other) => boxesOverlap(box, other))
+        && !obstacles.some((other) => boxesOverlap(box, other))
+        && !own.some((other) => boxesOverlap(box, other));
     };
     let best: ScreenPoint = field;
     if (!free(field.x, field.y)) {

@@ -12,15 +12,22 @@ Wybierz {{ui:shape.text}} w bibliotece kształtów i umieść go. W polu {{ui:pr
 - **{{ui:prop.height}}:** jak daleko napis wystaje z powierzchni.
 - **{{ui:prop.bevel}}:** zaokrągla krawędzie liter, żeby wyglądały łagodniej. {{ui:prop.segments}} decydują, w ilu krokach.
 - **{{ui:nameTag.letterEdge}}:** zaokrągla albo fazuje górną krawędź liter, jak na plakietce z imieniem: {{ui:nameTag.edge.none}}, {{ui:nameTag.edge.round}} albo {{ui:nameTag.edge.chamfer}}, z {{ui:nameTag.letterEdgeSize}} (na początek 0,4 mm, najwyżej tyle, ile wysokość tekstu). Sięga dalej niż {{ui:prop.bevel}}, ale tylko na szerokość kresek: tam, gdzie kreska jest cieńsza niż dwa razy rozmiar, krawędź kończy się węższą górą. Spód zostaje płaski, więc pojedyncze litery można potem przykleić. Gdy krawędź jest wybrana, zastępuje {{ui:prop.bevel}}.
+- **Długość:** Tekst może mieć do 250 znaków. Litery zachowują swój rozmiar, a wiersz staje się tak długi, jak trzeba; aby go skrócić, zmniejsz litery. {{ui:nameTag.letterEdge}} działa dla tekstu do 40 znaków, bo przy dłuższym obliczenia trwałyby minuty.
 - **Rozmiar:** długość i szerokość wiersza ustawiasz jak przy każdym kształcie. Przeciągnij uchwyty albo wpisz wymiary.
 - **{{ui:prop.textSpacing}}:** odstęp między literami ponad ten, który ma czcionka, w procentach wielkości liter: 0 zostawia go tak, jak zrobiła go czcionka, powyżej litery stoją dalej od siebie, poniżej (do -50) ciaśniej, czego często potrzebuje własna czcionka. Litery zachowują rozmiar, a ramka podąża za wierszem, w tekście prostym i na łuku. Odstęp nie jest stosowany do arabskiego i hebrajskiego, których litery się łączą.
+- **{{ui:prop.textKerning}}:** przysuwa do siebie pary liter, między którymi zostaje za dużo miejsca, jak AY, AV, LT czy To, mierząc kształty samych liter, w każdej czcionce, także we własnych. Nowe teksty mają go włączonego; teksty utworzone wcześniej mają go wyłączonego, żeby w zapisanym projekcie nic się nie przesunęło. Litery zachowują swoją wielkość, a ramka się dopasowuje. Działa przy tekście prostym i wygiętym, nie przy tekście pionowym, arabskim, hebrajskim ani japońskim.
+- **{{ui:prop.textVertical}}:** układa litery od góry do dołu, każdą na środku jednej pionowej linii, na tabliczkę na framudze drzwi albo imię wzdłuż długopisu. Ramka staje pionowo, a litery zachowują rozmiar. {{ui:prop.textSpacing}} ustawia odstęp między nimi. W tekście na łuku litery tworzą kolumnę wzdłuż lewej strony okręgu, każda stoi prosto. {{ui:prop.textInwardColumn}} przenosi kolumnę na prawą stronę.
 - **{{ui:prop.textStretch}}:** na początku wyłączone: litery zachowują proporcje i stoją na środku ramki, więc ramka rozciągnięta szerzej lub głębiej, niż potrzebuje słowo, zostaje większa od liter. Włącz to, a litery zostaną rozciągnięte na całą ramkę w obu kierunkach: wielką literę można obniżyć albo zwęzić, jak w Tinkercadzie. Dotyczy to prostego tekstu. Tekst na łuku ma własną wielkość liter.
 
 Tekst jest na początku jedną bryłą. Jeśli chcesz obrabiać litery osobno, kliknij {{ui:inspector.separateParts}}. Wtedy każda litera jest osobnym kształtem.
 
+**Kilka wierszy:** Tekst ma jeden wiersz. Na szyld lub tabliczkę z kilkoma wierszami otwórz pod ustawieniami kartę {{ui:textBlock.title}}: wpisz wiersze w {{ui:textBlock.lines}}, wybierz {{ui:textBlock.align}} ({{ui:textBlock.align.left}}, {{ui:textBlock.align.center}} lub {{ui:textBlock.align.right}}), {{ui:textBlock.gap}} i {{ui:textBlock.step}} - przy 80 % każdy wiersz jest o jedną piątą mniejszy od poprzedniego. Przycisk robi z każdego wiersza osobny tekst pod poprzednim, w czcionce, wysokości i wypełnieniu tego tekstu; pierwszy zajmuje miejsce tego tekstu. Potem każdy wiersz może dostać własny rozmiar, czcionkę lub kolor.
+
 Krawędzie tekstu też można fazować albo zaokrąglać, prostego i na łuku, zobacz [Łamanie krawędzi i drążenie brył](chapter:edges-and-hollowing). Używaj małych rozmiarów, takich jak od 0,2 do 0,5 mm, bo kreski liter są wąskie.
 
 ## Twoje czcionki
+
+Lista {{ui:prop.font}} rysuje każdą czcionkę jej własnymi literami, słowami twojego tekstu, więc widzisz, jak będzie wyglądać, zanim ją wybierzesz. Tak samo jest z czcionkami w oknie opisanym niżej. Czcionki z twojego komputera pokazują tam swoje nazwy własnymi literami. Na liście działają strzałki i [[Enter]], a litera przeskakuje do następnej czcionki, która się od niej zaczyna.
 
 Oprócz ośmiu wbudowanych krojów możesz użyć dowolnej własnej czcionki: pliku czcionki z komputera albo, w Chrome i Edge, czcionki zainstalowanej na komputerze. Wybierz {{ui:font.manage}} na dole listy {{ui:prop.font}}. Otworzy się okno {{ui:font.title}}.
 
@@ -73,6 +80,17 @@ Zatem:
 
 Aby umieścić napis na bocznej ścianie, najpierw połóż na niej płaszczyznę roboczą, zobacz [Widok i płaszczyzna robocza](chapter:view-and-workplane).
 
+## Szablony: mostki dla środka liter
+
+Po przecięciu płyty litery takie jak O, A i B tracą środek: leży luźno w literze i wypada. {{ui:stencilBridges.title}} utrzymuje go przy płycie małymi mostkami, jak w szablonie.
+
+1. Przełącz tekst na {{ui:inspector.hole}}, niech przechodzi przez płytę, i zaznacz oba obiekty, zgrupowane lub nie.
+2. Kliknij {{ui:stencilBridges.title}} w grupie {{ui:editor.section.splitShape}} na wstążce, kliknij prawym przyciskiem zaznaczenie albo znajdź to przez [[Ctrl]]+[[K]]. Mostki pojawiają się na pomarańczowo tam, gdzie będą.
+3. Ustaw {{ui:stencilBridges.width}} i {{ui:stencilBridges.count}}. {{ui:stencilBridges.height}} zaczyna się od grubości płyty; niższe mostki leżą równo z dołem, pośrodku albo równo z górą płyty, zgodnie z {{ui:stencilBridges.position}}. W szablonie do malowania sprayem mostki u góry zostawiają pod sobą miejsce na farbę.
+4. {{ui:stencilBridges.apply}} grupuje mostki z płytą.
+
+Każdy mostek to zwykły prostopadłościan: otwórz grupę, aby jakiś przesunąć, usunąć albo dodać własny. Jeśli później zmienisz tekst, zaznacz grupę i kliknij ponownie {{ui:stencilBridges.title}}; nowe mostki zajmą miejsce starych. Tekst tylko grawerowany, który nie przechodzi na wylot, nie dostaje mostków, bo nic tam nie wypada. Dla lasera lub plotera eksport DXF i SVG dodaje te same mostki, zobacz [Pliki, zapis i udostępnianie](chapter:files-and-saving).
+
 ## Kontur, sylwetka i poszerzenie
 
 Tekst nie musi być budowany jako wypełnione litery. {{ui:prop.textFill}} we właściwościach oferuje ten sam wybór co Tinkercad:
@@ -97,8 +115,9 @@ Wszystkie ustawienia plakietki są na karcie {{ui:nameTag.title}}, na górze ust
 
 - **{{ui:prop.text}}** i **{{ui:prop.font}}**, także własne czcionki. Plakietka rośnie razem z napisem.
 - **{{ui:nameTag.letterSize}}:** jak wysokie są wielkie litery, w mm. Wszystkie warstwy podążają za tym i zostają wyrównane.
+- **{{ui:prop.textVertical}}:** stawia plakietkę pionowo, z literami jedna pod drugą, razem ze wszystkimi warstwami.
 - **{{ui:nameTag.layers}}:** jeden wiersz na warstwę, od góry w dół. Każdy wiersz ma kolor (kliknij kolorowy kwadrat), to, o ile warstwa jest szersza od liter, jej wysokość oraz {{ui:nameTag.noHoles}}, co wypełnia otwory w literach takich jak O i A. {{ui:nameTag.corners}} ustawia, jak szersza warstwa obchodzi narożniki liter: {{ui:nameTag.corner.round}}, {{ui:nameTag.corner.bevel}} albo {{ui:nameTag.corner.miter}}. Najwyższy wiersz to same litery. **+** dodaje warstwę na dole, **–** usuwa dolną warstwę. Plakietka ma od dwóch do sześciu warstw.
-- **{{ui:nameTag.keyring}}:** daje dolnej warstwie prosty występ z zaokrąglonym końcem i otworem na kółko do kluczy. Występ rośnie razem z otworem. Otwór 3 mm, domyślny, daje występ szeroki na 6,5 mm, wystający na 6,75 mm, z brzegiem otworu 2 mm od krawędzi dolnej warstwy. Wybierz {{ui:nameTag.keyringDiameter}} i {{ui:nameTag.keyringSide}}: {{ui:nameTag.side.left}}, {{ui:nameTag.side.right}} albo {{ui:nameTag.side.top}}. {{ui:nameTag.side.free}} zdejmuje otwór z plakietki i stawia obok niej osobny {{ui:nameTag.keyringTab}} w kolorze i wysokości dolnej warstwy: zwykły kształt, który przesuwasz i obracasz uchwytami tam, gdzie plakietka go potrzebuje. Gdy stoi na miejscu, {{ui:nameTag.keyringTabFix}} w jego panelu robi z niego część najbliższej plakietki, dokładnie tam, gdzie jest: otwór przechodzi przez każdą warstwę, do której sięga, uszko dołącza do dolnej warstwy, a oba trzymają się tego miejsca przy literach, gdy zmieniasz napis albo rozmiar. {{ui:nameTag.side.free}} wyodrębnia uszko z powrotem tam, gdzie było, żeby znów je przesunąć. Otwór przechodzi przez każdą warstwę, której dotyka, a występ przesuwa się, gdy zmieniasz napis, wielkość liter albo czcionkę. {{ui:nameTag.keyringAlong}} przesuwa uszko w górę lub w dół wzdłuż jego boku (u góry: w lewo lub w prawo), aż do miejsca, w którym opuściłoby bok; 0 to środek. Przydaje się, gdy środek boku trafia na lukę, na przykład obok litery J: przesuń uszko tam, gdzie litera wystaje.
+- **{{ui:nameTag.keyring}}:** daje dolnej warstwie prosty występ z zaokrąglonym końcem i otworem na kółko do kluczy. Występ rośnie razem z otworem. Otwór 3 mm, domyślny, daje występ szeroki na 6,5 mm, wystający na 6,75 mm, z brzegiem otworu 2 mm od krawędzi dolnej warstwy. Wybierz {{ui:nameTag.keyringDiameter}} i {{ui:nameTag.keyringSide}}: {{ui:nameTag.side.left}}, {{ui:nameTag.side.right}} albo {{ui:nameTag.side.top}}. {{ui:nameTag.side.free}} zdejmuje otwór z plakietki i stawia obok niej osobny {{ui:nameTag.keyringTab}} w kolorze i wysokości dolnej warstwy: zwykły kształt, który przesuwasz i obracasz uchwytami tam, gdzie plakietka go potrzebuje. Gdy stoi na miejscu, {{ui:nameTag.keyringTabFix}} w jego właściwościach robi z niego część najbliższej plakietki, dokładnie tam, gdzie jest: otwór przechodzi przez każdą warstwę, do której sięga, uszko dołącza do dolnej warstwy, a oba trzymają się tego miejsca przy literach, gdy zmieniasz napis albo rozmiar. {{ui:nameTag.side.free}} wyodrębnia uszko z powrotem tam, gdzie było, żeby znów je przesunąć. Otwór przechodzi przez każdą warstwę, której dotyka, a występ przesuwa się, gdy zmieniasz napis, wielkość liter albo czcionkę. {{ui:nameTag.keyringAlong}} przesuwa uszko w górę lub w dół wzdłuż jego boku (u góry: w lewo lub w prawo), aż do miejsca, w którym opuściłoby bok; 0 to środek. Przydaje się, gdy środek boku trafia na lukę, na przykład obok litery J: przesuń uszko tam, gdzie litera wystaje.
 - **{{ui:nameTag.letterEdge}}:** zaokrągla albo fazuje górną krawędź liter na najwyższej warstwie, tak jak wykańcza się wydrukowaną plakietkę: {{ui:nameTag.edge.none}}, {{ui:nameTag.edge.round}} albo {{ui:nameTag.edge.chamfer}}, z {{ui:nameTag.letterEdgeSize}} (na początek 0,4 mm, najwyżej tyle, ile wysokość warstwy). Działa dla każdej czcionki i słowa. Krawędź jest częścią siatki liter, więc narzędzie krawędzi bierze taki tekst jako siatkę, co przy tak drobnym tekście jest ciężkie. Wybierz krawędź tutaj.
 
 Każdą zmianę widać od razu. Plakietka jest zestawem: porusza się jako całość, a każda warstwa zostaje osobną bryłą we własnym kolorze, tak jak slicer potrzebuje ich do druku wielokolorowego. Aby zaokrąglić albo ściąć krawędzie jednej warstwy, kliknij {{ui:group.editBundle}} i wybierz warstwę, zobacz [Łamanie krawędzi i drążenie brył](chapter:edges-and-hollowing).
@@ -153,9 +172,10 @@ Napis ma biec nie prosto, tylko wzdłuż krawędzi monety, pokrywki albo pierśc
 
 ![Tekst podąża za okręgiem. Wszystkie litery stoją na jednej wspólnej linii.](shot:curved-text)
 
-Gdy je włączysz, tekst biegnie wzdłuż okręgu. Wszystkie litery stoją na tej samej linii bazowej, tak równo jak w zwykłym tekście. Są cztery ustawienia:
+Gdy je włączysz, tekst biegnie wzdłuż okręgu. Wszystkie litery stoją na tej samej linii bazowej, tak równo jak w zwykłym tekście. Jest pięć ustawień:
 
-- **{{ui:prop.textRadius}}** (od 5 do 500 mm): promień okręgu, po którym biegnie linia bazowa liter.
+- **{{ui:prop.textRadius}}** (od 5 do 500 mm): promień okręgu, po którym biegnie linia bazowa liter. Litery zostają na swoim miejscu, zmienia się tylko ich wygięcie.
+- **{{ui:prop.textLetterWidth}}** (od 25 do 400 %): jak szeroko rysowana jest każda litera, w procentach jej własnej szerokości. Poniżej 100 litery są węższe, powyżej szersze; ich wysokość zostaje, a łuk, który zajmują, wydłuża się lub skraca razem z nimi. Na przykład dla wysokiego, wąskiego napisu na monecie. W prostym tekście robi to {{ui:prop.textStretch}} z ramką.
 - **{{ui:nameTag.letterSize}}:** jak wysokie są litery. Nie zależy już od szerokości kształtu.
 - **{{ui:prop.textInward}}:** przenosi tekst z góry okręgu na jego dół. Litery są wtedy zwrócone głowami do środka.
 - **{{ui:prop.textFlipped}}:** odwraca tylko litery, żeby dało się je czytać z drugiej strony. Tekst zostaje na swoim miejscu na okręgu.

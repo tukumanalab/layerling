@@ -9,6 +9,42 @@ Most między klientem AI a edytorem działa **lokalnie na Twoim komputerze**. Pa
 
 > **Ważne:** most MCP istnieje w serwerze deweloperskim, który uruchamiasz sam na swoim komputerze. Na layerling.com i w instalacjach ze statycznym hostingiem jest wyłączony. Kopia, którą hostujesz sam, na przykład obraz Docker na NAS-ie, może go włączyć z tokenem dostępu. Zobacz niżej „Kopia na NAS-ie albo serwerze”.
 
+## Krok po kroku dla początkujących
+
+Nie musisz w tym celu nic wiedzieć o programowaniu.
+
+**Najkrótsza droga:** podaj swojej ulubionej AI adres projektu, `https://github.com/henmedia/layerling`, i poproś: „Skonfiguruj layerling na moim komputerze, żebym mógł budować z tobą modele 3D przez jego serwer MCP”. AI sama wszystko pobierze i zainstaluje, a potem powie, że skończyła. Działa to z AI, która potrafi pracować na Twoim komputerze, na przykład z kartą Code w aplikacji Claude, z Codexem, Antigravity albo Gemini CLI. Czat w przeglądarce tego nie zrobi, bo nie może niczego zainstalować na Twoim komputerze.
+
+**Albo zrób to sam, w Windows z aplikacją Claude, w pięciu krokach:**
+
+**1. Zainstaluj layerling.** Otwórz menu Start, wpisz `PowerShell` i otwórz Windows PowerShell. Skopiuj ten wiersz, wklej go do okna prawym przyciskiem myszy i naciśnij Enter:
+
+```powershell
+irm https://raw.githubusercontent.com/henmedia/layerling/main/scripts/windows-quickstart.ps1 | iex
+```
+
+Instaluje to, czego potrzebuje layerling, pobiera layerling do folderu `layerling` w Twoim folderze użytkownika (`C:\Users\<Twoja nazwa>\layerling`) i otwiera go w przeglądarce. Za pierwszym razem trwa to kilka minut.
+
+![Windows PowerShell z wklejonym wierszem. Naciśnij Enter i gotowe.](still:ai-quickstart-powershell)
+
+**2. Zostaw layerling uruchomiony.** layerling działa, dopóki okno PowerShella jest otwarte, a AI może budować tylko wtedy, gdy działa. Następnym razem kliknij zamiast tego dwukrotnie „Start layerling” na pulpicie.
+
+**3. Zainstaluj aplikację Claude.** Zainstaluj aplikację Claude dla Windows i zaloguj się. Karta Code z następnego kroku należy do płatnych planów Claude.
+
+**4. Otwórz folder layerling na karcie Code.** W aplikacji Claude przełącz się u góry na Code i wybierz folder `layerling` w swoim folderze użytkownika jako folder roboczy. layerling ma już wszystko, czego Claude potrzebuje, żeby znaleźć jego narzędzia. Jeśli Claude zapyta, czy może używać serwera MCP „layerling” z tego folderu, zezwól na to.
+
+**5. Powiedz Claude, co ma zbudować.** Na przykład: „Użyj narzędzi layerlinga i zbuduj mi okrągłe pudełko o średnicy 60 mm i wysokości 40 mm, ze ścianką 2,5 mm”. Jeśli żaden edytor nie jest otwarty, Claude otworzy go w przeglądarce, zbuduje tam pudełko krok po kroku i zrobi zdjęcia, żeby sprawdzić swoją pracę. Ty patrzysz i w każdej chwili możesz sam coś zmienić.
+
+**Na Macu** wygląda to tak samo, z tymi zmianami. W kroku 1 otwórz aplikację Terminal (naciśnij Cmd+spację, wpisz `Terminal` i naciśnij Enter), wklej ten wiersz i naciśnij Enter:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/henmedia/layerling/main/scripts/mac-quickstart.sh | sh
+```
+
+Jeśli brakuje Gita lub Node.js, skrypt powie ci, co zainstalować (Gita oferuje macOS w oknie, Node.js jest instalatorem na nodejs.org); potem uruchom ten sam wiersz jeszcze raz. W kroku 2 skrót na pulpicie też nazywa się „Start layerling”. W kroku 3 zainstaluj aplikację Claude na Maca.
+
+> **Wskazówka:** Jeśli coś nie działa, powiedz Claude, co widzisz. Potrafi odczytać błąd i zwykle sam go naprawia. Jeśli w edytorze nic się nie dzieje, najpierw sprawdź, czy layerling nadal działa (krok 2).
+
 ## Konfiguracja
 
 1. Pobierz layerling z [GitHuba](https://github.com/henmedia/layerling) i uruchom go w folderze projektu poleceniem `npm run dev`. Musi być zainstalowany Node.js. W Windows zajmuje się tym wiersz szybkiego startu z README.
@@ -46,11 +82,14 @@ AI pracuje tymi samymi funkcjami co Ty, tą samą drogą co Twoja praca w edytor
 | Narzędzie | Co robi |
 | --- | --- |
 | `layerling_list_editors` | wypisuje otwarte karty edytora |
+| `layerling_rename_project` | nadaje projektowi nazwę, jak ołówek obok nazwy projektu |
 | `layerling_open_editor` | otwiera nową kartę edytora w domyślnej przeglądarce i czeka, aż się połączy (tylko na Twoim własnym komputerze) |
 | `layerling_read_scene` | odczytuje scenę, zaznaczenie, jednostki i dokładne wymiary wszystkich obiektów |
 | `layerling_list_objects` | wypisuje wszystkie obiekty z wymiarami, pozycją, obrotem i identyfikatorem |
 | `layerling_select_objects` | zaznacza obiekty |
+| `layerling_hide_others` | ukrywa wszystko poza zaznaczeniem lub podanymi obiektami, w jednym kroku cofania |
 | `layerling_delete_objects` | usuwa obiekty |
+| `layerling_move_object` | przenosi obiekt w inne miejsce na liście obiektów |
 | `layerling_create_shape` | tworzy kształt: prostopadłościan, walec, tekst (także na łuku), gwint, koło zębate, bryłę ze szkicu i wszystkie pozostałe |
 | `layerling_import_file` | importuje plik tak jak okno importu, kolorowy OBJ albo 3MF jako jedną bryłę na kolor, 3MF z kilkoma obiektami jako jedną bryłę na obiekt |
 | `layerling_add_font` | dodaje własną czcionkę do tekstu z pliku TrueType, OpenType albo WOFF. Zostaje w przeglądarce, a projekt zachowuje tylko litery, których używa |
@@ -61,58 +100,87 @@ AI pracuje tymi samymi funkcjami co Ty, tą samą drogą co Twoja praca w edytor
 | `layerling_scale_objects` | skaluje obiekty o procent, razem albo każdy w miejscu |
 | `layerling_lay_flat` | kładzie obiekt jedną ścianą na płycie |
 | `layerling_place_on_face` | odkłada obiekty na ścianę innego, także skośną, jak klawisz C |
-| `layerling_perforate_face` | wycina wzór otworów w płaskiej ścianie. Otwory zostają otworami zgrupowanymi z bryłą |
+| `layerling_perforate_face` | wycina wzór otworów w płaskiej ścianie albo dookoła ścianki walca, rury lub otworu. Otwory zostają otworami zgrupowanymi z bryłą |
 | `layerling_sweep_sketch` | prowadzi prostokątny albo okrągły przekrój wzdłuż ścieżki z punktów jako jedną dokładną bryłę. Zamknięta ścieżka daje pierścień |
-| `layerling_push_face` | wypycha płaską ścianę na zewnątrz albo wycina w niej kieszeń, z odsunięciem od krawędzi i promieniem narożników. Nowa część to bryła ze szkicu zgrupowana z bryłą |
-| `layerling_mate_faces` | przykłada ścianę jednego obiektu do ściany drugiego, ściana do ściany albo na równo |
+| `layerling_push_face` | wypycha płaską ścianę na zewnątrz albo wycina w niej kieszeń, z odsunięciem od krawędzi i promieniem narożników. Nowa część to bryła ze szkicu zgrupowana z bryłą albo, z `separate`, osobna wolna bryła |
+| `layerling_paint` | maluje części bryły własnymi kolorami do druku w wielu kolorach (Malowanie): wypełnienie ściany do ostrych krawędzi, okrągła plama albo lasso w płaskim widoku; gumka, usuń wszystko; zapisywane z bryłą i zapisywane w 3MF jako pomalowane ściany |
+| `layerling_support_rib` | stawia cienkie żebro podporowe pod dolną ścianą części drukowanej pochyloną na krawędzi, z mostkami o wysokości jednej warstwy (Żebro podporowe) |
+| `layerling_stencil_bridges` | utrzymuje części płyty z tekstem wyciętym na wylot, które by wypadły, mostkami zgrupowanymi z płytą, o podanej szerokości i wysokości (Mostki szablonu) |
+| `layerling_mate_faces` | przykłada ścianę jednego obiektu do ściany drugiego, ściana do ściany, na równo albo dwie okrągłe ściany na jednej osi |
 | `layerling_open_group` | otwiera grupę, żeby zmieniać jej części po kolei, także grupę wewnątrz otwartej |
 | `layerling_close_group` | zamyka ją z powrotem („Gotowe”) albo anuluje |
+| `layerling_add_to_group` | wkłada osobne obiekty do grupy bez jej otwierania |
+| `layerling_take_out_of_group` | wyjmuje jedną część z grupy bez jej otwierania |
 | `layerling_group_objects` | grupuje obiekty |
 | `layerling_ungroup_objects` | rozwiązuje grupy |
 | `layerling_boolean_cut` | wycina otworami materiał z brył |
 | `layerling_intersect_objects` | zostawia tylko to, co obiekty mają wspólnego (część wspólna) |
 | `layerling_hull_objects` | owija obiekty jedną wypukłą bryłą, jak folią termokurczliwą (otoczka) |
+| `layerling_cookie_cutter` | robi z obiektów foremkę do ciastek: ściankę z ostrzem i kołnierz wokół odbitego konturu (Foremka do ciastek) |
+| `layerling_flexi_joints` | tnie płaską bryłę na ogniwa z przegubami drukowanymi w miejscu, które wychylają się na boki (Przeguby flexi) |
+| `layerling_make_lid` | robi pokrywkę do bryły otwartej u góry: wciskaną, nakładaną albo płaską, z wybranym pasowaniem (Pokrywka) |
+| `layerling_make_cable_channel` | prowadzi okrągły kanał na kabel przez bryłę, od wejścia do wyjścia, i sam znajduje drogę łagodnymi łukami (Kanał na kabel) |
+| `layerling_loft_sketches` | łączy dwie bryły ze szkicu w przejście od jednego konturu do drugiego (Przejście między szkicami) |
 | `layerling_separate_parts` | rozdziela kształt na jego luźne części, bryłę ze szkicu na jedną bryłę na kontur |
 | `layerling_split_objects` | przecina bryły albo otwory na dwie części płaszczyzną |
 | `layerling_list_edges` | wypisuje prawdziwe krawędzie CAD obiektu |
 | `layerling_apply_edge_treatment` | fazuje albo zaokrągla wybrane krawędzie |
 | `layerling_hollow_object` | drąży bryłę z równą ścianką |
 | `layerling_cut_out` | wycina jedną bryłę z drugiej, aby do siebie pasowały: część zostaje, kopia powiększona o luz jest odejmowana od drugiej bryły |
-| `layerling_offset_object` | odsuwa wszystkie ściany bryły na luz pasowania: powiększa lub zmniejsza ją albo dodaje powiększoną kopię jako otwór |
+| `layerling_punch` | wykrawa zarys jednej bryły, widziany wzdłuż x, y lub z, na wylot przez drugą; stempel zostaje i nie musi jej dotykać |
+| `layerling_offset_object` | odsuwa wszystkie ściany bryły na luz pasowania: powiększa lub zmniejsza ją albo dodaje powiększoną kopię jako otwór albo przesuwa tylko boki |
 | `layerling_list_faces` | wypisuje ściany dokładnej bryły |
 | `layerling_delete_faces` | usuwa ściany i zamyka lukę |
-| `layerling_array_objects` | powiela w rzędzie albo na okręgu |
+| `layerling_array_objects` | powiela w rzędzie, w siatce albo na okręgu |
 | `layerling_bundle_objects` | łączy obiekty w zestaw jak Ctrl+B: poruszają się razem, zachowują kolor i rodzaj, a w eksporcie wychodzą osobno |
 | `layerling_layer_text` | zmienia tekst w stos warstw do druku wielokolorowego (litery, szersze obrzeża, płytka bez otworów) albo buduje stos ponownie, z otworem na kółko do kluczy, narożnikami dla każdej warstwy i zaokrągloną lub sfazowaną krawędzią liter. Z listą imion jedna plakietka na imię |
+| `layerling_text_block` | tworzy blok tekstu: tekst staje się pierwszym z kilku wierszy, każdy osobnym tekstem pod poprzednim, wyrównanych do lewej, do środka lub do prawej, każdy wiersz tej samej wielkości lub mniejszy |
 | `layerling_layer_icon` | zmienia ikonę SVG (tekst pliku albo wyciągniętą bryłę ze szkicu) w warstwową plakietkę z ikoną do druku wielokolorowego (ikona, szersze obrzeża, płytka bez otworów) albo buduje ją ponownie z nową szerokością lub warstwami. Z liczbą wypełnia płytę kopiami |
-| `layerling_create_qr_code` | tworzy kod QR z tekstu lub adresu strony, jak {{ui:shape.qrCode}} w bibliotece kształtów – sam kod, wypukły na płytce albo grawerowany, z korekcją błędów, szerokością, wysokością, strefą ciszy i na życzenie jako otwór; ostrzega, gdy moduł jest mniejszy niż 0,8 mm |
-| `layerling_reference_image` | dodaje obraz referencyjny ze zdjęcia, jak {{ui:import.referenceImage}}, albo przesuwa, obraca, kalibruje (dwa punkty obrazu i ich rzeczywista odległość), rozjaśnia lub blokuje go - pomoc, która nigdy nie jest eksportowana ani drukowana |
+| `layerling_create_qr_code` | tworzy kod QR z tekstu lub adresu strony, jak {{ui:shape.qrCode}} w bibliotece kształtów: sam kod, wypukły na płytce albo grawerowany, z korekcją błędów, szerokością, wysokością, strefą ciszy i na życzenie jako otwór; ostrzega, gdy moduł jest mniejszy niż 0,8 mm |
+| `layerling_create_sbc_board` | wstawia płytkę SBC w rzeczywistym rozmiarze, jak {{ui:shape.sbcBoard}} w bibliotece kształtów: Raspberry Pi 5, 4, 3 B+, Zero 2 W lub BIGTREETECH Pi, z otworami i złączami, luzem wokół złączy na krawędzi, położeniem i jako otwór do wycięcia obudowy |
+| `layerling_reference_image` | dodaje obraz referencyjny ze zdjęcia, jak {{ui:import.referenceImage}}, albo przesuwa, obraca, kalibruje (dwa punkty obrazu i ich rzeczywista odległość), rozjaśnia lub blokuje go - pomoc, która nigdy nie jest eksportowana ani drukowana; `trace` zamienia jego ciemną lub jasną część w bryłę szkicu stojącą na nim |
 | `layerling_measure_section` | mierzy na płaszczyźnie cięcia między dwoma punktami przyciąganymi do konturu: grubość ścianek, szczeliny, pasowania |
 | `layerling_show_overhangs` | włącza albo wyłącza kreskowanie nawisów, ustawia kąt i podaje dla każdej bryły powierzchnię, która wymagałaby podpór |
 | `layerling_estimate_print` | szacuje objętość, masę i filament dla zaznaczenia albo całego projektu: dla pełnej bryły oraz zgrubnie ze ściankami i wypełnieniem, jak okno eksportu |
+| `layerling_check_clearance` | sprawdza przed drukiem, które części nachodzą na siebie, stykają się lub są bliżej niż minimalny luz, także osobne części jednego obiektu |
+| `layerling_printer_play` | odczytuje, ustawia lub czyści luz drukarki ({{ui:workspace.printerPlay}} w ustawieniach) i kładzie test pasowania, który go mierzy |
+| `layerling_check_print` | sprawdza przed drukiem, co poszłoby źle: zbyt cienkie ścianki dla dyszy, części w powietrzu, mały styk z płytą, nawisy i otwarte siatki |
 | `layerling_add_reference_points` | stawia punkty odniesienia (na środku, narożnikach albo środkach krawędzi obiektów albo w dokładnych pozycjach), do których przyciągają się kształty |
 | `layerling_list_reference_points` | wypisuje punkty odniesienia z identyfikatorami i pozycjami |
 | `layerling_remove_reference_points` | usuwa punkty odniesienia według identyfikatora albo wszystkie |
+| `layerling_list_notes` | czyta notatki użytkownika z ich tekstem, bryłą, do której każda jest przypięta, i informacją, czy to prośba do AI |
+| `layerling_wait_for_notes` | czeka, aż zaznaczysz {{ui:note.forAi}} przy notatce, i od razu przekazuje prośbę |
+| `layerling_add_note` | stawia notatkę na modelu, przypiętą do obiektu lub swobodnie na płycie |
+| `layerling_update_note` | zmienia notatkę lub na nią odpowiada; odpowiedź zamyka prośbę |
+| `layerling_remove_notes` | usuwa notatki według identyfikatora |
 | `layerling_inspect_errors` | pokazuje ostatni komunikat i ostatni błąd oraz komunikaty i błędy sesji |
 | `layerling_wrap_around_cylinder` | owija leżącą płasko bryłę, na przykład SVG albo tekst, wokół walca, na zewnątrz albo do wewnątrz jako grawer |
+| `layerling_texture_surface` | nakłada na bryłę teksturę powierzchni: rowki, radełkowanie, plaster miodu albo wypustki, dla lepszego chwytu albo wyglądu, a później ją zmienia albo usuwa |
 | `layerling_simplify_mesh` | zmniejsza liczbę trójkątów zaimportowanej siatki, do odsetka w procentach albo do liczby trójkątów |
+| `layerling_make_exact` | zamienia zaimportowaną siatkę w dokładną bryłę CAD: płaszczyzny, walce, stożki, kule i torusy stają się prawdziwymi ścianami, krawędzie zaokrąglają się czysto, a STEP je niesie |
 | `layerling_save_custom_shape` | zachowuje bryły jako własny kształt, na serwerze albo w przeglądarce, żeby wstawiać je do innych projektów |
 | `layerling_list_custom_shapes` | wypisuje własne kształty na serwerze i w przeglądarce |
 | `layerling_insert_custom_shape` | wstawia własny kształt do otwartego projektu, jeśli chcesz, w miejscu x/z |
 | `layerling_delete_custom_shape` | usuwa własny kształt. Wstawione bryły zostają |
 | `layerling_show_workplane` | ukrywa i pokazuje płytę z siatką, na przykład do zdjęcia spodu (tylko widok) |
+| `layerling_focus_mode` | włącza i wyłącza tryb skupienia: ukrywa wiersz tytułu i stopkę, by zyskać miejsce (tylko ramka edytora) |
 | `layerling_set_section_view` | rozcina widok wzdłuż płaszczyzny, żeby zajrzeć do środka (tylko widok, nic nie jest cięte) |
-| `layerling_measurements` | pokazuje lub ukrywa pomiary narzędzia Zmierz i wypisuje je z ich długościami |
+| `layerling_measurements` | pokazuje lub ukrywa pomiary narzędzia Zmierz i wypisuje je z ich długościami, oraz ukrywa lub pokazuje wymiary wokół zaznaczenia jak [[Q]], a także wpisuje długość dla jednego z nich, co przesuwa bryłę na jego końcu jak kliknięcie liczby |
+| `layerling_measure_angle` | mierzy kąt jak kątomierz: w wierzchołku z trzech punktów lub między dwiema płaskimi ścianami, i pokazuje go w widoku |
 | `layerling_saved_view` | zapisuje bieżący widok pod klawiszem 7, 8, 9 lub 0 i do niego wraca, jak Shift+klawisz i sam klawisz (tylko widok); ustawia też widok startowy nowych projektów |
+| `layerling_build_plates` | wyświetla, dodaje, nazywa, porządkuje i usuwa stoły robocze, przenosi obiekty na stół i rozkłada je na stołach, jak pasek stołów |
 | `layerling_clear_history` | usuwa na dobre wszystkie kroki cofania, tak jak przycisk „Usuń historię” w widoku historii. Wymaga `confirm: true` |
+| `layerling_list_backups` | wyświetla automatyczne kopie (Wcześniejsze wersje) otwartego projektu, a z `all: true` wszystkich projektów w tej przeglądarce |
+| `layerling_open_backup` | otwiera kopię po jej `id` jako nowy projekt, nigdy niepowiązany z oryginalnym plikiem |
 | `layerling_set_history_view` | pokazuje wcześniejszy stan projektu, jak widok historii (prawdziwy projekt zostaje nietknięty, a narzędzia zmieniające czekają, aż widok zostanie zamknięty) |
 | `layerling_restore_from_history` | przywraca obiekty (także części wewnątrz grup) z wcześniejszego stanu do projektu jako kopie, jak przycisk Przywróć do projektu w widoku historii. To jeden krok, który cofanie wycofuje |
 | `layerling_export_section_svg` | zwraca kontury na płaszczyźnie cięcia jako SVG w skali 1:1, z tych samych brył co eksport |
+| `layerling_sketch_from_section` | tworzy szkic z konturów na płaszczyźnie cięcia, leżący na przekroju: otwarty w edytorze do zmiany albo od razu zbudowany jako bryła o podanej wysokości |
 | `layerling_export_drawing` | tworzy rysunek warsztatowy eksportu „2D”: trzy widoki w skali 1:1 na arkuszu ISO z wymiarami gabarytowymi i tabelą okrągłych otworów, jako tekst SVG albo PDF |
 | `layerling_export_mesh` | zapisuje plik okna eksportu jako STL, 3MF, OBJ, SVG (widok z góry, ślad albo widoczne krawędzie) albo DXF do cięcia laserem, z tych samych brył, do ścieżki na tym komputerze albo jako base64 |
 | `layerling_save_project` | zapisuje cały edytowalny projekt jako plik .lyl pod ścieżką na komputerze, na którym działa serwer MCP, bez okna dialogowego; istniejący plik jest zastępowany tylko z `overwrite`, zapis idzie przez plik tymczasowy, a cel Ctrl+S w edytorze pozostaje bez zmian |
-| `layerling_list_attachments` | wypisuje pliki dołączone do projektu (nazwa, typ, rozmiar), tak jak pokazuje je panel Attachments |
-| `layerling_get_attachment` | odczytuje jeden załącznik, jego bajty jako base64, jak Download w panelu |
+| `layerling_list_attachments` | wypisuje pliki dołączone do projektu (nazwa, typ, rozmiar), tak jak pokazuje je panel Załączniki |
+| `layerling_get_attachment` | odczytuje jeden załącznik, jego bajty jako base64, jak pobieranie w panelu |
 | `layerling_add_attachment` | dołącza plik podany jako base64, z kontrolami panelu; nazwa już dołączona jest nadpisywana tylko z `replace` |
 | `layerling_rename_attachment` | nadaje załącznikowi inną nazwę; zawartość zostaje |
 | `layerling_remove_attachment` | usuwa załącznik na zawsze; wymaga `confirm: true` |

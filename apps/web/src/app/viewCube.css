@@ -3,11 +3,12 @@
    so the order changes nothing for anything else.
    scripts/generate-graphite-theme.mjs reads it after globals.css. */
 
-/* The placeholder cube of the loading screen. */
+/* The placeholder cube of the loading screen, where the real cube will stand: three faces of a 2:1 isometric
+   cube, 34 px from its middle to each side, with even 3 px seams between them. */
 .editor-loading-view-cube {
   position: absolute;
   top: 22px;
-  left: 28px;
+  left: 10px;
   z-index: 2;
   width: 82px;
   height: 82px;
@@ -15,31 +16,31 @@
 
 .editor-loading-view-cube span {
   position: absolute;
-  border-radius: 5px;
+  border-radius: 0;
 }
 
 .editor-loading-cube-top {
-  top: 3px;
-  left: 13px;
-  width: 56px;
-  height: 39px;
-  clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%);
+  top: 4px;
+  left: 7px;
+  width: 68px;
+  height: 34px;
+  clip-path: polygon(34px 0, 68px 17px, 34px 34px, 0 17px);
 }
 
 .editor-loading-cube-left {
-  top: 28px;
-  left: 9px;
-  width: 35px;
-  height: 48px;
-  clip-path: polygon(0 0, 100% 21%, 100% 100%, 0 79%);
+  top: 24px;
+  left: 7px;
+  width: 32.5px;
+  height: 52.25px;
+  clip-path: polygon(0 0, 32.5px 16.25px, 32.5px 52.25px, 0 36px);
 }
 
 .editor-loading-cube-right {
-  top: 28px;
-  left: 44px;
-  width: 35px;
-  height: 48px;
-  clip-path: polygon(0 21%, 100% 0, 100% 79%, 0 100%);
+  top: 24px;
+  left: 42.5px;
+  width: 32.5px;
+  height: 52.25px;
+  clip-path: polygon(0 16.25px, 32.5px 0, 32.5px 36px, 0 52.25px);
 }
 
 .view-cube {
@@ -55,7 +56,7 @@
   perspective: 420px;
   color: #afa294;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1;
   text-align: center;
   text-transform: uppercase;
@@ -217,8 +218,9 @@ html[data-theme="dark"] .cube-zone:hover {
     bottom: 12px;
   }
 
-  /* Bottom right stands on the snap grid control (bottom 11px, 22px tall). */
-  html[data-view-cube-position="bottom-right"] .view-cube {
+  /* Bottom right stands on the snap grid control (bottom 11px, 22px tall) while it is in the view, not in the docked
+     inspector. */
+  html[data-view-cube-position="bottom-right"] .workplane-stage:has(> .grid-settings) .view-cube {
     bottom: 36px;
   }
 
@@ -241,10 +243,11 @@ html[data-theme="dark"] .cube-zone:hover {
   }
 
   /* The docked inspector covers the right edge, so a cube there steps left of
-     it. A minimized inspector covers only the top. */
+     it, as far as the toolbar size makes the panel wide (320px, zoomed). A
+     minimized inspector covers only the top. */
   html[data-view-cube-position="top-right"] .workplane-stage:has(.shape-inspector:not(.floating)) .view-cube,
   html[data-view-cube-position="bottom-right"] .workplane-stage:has(.shape-inspector:not(.floating):not(.minimized)) .view-cube {
-    right: 330px;
+    right: calc(320px * var(--toolbar-scale) + 10px);
   }
 
   /* The loading screen shows the cube and the controls where they will be. */
@@ -254,7 +257,7 @@ html[data-theme="dark"] .cube-zone:hover {
 
   html[data-view-cube-position="top-right"] .editor-loading-view-cube,
   html[data-view-cube-position="bottom-right"] .editor-loading-view-cube {
-    right: 28px;
+    right: 10px;
     left: auto;
   }
 

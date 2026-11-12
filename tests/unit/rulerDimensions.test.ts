@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CORNER_RULER_FIELD_SIZE,
+  cornerRulerElevationFieldBesideBody,
   spreadCornerRulerFields,
   computeCornerRulerRelativeCoordinates,
   cornerRulerAxisModes,
@@ -181,22 +182,22 @@ describe("cornerRulerTicks", () => {
     const ticks = cornerRulerTicks(10);
 
     expect(ticks).toHaveLength(11);
-    expect(ticks[0]).toEqual({ offset: 0, isTen: true, isFive: true });
-    expect(ticks[10]).toEqual({ offset: 10, isTen: true, isFive: true });
+    expect(ticks[0]).toEqual({ offset: 0, height: 0.62, label: undefined });
+    expect(ticks[10]).toEqual({ offset: 10, height: 0.62, label: "10" });
   });
 
   it("markiert Fuenfer- und Zehner-Teilstriche richtig", () => {
     const ticks = cornerRulerTicks(12);
 
-    expect(ticks.find((tick) => tick.offset === 5)).toMatchObject({ isFive: true, isTen: false });
-    expect(ticks.find((tick) => tick.offset === 7)).toMatchObject({ isFive: false, isTen: false });
-    expect(ticks.find((tick) => tick.offset === 12)).toMatchObject({ isFive: false, isTen: false });
+    expect(ticks.find((tick) => tick.offset === 5)).toMatchObject({ height: 0.42, label: undefined });
+    expect(ticks.find((tick) => tick.offset === 7)).toMatchObject({ height: 0.26, label: undefined });
+    expect(ticks.find((tick) => tick.offset === 12)).toMatchObject({ height: 0.26, label: undefined });
   });
 
   it("liefert nur den Nullstrich fuer eine Laenge von 0", () => {
     const ticks = cornerRulerTicks(0);
 
-    expect(ticks).toEqual([{ offset: 0, isTen: true, isFive: true }]);
+    expect(ticks).toEqual([{ offset: 0, height: 0.62, label: undefined }]);
   });
 });
 
@@ -470,6 +471,40 @@ describe("spreadCornerRulerFields (#777)", () => {
   });
 });
 
+describe("the height number stays off the measured body (#1279)", () => {
+  const half = { w: CORNER_RULER_FIELD_SIZE.width / 2, h: CORNER_RULER_FIELD_SIZE.height / 2 };
+  const onBody = (field: { x: number; y: number }, body: { x: number; y: number; halfWidth: number; halfHeight: number }) =>
+    Math.abs(field.x - body.x) < half.w + body.halfWidth && Math.abs(field.y - body.y) < half.h + body.halfHeight;
+  // The body's outline on the screen, 200 to 300 across and 150 to 260 down.
+  const body = { x: 250, y: 205, halfWidth: 50, halfHeight: 55 };
+
+  it("moves the number at height 0 out of the body, to the side of the arrow", () => {
+    // The arrow stands at the body's near left corner; at height 0 its middle is that corner.
+    const field = cornerRulerElevationFieldBesideBody({ x: 210 + 28, y: 240 }, 210, body);
+    expect(onBody(field, body)).toBe(false);
+    expect(field.x).toBeLessThan(200);
+    expect(field.y).toBe(240);
+  });
+
+  it("goes to the right when the arrow is nearer the body's right edge", () => {
+    const field = cornerRulerElevationFieldBesideBody({ x: 290 + 28, y: 240 }, 290, body);
+    expect(onBody(field, body)).toBe(false);
+    expect(field.x).toBeGreaterThan(300);
+  });
+
+  it("leaves a number that is already clear of the body where it is", () => {
+    const clear = { x: 120, y: 320 };
+    expect(cornerRulerElevationFieldBesideBody(clear, 92, body)).toEqual(clear);
+  });
+
+  it("does not let the spreading push the number back onto the body", () => {
+    const beside = cornerRulerElevationFieldBesideBody({ x: 238, y: 240 }, 210, body);
+    // The X number already sits where the height number went.
+    const [, field] = spreadCornerRulerFields([beside, beside], [], undefined, [undefined, [body]]);
+    expect(onBody(field, body)).toBe(false);
+  });
+});
+
 describe("tipped ruler (#799)", () => {
   // The case from the video: a 40 x 20 x 20 box, the ruler turned by 3 degrees and then stood up.
   const box = candidate({ width: 40, depth: 20, height: 20, y: 10 });
@@ -505,5 +540,29 @@ describe("tipped ruler (#799)", () => {
     expect(point.x).toBeCloseTo(0, 6);
     expect(point.y).toBeCloseTo(85, 6);
     expect(point.z).toBeCloseTo(0, 6);
+  });
+});
+
+describe("cornerRulerTicks (Discussion #1618)", () => {
+  it("keeps one tick per millimetre with a number every 10 mm", () => {
+    const ticks = cornerRulerTicks(30);
+    expect(ticks).toHaveLength(31);
+    expect(ticks.filter((tick) => tick.label).map((tick) => tick.label)).toEqual(["10", "20", "30"]);
+    expect(ticks[5].height).toBeGreaterThan(ticks[4].height);
+  });
+
+  it("graduates in sixteenths of an inch with a number at every whole inch", () => {
+    const ticks = cornerRulerTicks(2 * 25.4, "in");
+    expect(ticks).toHaveLength(33);
+    expect(ticks[1].offset).toBeCloseTo(25.4 / 16, 6);
+    expect(ticks.filter((tick) => tick.label).map((tick) => [tick.offset, tick.label])).toEqual([[25.4, "1"], [50.8, "2"]]);
+    // inch > half > quarter > eighth > sixteenth
+    const heights = [16, 8, 4, 2, 1].map((index) => ticks[index].height);
+    expect([...heights].sort((a, b) => b - a)).toEqual(heights);
+    expect(new Set(heights).size).toBe(5);
+  });
+
+  it("marks inches on a square in a foot workspace", () => {
+    expect(cornerRulerTicks(30, "ft").find((tick) => tick.label)?.label).toBe('1"');
   });
 });

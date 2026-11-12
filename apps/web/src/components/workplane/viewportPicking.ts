@@ -4,8 +4,10 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import type { WorkplaneShape } from "@/types/layerling";
 import type { ThreeState } from "@/components/workplane/ViewportOverlays";
 import { outwardFaceNormal } from "@/lib/layFlat";
+import type { PaintLassoView } from "@/lib/paintMesh";
 import { planarFaceCentroid, planarFaceTriangles, type PivotPoint } from "@/lib/rotationPivot";
 import { roundFaceTriangles, type RoundFaceAxis } from "@/lib/roundFaceAxis";
+import { setPickRayFromCamera } from "@/lib/cameraRay";
 
 /**
  * Finding what is under the pointer in the 3D view: the ray from the camera
@@ -34,7 +36,7 @@ export function aimPickRay(state: PickRayState, clientX: number, clientY: number
   const rect = state.renderer.domElement.getBoundingClientRect();
   state.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
   state.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-  state.raycaster.setFromCamera(state.pointer, state.camera);
+  setPickRayFromCamera(state.raycaster, state.pointer, state.camera);
   if (layer !== undefined) state.raycaster.layers.set(layer);
   return rect;
 }
@@ -117,7 +119,7 @@ export function pickShapeAt(
     const angle = (step / PICK_TOLERANCE_RAYS) * Math.PI * 2;
     state.pointer.x = ((clientX + Math.cos(angle) * tolerance - rect.left) / rect.width) * 2 - 1;
     state.pointer.y = -((clientY + Math.sin(angle) * tolerance - rect.top) / rect.height) * 2 + 1;
-    state.raycaster.setFromCamera(state.pointer, state.camera);
+    setPickRayFromCamera(state.raycaster, state.pointer, state.camera);
     const near = state.raycaster.intersectObjects(state.shapeLayer.children, true).find(pickable);
     if (near && near.distance < nearestDistance) {
       nearestId = near.object.userData.shapeId as string;
@@ -131,16 +133,26 @@ export function pickShapeAt(
 /**
  * The first body surface the aimed ray meets that the section view has not cut
  * away: only meshes count, not edge lines. `needsFace` asks for a hit that
- * knows its triangle; `skip` passes through these bodies.
+ * knows its triangle; `skip` passes through these bodies. `throughSeeThrough`
+ * looks past transparent bodies and holes to a solid one behind them, and
+ * takes the first see-through one only when nothing solid is there.
  */
-export function firstShapeHit(state: ThreeState, options: { needsFace?: boolean; skip?: ReadonlySet<string> } = {}) {
-  return state.raycaster.intersectObjects(state.shapeLayer.children, true).find((entry) => {
+export function firstShapeHit(state: ThreeState, options: { needsFace?: boolean; skip?: ReadonlySet<string>; throughSeeThrough?: boolean } = {}) {
+  const hits = state.raycaster.intersectObjects(state.shapeLayer.children, true).filter((entry) => {
     if (state.sectionPlane && state.sectionPlane.distanceToPoint(entry.point) < -0.001) return false;
     if (!(entry.object instanceof THREE.Mesh)) return false;
     const shapeId = entry.object.userData.shapeId;
     if (typeof shapeId !== "string" || options.skip?.has(shapeId)) return false;
     return !options.needsFace || Boolean(entry.face);
   });
+  if (!options.throughSeeThrough) return hits[0];
+  return hits.find((entry) => !seeThrough(entry.object as THREE.Mesh)) ?? hits[0];
+}
+
+/** A body drawn see-through: a transparent solid or a hole. */
+function seeThrough(mesh: THREE.Mesh) {
+  const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  return materials.every((material) => material.transparent && material.opacity < 1);
 }
 
 /** The first body the ray meets, whatever it is, without the near-miss ring. */
@@ -212,6 +224,42 @@ export function pickMateFace(state: ThreeState, clientX: number, clientY: number
   if (!pick || !hit || hit.faceIndex === undefined || hit.faceIndex === null) return pick;
   const round = roundFaceTriangles(worldTrianglePositions(hit.object as THREE.Mesh<THREE.BufferGeometry>), hit.faceIndex);
   return { ...pick, axis: round?.axis ?? null };
+}
+
+/**
+ * A lasso drawn for the paint tool, from its points in pixels of the view: the eye and its axes in the world,
+ * and the shape on the plane one millimetre in front of the eye for a view in perspective, or in millimetres
+ * across a flat view (as PaintStroke keeps it).
+ */
+export function paintLassoInView(state: PickRayState, points: ReadonlyArray<[number, number]>): { view: PaintLassoView; outline: Array<[number, number]> } | null {
+  const camera = state.camera;
+  camera.updateMatrixWorld();
+  const rect = state.renderer.domElement.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return null;
+  const origin = new THREE.Vector3().setFromMatrixPosition(camera.matrixWorld);
+  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+  const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).normalize();
+  const forward = camera.getWorldDirection(new THREE.Vector3());
+  const perspective = (camera as THREE.PerspectiveCamera).isPerspectiveCamera === true;
+  const outline = points.map(([x, y]): [number, number] => {
+    // A point on the ray through the pixel: half way into the view in perspective, on the near plane of a flat view.
+    const along = new THREE.Vector3((x / rect.width) * 2 - 1, -(y / rect.height) * 2 + 1, perspective ? 0.5 : -1).unproject(camera).sub(origin);
+    if (!perspective) return [along.dot(right), along.dot(up)];
+    const depth = Math.max(1e-9, along.dot(forward));
+    return [along.dot(right) / depth, along.dot(up) / depth];
+  });
+  return { view: { origin, right, up, forward, perspective }, outline };
+}
+
+/**
+ * Where a click lands on the body being painted (paint.ts): the point and the face's outward normal there,
+ * when that body is the first one the ray meets; a body in front of it, or the plate, gives null.
+ */
+export function pickPaintFace(state: ThreeState, shapeId: string, clientX: number, clientY: number): LayFlatPick | null {
+  aimPickRay(state, clientX, clientY, RENDER_LAYER_SHAPES);
+  const hit = firstShapeHit(state, { needsFace: true });
+  if (!hit || !hit.face || hit.object.userData.shapeId !== shapeId) return null;
+  return pickLayFlatFace(state, clientX, clientY);
 }
 
 export function pickLayFlatFace(state: ThreeState, clientX: number, clientY: number): LayFlatPick | null {

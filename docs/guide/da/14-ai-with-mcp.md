@@ -9,6 +9,42 @@ Broen mellem AI-klient og editor kører **lokalt på din computer**. Husk dog: h
 
 > **Vigtigt:** MCP-broen findes i udviklingsserveren som du selv starter på din computer. På layerling.com og i installationer med statisk hosting er den slået fra. En kopi du selv hoster, såsom Docker-imaget på en NAS, kan slå den til med et adgangstoken; se "En kopi på en NAS eller server" nedenunder.
 
+## Trin for trin for begyndere
+
+Du behøver ikke at kunne programmere for at gøre det.
+
+**Den korteste vej:** giv din foretrukne AI adressen på projektet, `https://github.com/henmedia/layerling`, og bed den: "Sæt layerling op på min computer, så jeg kan bygge 3D-modeller med dig gennem dens MCP-server." Den henter og installerer selv det hele og siger til, når den er færdig. Det virker med en AI, der kan arbejde på din computer, for eksempel fanen Code i Claude-appen, Codex, Antigravity eller Gemini CLI. En chat i browseren kan ikke gøre det, fordi den ikke kan installere noget på din computer.
+
+**Eller gør det selv, på Windows med Claude-appen, i fem trin:**
+
+**1. Installer layerling.** Åbn startmenuen, skriv `PowerShell` og åbn Windows PowerShell. Kopiér denne linje, indsæt den i vinduet med et højreklik og tryk Enter:
+
+```powershell
+irm https://raw.githubusercontent.com/henmedia/layerling/main/scripts/windows-quickstart.ps1 | iex
+```
+
+Den installerer det, layerling har brug for, henter layerling ned i mappen `layerling` i din brugermappe (`C:\Users\<dit navn>\layerling`) og åbner det i din browser. Første gang tager det et par minutter.
+
+![Windows PowerShell med linjen indsat. Tryk Enter, så går det i gang.](still:ai-quickstart-powershell)
+
+**2. Lad layerling køre.** layerling kører, så længe PowerShell-vinduet er åbent, og AI'en kan kun bygge, mens det kører. Næste gang dobbeltklikker du i stedet på "Start layerling" på skrivebordet.
+
+**3. Installer Claude-appen.** Installer Claude-appen til Windows og log ind. Fanen Code fra næste trin hører til de betalte Claude-abonnementer.
+
+**4. Åbn layerling-mappen i fanen Code.** Skift øverst i Claude-appen til Code, og vælg mappen `layerling` i din brugermappe som den mappe, der skal arbejdes i. layerling har allerede alt med, som Claude skal bruge for at finde sine værktøjer. Spørger Claude, om den må bruge MCP-serveren "layerling" i denne mappe, så tillad det.
+
+**5. Fortæl Claude, hvad den skal bygge.** For eksempel: "Brug layerling-værktøjerne og byg en rund dåse til mig, 60 mm i diameter og 40 mm høj, med en væg på 2,5 mm." Er der ingen editor åben, åbner Claude en i din browser, bygger dåsen der trin for trin og tager billeder for at tjekke sit arbejde. Du kigger med og kan selv ændre hvad som helst når som helst.
+
+**På en Mac** går det på samme måde med disse ændringer. Åbn i trin 1 appen Terminal (tryk på Cmd+mellemrum, skriv `Terminal` og tryk på Enter), indsæt denne linje og tryk på Enter:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/henmedia/layerling/main/scripts/mac-quickstart.sh | sh
+```
+
+Mangler Git eller Node.js, fortæller den dig, hvad du skal installere (macOS tilbyder Git i et vindue, Node.js findes som installationsprogram på nodejs.org); kør derefter den samme linje igen. I trin 2 hedder genvejen på skrivebordet også „Start layerling“. I trin 3 installerer du Claude-appen til Mac.
+
+> **Tip:** Hvis noget ikke virker, så fortæl Claude, hvad du ser. Den kan læse fejlen og retter den som regel selv. Sker der ikke noget i editoren, så tjek først, at layerling stadig kører (trin 2).
+
 ## Opsætning
 
 1. Hent layerling fra [GitHub](https://github.com/henmedia/layerling) og start det i projektmappen med `npm run dev`. Node.js skal være installeret. På Windows tager hurtigstart-linjen i README sig af det.
@@ -46,68 +82,100 @@ AI'en arbejder med de samme funktioner som dig, gennem den samme vej som din han
 | Værktøj | Hvad det gør |
 | --- | --- |
 | `layerling_list_editors` | lister de åbne editor-faner |
+| `layerling_rename_project` | giver projektet et navn, som blyanten ved siden af projektnavnet |
 | `layerling_open_editor` | åbner en ny editor-fane i din standardbrowser og venter indtil den har forbundet (kun på din egen computer) |
 | `layerling_read_scene` | læser scene, markering, enheder og de nøjagtige dimensioner af alle objekter |
 | `layerling_list_objects` | lister alle objekter med dimensioner, position, rotation og id |
 | `layerling_select_objects` | vælger objekter |
+| `layerling_hide_others` | skjuler alt undtagen markeringen eller de angivne objekter, i ét fortryd-trin |
 | `layerling_delete_objects` | sletter objekter |
+| `layerling_move_object` | flytter et objekt til et andet sted i objektlisten |
 | `layerling_create_shape` | skaber en form: kasse, cylinder, tekst (også buet), gevind, tandhjul, skitseform og alle de andre |
 | `layerling_import_file` | importerer en fil som importvinduet gør, en farvet OBJ eller 3MF som én form pr. farve, en 3MF med flere objekter som én form pr. objekt |
 | `layerling_add_font` | tilføjer en font du selv har til tekst fra en TrueType-, OpenType- eller WOFF-fil; den bliver i browseren, et design beholder kun de bogstaver det bruger |
 | `layerling_list_fonts` | lister de indbyggede fonte og dine egne fonte, med id og navn |
-| `layerling_import_mesh` | bringer et trekantnet ind i designet |
+| `layerling_import_mesh` | bringer et trekantsmesh ind i designet |
 | `layerling_update_object` | ændrer dimensioner, position, farve, navn, solid eller hul og alt andet der udgør formen, en teksts bogstavkant inkluderet |
 | `layerling_align_objects` | justerer objekter med hinanden |
 | `layerling_scale_objects` | skalerer objekter med en procent, sammen eller hver på stedet |
 | `layerling_lay_flat` | lægger et objekt med én flade på pladen |
 | `layerling_place_on_face` | sætter objekter ned på en flade af en anden, også skrå, som C-tasten |
-| `layerling_perforate_face` | skærer et hulmønster ind i en flad flade; hullerne bliver som huller grupperet med formen |
+| `layerling_perforate_face` | skærer et hulmønster ind i en flad flade eller rundt om væggen på en cylinder, et rør eller en boring; hullerne bliver som huller grupperet med formen |
 | `layerling_sweep_sketch` | trækker et rektangulært eller rundt tværsnit langs en sti af punkter som ét eksakt legeme; en lukket sti giver en ring |
-| `layerling_push_face` | skubber en flad flade ud eller skærer en lomme ind i den, med en indrykning fra kanten og en hjørneradius; den nye del er en skitseform grupperet med formen |
-| `layerling_mate_faces` | bringer en flade på et objekt mod en flade på et andet, flade mod flade eller flugtende |
+| `layerling_push_face` | skubber en flad flade ud eller skærer en lomme ind i den, med en indrykning fra kanten og en hjørneradius; den nye del er en skitseform grupperet med formen, eller et frit legeme for sig med `separate` |
+| `layerling_paint` | maler dele af et legeme i egne farver til print i flere farver (Mal): fyld en flade ud til de skarpe kanter, en rund plet eller en lasso i en flad visning; viskelæder, fjern alt; gemt med legemet og skrevet til 3MF som malede flader |
+| `layerling_support_rib` | stiller en tynd støtteribbe under den nederste flade på en del, der printes skråt på en kant, med broer ét lag høje (Støtteribbe) |
+| `layerling_stencil_bridges` | holder de dele af en plade med tekst skåret igennem, der ville falde ud, med broer grupperet med pladen, så brede og høje som angivet (Stencilbroer) |
+| `layerling_mate_faces` | bringer en flade på et objekt mod en flade på et andet, flade mod flade eller flugtende, eller lægger to runde flader på én akse |
 | `layerling_open_group` | åbner en gruppe så dens dele kan ændres én ad gangen, også en gruppe inden i en åben |
 | `layerling_close_group` | lukker den igen ("Udført") eller annullerer |
+| `layerling_add_to_group` | lægger løse objekter i en gruppe uden at åbne den |
+| `layerling_take_out_of_group` | tager én del ud af en gruppe uden at åbne den |
 | `layerling_group_objects` | grupperer objekter |
 | `layerling_ungroup_objects` | opløser grupper |
 | `layerling_boolean_cut` | skærer solider med huller |
 | `layerling_intersect_objects` | beholder kun hvad objekterne har til fælles (Fælles) |
 | `layerling_hull_objects` | pakker objekterne ind i ét konvekst legeme, som var de krympefolieret (Hylster) |
+| `layerling_cookie_cutter` | laver en småkageudstikker af objekterne: en væg med en skærekant og en kant rundt om det spejlede omrids (Småkageudstikker) |
+| `layerling_flexi_joints` | skærer et fladt legeme i stykker med led, der er printet på plads og svinger ud til siden (Flexi-led) |
+| `layerling_make_lid` | laver et låg til et legeme, der er åbent foroven: skubbet ind, over ydersiden eller fladt, med den pasning du vælger og magneter, hvis du vil (Låg) |
+| `layerling_make_cable_channel` | lægger en rund kanal til et kabel gennem et legeme fra en indgang til en udgang og finder selv vejen med bløde bøjninger (Kabelkanal) |
+| `layerling_loft_sketches` | forbinder to skitseformer i en overgang fra det ene omrids til det andet (Overgang mellem skitser) |
 | `layerling_separate_parts` | adskiller en form i dens løse dele, et skitselegeme i ét legeme pr. omrids |
 | `layerling_split_objects` | skærer solider eller huller over med et plan |
 | `layerling_list_edges` | lister objektets rigtige CAD-kanter |
 | `layerling_apply_edge_treatment` | faser eller runder valgte kanter |
 | `layerling_hollow_object` | udhuler en form med jævn væg |
 | `layerling_cut_out` | skærer ét massivt legeme ud af et andet, så de passer sammen: delen bliver, en kopi forstørret med spillerummet trækkes fra det andet legeme |
-| `layerling_offset_object` | forskyder alle flader på et legeme til spillerummet i en pasning: forstørrer eller formindsker det, eller tilføjer den forstørrede kopi som hul |
+| `layerling_punch` | udstanser omridset af et legeme, set langs x, y eller z, lige gennem et andet; stemplet bliver og behøver ikke at røre det |
+| `layerling_offset_object` | forskyder alle flader på et legeme til spillerummet i en pasning: forstørrer eller formindsker det, eller tilføjer den forstørrede kopi som hul, eller flytter kun siderne |
 | `layerling_list_faces` | lister fladerne på en eksakt form |
 | `layerling_delete_faces` | sletter flader og lukker åbningen |
-| `layerling_array_objects` | mangfoldiggør i en række eller på en cirkel |
+| `layerling_array_objects` | mangfoldiggør i en række, et gitter eller på en cirkel |
 | `layerling_bundle_objects` | bundter objekter som Ctrl+B: de flytter sammen, beholder deres farve og slags og går ud hver for sig i en eksport |
 | `layerling_layer_text` | laver en tekst om til en stak lag til et flerfarvet print (bogstaver, bredere kanter, en plade uden huller) eller bygger en stak igen, med et nøgleringshul, hjørnerne pr. lag og en rundet eller faset bogstavkant; med en navneliste, ét tag pr. navn |
-| `layerling_layer_icon` | laver et SVG-ikon (filens tekst, eller en ekstraheret skitseform) til et lagdelt ikon-tag til et flerfarvet print - ikonet, bredere kanter, en plade uden huller - eller bygger et igen med en ny bredde eller lag; med et antal fylder den pladen med kopier |
+| `layerling_text_block` | laver en tekstblok: en tekst bliver den første af flere linjer, hver en tekst for sig under den ovenover, venstre-, midter- eller højrejusteret, hver linje lige stor eller mindre |
+| `layerling_layer_icon` | laver et SVG-ikon (filens tekst, eller en udtrukket skitseform) til et lagdelt ikon-tag til et flerfarvet print - ikonet, bredere kanter, en plade uden huller - eller bygger et igen med en ny bredde eller lag; med et antal fylder den pladen med kopier |
 | `layerling_create_qr_code` | laver en QR-kode af en tekst eller webadresse som {{ui:shape.qrCode}} i formbiblioteket - koden alene, hævet på en plade eller graveret, med fejlkorrektion, bredde, højde, stillezone og som hul, hvis du vil; advarer, når et modul kommer under 0,8 mm |
-| `layerling_reference_image` | tilføjer et referencebillede fra et billede som {{ui:import.referenceImage}}, eller flytter, drejer, kalibrerer (to punkter på billedet og deres virkelige afstand), toner eller låser et - en hjælp, der aldrig eksporteres eller printes |
+| `layerling_create_sbc_board` | sætter et SBC-print i fuld størrelse ind som {{ui:shape.sbcBoard}} i formbiblioteket - Raspberry Pi 5, 4, 3 B+, Zero 2 W eller BIGTREETECH Pi, med huller og stik, frigang om kantstikkene, placering og som hul til at skære en kasse |
+| `layerling_reference_image` | tilføjer et referencebillede fra et billede som {{ui:import.referenceImage}}, eller flytter, drejer, kalibrerer (to punkter på billedet og deres virkelige afstand), toner eller låser et - en hjælp, der aldrig eksporteres eller printes; `trace` gør den mørke eller lyse del til et skitselegeme, der står på det |
 | `layerling_measure_section` | måler på et skæreplan mellem to punkter der snapper til omridset - vægtykkelse, mellemrum, pasninger |
 | `layerling_show_overhangs` | slår overhængsskraveringen til eller fra, sætter vinklen og rapporterer for hver form det areal der ville have brug for støtte |
 | `layerling_estimate_print` | estimerer volumen, vægt og filament for markeringen eller hele designet: for en solid form, og som et groft gæt med vægge og fyldning som eksportvinduet |
+| `layerling_check_clearance` | tjekker før print, hvilke dele der overlapper, rører hinanden eller kommer tættere på end et mindste spillerum (Tjek spillerum), også de adskilte dele af ét objekt |
+| `layerling_printer_play` | læser, sætter eller sletter printerens spillerum ({{ui:workspace.printerPlay}} i indstillingerne) og lægger pasprøven, der måler det |
+| `layerling_check_print` | tjekker før print, hvad der ville gå galt: for tynde vægge til dysen, svævende dele, lille kontakt med pladen, overhæng og åbne mesh (Tjek print) |
 | `layerling_add_reference_points` | markerer referencepunkter - på formens centrum, hjørner eller kantmidtpunkter, eller ved præcise positioner - som former snapper til |
 | `layerling_list_reference_points` | lister referencepunkterne med deres id'er og positioner |
 | `layerling_remove_reference_points` | sletter referencepunkter efter id, eller alle sammen |
+| `layerling_list_notes` | læser brugerens noter med tekst, det legeme hver er fæstnet til, og om den er en opgave til AI'en |
+| `layerling_wait_for_notes` | venter, til du sætter flueben i {{ui:note.forAi}} på en note, og giver straks opgaven videre |
+| `layerling_add_note` | sætter en note på modellen, fæstnet til et objekt eller frit på pladen |
+| `layerling_update_note` | ændrer en note eller svarer på den; et svar lukker opgaven |
+| `layerling_remove_notes` | sletter noter efter id |
 | `layerling_inspect_errors` | viser den seneste besked og den seneste fejl, plus sessionens beskeder og fejl |
 | `layerling_wrap_around_cylinder` | vikler en form der ligger fladt, for eksempel en SVG eller tekst, rundt om en cylinder, udad eller indad som gravering |
-| `layerling_simplify_mesh` | reducerer et importeret meshes trekantsantal, til en andel i procent eller til et antal trekanter |
-| `layerling_save_custom_shape` | beholder former som en egne form, på serveren eller i browseren, for at indsætte dem i andre designs |
+| `layerling_texture_surface` | lægger en overfladestruktur på en form: riller, riflinger, bikager eller knopper, for bedre greb eller for udseendet, og ændrer eller fjerner den senere |
+| `layerling_simplify_mesh` | reducerer trekantsantallet i et importeret mesh, til en andel i procent eller til et antal trekanter |
+| `layerling_make_exact` | gør et importeret mesh til en eksakt CAD-form: planer, cylindre, kegler, kugler og tori bliver rigtige flader, så kanter rundes rent, og STEP bærer dem |
+| `layerling_save_custom_shape` | beholder former som en egen form, på serveren eller i browseren, for at indsætte dem i andre designs |
 | `layerling_list_custom_shapes` | lister de egne former på serveren og i browseren |
-| `layerling_insert_custom_shape` | indsætter en egne form i det åbne design, evt. på en position x/z |
-| `layerling_delete_custom_shape` | fjerner en egne form; indsatte former bevares |
+| `layerling_insert_custom_shape` | indsætter en egen form i det åbne design, evt. på en position x/z |
+| `layerling_delete_custom_shape` | fjerner en egen form; indsatte former bevares |
 | `layerling_show_workplane` | skjuler og viser pladen med sit gitter, for et billede af undersiden for eksempel (kun visningen) |
+| `layerling_focus_mode` | slår fokustilstand til og fra: skjuler titellinjen og sidefoden for mere plads (kun editorens ramme) |
 | `layerling_set_section_view` | skærer visningen op langs et plan for at kigge indeni (kun visningen, intet skæres fra hinanden) |
-| `layerling_measurements` | viser eller skjuler målebåndets målinger og viser dem med deres længder |
+| `layerling_measurements` | viser eller skjuler målebåndets målinger og viser dem med deres længder, og skjuler eller viser målene omkring markeringen som [[Q]], og skriver en længde for en af dem, som flytter legemet i dens ende som et klik på tallet |
+| `layerling_measure_angle` | måler en vinkel som gradskiven: i hjørnet af tre punkter eller mellem to plane flader, og viser den i visningen |
 | `layerling_saved_view` | gemmer den aktuelle visning under tasten 7, 8, 9 eller 0 og går tilbage til den, som Shift+tast og tasten (kun visningen); sætter også startvisningen for nye designs |
+| `layerling_build_plates` | viser, tilføjer, navngiver, ordner og fjerner byggepladerne, flytter objekter til en plade og fordeler dem på pladerne, som pladelinjen |
 | `layerling_clear_history` | sletter hvert fortryd-trin for evigt, som historikvisningens "Slet historik"-knap; kræver `confirm: true` |
+| `layerling_list_backups` | viser de automatiske sikkerhedskopier (Tidligere versioner) af det åbne design, eller med `all: true` af alle designs i denne browser |
+| `layerling_open_backup` | åbner en sikkerhedskopi via dens `id` som et nyt design, aldrig knyttet til den oprindelige fil |
 | `layerling_set_history_view` | ser tilbage på en tidligere tilstand af projektet, som historikvisningen (det rigtige design forbliver urørt; ændringsværktøjer venter indtil den er lukket) |
 | `layerling_restore_from_history` | henter objekter (også dele i grupper) fra en tidligere tilstand tilbage i designet som kopier, som historikvisningens knap til at hente ind i designet - ét trin, som fortryd tager tilbage |
 | `layerling_export_section_svg` | returnerer omridsene på et skæreplan som en SVG i 1:1, fra de samme former som eksporten |
+| `layerling_sketch_from_section` | laver en skitse ud fra omridsene på et skæreplan, liggende på snittet: åbnet i editoren til at rette, eller bygget med det samme som en form med en given højde |
 | `layerling_export_drawing` | laver værkstedstegningen fra "2D"-eksporten: tre visninger i 1:1 på et ISO-ark med samlede størrelser og en tabel over de runde boringer, som SVG-tekst eller PDF |
 | `layerling_export_mesh` | skriver eksportvinduets fil som STL, 3MF, OBJ, SVG (topvisning, fodaftryk eller synlige kanter) eller DXF til laserskæring af de samme legemer; til en sti på denne computer eller som base64 |
 | `layerling_save_project` | gemmer hele det redigerbare design som en .lyl-fil på en sti på den computer, hvor MCP-serveren kører, uden dialog; en eksisterende fil erstattes kun med `overwrite`, der skrives via en midlertidig fil, og målet for Ctrl+S i editoren bliver, som det var |

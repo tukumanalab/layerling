@@ -3,9 +3,11 @@ import type { WorkplaneShape } from "@/types/layerling";
 import type { CadModifierPrimitivePart } from "@/lib/cadModifierTypes";
 import { meshYawDegrees, mirrorSign, preservesEdgeTreatmentSize, resizedImportedCoordinates, shapeDepth, shapeHasShapeDeform, shapeWidth } from "@/lib/workplaneShapes";
 import { drawnRound, ROUND_FROM_SIDES, ROUND_FROM_SPHERE_STEPS, ROUND_FROM_TORUS_SIDES, ROUND_FROM_TORUS_STEPS } from "@/lib/roundness";
+import { shapeDrillPointAngle } from "@/lib/drillPoint";
 import { torusTessellation } from "@/lib/torusTessellation";
 import { roundSideCount } from "@/lib/roundSideCount";
 import { sphereTessellation } from "@/lib/sphereTessellation";
+import { torusTubeRatio, torusTubeThickness } from "@/lib/torusShape";
 
 export type BakedCadMetadataFrame = {
   centerX: number;
@@ -123,7 +125,8 @@ export function cadModifierPrimitiveForAnalyticShape(shape: WorkplaneShape): Cad
   }
 
   if (shape.kind === "cylinder") {
-    if (Math.abs(width - depth) > 1e-4) {
+    // A drilled hole ends in a cone (Discussion #621): it is turned from its section in cadProfileExtrusion.ts.
+    if (Math.abs(width - depth) > 1e-4 || shapeDrillPointAngle(shape) !== undefined) {
       return null;
     }
     // A cylinder drawn with few sides is a prism (a hexagon bar, say), not a
@@ -212,6 +215,10 @@ export function cadModifierPrimitiveForAnalyticShape(shape: WorkplaneShape): Cad
     const tubeRadius = height / 2;
     const majorRadius = width / 2 - tubeRadius;
     if (!Number.isFinite(tubeRadius) || tubeRadius <= 0 || !Number.isFinite(majorRadius) || majorRadius <= 0) {
+      return null;
+    }
+    // Only a round tube is an exact torus; one the height squashes or stretches is drawn as a mesh (#981).
+    if (Math.abs(torusTubeThickness(width, depth, torusTubeRatio(shape)) - height) > 1e-4) {
       return null;
     }
     // A torus of few sides or steps is drawn faceted, like a cylinder of few sides.

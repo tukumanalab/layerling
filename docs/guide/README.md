@@ -1,8 +1,8 @@
 # The user guide
 
 The guide at [layerling.com/guide](https://layerling.com/guide/index.html) (English),
-[layerling.com/anleitung](https://layerling.com/anleitung/index.html) (German) and in fifteen more languages (Arabic,
-Brazilian Portuguese, Czech, Danish, Dutch, French, Hungarian, Italian, Polish, Portuguese (Portugal), Russian, Simplified Chinese, Slovenian, Spanish, Traditional Chinese) is written here and built into plain static pages;
+[layerling.com/anleitung](https://layerling.com/anleitung/index.html) (German) and in sixteen more languages (Arabic,
+Brazilian Portuguese, Czech, Danish, Dutch, French, Hungarian, Italian, Polish, Portuguese (Portugal), Russian, Simplified Chinese, Slovenian, Spanish, Swedish, Traditional Chinese) is written here and built into plain static pages;
 the two interface languages without a guide of their own (Japanese, Turkish) show the English one. It ships with the program: `npm run export` and `npm run dev` build it, nothing else to deploy. The build
 also writes a `search-index.json` per language (one entry per section of every chapter), which the search box in the
 header of each page reads; nothing to maintain, a new chapter or heading is in it with the next build.
@@ -30,6 +30,7 @@ paragraphs, lists, tables, `> **Tip:**` boxes, code. Beyond that:
 | `[[Ctrl]]+[[Z]]` | keys |
 | `[text](chapter:solids-and-holes)` | a link to another chapter of the same language, by its file name without the number |
 | `![Caption](shot:hole-after)` | a picture from `images/<language>/hole-after.webp`, with the caption below |
+| `![Caption](still:ai-quickstart-powershell)` | the same for a picture taken by hand, a window outside layerling for example; no scene takes it, so `guide:images` does not take it anew either |
 | `{{shortcuts}}` | the table of keyboard shortcuts, read from `ShortcutsModal.tsx` - keep the word as it is in a translation, or the page shows the placeholder instead of the table |
 
 **Never type a button's name by hand.** Use `{{ui:...}}`. Explain in your own words, name in the program's words.

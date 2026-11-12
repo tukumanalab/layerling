@@ -13,7 +13,15 @@ import type { EdgeTreatmentFeature, WorkplaneShape } from "@/types/layerling";
 export type HistoryStepDescription = {
   key: MessageKey;
   values?: Record<string, string | number>;
+  /** The measure the step set or changed (#1023), so "Rounded the edges of Box" can say by how much. */
+  detail?: HistoryStepDetail;
 };
+
+/** A measure of a step, in millimetres or degrees; historyStepText prints it in the workspace's unit. */
+export type HistoryStepDetail =
+  | { kind: "length"; mm: number }
+  | { kind: "size"; mm: [number, number, number] }
+  | { kind: "angle"; degrees: number };
 
 type ChangeKind = "moved" | "rotated" | "resized" | "color" | "hole" | "solid" | "renamed" | "mirrored" | "edges" | "rounded" | "chamfered" | "hollowed" | "offset" | "facesDeleted" | "hidden" | "shown" | "locked" | "unlocked" | "edited";
 
@@ -25,21 +33,46 @@ const FEATURE_KINDS: Record<EdgeTreatmentFeature["kind"], ChangeKind> = {
   shell: "hollowed",
   offset: "offset",
   deleteFace: "facesDeleted",
+  // A texture is no treatment in the list; it is kept only in the history, for Change and Remove.
+  surfaceTexture: "edited",
 };
 
 const POSITION_FIELDS = new Set(["x", "z", "elevation"]);
 const ROTATION_FIELDS = new Set(["rotation", "rotationX", "rotationZ", "rotationPivot"]);
 const SIZE_FIELDS = new Set(["size", "width", "depth", "height", "groupedBaseWidth", "groupedBaseDepth", "groupedBaseHeight"]);
 const MIRROR_FIELDS = new Set(["mirrorX", "mirrorY", "mirrorZ"]);
-const EDGE_FIELDS = new Set(["edgeTreatments", "edgeTreatmentHistory", "cadDisplayEdges", "cadDisplayEdgesVersion", "cadBrep", "cadBrepFrame", "cadMeshDeflection"]);
+const EDGE_FIELDS = new Set(["edgeTreatments", "edgeTreatmentHistory", "cadDisplayEdges", "cadDisplayEdgesVersion", "cadBrep", "cadBrepFrame", "sketchPose", "cadMeshDeflection"]);
 /** Fields that follow from another change and say nothing of their own. */
 const DERIVED_FIELDS = new Set(["formulas"]);
 
-function sameValue(a: unknown, b: unknown) {
+/**
+ * Whether two values hold the same data, stopping at the first difference. It used to compare them as JSON
+ * text, and a group carrying its parts' CAD data was written out in full for every field of every step: with
+ * 100 steps of such a group the History view's list took 9 to 25 seconds to show (Discussion #1637). As with
+ * JSON, a key set to undefined counts as missing.
+ */
+function sameValue(a: unknown, b: unknown): boolean {
   if (a === b) return true;
-  if (a === undefined || b === undefined || a === null || b === null) return false;
-  if (typeof a !== "object" || typeof b !== "object") return false;
-  return JSON.stringify(a) === JSON.stringify(b);
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) {
+    return typeof a === "number" && typeof b === "number" && Number.isNaN(a) && Number.isNaN(b);
+  }
+  if (ArrayBuffer.isView(a) || ArrayBuffer.isView(b)) {
+    if (!ArrayBuffer.isView(a) || !ArrayBuffer.isView(b) || a.constructor !== b.constructor || a.byteLength !== b.byteLength) return false;
+    const left = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
+    const right = new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+    for (let index = 0; index < left.length; index += 1) if (left[index] !== right[index]) return false;
+    return true;
+  }
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    for (let index = 0; index < a.length; index += 1) if (!sameValue(a[index], b[index])) return false;
+    return true;
+  }
+  const left = a as Record<string, unknown>;
+  const right = b as Record<string, unknown>;
+  for (const key of Object.keys(left)) if (left[key] !== undefined && !sameValue(left[key], right[key])) return false;
+  for (const key of Object.keys(right)) if (right[key] !== undefined && left[key] === undefined) return false;
+  return true;
 }
 
 function changedFields(before: WorkplaneShape, after: WorkplaneShape) {
@@ -63,7 +96,8 @@ function changeKind(before: WorkplaneShape, after: WorkplaneShape, fields: Set<s
   if (treatments.length === (before.edgeTreatments?.length ?? 0) + 1) return FEATURE_KINDS[treatments[treatments.length - 1].kind] ?? "edges";
   const only = (group: Set<string>) => meaningful.every((field) => group.has(field));
   if (only(new Set(["name"]))) return "renamed";
-  if (only(new Set(["color"]))) return "color";
+  // Paint (paint.ts) colours parts of the body: a step of it reads as a change of colour.
+  if (only(new Set(["color", "paint"]))) return "color";
   if (only(new Set(["hole"]))) return after.hole ? "hole" : "solid";
   if (only(new Set(["hidden"]))) return after.hidden ? "hidden" : "shown";
   if (only(new Set(["locked"]))) return after.locked ? "locked" : "unlocked";
@@ -74,6 +108,41 @@ function changeKind(before: WorkplaneShape, after: WorkplaneShape, fields: Set<s
   if (only(new Set([...MIRROR_FIELDS, ...POSITION_FIELDS])) && meaningful.some((field) => MIRROR_FIELDS.has(field))) return "mirrored";
   if (meaningful.some((field) => field === "edgeTreatments") && only(new Set([...EDGE_FIELDS, ...SIZE_FIELDS, ...POSITION_FIELDS]))) return "edges";
   return "edited";
+}
+
+const ROTATION_ANGLE_FIELDS = ["rotation", "rotationX", "rotationZ"] as const;
+
+/**
+ * The measure of one object's change: the size a treatment was made with, how far it moved, the angle it
+ * turned by about one axis, or the size it was given. Null where no single number says it.
+ */
+function changeDetail(before: WorkplaneShape, after: WorkplaneShape, kind: ChangeKind): HistoryStepDetail | null {
+  if (kind === "rounded" || kind === "chamfered" || kind === "hollowed" || kind === "offset") {
+    const amount = after.edgeTreatments?.at(-1)?.amount;
+    return typeof amount === "number" && Number.isFinite(amount) ? { kind: "length", mm: amount } : null;
+  }
+  if (kind === "moved") {
+    const mm = Math.hypot(after.x - before.x, after.z - before.z, (after.elevation ?? 0) - (before.elevation ?? 0));
+    return mm > 0 ? { kind: "length", mm } : null;
+  }
+  if (kind === "rotated") {
+    const turned = ROTATION_ANGLE_FIELDS.filter((field) => (after[field] ?? 0) !== (before[field] ?? 0));
+    if (turned.length !== 1) return null;
+    let degrees = ((after[turned[0]] ?? 0) - (before[turned[0]] ?? 0)) % 360;
+    if (degrees > 180) degrees -= 360;
+    if (degrees <= -180) degrees += 360;
+    return { kind: "angle", degrees };
+  }
+  if (kind === "resized") return { kind: "size", mm: [after.width, after.depth, after.height] };
+  return null;
+}
+
+function sameDetail(a: HistoryStepDetail | null, b: HistoryStepDetail | null) {
+  if (!a || !b || a.kind !== b.kind) return false;
+  const close = (x: number, y: number) => Math.abs(x - y) < 1e-6;
+  if (a.kind === "angle" && b.kind === "angle") return close(a.degrees, b.degrees);
+  if (a.kind === "length" && b.kind === "length") return close(a.mm, b.mm);
+  return a.kind === "size" && b.kind === "size" && a.mm.every((value, index) => close(value, b.mm[index]));
 }
 
 const ONE_KEYS: Record<ChangeKind, MessageKey> = {
@@ -212,6 +281,19 @@ function describeShapes(before: WorkplaneShape[], after: WorkplaneShape[], openG
         ? { key: "historyStep.deletedOne", values: { name: removed[0].name } }
         : { key: "historyStep.deletedMany", values: { count: removed.length } };
     }
+    // A tool that groups the bodies it worked on with what it cut into them and lays something new beside them (a lid
+    // with magnets: the box grouped with its pockets, the lid beside it) is named after what it added, not as a split.
+    if (added.length > 1) {
+      // The bodies may sit a group deeper: a box made of a solid and a hole is grouped on its own first.
+      const heldIds = (shape: WorkplaneShape): string[] => (shape.groupedShapes ?? []).flatMap((part) => [localIdBase(part.id), ...heldIds(part)]);
+      const holders = added.filter((shape) => shape.groupedShapes?.length && removed.every((gone) => heldIds(shape).includes(localIdBase(gone.id))));
+      if (holders.length === 1) {
+        const made = added.filter((shape) => shape !== holders[0]);
+        return made.length === 1
+          ? { key: "historyStep.addedOne", values: { name: made[0].name } }
+          : { key: "historyStep.addedMany", values: { count: made.length } };
+      }
+    }
     if (removed.length === 1 && added.length > 1) {
       return { key: "historyStep.splitOne", values: { name: removed[0].name, count: added.length } };
     }
@@ -234,10 +316,14 @@ function describeShapes(before: WorkplaneShape[], after: WorkplaneShape[], openG
     if (change.kind === "renamed") {
       return { key: "historyStep.renamedOne", values: { name: change.before.name, newName: change.after.name } };
     }
-    return { key: ONE_KEYS[change.kind], values: { name: change.after.name } };
+    const detail = changeDetail(change.before, change.after, change.kind);
+    return { key: ONE_KEYS[change.kind], values: { name: change.after.name }, ...(detail ? { detail } : {}) };
   }
   const kind = changes.every((change) => change.kind === changes[0].kind) ? changes[0].kind : "edited";
-  return { key: MANY_KEYS[kind], values: { count: changes.length } };
+  // Several objects changed alike - moved together, rounded with one radius - share their measure.
+  const details = kind === "edited" ? [] : changes.map((change) => changeDetail(change.before, change.after, kind));
+  const detail = details.length > 0 && details.every((entry) => sameDetail(entry, details[0])) ? details[0] : null;
+  return { key: MANY_KEYS[kind], values: { count: changes.length }, ...(detail ? { detail } : {}) };
 }
 
 function describeNotes(before: EditorHistoryEntry, after: EditorHistoryEntry): HistoryStepDescription | null {
@@ -269,6 +355,28 @@ function describeNotes(before: EditorHistoryEntry, after: EditorHistoryEntry): H
 export function describeHistoryStep(before: EditorHistoryEntry | undefined, after: EditorHistoryEntry, openGroups?: OpenGroupCount): HistoryStepDescription {
   if (!before) return { key: "historyStep.start" };
   const openGroupsChange = openGroups ? Math.sign(openGroups(after) - openGroups(before)) : 0;
+  // A history entry is never changed once made, so a step is read once: the list of the History view
+  // reads every step each time it opens, and the arrows read the same steps again.
+  let byAfter = describedSteps.get(before);
+  if (!byAfter) {
+    byAfter = new WeakMap();
+    describedSteps.set(before, byAfter);
+  }
+  let byOpenGroups = byAfter.get(after);
+  if (!byOpenGroups) {
+    byOpenGroups = new Map();
+    byAfter.set(after, byOpenGroups);
+  }
+  const known = byOpenGroups.get(openGroupsChange);
+  if (known) return known;
+  const described = describeStepAfresh(before, after, openGroupsChange);
+  byOpenGroups.set(openGroupsChange, described);
+  return described;
+}
+
+const describedSteps = new WeakMap<EditorHistoryEntry, WeakMap<EditorHistoryEntry, Map<number, HistoryStepDescription>>>();
+
+function describeStepAfresh(before: EditorHistoryEntry, after: EditorHistoryEntry, openGroupsChange: number): HistoryStepDescription {
   const shapes = describeShapes(before.shapes, after.shapes, openGroupsChange);
   if (shapes) return shapes;
   const notes = describeNotes(before, after);

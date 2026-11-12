@@ -13,16 +13,19 @@ Odpri [layerling.com](https://layerling.com/). Na začetni strani klikni {{ui:da
 
 Če že imaš datoteko, ki jo želiš urejati naprej, izberi {{ui:dashboard.importGeometry}}. To deluje z načrti programa layerling (`.lyl`) prav tako kot z datotekami STL, OBJ, 3MF, STEP ali SVG.
 
-Vsi tvoji načrti se pozneje pojavijo na začetni strani s sličico predogleda. Shranjeni so v pomnilniku brskalnika in se ob vsaki spremembi samodejno shranijo. Zato gumba za shranjevanje ni. Kako načrte spraviš v datoteko in jih deliš z drugimi, piše v poglavju [Datoteke in shranjevanje](chapter:datoteke-in-shranjevanje). Če želiš opomnik, v nastavitvah (zobnik v traku) vklopi {{ui:workspace.confirmTabClose}}: brskalnik potem vpraša, preden se zavihek z odprtim načrtom zapre ali osveži.
+Vsi tvoji načrti se pozneje pojavijo na začetni strani s sličico predogleda. Shranjeni so v pomnilniku brskalnika in se ob vsaki spremembi samodejno shranijo. Zato gumba za shranjevanje ni. **layerling ne prevzema odgovornosti za načrte, shranjene v brskalniku.** Brskalnik lahko odpove ali pa posodobitev brskalnika povzroči težave, zato načrte od časa do časa varnostno kopiraj z {{ui:dashboard.backupAll}} na začetni strani ali jih shrani kot datoteke. Varnostno kopijo vrneš z {{ui:dashboard.restoreBackup}}. Kako načrte spraviš v datoteko in jih deliš z drugimi, piše v poglavju [Datoteke in shranjevanje](chapter:datoteke-in-shranjevanje). Če želiš opomnik, v nastavitvah (zobnik v traku) vklopi {{ui:workspace.confirmTabClose}}: brskalnik potem vpraša, preden se zavihek z odprtim načrtom zapre ali osveži.
 
 ## Urejevalnik na kratko
 
-![Urejevalnik z dvema oblikama na delovni ravnini. Zgoraj orodna vrstica, levo upravljanje kamere, desno nastavitve izbrane oblike.](shot:editor-overview)
+![Urejevalnik z označenimi deli: zgoraj orodna vrstica, levo orientacijska kocka in pod njo vrstica pogleda, ob njiju sporočilo stanja in seznam objektov, desno lastnosti izbrane oblike.](shot:editor-areas)
 
-- **Zgoraj** je orodna vrstica. Razvrščena je po opravilih: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.group.modify}}, {{ui:editor.group.arrange}}, {{ui:editor.group.manage}} in {{ui:editor.group.help}}. Ko z miško zapelješ čez ikono, se pokaže njeno ime. Kjer vidiš majhen vprašaj, na primer pri nastavitvah oblike, v knjižnici oblik ali v oknih z orodji, te pelje naravnost v ustrezno poglavje teh navodil.
+- **Zgoraj** je **orodna vrstica**. Razvrščena je po opravilih: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.section.mirrorPattern}}, {{ui:editor.section.splitShape}}, {{ui:editor.section.edgesWalls}}, {{ui:editor.section.surface}}, {{ui:editor.group.arrange}} in {{ui:editor.group.file}}; {{ui:editor.group.help}} je nad njo v naslovni vrstici, hišica ob zavihkih pa vodi nazaj na začetno stran. Ko je okno za vse skupine preozko, se najmanj uporabljane zložijo v en gumb pod svojim imenom, pod katerim visi majhna puščica v barvi skupine: pokaži nanjo ali jo tapni in njena orodja se odprejo pod njo. Zložena skupina {{ui:editor.group.history}} je izjema: njen gumb je kar {{ui:editor.tool.undo}}, šele puščica pod njim odpre {{ui:editor.tool.redo}} in ostalo. Žebljiček zgoraj desno, levo od povečevalnega stekla, namesto tega drži vse skupine odprte. Ko z miško zapelješ čez ikono, se pokaže njeno ime, tudi pri sivi; {{ui:interactiveHelp.title}} (vprašaj pod {{ui:editor.group.help}} ali Shift+F1) s klikom razloži katero koli od njih in te pelje v njen del teh navodil. Kjer vidiš majhen vprašaj, na primer pri nastavitvah oblike, v knjižnici oblik ali v oknih orodij, te pelje naravnost v ustrezno poglavje teh navodil. Siva ikona pove tudi, na kaj čaka, na primer {{ui:editor.needs.oneBody}} ali {{ui:editor.needs.locked}}. Ne najdeš orodja? Pritisni [[Ctrl]]+[[K]] in vpiši njegovo ime; prazen načrt te na to opomni na dnu pogleda.
 - **V sredini** je delovna ravnina. Tu postavljaš oblike, jih naravnaš in vidiš rezultat.
-- **Desno** se pokažejo nastavitve izbrane oblike: barva, mere, lega in vse drugo, kar oblika še ima. Vpisovanje številk je natančnejše od vlečenja.
-- **Levo** je upravljanje kamere z orientacijsko kocko nad njim. S tem se premikaš po prizoru, več o tem v poglavju [Pogled in delovna ravnina](chapter:pogled-in-delovna-ravnina).
+- **Desno** se pokažejo **lastnosti** izbrane oblike: barva, mere, lega in vse drugo, kar oblika še ima. Vpisovanje številk je natančnejše od vlečenja.
+- **Levo** je vrstica pogleda z orientacijsko kocko nad njo. S tem se premikaš po prizoru, več o tem v poglavju [Pogled in delovna ravnina](chapter:pogled-in-delovna-ravnina).
+- **Ob vrstici pogleda** se odpre **seznam objektov** ([[Ctrl]]+[[U]]) z vsemi oblikami načrta. Več v poglavju [Izbiranje in razporejanje](chapter:izbiranje-in-razporejanje).
+- **Desno od orientacijske kocke** se pokaže **sporočilo stanja**, ko ti ima layerling kaj povedati, na primer kaj orodje pričakuje od tebe. Ko ni kaj povedati, ga ni.
+- **Okna orodij** se odprejo nad delovno ravnino, ko zaženeš orodje, kot je {{ui:editor.tool.fillet}}, {{ui:editor.tool.array}} ali {{ui:editor.tool.hollow}}. Če kaj zakrivajo, jih za naslovno vrstico odmakni.
 - **Čisto zgoraj** preklapljaš med {{ui:editor.modeGeometry}} in {{ui:editor.modeSketch}}, preimenuješ načrt ter nastaviš jezik in barvno shemo.
 
 ## Gumbi okoli delovne površine
@@ -31,7 +34,7 @@ Z miško se ustavite nad gumbom in videli boste njegovo ime. Če niste prepriča
 
 ### Prilepi
 
-{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) doda v projekt to, kar ste kopirali z {{ui:editor.tool.copy}}. {{ui:common.duplicate}} kopira in prilepi v enem koraku.
+{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) doda v načrt to, kar si kopiral z {{ui:editor.tool.copy}}. {{ui:common.duplicate}} kopira in prilepi v enem koraku. Lepljenje postavi vsak del malo ob mesto, kjer je bil. Deli iz drugega programa lahko pristanejo daleč od plošče; zanje je v nastavitvah, pod {{ui:workspace.appearance}}, {{ui:workspace.pasteCentered}}: lepljenje potem dele skupaj postavi na sredino delovne ravnine in jih spusti nanjo.
 
 ### Izbriši
 
@@ -69,9 +72,9 @@ Ime projekta ({{ui:confirm.projectName}}) je čisto na vrhu. Kliknite nanj, vpi�
 
 {{ui:palette.open}}: vpišite, kar iščete, orodje, obliko ali nastavitev, in kliknite rezultat.
 
-### Skrij upravljanje kamere
+### Skrij vrstico pogleda
 
-{{ui:camera.hide}} zloži upravljanje kamere na levi in da delovni površini več prostora; {{ui:camera.show}} ga vrne.
+{{ui:camera.hide}} zloži vrstico pogleda na levi in da delovni površini več prostora; {{ui:camera.show}} ga vrne.
 
 ### Mreža pripenjanja
 
@@ -84,6 +87,10 @@ Stikalo **mm | in** ob {{ui:inspector.snapGrid}} spremeni enoto, mrežo plošče
 ### Noga okna
 
 Na dnu okna: {{ui:dashboard.sponsor}} vodi na stran, kjer lahko podprete projekt; {{ui:dashboard.userGuide}} odpre ta priročnik; {{ui:dashboard.forum}} vodi na mesto za vprašanja, zamisli in poročila o napakah (razprave na GitHubu, v nemščini forum drucktipps3d); {{ui:editor.bugReport}} naredi ZIP za poročilo o napaki; {{ui:dashboard.projectOnGitHub}} vodi do projekta na GitHubu, številka različice pa odpre opombe ob izdaji. Povezavi na podatke o ponudniku in na varstvo zasebnosti pripadata tistemu, ki upravlja kopijo layerlinga, ki jo uporabljate.
+
+### Način osredotočenja
+
+Na majhnem zaslonu {{ui:focusMode.enter}} prepusti naslovno vrstico in nogo delu: vklopi ga gumb z dvema puščicama navzven zgoraj desno, [[Ctrl]]+[[Shift]]+[[F]] ali iskanje ukazov. Trak se pomakne navzgor, pogled pa sega do roba okna. Majhna vrstica pod trakom obdrži hišico za začetno stran, zavihka {{ui:editor.modeGeometry}} in {{ui:editor.modeSketch}}, lupo, nastavitve in gumb z dvema puščicama navznoter, ki način konča; vrstico za ročaj povlecite drugam, dvoklik na ročaj jo vrne. layerling si izbiro zapomni v tem brskalniku, in dokler brskalnik zapolnjuje cel zaslon (F11), sam preklopi v način osredotočenja.
 
 ## Tvoj prvi del
 
@@ -103,7 +110,7 @@ Natanko tako nastanejo izvrtine, utori in žepi. Poglavje [Telesa in luknje](cha
 
 ## Novo od tvojega zadnjega obiska
 
-Ko po posodobitvi spet odpreš layerling, ti kartica na začetni strani pokaže, kaj je prišlo zraven od tvojega zadnjega obiska: vsako različico od takrat, najnovejšo na vrhu. Če te dolgo ni bilo, se v kartici pomakni navzdol. Pod njo {{ui:whatsNew.earlier}} doda tudi različice izpred tvojega zadnjega obiska. Z {{ui:whatsNew.dismiss}} jo zapreš in ostane skrita do naslednje posodobitve. {{ui:whatsNew.footerLink}} v nogi začetne strani vedno znova pokaže zadnje novosti. Brskalnik si zapomni nazadnje videno različico in nič o tebi ne zapusti brskalnika.
+Ko po posodobitvi spet odpreš layerling, ti kartica na začetni strani pokaže, kaj je prišlo zraven od tvojega zadnjega obiska: vsako različico od takrat, najnovejšo na vrhu. Če te dolgo ni bilo, se v kartici pomakni navzdol. Pod njo {{ui:whatsNew.earlier}} doda tudi različice izpred tvojega zadnjega obiska. Z {{ui:whatsNew.dismiss}} jo zapreš in ostane skrita do naslednje posodobitve. {{ui:whatsNew.footerLink}} v nogi začetne strani vedno znova pokaže zadnje novosti. V urejevalniku isti seznam odpre gumb {{ui:whatsNew.footerLink}} poleg {{ui:editor.guide}} zgoraj desno ali iskanje ukazov; ostane odprt ob tvojem modelu, medtem ko preizkušaš novosti. Brskalnik si zapomni nazadnje videno različico in nič o tebi ne zapusti brskalnika.
 
 Pri kopiji programa layerling na tvojem računalniku ali strežniku ima obvestilo »Na voljo je posodobitev« gumb {{ui:update.previewShow}}, ki našteje, kaj posodobitev prinaša, preden jo namestiš. Seznam se z GitHuba prenese šele, ko pritisneš gumb.
 

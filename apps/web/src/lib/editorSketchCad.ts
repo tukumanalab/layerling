@@ -1,6 +1,7 @@
 
 import { t } from "@/lib/i18n";
 import { isBuildMessage, reportWorkerBuild } from "@/lib/buildStamp";
+import { createKernelGate, isKernelStatusMessage, type KernelGate } from "@/lib/cadKernelGate";
 import { cloneSketchProfile } from "@/lib/sketchSmoothHandles";
 import { canonicalizeShape, cleanNearZero, shapeDepth, shapeWidth } from "@/lib/workplaneShapes";
 import { SKETCH_CAD_DEFLECTION } from "@/lib/cadModifierRuntime";
@@ -10,11 +11,13 @@ import { buildSketchRevolveMesh, normalizeSketchRevolveSettings } from "@/lib/sk
 import { placementWorkplaneCoordinates, type PlacementWorkplane } from "@/lib/placementWorkplane";
 import { silhouetteSketchProfile } from "@/lib/sketchCadProfile";
 import { sweepPlan } from "@/lib/cadSketchSweep";
-import { filledGrowPockets, strokedSketchProfile } from "@/lib/sketchStroke";
+import { SKETCH_LOFT_FAILED, SKETCH_LOFT_HOLES, SKETCH_LOFT_OUTLINES, SKETCH_LOFT_STROKE_UNSUPPORTED, type SketchLoftSection } from "@/lib/cadSketchLoft";
+import { filledGrowPockets, steppedEdgeWall, strokeEdgeChamfer, strokedSketchProfile } from "@/lib/sketchStroke";
 import { keyringSketchProfile } from "@/lib/sketchKeyring";
+import { bakedSketchPose } from "@/lib/sketchPlacement";
 import type { ManifoldToplevel } from "manifold-3d";
 import type { CadModifierDeflection } from "@/lib/cadModifierTypes";
-import { SKETCH_INSET_UNSUPPORTED, SKETCH_STROKE_UNSUPPORTED, type SketchCadBuildResponse } from "@/lib/sketchCadTypes";
+import { SKETCH_EDGE_FAILED, SKETCH_INSET_UNSUPPORTED, SKETCH_STROKE_UNSUPPORTED, type SketchCadBuildResponse } from "@/lib/sketchCadTypes";
 import { insetSketchProfile } from "@/lib/faceTool";
 import type { SketchInset, SketchOperation, SketchProfile, SketchRevolveSettings, SketchStroke, WorkplaneShape } from "@/types/layerling";
 import { MIN_SHAPE_DIMENSION, cleanModelDimension, getManifoldRuntime, meshForShape } from "@/lib/editorMeshCore";
@@ -24,40 +27,49 @@ export function emptySketchProfile(): SketchProfile {
 }
 
 let sketchCadWorker: Worker | null = null;
+let sketchCadGate: KernelGate | null = null;
 
 let sketchCadRequestId = 0;
 
 const sketchCadPending = new Map<number, {
   resolve: (response: SketchCadBuildResponse) => void;
   reject: (error: Error) => void;
-  timer: number;
+  cancelTimer: () => void;
 }>();
 
 function ensureSketchCadWorker() {
   if (sketchCadWorker) return sketchCadWorker;
   const worker = new Worker(new URL("../workers/sketchCad.worker.ts", import.meta.url), { type: "module" });
+  const gate = createKernelGate();
   worker.onmessage = (event: MessageEvent<SketchCadBuildResponse>) => {
     if (isBuildMessage(event.data)) {
       reportWorkerBuild(event.data);
       return;
     }
+    if (isKernelStatusMessage(event.data)) {
+      gate.open();
+      return;
+    }
     const pending = sketchCadPending.get(event.data.requestId);
     if (!pending) return;
-    window.clearTimeout(pending.timer);
+    pending.cancelTimer();
     sketchCadPending.delete(event.data.requestId);
     pending.resolve(event.data);
   };
   worker.onerror = () => {
     sketchCadPending.forEach((pending) => {
-      window.clearTimeout(pending.timer);
+      pending.cancelTimer();
       // Most often the page outlived an update and its worker file is gone.
       pending.reject(new Error(t("edge.errorWorkerFailed")));
     });
     sketchCadPending.clear();
     worker.terminate();
+    gate.dispose();
     sketchCadWorker = null;
+    sketchCadGate = null;
   };
   sketchCadWorker = worker;
+  sketchCadGate = gate;
   return worker;
 }
 
@@ -69,32 +81,50 @@ const SKETCH_SWEEP_TIMEOUT_MS = 120_000;
  * One build on the sketch worker. When it takes too long the worker is stopped, not left to finish: it
  * worked on in the background, and the next try waited behind it and timed out as well (#884). Every
  * build still waiting on it is answered with the same message; the next one starts a fresh worker.
+ * The time counts from when the worker's kernel is loaded, not from its download (#1612).
  */
 function requestSketchCad(message: Record<string, unknown>, timeoutMs = SKETCH_CAD_TIMEOUT_MS) {
   const worker = ensureSketchCadWorker();
+  const gate = sketchCadGate;
   const requestId = ++sketchCadRequestId;
   return new Promise<SketchCadBuildResponse>((resolve, reject) => {
-    const timer = window.setTimeout(() => {
+    const giveUp = () => {
       const error = new Error(t("sketch.cadTimedOut"));
       sketchCadPending.forEach((pending) => {
-        window.clearTimeout(pending.timer);
+        pending.cancelTimer();
         pending.reject(error);
       });
       sketchCadPending.clear();
       worker.terminate();
-      if (sketchCadWorker === worker) sketchCadWorker = null;
-    }, timeoutMs);
-    sketchCadPending.set(requestId, { resolve, reject, timer });
+      gate?.dispose();
+      if (sketchCadWorker === worker) {
+        sketchCadWorker = null;
+        sketchCadGate = null;
+      }
+    };
+    const cancelTimer = gate ? gate.timeout(giveUp, timeoutMs) : (() => {
+      const timer = window.setTimeout(giveUp, timeoutMs);
+      return () => window.clearTimeout(timer);
+    })();
+    sketchCadPending.set(requestId, { resolve, reject, cancelTimer });
     worker.postMessage({ ...message, requestId });
   });
+}
+
+/** A stored body meshed again on the sketch worker (lib/cadMeshRelief.ts): its triangles in the body's own place, or null when the kernel could not. */
+export async function remeshCadBrep(brep: string, deflection: CadModifierDeflection, capped: CadModifierDeflection) {
+  const response = await requestSketchCad({ type: "remesh", brep, deflection, capped });
+  return response.type === "built" ? response : null;
 }
 
 export async function cadShapeFromSketchProfile(profile: SketchProfile, height: number, existing?: WorkplaneShape | null) {
   const safeHeight = Math.max(MIN_SHAPE_DIMENSION, height);
   // A silhouette leaves its holes out first, so its outer line runs round the outside only (#197).
   const buildProfile = profile.silhouette ? silhouetteSketchProfile(profile) : profile;
+  // A cutting edge (#982) is chamfered onto whatever the stroke is built as, the kernel's own outline or the straight pieces.
+  const topChamfer = strokeEdgeChamfer(profile.stroke, safeHeight);
   const buildOnWorker = (build: SketchProfile, stroke?: SketchStroke, inset?: SketchInset) =>
-    requestSketchCad({ type: "build", profile: cloneSketchProfile(build), height: safeHeight, ...(stroke ? { stroke } : {}), ...(inset ? { inset } : {}) });
+    requestSketchCad({ type: "build", profile: cloneSketchProfile(build), height: safeHeight, ...(stroke ? { stroke } : {}), ...(inset ? { inset } : {}), ...(topChamfer > 0 ? { topChamfer } : {}) });
   let response: SketchCadBuildResponse;
   // A key ring hole (#391): the outline the sketch fills with its ear and its hole is worked out here and built as an area.
   const withKeyring = profile.keyring ? keyringSketchProfile(await getManifoldRuntime(), profile) : null;
@@ -135,7 +165,15 @@ export async function cadShapeFromSketchProfile(profile: SketchProfile, height: 
   } else {
     response = await buildOnWorker(buildProfile);
   }
-  if (response.type === "error") throw new Error(response.message);
+  // Where the kernel cannot chamfer the cutting edge (a logo's sharp points), the wall is built with the edge in fine steps,
+  // from polygon offsets, as a mesh instead of an exact body (#982).
+  let stepped: ReturnType<typeof steppedEdgeWall> = null;
+  if (response.type === "error" && response.message === SKETCH_EDGE_FAILED) {
+    stepped = steppedEdgeWall(await getManifoldRuntime(), { ...buildProfile, stroke: profile.stroke }, safeHeight, topChamfer);
+    if (!stepped) throw new Error(t("sketch.edgeFailed"));
+  } else if (response.type === "error") {
+    throw new Error(response.message);
+  }
   const source = canonicalizeShape({
     ...(existing ?? {
       id: createLocalId("sketch-extrusion"),
@@ -157,9 +195,42 @@ export async function cadShapeFromSketchProfile(profile: SketchProfile, height: 
     cadDisplayEdges: undefined,
     cadDisplayEdgesVersion: undefined,
   });
+  if (stepped) {
+    const mesh = shapeFromCadMesh(source, stepped.positions, new Float32Array(0), stepped.indices, "");
+    if (!mesh) throw new Error(t("sketch.edgeFailed"));
+    return withExtrudeDeformsKept({ ...mesh, cadBrep: undefined, cadBrepFrame: undefined, cadMeshDeflection: undefined, sketchProfile: cloneSketchProfile(profile), sketchOperation: "extrude" as const, sketchPose: undefined }, existing);
+  }
+  if (response.type === "error") throw new Error(response.message);
   const shape = shapeFromCadMesh(source, response.positions, response.normals, response.indices, response.brep, response.deflection ?? SKETCH_CAD_DEFLECTION);
   if (!shape) throw new Error("OpenCascade returned an empty sketch solid");
-  return { ...shape, sketchProfile: cloneSketchProfile(profile), sketchOperation: "extrude" as const };
+  // Built in the sketch's own coordinates, not baked where a body stands: no pose to keep.
+  return withExtrudeDeformsKept({ ...shape, sketchProfile: cloneSketchProfile(profile), sketchOperation: "extrude" as const, sketchPose: undefined }, existing);
+}
+
+/**
+ * A sketch body built again after its sketch was edited keeps its taper, twist and lean (Federico Garcia, Facebook,
+ * 11.11.2026). They are settings on top of the extruded outline, not part of it: shapeFromCadMesh drops them because a
+ * mesh it is given usually has them in it already, but a freshly extruded sketch never has. A taper is kept in
+ * proportion: an outline drawn wider gets an end as much wider. Fillets and chamfers still go, their edges are new.
+ */
+export function withExtrudeDeformsKept(rebuilt: WorkplaneShape, existing?: WorkplaneShape | null): WorkplaneShape {
+  if (!existing || (existing.sketchOperation && existing.sketchOperation !== "extrude")) return rebuilt;
+  const widthScale = shapeWidth(rebuilt) / Math.max(MIN_SHAPE_DIMENSION, shapeWidth(existing));
+  const depthScale = shapeDepth(rebuilt) / Math.max(MIN_SHAPE_DIMENSION, shapeDepth(existing));
+  const scaled = (value: number | undefined, scale: number) => (typeof value === "number" && Number.isFinite(value) ? cleanModelDimension(value * scale) : undefined);
+  const kept: Partial<WorkplaneShape> = {
+    taperTopWidth: scaled(existing.taperTopWidth, widthScale),
+    taperTopDepth: scaled(existing.taperTopDepth, depthScale),
+    taperBottomWidth: scaled(existing.taperBottomWidth, widthScale),
+    taperBottomDepth: scaled(existing.taperBottomDepth, depthScale),
+    taperTopScale: existing.taperTopScale,
+    taperBottomScale: existing.taperBottomScale,
+    extrudeTwist: existing.extrudeTwist,
+    extrudeTopOffsetX: existing.extrudeTopOffsetX,
+    extrudeTopOffsetZ: existing.extrudeTopOffsetZ,
+  };
+  const present = Object.fromEntries(Object.entries(kept).filter(([, value]) => value !== undefined));
+  return Object.keys(present).length ? canonicalizeShape({ ...rebuilt, ...present }) : rebuilt;
 }
 
 /**
@@ -201,6 +272,45 @@ export async function cadShapeFromSketchSweep(profile: SketchProfile, existing?:
 }
 
 /**
+ * A loft from the outline of one sketch to the outline of another, each placed where its body stands: an exact CAD body
+ * standing in the world, so its middle and bottom are where the loft is. A sketch built as a line goes as that line,
+ * which the kernel widens itself so its corners stay arcs; where it cannot, `filled` gives the line's area as straight
+ * pieces instead. Throws with a sentence for what does not fit.
+ */
+export async function cadShapeFromSketchLoft(bottom: SketchLoftSection & { filled: SketchProfile }, top: SketchLoftSection & { filled: SketchProfile }) {
+  const section = ({ profile, stroke, place }: SketchLoftSection): SketchLoftSection => ({ profile: cloneSketchProfile(profile), ...(stroke ? { stroke } : {}), place });
+  const build = (lower: SketchLoftSection, upper: SketchLoftSection) =>
+    requestSketchCad({ type: "build", profile: cloneSketchProfile(lower.profile), height: MIN_SHAPE_DIMENSION, loft: { bottom: section(lower), top: section(upper) } });
+  let response = await build(bottom, top);
+  if (response.type === "error" && response.message === SKETCH_LOFT_STROKE_UNSUPPORTED) {
+    response = await build({ profile: bottom.filled, place: bottom.place }, { profile: top.filled, place: top.place });
+  }
+  if (response.type === "error") {
+    throw new Error(response.message === SKETCH_LOFT_OUTLINES
+      ? t("status.loftOneOutline")
+      : response.message === SKETCH_LOFT_HOLES
+        ? t("status.loftHoles")
+        : response.message === SKETCH_LOFT_FAILED ? t("status.loftFailed") : response.message);
+  }
+  const source = canonicalizeShape({
+    id: createLocalId("sketch-loft"),
+    name: "Loft",
+    kind: "mesh",
+    color: "#d41721",
+    x: 0,
+    z: 0,
+    size: 1,
+    width: 1,
+    depth: 1,
+    height: 1,
+    rotation: 0,
+  });
+  const shape = shapeFromCadMesh(source, response.positions, response.normals, response.indices, response.brep, response.deflection ?? SKETCH_CAD_DEFLECTION);
+  if (!shape) throw new Error(t("status.loftFailed"));
+  return shape;
+}
+
+/**
  * A revolved sketch as an exact CAD body, like an extruded one: the profile is turned about the
  * axis by OpenCascade, so Hollow, Fillet and Chamfer work on it and it has a few hundred
  * triangles, not tens of thousands (#167). Null when the profile cannot be built that way (it
@@ -231,7 +341,7 @@ async function cadShapeFromSketchRevolve(
       type: "build",
       profile: cloneSketchProfile(profile),
       height: MIN_SHAPE_DIMENSION,
-      revolve: { startAngle: settings.startAngle, sweepAngle: settings.sweepAngle },
+      revolve: { startAngle: settings.startAngle, sweepAngle: settings.sweepAngle, ...(settings.smoothness ? { smoothness: settings.smoothness } : {}) },
     });
     if (response.type === "error") return null;
     const source = canonicalizeShape({
@@ -399,6 +509,17 @@ export function shapeFromCadMesh(
     extrudeTwist: undefined,
     extrudeTopOffsetX: undefined,
     extrudeTopOffsetZ: undefined,
+    // So is a slope along.
+    slopeEnd: undefined,
+    slopeSide: undefined,
+    slopeCurve: undefined,
+    slopeFrom: undefined,
+    sideDrop: undefined,
+    sideCurve: undefined,
+    narrowEnd: undefined,
+    narrowSide: undefined,
+    narrowCurve: undefined,
+    narrowStart: undefined,
     importedMesh: {
       positions: flattenedPositions,
       normals: flattenedNormals.length === flattenedPositions.length ? flattenedNormals : undefined,
@@ -420,6 +541,8 @@ export function shapeFromCadMesh(
       height,
     },
     cadPrimitiveFrame: undefined,
+    // The turn and place are baked in now: a sketch body keeps where its sketch lay, for Edit sketch (#1006).
+    sketchPose: bakedSketchPose(source),
   });
 }
 

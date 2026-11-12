@@ -1,7 +1,15 @@
+import { CONCAVE_FILLET_STRAIGHT_MESSAGE } from "@/lib/cadConcaveFillet";
+import { TREATMENT_LOST_FACES_MESSAGE } from "@/lib/cadLostFaces";
 import { t } from "@/lib/i18n";
 import { withBasePath } from "@/lib/basePath";
+import { isKernelMemoryFault, isWasmMemoryFaultMessage } from "@/lib/kernelFault";
 import { localizedError } from "@/lib/userErrors";
 import type { CadModifierDeflection, CadModifierEdge, CadModifierQuality } from "@/lib/cadModifierTypes";
+import type { OcctKernel, ShapeHandle } from "occt-wasm";
+import { tightBendFromMessage } from "@/lib/cadTightBends";
+
+/** The worker's error when no way of cutting a hole of a group came out right (Discussion #1523). */
+export const HOLE_CUT_FAILED_MESSAGE = "A hole of the group could not be cut cleanly";
 
 const occtRuntimeVersion = process.env.NEXT_PUBLIC_OCCT_RUNTIME_VERSION;
 /** Where scripts/copy-occt-wasm.mjs stages the kernel: one folder per kernel version. */
@@ -122,6 +130,30 @@ export function cadTransformRequiresGeneralTransform(transform: number[]) {
   );
 }
 
+function isIdentityCadTransform(transform: number[]) {
+  const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
+  return transform.every((value, index) => Math.abs(value - identity[index]) < 1e-9);
+}
+
+/**
+ * Places a body by its 3x4 transform. A move, a turn or an even scale stays a rigid transform and
+ * keeps planes and cylinders what they are; only a stretch needs the general transform, which turns
+ * every face into a B-spline - slower, less exact, and offsets and fillets fail on it. The CAD
+ * worker and the STEP export place bodies the same way through this.
+ */
+export function applyCadTransform(cad: OcctKernel, shape: ShapeHandle, transform: number[] | undefined) {
+  if (transform?.length !== 12 || !transform.every(Number.isFinite) || isIdentityCadTransform(transform)) return shape;
+  if (cadTransformRequiresGeneralTransform(transform)) {
+    return cad.generalTransform(shape, transform);
+  }
+  try {
+    return cad.transform(shape, transform);
+  } catch (error) {
+    if (isKernelMemoryFault(error)) throw error;
+    return cad.generalTransform(shape, transform);
+  }
+}
+
 /**
  * Nach genug Kantenarbeit in einer Sitzung weigert sich der Kernel, ein
  * gespeichertes B-Rep noch einmal zu lesen - dieselbe Zeichenkette, die er eben
@@ -145,10 +177,7 @@ export function isCadModifierKernelExhausted(message: string, errorName = "") {
 }
 
 export function isCadModifierWasmMemoryFault(message: string, errorName = "") {
-  return (
-    /memory access out of bounds|out of bounds memory access|\babort(?:ed)?\b/i.test(message) ||
-    /^(?:WebAssembly\.)?RuntimeError$/i.test(errorName)
-  );
+  return isWasmMemoryFaultMessage(message, errorName);
 }
 
 /**
@@ -168,6 +197,22 @@ export function rescueSharpAngleForEdges(
   const schaerfste = brauchbar.reduce((groesster, edge) => Math.max(groesster, edge.angle), 0);
   if (schaerfste < 1) return null;
   return Math.max(1, Math.floor(schaerfste));
+}
+
+/**
+ * What a reopened tool takes over from its preset: an "Edit" (#227) brings the value and the edges,
+ * an Apply (#538) the value without edges (#1115). The value comes along whenever the kind is the same.
+ */
+export function cadModifierPresetValues<Kind extends string>(
+  preset: { kind: Kind; amount: number; chamferAngle: number; endAmount?: number | null; concave?: boolean; edgeIds: number[] } | null,
+  kind: Kind,
+  existingEdgeIds: ReadonlySet<number>,
+) {
+  if (!preset || preset.kind !== kind) return { edgeIds: [] as number[], values: null };
+  return {
+    edgeIds: preset.edgeIds.filter((edgeId) => existingEdgeIds.has(edgeId)),
+    values: { amount: preset.amount, chamferAngle: preset.chamferAngle, endAmount: preset.endAmount ?? null, concave: preset.concave === true },
+  };
 }
 
 export function defaultCadModifierTangentChain(appliedFeatureCount: number) {
@@ -299,6 +344,23 @@ export function cadModifierWorkerFailureMessage() {
 }
 
 /**
+ * Whether the worker refused a chamfer or fillet because of its size, so that a search for the largest size that fits
+ * can help (Discussion #1635). Read from the raw message: the panel only has the translated one.
+ */
+export function cadModifierSizeRefusal(rawError: string | null | undefined) {
+  if (!rawError) return false;
+  return (
+    rawError.includes("creates invalid or overlapping edge geometry") ||
+    rawError.includes(TREATMENT_LOST_FACES_MESSAGE) ||
+    rawError.includes("cannot be filleted together") ||
+    rawError.includes("cannot be chamfered together") ||
+    rawError.includes("The CAD kernel could not complete this edge treatment") ||
+    rawError.includes("does not leave a closed solid") ||
+    tightBendFromMessage(rawError) !== null
+  );
+}
+
+/**
  * Wandelt rohe Fehlermeldungen des CAD-Workers (z. B. geometrische Kollisionen
  * bei OpenCASCADE, Timeouts oder Worker-Ausfälle) in verständliche, lokalisierte
  * Hinweistexte für die Benutzeroberfläche um.
@@ -307,6 +369,12 @@ export function cadModifierUserErrorMessage(rawError: string | null | undefined)
   if (!rawError) return null;
   if (rawError.includes("creates invalid or overlapping edge geometry")) {
     return t("edge.errorOverlappingGeometry");
+  }
+  if (rawError.includes(TREATMENT_LOST_FACES_MESSAGE)) {
+    return t("edge.errorLostFaces");
+  }
+  if (rawError.includes(HOLE_CUT_FAILED_MESSAGE)) {
+    return t("edge.errorHoleCut");
   }
   if (rawError.includes("The group has no solid body to modify")) {
     return t("edge.errorNoSolidBody");
@@ -317,8 +385,14 @@ export function cadModifierUserErrorMessage(rawError: string | null | undefined)
   if (rawError.includes("The edge preview timed out")) {
     return t("edge.errorPreviewTimeout");
   }
+  if (rawError.includes("Select at least one highlighted edge")) {
+    return t("edge.selectAtLeastOne");
+  }
   if (rawError.includes(VARIABLE_FILLET_ONE_EDGE_MESSAGE)) {
     return t("edge.variableOneEdge");
+  }
+  if (rawError.includes(CONCAVE_FILLET_STRAIGHT_MESSAGE)) {
+    return t("edge.concaveStraightOnly");
   }
   if (
     rawError.includes("The CAD worker could not start") ||
@@ -385,6 +459,10 @@ export function cadModifierUserErrorMessage(rawError: string | null | undefined)
   }
   if (rawError.includes("The CAD worker did not return a body without the faces") || rawError.includes("Select at least one face")) {
     return t("deleteFace.errorFailed");
+  }
+  const tightBend = tightBendFromMessage(rawError);
+  if (tightBend !== null) {
+    return t("edge.errorTightBend", { bend: `${tightBend} mm` });
   }
   if (rawError.includes("cannot be filleted together")) {
     return t("edge.errorFilletTogether");

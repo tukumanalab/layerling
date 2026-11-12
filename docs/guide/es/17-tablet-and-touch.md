@@ -10,7 +10,7 @@ layerling funciona en el navegador de una tableta, y también como aplicación d
 | Quieres… | En una tableta |
 | --- | --- |
 | Seleccionar un cuerpo | Tócalo. |
-| Seleccionar varios cuerpos | Mantén un dedo quieto medio segundo, elige {{ui:contextMenu.selectMultiple}} y toca un cuerpo tras otro. Un toque en un cuerpo ya seleccionado lo vuelve a quitar. |
+| Seleccionar varios cuerpos | Toca un cuerpo: abajo a la izquierda aparece un botón redondo. Tócalo, y cada cuerpo que toques después se añade a la selección; un toque en un cuerpo ya seleccionado lo vuelve a quitar. Un toque en un espacio vacío no cambia nada; un segundo toque en el botón termina el modo y quita la selección. O bien mantén un dedo quieto medio segundo, elige {{ui:contextMenu.selectMultiple}} y toca un cuerpo tras otro. |
 | Seleccionar todos los cuerpos | Mantén un dedo quieto medio segundo sobre un espacio vacío y elige {{ui:contextMenu.selectAll}}. |
 | Abrir el menú del clic derecho | Mantén un dedo quieto medio segundo sobre un cuerpo o sobre un espacio vacío. |
 | Mover un cuerpo | Arrástralo. |
@@ -28,7 +28,7 @@ El mismo menú tiene {{ui:contextMenu.carry}}, que hace en la pantalla táctil l
 
 ## Girar la vista y hacer zoom
 
-Un dedo sobre un espacio vacío gira la vista; dos dedos hacen zoom y la desplazan. Un dedo que empieza sobre un cuerpo trabaja en el cuerpo, no en la vista. Si prefieres que gire la vista, activa {{ui:camera.touchRotate}} en la barra de cámara: entonces un dedo gira la vista en lugar de seleccionar, empiece donde empiece. Ese interruptor solo aparece en dispositivos con pantalla táctil.
+Un dedo sobre un espacio vacío gira la vista; dos dedos hacen zoom y la desplazan. Un dedo que empieza sobre un cuerpo trabaja en el cuerpo, no en la vista. Si prefieres que gire la vista, activa {{ui:camera.touchRotate}} en la barra de vista: entonces un dedo gira la vista en lugar de seleccionar, empiece donde empiece. Ese interruptor solo aparece en dispositivos con pantalla táctil.
 
 El cubo de vista de arriba a la izquierda gira la vista cuando lo arrastras, y un toque en una de sus caras, esquinas o aristas salta a esa vista. Consulta [Vista y plano de trabajo](chapter:view-and-workplane).
 
@@ -36,14 +36,16 @@ El cubo de vista de arriba a la izquierda gira la vista cuando lo arrastras, y u
 
 La yema del dedo tapa aquello a lo que apunta. layerling deja que un dedo alcance tiradores, puntos, líneas y aristas desde un poco más lejos que el puntero del ratón, pero un lápiz es más fino. Esto vale para un lápiz que la tableta reconoce como tal, como un Apple Pencil o un S Pen. Un lápiz sencillo con punta de goma cuenta para la pantalla como un dedo y no es más fino que uno, así que trabaja con él como con el dedo. En un iPad, un Apple Pencil que se mantiene sobre la pantalla sin tocarla también muestra al cabo de un momento el nombre de un control en una pequeña burbuja, igual que el puntero del ratón muestra una etiqueta emergente.
 
+En el modo boceto, {{ui:sketch.freehand}} dibuja con el lápiz o un dedo como en papel; al levantarlo, la línea se convierte en puntos del boceto que puedes editar, consulta [Bocetos](chapter:sketches).
+
 Si los cuerpos se desplazan sin querer cuando los tocan niños o manos con prisa, activa {{ui:workspace.selectBeforeMoving}} en los ajustes: con este ajuste, primero hay que seleccionar un cuerpo, y solo el siguiente arrastre lo mueve.
 
 ## En un iPad o un iPhone
 
 - **Instálalo como aplicación.** En Safari, toca el icono de Compartir y elige «Añadir a pantalla de inicio». La aplicación se abre en una ventana propia sin barra de direcciones y funciona sin conexión; consulta [Sin conexión e instalación](chapter:offline-and-install).
-- **Tus diseños viven en el navegador.** No hay cuenta y no se sube nada. Safari tiene una norma propia contra el rastreo: borra lo que una web ha guardado después de siete días en los que no la hayas visitado en Safari. Una aplicación web añadida a la pantalla de inicio está exenta de esa norma, según la documentación de WebKit. Es un motivo más para usar la aplicación desde la pantalla de inicio y para hacer copias de seguridad de lo importante: {{ui:dashboard.backupAll}}, en la página de inicio, mete todos los diseños en un solo archivo.
+- **Tus diseños viven en el navegador** (salvo que alojes layerling tú mismo y configures una carpeta en el servidor). No hay cuenta y no se sube nada. Safari tiene una norma propia contra el rastreo: borra lo que una web ha guardado después de siete días en los que no la hayas visitado en Safari. Una aplicación web añadida a la pantalla de inicio está exenta de esa norma, según la documentación de WebKit. Es un motivo más para usar la aplicación desde la pantalla de inicio y para hacer copias de seguridad de lo importante: {{ui:dashboard.backupAll}}, en la página de inicio, mete todos los diseños en un solo archivo.
 - **Archivos.** Safari solo deja que una página escriba en un archivo mediante una descarga, así que {{ui:editor.export}} pone el archivo en Descargas, en la aplicación Archivos, y [[Ctrl]]+[[S]] con teclado lo vuelve a descargar; consulta [Archivos y guardado](chapter:files-and-saving).
-- **No hace falta teclado.** Cada herramienta tiene un botón en la cinta, y un campo numérico abre el teclado en pantalla. Con un teclado conectado al iPad tienes además los [atajos de teclado](chapter:shortcuts). Un recuadro de valor junto a un cuerpo abre su campo numérico con el segundo toque: el primero solo lo marca, así un dedo que cae allí por error no hace aparecer el teclado.
+- **No hace falta teclado.** Cada herramienta tiene un botón en la cinta, y un campo numérico abre el teclado en pantalla. Con un teclado conectado al iPad tienes además los [atajos de teclado](chapter:shortcuts). Un recuadro de valor junto a un cuerpo abre su campo numérico con el segundo toque: el primero solo lo marca, para que un dedo que cae allí por error no haga aparecer el teclado.
 
 ## Talleres con niños
 

@@ -1,3 +1,4 @@
+import { restoreShapeBeforeEdgeTreatment } from "@/lib/edgeTreatmentHistory";
 import { describe, expect, it } from "vitest";
 import type { WorkplaneShape } from "@/types/layerling";
 import {
@@ -22,12 +23,15 @@ import {
   shapeHasShapeDeform,
   shapeHasTaper,
   shapeSupportsTaper,
+  shapeSupportsExtrudeDeform,
   shapeOverallFootprintDimensions,
   shapeTransformShouldRemainEditable,
   shapeWithParametricSource,
   shellNeedingRebuild,
   hollowStretchSincePicture,
   shellRebuildEntry,
+  shellRebuildReference,
+  edgeTreatmentsAfterShell,
   patchTouchesBodyParameters,
   shapeTaperDimensions,
   shapeTaperScaleAt,
@@ -417,7 +421,8 @@ describe("workplane shape helpers", () => {
 
   it("tapers and twists every shape but those with fixed measures or a top of their own (#111)", () => {
     for (const kind of ["box", "slot", "roundedBox", "star", "heart", "crescent", "honeycomb", "dovetail", "knurl"] as const) expect(shapeSupportsTaper(kind)).toBe(true);
-    for (const kind of ["gear", "thread", "spring", "hinge", "pyramid", "bentTube", "teardrop", "counterbore", "countersink", "doubleCountersink", "ruler"] as const) expect(shapeSupportsTaper(kind)).toBe(false);
+    for (const kind of ["gear", "thread", "spring", "hinge", "pyramid", "bentTube", "teardrop", "port", "counterbore", "countersink", "doubleCountersink", "ruler", "screwBoss", "snapFit", "rib"] as const) expect(shapeSupportsTaper(kind)).toBe(false);
+    for (const kind of ["screwBoss", "snapFit", "rib"] as const) expect(shapeSupportsExtrudeDeform(kind)).toBe(false);
   });
 
   it("hollows a resized hollow body again instead of keeping bands at its sides", () => {
@@ -440,11 +445,85 @@ describe("workplane shape helpers", () => {
     // A star stretched unevenly has no round body to hollow again; it keeps the bands.
     expect(shellRebuildEntry(hollow("star", 45, 50))).toBeNull();
     expect(shellNeedingRebuild(hollow("star", 45, 45))?.id).toBe("h");
-    // A fillet after the hollowing keeps the old way.
+    // A fillet after the hollowing on edges it knows is laid again on the fresh walls (forum, 621213).
+    const fillet = { kind: "fillet" as const, amount: 1, edgeCount: 1, edgeIds: [0] };
     const filleted = hollow("cylinder", 45, 50);
-    filleted.edgeTreatments = [feature, { kind: "fillet", amount: 1, edgeCount: 1 }];
-    expect(shellRebuildEntry(filleted)).toBeNull();
-    expect(preservesEdgeTreatmentSize(filleted)).toBe(true);
+    const shellEntry = filleted.edgeTreatmentHistory![0];
+    filleted.edgeTreatments = [feature, fillet];
+    filleted.edgeTreatmentHistory = [shellEntry, { id: "f", createdAt: 2, feature: fillet, before: shape({ kind: "mesh", width: 60, depth: 60, height: 40 }), appliedFrame: frame }];
+    expect(shellNeedingRebuild(filleted)?.id).toBe("h");
+    expect(edgeTreatmentsAfterShell(filleted)?.map((entry) => entry.id)).toEqual(["f"]);
+    expect(preservesEdgeTreatmentSize(filleted)).toBe(false);
+    // One without its edges, or with no record of its own, keeps the old way.
+    const unknownEdges = { ...filleted, edgeTreatments: [feature, { ...fillet, edgeIds: undefined }], edgeTreatmentHistory: [shellEntry, { ...filleted.edgeTreatmentHistory[1], feature: { ...fillet, edgeIds: undefined } }] };
+    expect(shellRebuildEntry(unknownEdges)).toBeNull();
+    expect(preservesEdgeTreatmentSize(unknownEdges)).toBe(true);
+    const unrecorded = { ...filleted, edgeTreatmentHistory: [shellEntry] };
+    expect(shellRebuildEntry(unrecorded)).toBeNull();
+  });
+
+  it("measures a filleted hollow body against the frame its last fillet left, not the hollowing's (forum, 621472)", () => {
+    // Hollowed at 158.5 x 180, then filleted, which left the box 158.127 x 179.681 and its middle 0.158 further along x.
+    const shellFrame = { x: 3.788, z: 0, elevation: 0, width: 158.5, depth: 180, height: 120, rotation: 0, rotationX: 0, rotationZ: 0, mirrorX: false, mirrorY: false, mirrorZ: false };
+    const filletFrame = { ...shellFrame, x: 3.946, width: 158.127, depth: 179.681 };
+    const shell = { kind: "shell" as const, amount: 3, edgeCount: 0, openings: "top-bottom" as const };
+    const fillet = { kind: "fillet" as const, amount: 1.35, edgeCount: 8, edgeIds: [0, 2, 4, 5, 6, 7, 9, 11] };
+    const body = (width: number, depth: number, x = 3.946) => shape({
+      kind: "mesh",
+      x,
+      width,
+      depth,
+      height: 120,
+      edgeResizeMode: "preserve",
+      edgeTreatments: [shell, fillet],
+      edgeTreatmentHistory: [
+        { id: "h", createdAt: 1, feature: shell, before: shape({ kind: "ellipse", x: 2.538, width: 148.27, depth: 149.67, height: 120 }), appliedFrame: shellFrame },
+        { id: "f", createdAt: 2, feature: fillet, before: shape({ kind: "mesh", x: 3.788, width: 158.5, depth: 180, height: 120 }), appliedFrame: filletFrame },
+      ],
+      importedMesh: { positions: [-79, 0, 0, 79, 120, 0], baseWidth: width, baseDepth: depth, baseHeight: 120, triangleCount: 1, sourceFormat: "json" },
+    });
+    // As the fillet left it: nothing to rebuild, so it is not hollowed again and again.
+    expect(shellNeedingRebuild(body(158.127, 179.681))).toBeNull();
+    // Resized since: rebuilt, stretched from the fillet's frame, and placed where the body now is.
+    const resized = body(79.0635, 179.681, 13.946);
+    const entry = shellNeedingRebuild(resized);
+    expect(entry?.id).toBe("h");
+    const reference = shellRebuildReference(resized, entry!);
+    expect(reference.appliedFrame).toEqual(filletFrame);
+    expect(hollowStretchSincePicture(resized, reference)).toEqual({ x: 0.5, z: 1, height: 1 });
+  });
+
+  it("keeps a filleted hollow body where it is when it was moved between the hollowing and the fillets (#1314)", () => {
+    // Hollowed at -31.75 / 237.75 on the plate, moved to -51.5 / 92 and 2.5 up, filleted there, then copied to -267.5 / -1.2.
+    const shellFrame = { x: -31.75, z: 237.75, elevation: 0, width: 30, depth: 30, height: 2, rotation: 0, rotationX: 0, rotationZ: 0, mirrorX: false, mirrorY: false, mirrorZ: false };
+    const filletFrame = { ...shellFrame, x: -51.5, z: 92, elevation: 2.5 };
+    const shell = { kind: "shell" as const, amount: 1.5, edgeCount: 0, openings: "top-bottom" as const };
+    const fillet = { kind: "fillet" as const, amount: 0.33, edgeCount: 4, edgeIds: [16, 22, 23, 17] };
+    const box = shape({ kind: "box", x: -31.75, z: 237.75, width: 30, depth: 30, height: 2 });
+    const body = shape({
+      kind: "mesh",
+      x: -267.5,
+      z: -1.2,
+      elevation: 2.5,
+      width: 30,
+      depth: 30,
+      height: 4,
+      edgeResizeMode: "preserve",
+      edgeTreatments: [shell, fillet],
+      edgeTreatmentHistory: [
+        { id: "h", createdAt: 1, feature: shell, before: box, appliedFrame: shellFrame },
+        { id: "f", createdAt: 2, feature: fillet, before: shape({ kind: "mesh", x: -51.5, z: 92, elevation: 2.5, width: 30, depth: 30, height: 2 }), appliedFrame: filletFrame },
+      ],
+      importedMesh: { positions: [-15, 0, -15, 15, 2, 15], baseWidth: 30, baseDepth: 30, baseHeight: 2, triangleCount: 1, sourceFormat: "json" },
+    });
+    const entry = shellNeedingRebuild(body);
+    expect(entry?.id).toBe("h");
+    const before = restoreShapeBeforeEdgeTreatment(body, shellRebuildReference(body, entry!));
+    expect(before.kind).toBe("box");
+    expect(before.x).toBeCloseTo(-267.5, 6);
+    expect(before.z).toBeCloseTo(-1.2, 6);
+    expect(before.elevation).toBeCloseTo(2.5, 6);
+    expect(before.height).toBeCloseTo(4, 6);
   });
 
   it("reads the stretch of a hollow body in the axes of the shape it was hollowed from, a quarter turn apart (#729)", () => {

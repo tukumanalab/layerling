@@ -2,6 +2,10 @@ import { canonicalizeShape } from "@/lib/workplaneShapes";
 import { regularPolygonAspect } from "@/lib/regularPolygonFootprint";
 import { normalizePyramidTop } from "@/lib/pyramidGeometry";
 import { createLocalId } from "@/lib/localIds";
+import { DEFAULT_CURVED_CONE_BEND, DEFAULT_CURVED_CONE_TOP, normalizeCurvedConeBend, normalizeCurvedConeTop } from "@/lib/curvedCone";
+import { DEFAULT_SCREW_BOSS_FASTENER, DEFAULT_SCREW_BOSS_SIZE, normalizeScrewBossFastener } from "@/lib/screwBoss";
+import { DEFAULT_SNAP_FIT_CLEARANCE, DEFAULT_SNAP_FIT_FOOT, DEFAULT_SNAP_FIT_LEAD_ANGLE, DEFAULT_SNAP_FIT_RETAIN_ANGLE, DEFAULT_SNAP_FIT_THICKNESS, DEFAULT_SNAP_FIT_UNDERCUT, normalizeSnapFitPart } from "@/lib/snapFit";
+import { DEFAULT_RIB_THICKNESS, normalizeRibStyle, normalizeRibTop, ribBoxWidth, ribFootWidthFor } from "@/lib/rib";
 import {
   DEFAULT_GEAR_BACKLASH,
   DEFAULT_GEAR_CENTER_HOLE_SIZE,
@@ -16,6 +20,7 @@ import {
   MAX_GEAR_BACKLASH,
   gearSizeForModule,
   gearToothProfile,
+  gearTypeIsModular,
   gearUsesModule,
   involuteGearDiameter,
   normalizeGearCenterHoleSize,
@@ -27,6 +32,8 @@ import {
   normalizeGearToothSize,
   normalizeGearToothWidth,
   normalizeGearType,
+  normalizeRingRackHelixAngle,
+  normalizeBevelHelixAngle,
   rackToothHeight,
 } from "@/lib/gearGeometry";
 import {
@@ -41,6 +48,7 @@ import {
   normalizeThreadClearance,
   normalizeThreadBoltClearance,
   normalizeThreadAxialClearance,
+  normalizeThreadStarts,
   DEFAULT_THREAD_BOLT_CLEARANCE,
   DEFAULT_THREAD_AXIAL_CLEARANCE,
   normalizeThreadDiameter,
@@ -54,6 +62,8 @@ import {
   threadNaturalFootprint,
   threadNaturalHeight,
   threadSettings,
+  threadCollarFields,
+  threadDriveFields,
 } from "@/lib/threadGeometry";
 import {
   DEFAULT_SPRING_QUALITY,
@@ -65,6 +75,7 @@ import {
   normalizeSpringHand,
   normalizeSpringWire,
 } from "@/lib/springGeometry";
+import { FLAT_SPRING_DIMENSIONS, flatSpringSettings } from "@/lib/flatSpringGeometry";
 import {
   DEFAULT_STAR_HEIGHT,
   DEFAULT_STAR_INNER_FILLET,
@@ -117,13 +128,22 @@ import {
   normalizeScrewHoleHeadDepth,
   normalizeScrewHoleShaft,
 } from "@/lib/screwHoleGeometry";
+import { normalizeDrillPointAngle } from "@/lib/drillPoint";
+import {
+  DEFAULT_FINISHING_WASHER_HEIGHT,
+  DEFAULT_FINISHING_WASHER_SEAT_DEPTH,
+  DEFAULT_FINISHING_WASHER_SHAFT,
+  DEFAULT_FINISHING_WASHER_WIDTH,
+} from "@/lib/finishingWasherGeometry";
 import {
   DEFAULT_TEARDROP_DEPTH,
   DEFAULT_TEARDROP_TIP_ANGLE,
   DEFAULT_TEARDROP_WIDTH,
   teardropHeightForTipAngle,
 } from "@/lib/teardropGeometry";
+import { DEFAULT_PORT_DEPTH, DEFAULT_PORT_PRESET, normalizePortClearance, normalizePortCorner, normalizePortProfile, PORT_PRESETS } from "@/lib/portGeometry";
 import { DEFAULT_LOFT, loftFieldsFromMeasures, loftFrameSize, normalizeLoftMeasures } from "@/lib/loftGeometry";
+import { DEFAULT_VASE_SIZE, normalizeVaseSettings } from "@/lib/vaseSettings";
 import {
   DEFAULT_DOVETAIL_CLEARANCE,
   DEFAULT_DOVETAIL_DEPTH,
@@ -146,6 +166,8 @@ import {
   normalizeHingeKnuckleWidth,
   normalizeHingeLeafThickness,
   normalizeHingePinDiameter,
+  normalizeHingeScrewDiameter,
+  normalizeHingeScrewHoles,
 } from "@/lib/hingeGeometry";
 import { DEFAULT_GRIDFINITY_LIP, DEFAULT_GRIDFINITY_MAGNETS, DEFAULT_GRIDFINITY_TRAY_SIZE, DEFAULT_GRIDFINITY_TYPE, DEFAULT_GRIDFINITY_UNITS, gridfinityFootprintPatch, gridfinityPadding, gridfinitySize, normalizeGridfinityType } from "@/lib/gridfinityGeometry";
 import {
@@ -181,7 +203,7 @@ import {
   DEFAULT_ROUNDED_BOX_TOP_BOTTOM_FILLET,
   DEFAULT_ROUNDED_BOX_QUALITY,
   normalizeCornerFillet,
-  normalizeTopBottomFillet,
+  normalizeEndFillets,
   normalizeRoundedBoxQuality,
 } from "@/lib/roundedBoxGeometry";
 import {
@@ -194,7 +216,10 @@ import {
   normalizedBentTubeFields,
 } from "@/lib/bentTubeGeometry";
 import { t, type MessageKey } from "@/lib/i18n";
+import { torusTubeRatio } from "@/lib/torusShape";
 import type { ShapeAsset, ShapeCustomization, ShapeKind, WorkplaneShape } from "@/types/layerling";
+import { DEFAULT_PULLEY_BELT_WIDTH, DEFAULT_PULLEY_BORE, DEFAULT_PULLEY_FLANGE, DEFAULT_PULLEY_FLANGE_RISE, DEFAULT_PULLEY_HUB_DIAMETER, DEFAULT_PULLEY_HUB_HEIGHT, DEFAULT_PULLEY_TEETH, normalizePulleyTeeth, pulleyFootprint, pulleyFromSize } from "@/lib/pulleyGeometry";
+import { DEFAULT_HIRTH_BORE, DEFAULT_HIRTH_DIAMETER, DEFAULT_HIRTH_HEIGHT, DEFAULT_HIRTH_TEETH, hirthRightAngleToothHeight, normalizeHirthBore, normalizeHirthSteepFlank, normalizeHirthTeeth, normalizeHirthToothHeight } from "@/lib/hirthGeometry";
 
 const SHAPE_LABEL_KEYS: Record<string, MessageKey> = {
   box: "shape.box",
@@ -210,9 +235,11 @@ const SHAPE_LABEL_KEYS: Record<string, MessageKey> = {
   nameTag: "shape.nameTag",
   iconTag: "shape.iconTag",
   qrCode: "shape.qrCode",
+  sbcBoard: "shape.sbcBoard",
   "round-roof": "shape.roundRoof",
   "half-sphere": "shape.halfSphere",
   paraboloid: "shape.paraboloid",
+  curvedCone: "shape.curvedCone",
   torus: "shape.torus",
   tube: "shape.tube",
   bentTube: "shape.bentTube",
@@ -220,15 +247,23 @@ const SHAPE_LABEL_KEYS: Record<string, MessageKey> = {
   heart: "shape.heart",
   crescent: "shape.crescent",
   gear: "shape.gear",
+  hirth: "shape.hirth",
+  pulley: "shape.pulley",
   honeycomb: "shape.honeycomb",
   hinge: "shape.hinge",
   knurl: "shape.knurl",
   dovetail: "shape.dovetail",
+  screwBoss: "shape.screwBoss",
+  snapFit: "shape.snapFit",
+  rib: "shape.rib",
   teardrop: "shape.teardrop",
+  port: "shape.port",
   loft: "shape.loft",
+  vase: "shape.vase",
   counterbore: "shape.counterbore",
   countersink: "shape.countersink",
   doubleCountersink: "shape.doubleCountersink",
+  finishingWasher: "shape.finishingWasher",
   thread: "shape.thread",
   spring: "shape.spring",
   gridfinity: "shape.gridfinity",
@@ -252,22 +287,31 @@ export const toolbarShapeAssets: ToolbarShapeAsset[] = [
   { id: "round-roof", name: "Round Roof", src: "assets/editor/shape-icons-gray/round-roof.png", menuIcon: "assets/editor/shape-icons-gray/round-roof.png", kind: "roundRoof", color: "#67c4ce" },
   { id: "half-sphere", name: "Half Sphere", src: "assets/editor/shape-icons-gray/half-sphere.png", menuIcon: "assets/editor/shape-icons-gray/half-sphere.png", kind: "halfSphere", color: "#c9009a" },
   { id: "paraboloid", name: "Paraboloid", src: "assets/editor/shape-icons-gray/paraboloid.png", menuIcon: "assets/editor/shape-icons-gray/paraboloid.png", kind: "paraboloid", color: "#8fdc5a" },
+  { id: "curvedCone", name: "Curved Cone", src: "assets/editor/shape-icons-gray/curvedCone.png", menuIcon: "assets/editor/shape-icons-gray/curvedCone.png", kind: "curvedCone", color: "#9b59b6" },
   { id: "torus", name: "Torus", src: "assets/editor/shape-icons-gray/torus.png", menuIcon: "assets/editor/shape-icons-gray/torus.png", kind: "torus", color: "#0098c7" },
   { id: "loft", name: "Loft", src: "assets/editor/shape-icons-gray/loft.png", menuIcon: "assets/editor/shape-icons-gray/loft.png", kind: "loft", color: "#c0703a" },
+  { id: "vase", name: "Vase", src: "assets/editor/shape-icons-gray/vase.png", menuIcon: "assets/editor/shape-icons-gray/vase.png", kind: "vase", color: "#2e8b8b" },
   { id: "tube", name: "Tube", src: "assets/editor/shape-icons-gray/tube.png", menuIcon: "assets/editor/shape-icons-gray/tube.png", kind: "tube", color: "#ce7013" },
   { id: "bentTube", name: "Bent Tube", src: "assets/editor/shape-icons-gray/bentTube.png", menuIcon: "assets/editor/shape-icons-gray/bentTube.png", kind: "bentTube", color: "#b5651d" },
-  { id: "counterbore", name: "Counterbore", src: "assets/editor/shape-icons-gray/counterbore.png", menuIcon: "assets/editor/shape-icons-gray/counterbore.png", kind: "counterbore", color: "#5f7a8a" },
-  { id: "countersink", name: "Countersink", src: "assets/editor/shape-icons-gray/countersink.png", menuIcon: "assets/editor/shape-icons-gray/countersink.png", kind: "countersink", color: "#6b8a7a" },
-  { id: "doubleCountersink", name: "Double Countersink", src: "assets/editor/shape-icons-gray/doubleCountersink.png", menuIcon: "assets/editor/shape-icons-gray/doubleCountersink.png", kind: "doubleCountersink", color: "#6b8a8a" },
+  { id: "counterbore", name: "Counterbore", src: "assets/editor/shape-icons-gray/counterbore.png", menuIcon: "assets/editor/shape-icons-gray/counterbore.png", kind: "counterbore", color: "#5f7a8a", hole: true },
+  { id: "countersink", name: "Countersink", src: "assets/editor/shape-icons-gray/countersink.png", menuIcon: "assets/editor/shape-icons-gray/countersink.png", kind: "countersink", color: "#6b8a7a", hole: true },
+  { id: "doubleCountersink", name: "Double Countersink", src: "assets/editor/shape-icons-gray/doubleCountersink.png", menuIcon: "assets/editor/shape-icons-gray/doubleCountersink.png", kind: "doubleCountersink", color: "#6b8a8a", hole: true },
   { id: "teardrop", name: "Teardrop", src: "assets/editor/shape-icons-gray/teardrop.png", menuIcon: "assets/editor/shape-icons-gray/teardrop.png", kind: "teardrop", color: "#7d6a9c" },
+  { id: "port", name: "Port opening", src: "assets/editor/shape-icons-gray/port.png", menuIcon: "assets/editor/shape-icons-gray/port.png", kind: "port", color: "#5b7d99", hole: true },
   { id: "text", name: "Text", src: "assets/editor/shape-icons-gray/text.png", menuIcon: "assets/editor/shape-icons-gray/text.png", kind: "text", color: "#cf101b" },
   { id: "thread", name: "Thread", src: "assets/editor/shape-icons-gray/thread.png", menuIcon: "assets/editor/shape-icons-gray/thread.png", kind: "thread", color: "#8a98a6" },
+  { id: "finishingWasher", name: "Finishing Washer", src: "assets/editor/shape-icons-gray/finishingWasher.png", menuIcon: "assets/editor/shape-icons-gray/finishingWasher.png", kind: "finishingWasher", color: "#9aa4ae" },
   { id: "spring", name: "Spring", src: "assets/editor/shape-icons-gray/spring.png", menuIcon: "assets/editor/shape-icons-gray/spring.png", kind: "spring", color: "#18b99a" },
   { id: "gridfinity", name: "Gridfinity", src: "assets/editor/shape-icons-gray/gridfinity.png", menuIcon: "assets/editor/shape-icons-gray/gridfinity.png", kind: "gridfinity", color: "#4f7fa8" },
   { id: "gear", name: "Gear", src: "assets/editor/gear-types/spur.png", menuIcon: "assets/editor/gear-types/spur.png", kind: "gear", color: "#6f7f8d" },
+  { id: "hirth", name: "Hirth Joint", src: "assets/editor/shape-icons-gray/hirth.png", menuIcon: "assets/editor/shape-icons-gray/hirth.png", kind: "hirth", color: "#7d8f9e" },
+  { id: "pulley", name: "GT2 Pulley", src: "assets/editor/shape-icons-gray/pulley.png", menuIcon: "assets/editor/shape-icons-gray/pulley.png", kind: "pulley", color: "#8a96a3" },
   { id: "knurl", name: "Knurl", src: "assets/editor/shape-icons-gray/knurl.png", menuIcon: "assets/editor/shape-icons-gray/knurl.png", kind: "knurl", color: "#7a8a99" },
   { id: "hinge", name: "Hinge", src: "assets/editor/shape-icons-gray/hinge.png", menuIcon: "assets/editor/shape-icons-gray/hinge.png", kind: "hinge", color: "#3f8f6b" },
   { id: "dovetail", name: "Dovetail", src: "assets/editor/shape-icons-gray/dovetail.png", menuIcon: "assets/editor/shape-icons-gray/dovetail.png", kind: "dovetail", color: "#a0522d" },
+  { id: "screwBoss", name: "Screw boss", src: "assets/editor/shape-icons-gray/screwBoss.png", menuIcon: "assets/editor/shape-icons-gray/screwBoss.png", kind: "screwBoss", color: "#8c7b6b" },
+  { id: "snapFit", name: "Snap-fit", src: "assets/editor/shape-icons-gray/snapFit.png", menuIcon: "assets/editor/shape-icons-gray/snapFit.png", kind: "snapFit", color: "#4f8f7a" },
+  { id: "rib", name: "Rib", src: "assets/editor/shape-icons-gray/rib.png", menuIcon: "assets/editor/shape-icons-gray/rib.png", kind: "rib", color: "#7b8794" },
   { id: "star", name: "Star", src: "assets/editor/shape-icons-gray/star.png", menuIcon: "assets/editor/shape-icons-gray/star.png", kind: "star", color: "#f5a623" },
   { id: "heart", name: "Heart", src: "assets/editor/shape-icons-gray/heart.png", menuIcon: "assets/editor/shape-icons-gray/heart.png", kind: "heart", color: "#e0245e" },
   { id: "crescent", name: "Crescent", src: "assets/editor/shape-icons-gray/crescent.png", menuIcon: "assets/editor/shape-icons-gray/crescent.png", kind: "crescent", color: "#f5c518" },
@@ -314,11 +358,25 @@ export const qrCodeAsset: ToolbarShapeAsset = {
 };
 
 /**
- * What the shape library lists: the catalogue, with the name tag, the icon tag and the QR code after the text.
+ * The SBC board (#1098): a single-board computer true to size, to build a case around. The library
+ * entry places the default board; the kind only names its picture.
+ */
+export const sbcBoardAsset: ToolbarShapeAsset = {
+  id: "sbcBoard",
+  name: "SBC board",
+  src: "assets/editor/shape-icons-gray/sbcBoard.png",
+  menuIcon: "assets/editor/shape-icons-gray/sbcBoard.png",
+  kind: "box",
+  color: "#1f7a3a",
+};
+
+/**
+ * What the shape library lists: the catalogue, with the name tag, the icon tag and the QR code after the text,
+ * and the SBC board after the port opening.
  * The double countersink is not listed on its own: it is the countersink with "Both sides" switched on (#621). The
  * kind stays in the catalogue, so bodies that already are one, and the MCP, keep working.
  */
-export const libraryShapeAssets: ToolbarShapeAsset[] = toolbarShapeAssets.flatMap((asset) => (asset.id === "text" ? [asset, nameTagAsset, iconTagAsset, qrCodeAsset] : asset.id === "doubleCountersink" ? [] : [asset]));
+export const libraryShapeAssets: ToolbarShapeAsset[] = toolbarShapeAssets.flatMap((asset) => (asset.id === "text" ? [asset, nameTagAsset, iconTagAsset, qrCodeAsset] : asset.id === "port" ? [asset, sbcBoardAsset] : asset.id === "doubleCountersink" ? [] : [asset]));
 
 /**
  * The colour a new shape of this asset starts with: the asset's own, unless the shape
@@ -363,6 +421,21 @@ export function parseDroppedShapeAsset(raw: string): ShapeAsset | null {
 export const RULER_DEPTH = 25;
 export const RULER_HEIGHT = 3;
 
+/** A spring's own settings for a new shape: a coil's against its round footprint, a flat spring's (#1076) against its length and reach. */
+function springFields(customization: ShapeCustomization, width: number, depth: number, height: number) {
+  const quality = normalizeSpringQuality(customization.springQuality ?? DEFAULT_SPRING_QUALITY);
+  if (customization.springForm === "flat") {
+    const flat = flatSpringSettings(customization, width, depth);
+    return { springForm: "flat" as const, springPattern: flat.pattern, springEnds: flat.ends, springTurns: flat.turns, springWire: flat.wire, springQuality: quality };
+  }
+  return {
+    springTurns: normalizeSpringTurns(customization.springTurns ?? DEFAULT_SPRING_TURNS, Math.max(width, depth), height, customization.springWire),
+    springWire: normalizeSpringWire(customization.springWire ?? DEFAULT_SPRING_WIRE, Math.max(width, depth), height),
+    springQuality: quality,
+    springHand: normalizeSpringHand(customization.springHand ?? DEFAULT_SPRING_HAND),
+  };
+}
+
 export function shapeAssetDefaultDimensions(kind: ShapeKind) {
   if (kind === "thread") {
     const settings = threadSettings({});
@@ -403,8 +476,15 @@ export function shapeAssetDefaultDimensions(kind: ShapeKind) {
   if (kind === "doubleCountersink") {
     return { width: DEFAULT_DOUBLE_COUNTERSINK_WIDTH, depth: DEFAULT_DOUBLE_COUNTERSINK_WIDTH, height: DEFAULT_DOUBLE_COUNTERSINK_HEIGHT };
   }
+  if (kind === "finishingWasher") {
+    return { width: DEFAULT_FINISHING_WASHER_WIDTH, depth: DEFAULT_FINISHING_WASHER_WIDTH, height: DEFAULT_FINISHING_WASHER_HEIGHT };
+  }
   if (kind === "teardrop") {
     return { width: DEFAULT_TEARDROP_WIDTH, depth: DEFAULT_TEARDROP_DEPTH, height: Math.round(teardropHeightForTipAngle(DEFAULT_TEARDROP_WIDTH, DEFAULT_TEARDROP_TIP_ANGLE) * 100) / 100 };
+  }
+  if (kind === "port") {
+    const preset = PORT_PRESETS[DEFAULT_PORT_PRESET];
+    return { width: preset.width, depth: DEFAULT_PORT_DEPTH, height: preset.height };
   }
   if (kind === "dovetail") {
     return { width: DEFAULT_DOVETAIL_WIDTH, depth: DEFAULT_DOVETAIL_DEPTH, height: DEFAULT_DOVETAIL_HEIGHT };
@@ -422,6 +502,9 @@ export function shapeAssetDefaultDimensions(kind: ShapeKind) {
   if (kind === "knurl") {
     return { width: DEFAULT_KNURL_DIAMETER, depth: DEFAULT_KNURL_DIAMETER, height: DEFAULT_KNURL_HEIGHT };
   }
+  if (kind === "vase") {
+    return { ...DEFAULT_VASE_SIZE };
+  }
   if (kind === "honeycomb") {
     return { width: DEFAULT_HONEYCOMB_WIDTH, depth: DEFAULT_HONEYCOMB_DEPTH, height: DEFAULT_HONEYCOMB_HEIGHT };
   }
@@ -438,6 +521,17 @@ export function shapeAssetDefaultDimensions(kind: ShapeKind) {
     // vom kreisrunden Zylinder unterscheidet.
     return { width: 26, depth: 16, height: 20 };
   }
+  if (kind === "hirth") return { width: DEFAULT_HIRTH_DIAMETER, depth: DEFAULT_HIRTH_DIAMETER, height: DEFAULT_HIRTH_HEIGHT };
+  // A GT2 pulley (Discussion #1319): its measures set its box, 20 teeth for a 6 mm belt by default.
+  if (kind === "pulley") {
+    const { width, depth, height } = pulleyFootprint({});
+    return { width, depth, height };
+  }
+  if (kind === "curvedCone") return { width: 30, depth: 30, height: 30 };
+  // An M3 heat-set insert's boss, a hook with its catch that bends about 1.6 %, a rib 1.6 mm (four lines) thick.
+  if (kind === "screwBoss") return { width: 8, depth: 8, height: 10 };
+  if (kind === "snapFit") return { width: 8, depth: 9, height: 16 };
+  if (kind === "rib") return { width: 40, depth: DEFAULT_RIB_THICKNESS, height: 8 };
   const roundProfile = kind === "sphere" || kind === "torus" || kind === "ring" || kind === "halfSphere" || kind === "paraboloid";
   const flatProfile = kind === "torus" || kind === "ring" || kind === "text" || kind === "gear";
   // A gear starts as 12 involute teeth of module 2 (#201).
@@ -471,6 +565,20 @@ export function shapeAssetSpecialDefaults(kind: ShapeKind, dimensions = shapeAss
   if (kind === "sphere") return { steps: 24 };
   if (kind === "halfSphere" || kind === "paraboloid") return { steps: 32 };
   if (kind === "cone") return { topRadius: 0, baseRadius: dimensions.width / 2 };
+  if (kind === "curvedCone") return { curvedConeTop: DEFAULT_CURVED_CONE_TOP, curvedConeBend: DEFAULT_CURVED_CONE_BEND };
+  if (kind === "screwBoss") return { screwBossFastener: DEFAULT_SCREW_BOSS_FASTENER, screwBossSize: DEFAULT_SCREW_BOSS_SIZE };
+  if (kind === "snapFit") {
+    return {
+      snapFitPart: "both",
+      snapFitThickness: DEFAULT_SNAP_FIT_THICKNESS,
+      snapFitUndercut: DEFAULT_SNAP_FIT_UNDERCUT,
+      snapFitClearance: DEFAULT_SNAP_FIT_CLEARANCE,
+      snapFitLeadAngle: DEFAULT_SNAP_FIT_LEAD_ANGLE,
+      snapFitRetainAngle: DEFAULT_SNAP_FIT_RETAIN_ANGLE,
+      snapFitFoot: DEFAULT_SNAP_FIT_FOOT,
+    };
+  }
+  if (kind === "rib") return { ribStyle: "straight", ribTop: "flat" };
   if (kind === "pyramid") return { sides: 4, topWidth: 0, topDepth: 0 };
   if (kind === "polygon") return { sides: 6 };
   if (kind === "roundRoof") return { sides: 64 };
@@ -502,6 +610,9 @@ export function shapeAssetSpecialDefaults(kind: ShapeKind, dimensions = shapeAss
   }
   if (kind === "countersink" || kind === "doubleCountersink") {
     return { screwHoleShaft: DEFAULT_SCREW_HOLE_SHAFT, screwHoleAngle: DEFAULT_SCREW_HOLE_ANGLE };
+  }
+  if (kind === "finishingWasher") {
+    return { screwHoleShaft: DEFAULT_FINISHING_WASHER_SHAFT, screwHoleHeadDepth: DEFAULT_FINISHING_WASHER_SEAT_DEPTH, screwHoleAngle: DEFAULT_SCREW_HOLE_ANGLE };
   }
   if (kind === "knurl") {
     return { knurlPattern: DEFAULT_KNURL_PATTERN, knurlCount: DEFAULT_KNURL_COUNT, knurlDepth: DEFAULT_KNURL_DEPTH, knurlAngle: DEFAULT_KNURL_ANGLE, knurlChamfer: DEFAULT_KNURL_CHAMFER };
@@ -560,6 +671,25 @@ export function shapeAssetSpecialDefaults(kind: ShapeKind, dimensions = shapeAss
       threadHeadChamfer: 0,
     };
   }
+  if (kind === "pulley") {
+    return {
+      teeth: DEFAULT_PULLEY_TEETH,
+      centerHoleSize: DEFAULT_PULLEY_BORE,
+      pulleyBeltWidth: DEFAULT_PULLEY_BELT_WIDTH,
+      pulleyFlange: DEFAULT_PULLEY_FLANGE,
+      pulleyFlangeRise: DEFAULT_PULLEY_FLANGE_RISE,
+      pulleyHubHeight: DEFAULT_PULLEY_HUB_HEIGHT,
+      pulleyHubDiameter: DEFAULT_PULLEY_HUB_DIAMETER,
+    };
+  }
+  if (kind === "hirth") {
+    const teeth = DEFAULT_HIRTH_TEETH;
+    return {
+      teeth,
+      toothSize: hirthRightAngleToothHeight(dimensions.width, dimensions.depth, teeth),
+      centerHoleSize: normalizeHirthBore(DEFAULT_HIRTH_BORE, dimensions.width, dimensions.depth),
+    };
+  }
   if (kind === "gear") {
     const teeth = DEFAULT_GEAR_TEETH;
     const toothSize = normalizeGearToothSize(DEFAULT_GEAR_TOOTH_SIZE, dimensions.width, dimensions.depth);
@@ -607,6 +737,29 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     segments: shape.segments,
     topRadius: shape.topRadius,
     baseRadius: shape.baseRadius,
+    curvedConeTop: shape.curvedConeTop,
+    curvedConeBend: shape.curvedConeBend,
+    screwBossFastener: shape.screwBossFastener,
+    screwBossSize: shape.screwBossSize,
+    screwBossHole: shape.screwBossHole,
+    screwBossHoleDepth: shape.screwBossHoleDepth,
+    screwBossDiameter: shape.screwBossDiameter,
+    screwBossGussets: shape.screwBossGussets,
+    screwBossGussetHeight: shape.screwBossGussetHeight,
+    screwBossGussetThickness: shape.screwBossGussetThickness,
+    snapFitPart: shape.snapFitPart,
+    snapFitThickness: shape.snapFitThickness,
+    snapFitUndercut: shape.snapFitUndercut,
+    snapFitClearance: shape.snapFitClearance,
+    snapFitLeadAngle: shape.snapFitLeadAngle,
+    snapFitRetainAngle: shape.snapFitRetainAngle,
+    snapFitFoot: shape.snapFitFoot,
+    ribStyle: shape.ribStyle,
+    ribTop: shape.ribTop,
+    ribFoot: shape.ribFoot,
+    ribThickness: shape.ribThickness,
+    ribFootThickness: shape.ribFootThickness,
+    ribFootShape: shape.ribFootShape,
     topWidth: shape.topWidth,
     topDepth: shape.topDepth,
     taperTopWidth: shape.taperTopWidth,
@@ -615,13 +768,24 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     taperBottomDepth: shape.taperBottomDepth,
     taperTopScale: shape.taperTopScale,
     taperBottomScale: shape.taperBottomScale,
+    taperKeepProportions: shape.taperKeepProportions,
     teeth: shape.teeth,
     toothSize: shape.toothSize,
     toothWidth: shape.toothWidth,
     centerHoleSize: shape.centerHoleSize,
+    hirthSteepFlank: shape.hirthSteepFlank,
+    hirthReverse: shape.hirthReverse,
+    pulleyBeltWidth: shape.pulleyBeltWidth,
+    pulleyFlange: shape.pulleyFlange,
+    pulleyFlangeRise: shape.pulleyFlangeRise,
+    pulleyHubHeight: shape.pulleyHubHeight,
+    pulleyHubDiameter: shape.pulleyHubDiameter,
     gearType: shape.gearType,
     gearRim: shape.gearRim,
     helixAngle: shape.helixAngle,
+    bevelHelixAngle: shape.bevelHelixAngle,
+    ringRackHelixAngle: shape.ringRackHelixAngle,
+    ringRackHerringbone: shape.ringRackHerringbone,
     helixQuality: shape.helixQuality,
     gearProfile: shape.gearProfile,
     gearPressureAngle: shape.gearPressureAngle,
@@ -630,11 +794,13 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     threadHead: shape.threadHead,
     threadHand: shape.threadHand,
     threadProfile: shape.threadProfile,
+    threadTaper: shape.threadTaper,
     threadDiameter: shape.threadDiameter,
     threadPitch: shape.threadPitch,
     threadClearance: shape.threadClearance,
     threadBoltClearance: shape.threadBoltClearance,
     threadAxialClearance: shape.threadAxialClearance,
+    threadStarts: shape.threadStarts,
     threadDepth: shape.threadDepth,
     threadFlankAngle: shape.threadFlankAngle,
     threadQuality: shape.threadQuality,
@@ -642,10 +808,19 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     threadChamfer: shape.threadChamfer,
     threadChamferBottom: shape.threadChamferBottom,
     threadHeadChamfer: shape.threadHeadChamfer,
+    threadHeadDiameter: shape.threadHeadDiameter,
+    threadDrive: shape.threadDrive,
+    threadDriveSize: shape.threadDriveSize,
+    threadDriveDepth: shape.threadDriveDepth,
+    threadCollarHeight: shape.threadCollarHeight,
+    threadCollarDiameter: shape.threadCollarDiameter,
     springTurns: shape.springTurns,
     springWire: shape.springWire,
     springHand: shape.springHand,
     springQuality: shape.springQuality,
+    springForm: shape.springForm,
+    springPattern: shape.springPattern,
+    springEnds: shape.springEnds,
     starPoints: shape.starPoints,
     starInnerSize: shape.starInnerSize,
     starOuterFillet: shape.starOuterFillet,
@@ -668,10 +843,22 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     hingeClearance: shape.hingeClearance,
     hingePinless: shape.hingePinless,
     hingeAngle: shape.hingeAngle,
+    hingeScrewHoles: shape.hingeScrewHoles,
+    hingeScrewDiameter: shape.hingeScrewDiameter,
+    hingeScrewSpacing: shape.hingeScrewSpacing,
+    hingeScrewAcross: shape.hingeScrewAcross,
+    hingeScrewCountersink: shape.hingeScrewCountersink,
+    hingeCornerRadius: shape.hingeCornerRadius,
+    hingeLeafStyle: shape.hingeLeafStyle,
+    hingeScrewHead: shape.hingeScrewHead,
+    hingeNutWidth: shape.hingeNutWidth,
     gridfinityType: shape.gridfinityType,
     gridfinityLip: shape.gridfinityLip,
     gridfinityMagnets: shape.gridfinityMagnets,
     gridfinityHalfGrid: shape.gridfinityHalfGrid,
+    gridfinityLargePlate: shape.gridfinityLargePlate,
+    gridfinitySwallowtail: shape.gridfinitySwallowtail,
+    gridfinitySwallowtailClearance: shape.gridfinitySwallowtailClearance,
     gridfinityLabelBack: shape.gridfinityLabelBack,
     gridfinityLabelFront: shape.gridfinityLabelFront,
     gridfinityLabelLeft: shape.gridfinityLabelLeft,
@@ -690,6 +877,13 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     gridfinityLabelRightOffset: shape.gridfinityLabelRightOffset,
     gridfinityLabelCorner: shape.gridfinityLabelCorner,
     gridfinityLabelCornerSize: shape.gridfinityLabelCornerSize,
+    gridfinityLabelBackText: shape.gridfinityLabelBackText,
+    gridfinityLabelFrontText: shape.gridfinityLabelFrontText,
+    gridfinityLabelLeftText: shape.gridfinityLabelLeftText,
+    gridfinityLabelRightText: shape.gridfinityLabelRightText,
+    gridfinityLabelFont: shape.gridfinityLabelFont,
+    gridfinityLabelColor: shape.gridfinityLabelColor,
+    gridfinityLabelTextSize: shape.gridfinityLabelTextSize,
     gridfinityScoopBack: shape.gridfinityScoopBack,
     gridfinityScoopFront: shape.gridfinityScoopFront,
     gridfinityScoopLeft: shape.gridfinityScoopLeft,
@@ -707,6 +901,7 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     gridfinityPaddingLeft: shape.gridfinityPaddingLeft,
     gridfinityPaddingRight: shape.gridfinityPaddingRight,
     gridfinityCornerRadius: shape.gridfinityCornerRadius,
+    gridfinityBinCornerRadius: shape.gridfinityBinCornerRadius,
     gridfinityCompartmentsX: shape.gridfinityCompartmentsX,
     gridfinityCompartmentsZ: shape.gridfinityCompartmentsZ,
     gridfinityDividerThickness: shape.gridfinityDividerThickness,
@@ -716,6 +911,7 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     gridfinityOpenings: shape.gridfinityOpenings,
     gridfinityOpeningCorner: shape.gridfinityOpeningCorner,
     gridfinityOpeningCornerSize: shape.gridfinityOpeningCornerSize,
+    gridfinityOutline: shape.gridfinityOutline,
     knurlPattern: shape.knurlPattern,
     knurlCount: shape.knurlCount,
     knurlDepth: shape.knurlDepth,
@@ -736,17 +932,27 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     loftOffsetX: shape.loftOffsetX,
     loftOffsetZ: shape.loftOffsetZ,
     loftWall: shape.loftWall,
+    loftTopWall: shape.loftTopWall,
     loftTwist: shape.loftTwist,
     loftSmooth: shape.loftSmooth,
     loftSegments: shape.loftSegments,
     slotEndRatio: shape.slotEndRatio,
+    torusTubeRatio: shape.torusTubeRatio,
     loftTiltX: shape.loftTiltX,
     loftTiltZ: shape.loftTiltZ,
     screwHoleShaft: shape.screwHoleShaft,
     screwHoleHeadDepth: shape.screwHoleHeadDepth,
     screwHoleAngle: shape.screwHoleAngle,
+    drillPointAngle: shape.drillPointAngle,
+    screwHoleSlot: shape.screwHoleSlot,
+    screwHoleRecess: shape.screwHoleRecess,
+    screwHoleChamfer: shape.screwHoleChamfer,
+    portProfile: shape.portProfile,
+    portClearance: shape.portClearance,
     cornerFillet: shape.cornerFillet,
+    cornerFillets: shape.cornerFillets,
     topBottomFillet: shape.topBottomFillet,
+    bottomFillet: shape.bottomFillet,
     roundedBoxQuality: shape.roundedBoxQuality,
     bentTubeProfile: shape.bentTubeProfile,
     bentTubeInnerProfile: shape.bentTubeInnerProfile,
@@ -762,6 +968,14 @@ export function sceneShape(shape: Partial<WorkplaneShape> & Pick<WorkplaneShape,
     textInward: shape.textInward,
     textFlipped: shape.textFlipped,
     cylinderWrap: shape.cylinderWrap,
+    surfaceTexture: shape.surfaceTexture,
+    surfaceTextureLayers: shape.surfaceTextureLayers,
+    surfaceTextureMask: shape.surfaceTextureMask,
+    surfaceFillOf: shape.surfaceFillOf,
+    paint: shape.paint,
+    vase: shape.vase,
+    vasePartOf: shape.vasePartOf,
+    gridfinityKeyOf: shape.gridfinityKeyOf,
     importedMesh: shape.importedMesh,
     imagePlate: shape.imagePlate,
     sketchProfile: shape.sketchProfile,
@@ -797,7 +1011,8 @@ export function makeShapeFromAsset(
   point?: { x: number; z: number; elevation?: number },
   customization: ShapeCustomization = {},
 ): WorkplaneShape {
-  const defaults = shapeAssetDefaultDimensions(asset.kind);
+  // A flat spring (#1076) starts as a strip on the plate, not in the coil's upright box.
+  const defaults = asset.kind === "spring" && customization.springForm === "flat" ? FLAT_SPRING_DIMENSIONS : shapeAssetDefaultDimensions(asset.kind);
   // Ein Gewinde bekommt seinen Platzbedarf aus Durchmesser und Art. Eine
   // eingetragene Breite waere hier nicht nur ueberfluessig, sondern falsch:
   // sie wuerde spaeter als Zug am Anfasser gelesen und den Durchmesser
@@ -807,11 +1022,13 @@ export function makeShapeFromAsset(
     threadHead: customization.threadHead,
     threadHand: customization.threadHand,
     threadProfile: customization.threadProfile,
+    threadTaper: customization.threadTaper,
     threadDiameter: customization.threadDiameter,
     threadPitch: customization.threadPitch,
     threadClearance: customization.threadClearance,
     threadBoltClearance: customization.threadBoltClearance,
     threadAxialClearance: customization.threadAxialClearance,
+    threadStarts: customization.threadStarts,
     threadDepth: customization.threadDepth,
     threadFlankAngle: customization.threadFlankAngle,
     threadQuality: customization.threadQuality,
@@ -821,6 +1038,12 @@ export function makeShapeFromAsset(
     threadChamfer: customization.threadChamfer,
     threadChamferBottom: customization.threadChamferBottom,
     threadHeadChamfer: customization.threadHeadChamfer,
+    threadHeadDiameter: customization.threadHeadDiameter,
+    threadDrive: customization.threadDrive,
+    threadDriveSize: customization.threadDriveSize,
+    threadDriveDepth: customization.threadDriveDepth,
+    threadCollarHeight: customization.threadCollarHeight,
+    threadCollarDiameter: customization.threadCollarDiameter,
   }) : null;
   const threadFootprint = threadDefaults ? threadNaturalFootprint(threadDefaults) : null;
   // Ein gebogenes Rohr bekommt seinen Rahmen aus Profil und Segmenten. Ein
@@ -849,6 +1072,7 @@ export function makeShapeFromAsset(
     offsetX: customization.loftOffsetX,
     offsetZ: customization.loftOffsetZ,
     wall: customization.loftWall,
+    topWall: customization.loftTopWall,
     twist: customization.loftTwist,
     smooth: customization.loftSmooth,
     segments: customization.loftSegments,
@@ -874,6 +1098,8 @@ export function makeShapeFromAsset(
     height: customization.height ?? gridfinityDefaults.height,
     gridfinityLip: customization.gridfinityLip,
     gridfinityHalfGrid: customization.gridfinityHalfGrid,
+    gridfinityLargePlate: customization.gridfinityLargePlate,
+    gridfinitySwallowtail: customization.gridfinitySwallowtail,
     ...gridfinityPaddingFields,
   }) : null;
   // New gears get involute teeth (#201); their size follows the module, so other teeth keep module 2.
@@ -892,15 +1118,43 @@ export function makeShapeFromAsset(
       depth: gearType === "rack" ? customization.depth ?? rackToothHeight(DEFAULT_GEAR_MODULE, gearProfile) + DEFAULT_GEAR_RIM : 0,
     })
     : null;
-  const width = gearSize?.width ?? gridfinityFootprint?.width ?? loftFootprint?.width ?? bentTubeFootprint?.width ?? threadFootprint?.width ?? customization.width ?? defaults.width;
+  // A GT2 pulley (Discussion #1319): the measures set the box; a width or height asked for picks the teeth and the belt width.
+  const pulleyFields = asset.kind === "pulley" ? (() => {
+    const fields = {
+      teeth: normalizePulleyTeeth(customization.teeth),
+      centerHoleSize: customization.centerHoleSize ?? DEFAULT_PULLEY_BORE,
+      pulleyBeltWidth: customization.pulleyBeltWidth ?? DEFAULT_PULLEY_BELT_WIDTH,
+      pulleyFlange: customization.pulleyFlange ?? DEFAULT_PULLEY_FLANGE,
+      pulleyFlangeRise: customization.pulleyFlangeRise ?? DEFAULT_PULLEY_FLANGE_RISE,
+      pulleyHubHeight: customization.pulleyHubHeight ?? DEFAULT_PULLEY_HUB_HEIGHT,
+      pulleyHubDiameter: customization.pulleyHubDiameter ?? DEFAULT_PULLEY_HUB_DIAMETER,
+    };
+    const sized = { ...fields, ...pulleyFromSize(fields, { width: customization.teeth === undefined ? customization.width : undefined, height: customization.pulleyBeltWidth === undefined ? customization.height : undefined }) };
+    return { ...sized, ...pulleyFootprint(sized) };
+  })() : null;
+  const naturalWidth = pulleyFields?.width ?? gearSize?.width ?? gridfinityFootprint?.width ?? loftFootprint?.width ?? bentTubeFootprint?.width ?? threadFootprint?.width ?? customization.width ?? defaults.width;
+  // A rib on its foot (Discussion #1307) keeps its own thickness, a new one's four lines; its box is the foot's width,
+  // three times the rib unless a depth was asked for.
+  const ribOnFoot = asset.kind === "rib" && customization.ribFoot === true;
+  const ribThickness = ribOnFoot ? customization.ribThickness ?? DEFAULT_RIB_THICKNESS : undefined;
+  const ribFootDepth = ribThickness !== undefined && customization.depth === undefined ? ribFootWidthFor(ribThickness) : undefined;
   // A cylinder is always circular - depth follows width here too, so it never
   // snaps between insert and first render (canonicalizeShape enforces this
   // again afterwards as the actual safety net).
-  const depth = asset.kind === "cylinder" ? width : gearSize?.depth ?? gridfinityFootprint?.depth ?? loftFootprint?.depth ?? bentTubeFootprint?.depth ?? threadFootprint?.depth ?? customization.depth ?? defaults.depth;
-  const height = gridfinityFootprint?.height ?? bentTubeFootprint?.height ?? customization.height ?? (threadDefaults ? threadNaturalHeight(threadDefaults) : defaults.height);
+  const depth = asset.kind === "cylinder" ? naturalWidth : pulleyFields?.depth ?? gearSize?.depth ?? gridfinityFootprint?.depth ?? loftFootprint?.depth ?? bentTubeFootprint?.depth ?? threadFootprint?.depth ?? ribFootDepth ?? customization.depth ?? defaults.depth;
+  const height = pulleyFields?.height ?? gridfinityFootprint?.height ?? bentTubeFootprint?.height ?? customization.height ?? (threadDefaults ? threadNaturalHeight(threadDefaults) : defaults.height);
+  // On an oval foot the box is the ellipse's: the new rib is as long as without, the box longer by what reaches past
+  // its ends, unless a width was asked for, which is the box's as a depth asked for is the foot's width.
+  const ribFootShape = asset.kind === "rib" && (customization.ribFootShape === "square" || customization.ribFootShape === "oval") ? customization.ribFootShape : undefined;
+  const width = ribOnFoot && ribFootShape === "oval" && customization.width === undefined
+    ? ribBoxWidth({ width: naturalWidth, depth, height, ribFoot: true, ribThickness, ribFootThickness: customization.ribFootThickness, ribFootShape }, naturalWidth)
+    : naturalWidth;
   const size = Math.max(width, depth);
-  const gearTeeth = asset.kind === "gear" ? normalizeGearTeeth(customization.teeth ?? DEFAULT_GEAR_TEETH) : undefined;
-  const gearToothSize = asset.kind === "gear" ? normalizeGearToothSize(customization.toothSize ?? DEFAULT_GEAR_TOOTH_SIZE, width, depth) : undefined;
+  const hirthTeeth = asset.kind === "hirth" ? normalizeHirthTeeth(customization.teeth) : undefined;
+  const gearTeeth = asset.kind === "gear" ? normalizeGearTeeth(customization.teeth ?? DEFAULT_GEAR_TEETH) : pulleyFields?.teeth ?? hirthTeeth;
+  const gearToothSize = asset.kind === "gear"
+    ? normalizeGearToothSize(customization.toothSize ?? DEFAULT_GEAR_TOOTH_SIZE, width, depth)
+    : asset.kind === "hirth" ? normalizeHirthToothHeight(customization.toothSize, width, depth, height, hirthTeeth) : undefined;
   const threadDiameter = asset.kind === "thread" ? normalizeThreadDiameter(customization.threadDiameter ?? DEFAULT_THREAD_DIAMETER) : undefined;
 
   return {
@@ -929,12 +1183,38 @@ export function makeShapeFromAsset(
     textSize: asset.kind === "text" ? customization.textSize : undefined,
     textInward: asset.kind === "text" ? customization.textInward : undefined,
     textFlipped: asset.kind === "text" ? customization.textFlipped : undefined,
+    // New texts are kerned (#1297); a text saved without the field keeps its spacing.
+    textKerning: asset.kind === "text" ? customization.textKerning ?? true : undefined,
     steps: asset.kind === "box" ? 10 : asset.kind === "sphere" ? customization.steps ?? 24 : asset.kind === "halfSphere" || asset.kind === "paraboloid" ? customization.steps ?? 32 : asset.kind === "torus" ? customization.steps : undefined,
-    sides: asset.kind === "cylinder" || asset.kind === "ellipse" || asset.kind === "slot" || asset.kind === "cone" || asset.kind === "tube" || asset.kind === "ring" || asset.kind === "counterbore" || asset.kind === "countersink" || asset.kind === "teardrop" || asset.kind === "torus" ? customization.sides : asset.kind === "roundRoof" ? customization.sides ?? 64 : asset.kind === "pyramid" ? customization.sides ?? 4 : asset.kind === "polygon" ? customization.sides ?? 6 : undefined,
+    torusTubeRatio: asset.kind === "torus" ? customization.torusTubeRatio ?? torusTubeRatio({ width, depth, height }) : undefined,
+    sides: asset.kind === "cylinder" || asset.kind === "ellipse" || asset.kind === "slot" || asset.kind === "cone" || asset.kind === "curvedCone" || asset.kind === "tube" || asset.kind === "ring" || asset.kind === "counterbore" || asset.kind === "countersink" || asset.kind === "finishingWasher" || asset.kind === "teardrop" || asset.kind === "torus" ? customization.sides : asset.kind === "roundRoof" ? customization.sides ?? 64 : asset.kind === "pyramid" ? customization.sides ?? 4 : asset.kind === "polygon" ? customization.sides ?? 6 : undefined,
     bevel: asset.kind === "cylinder" || asset.kind === "ellipse" || asset.kind === "slot" ? 0 : asset.kind === "tube" || asset.kind === "ring" ? customization.bevel ?? 4 : asset.kind === "text" ? customization.bevel : undefined,
     segments: asset.kind === "cylinder" || asset.kind === "ellipse" || asset.kind === "slot" ? 1 : asset.kind === "text" ? customization.segments : undefined,
     topRadius: asset.kind === "cone" ? customization.topRadius ?? 0 : undefined,
     baseRadius: asset.kind === "cone" ? customization.baseRadius ?? width / 2 : undefined,
+    curvedConeTop: asset.kind === "curvedCone" ? normalizeCurvedConeTop(customization.curvedConeTop) : undefined,
+    curvedConeBend: asset.kind === "curvedCone" ? normalizeCurvedConeBend(customization.curvedConeBend) : undefined,
+    screwBossFastener: asset.kind === "screwBoss" ? normalizeScrewBossFastener(customization.screwBossFastener) : undefined,
+    screwBossSize: asset.kind === "screwBoss" ? customization.screwBossSize ?? DEFAULT_SCREW_BOSS_SIZE : undefined,
+    screwBossHole: asset.kind === "screwBoss" ? customization.screwBossHole : undefined,
+    screwBossHoleDepth: asset.kind === "screwBoss" ? customization.screwBossHoleDepth : undefined,
+    screwBossDiameter: asset.kind === "screwBoss" ? customization.screwBossDiameter : undefined,
+    screwBossGussets: asset.kind === "screwBoss" ? customization.screwBossGussets : undefined,
+    screwBossGussetHeight: asset.kind === "screwBoss" ? customization.screwBossGussetHeight : undefined,
+    screwBossGussetThickness: asset.kind === "screwBoss" ? customization.screwBossGussetThickness : undefined,
+    snapFitPart: asset.kind === "snapFit" ? normalizeSnapFitPart(customization.snapFitPart) : undefined,
+    snapFitThickness: asset.kind === "snapFit" ? customization.snapFitThickness ?? DEFAULT_SNAP_FIT_THICKNESS : undefined,
+    snapFitUndercut: asset.kind === "snapFit" ? customization.snapFitUndercut ?? DEFAULT_SNAP_FIT_UNDERCUT : undefined,
+    snapFitClearance: asset.kind === "snapFit" ? customization.snapFitClearance ?? DEFAULT_SNAP_FIT_CLEARANCE : undefined,
+    snapFitLeadAngle: asset.kind === "snapFit" ? customization.snapFitLeadAngle ?? DEFAULT_SNAP_FIT_LEAD_ANGLE : undefined,
+    snapFitRetainAngle: asset.kind === "snapFit" ? customization.snapFitRetainAngle ?? DEFAULT_SNAP_FIT_RETAIN_ANGLE : undefined,
+    snapFitFoot: asset.kind === "snapFit" ? customization.snapFitFoot ?? DEFAULT_SNAP_FIT_FOOT : undefined,
+    ribStyle: asset.kind === "rib" ? normalizeRibStyle(customization.ribStyle) : undefined,
+    ribTop: asset.kind === "rib" ? normalizeRibTop(customization.ribTop) : undefined,
+    ribFoot: ribOnFoot ? true : undefined,
+    ribThickness,
+    ribFootThickness: asset.kind === "rib" ? customization.ribFootThickness : undefined,
+    ribFootShape,
     topWidth: asset.kind === "pyramid" ? normalizePyramidTop(customization.topWidth, width) : undefined,
     topDepth: asset.kind === "pyramid" ? normalizePyramidTop(customization.topDepth, depth) : undefined,
     teeth: gearTeeth,
@@ -942,11 +1222,25 @@ export function makeShapeFromAsset(
     toothWidth: asset.kind === "gear" && customization.toothWidth !== undefined
       ? normalizeGearToothWidth(customization.toothWidth, width, depth, gearTeeth)
       : undefined,
-    centerHoleSize: asset.kind === "gear" ? normalizeGearCenterHoleSize(customization.centerHoleSize ?? DEFAULT_GEAR_CENTER_HOLE_SIZE, width, depth, gearToothSize, { teeth: gearTeeth, gearProfile }) : undefined,
+    centerHoleSize: asset.kind === "gear"
+      ? normalizeGearCenterHoleSize(customization.centerHoleSize ?? DEFAULT_GEAR_CENTER_HOLE_SIZE, width, depth, gearToothSize, { teeth: gearTeeth, gearProfile })
+      : asset.kind === "hirth" ? normalizeHirthBore(customization.centerHoleSize, width, depth) : pulleyFields?.centerHoleSize,
+    pulleyBeltWidth: pulleyFields?.pulleyBeltWidth,
+    pulleyFlange: pulleyFields?.pulleyFlange,
+    pulleyFlangeRise: pulleyFields?.pulleyFlangeRise,
+    pulleyHubHeight: pulleyFields?.pulleyHubHeight,
+    pulleyHubDiameter: pulleyFields?.pulleyHubDiameter,
+    hirthSteepFlank: asset.kind === "hirth" ? normalizeHirthSteepFlank(customization.hirthSteepFlank) : undefined,
+    hirthReverse: asset.kind === "hirth" && normalizeHirthSteepFlank(customization.hirthSteepFlank) !== undefined && customization.hirthReverse === true ? true : undefined,
     gearType,
     gearRim,
     helixAngle: asset.kind === "gear" ? normalizeGearHelixAngle(customization.helixAngle ?? DEFAULT_GEAR_HELIX_ANGLE) : undefined,
+    // Slanted teeth on a ring gear or a rack (Discussion #1627); straight ones keep no angle.
+    ringRackHelixAngle: asset.kind === "gear" && gearTypeIsModular(gearType) && normalizeRingRackHelixAngle(customization.ringRackHelixAngle) !== 0 ? normalizeRingRackHelixAngle(customization.ringRackHelixAngle) : undefined,
+    ringRackHerringbone: asset.kind === "gear" && gearTypeIsModular(gearType) && normalizeRingRackHelixAngle(customization.ringRackHelixAngle) !== 0 && customization.ringRackHerringbone === true ? true : undefined,
     helixQuality: asset.kind === "gear" ? normalizeGearHelixQuality(customization.helixQuality ?? DEFAULT_GEAR_HELIX_QUALITY) : undefined,
+    // A spiral bevel gear; a straight one keeps no angle, as the inspector leaves it.
+    bevelHelixAngle: asset.kind === "gear" && gearType === "bevel" && normalizeBevelHelixAngle(customization.bevelHelixAngle) !== 0 ? normalizeBevelHelixAngle(customization.bevelHelixAngle) : undefined,
     gearProfile,
     gearPressureAngle: gearProfile === "involute" ? normalizeGearPressureAngle(customization.gearPressureAngle) : undefined,
     gearBacklash: gearUsesModule(gearProfile) ? Math.max(0, Math.min(MAX_GEAR_BACKLASH, customization.gearBacklash ?? DEFAULT_GEAR_BACKLASH)) : undefined,
@@ -954,10 +1248,14 @@ export function makeShapeFromAsset(
     threadHead: asset.kind === "thread" ? normalizeThreadHead(customization.threadHead ?? DEFAULT_THREAD_HEAD) : undefined,
     threadHand: asset.kind === "thread" ? normalizeThreadHand(customization.threadHand ?? DEFAULT_THREAD_HAND) : undefined,
     threadProfile: asset.kind === "thread" ? normalizeThreadProfile(customization.threadProfile ?? DEFAULT_THREAD_PROFILE) : undefined,
+    threadTaper: asset.kind === "thread" && customization.threadTaper === true ? true : undefined,
     threadDiameter: threadDiameter,
     threadPitch: asset.kind === "thread" ? normalizeThreadPitch(customization.threadPitch ?? DEFAULT_THREAD_PITCH, threadDiameter ?? DEFAULT_THREAD_DIAMETER) : undefined,
     threadClearance: asset.kind === "thread" ? normalizeThreadClearance(customization.threadClearance ?? DEFAULT_THREAD_CLEARANCE) : undefined,
     threadBoltClearance: asset.kind === "thread" ? normalizeThreadBoltClearance(customization.threadBoltClearance ?? DEFAULT_THREAD_BOLT_CLEARANCE) : undefined,
+    threadStarts: asset.kind === "thread" && customization.threadStarts !== undefined
+      ? normalizeThreadStarts(customization.threadStarts, threadDiameter ?? DEFAULT_THREAD_DIAMETER, normalizeThreadPitch(customization.threadPitch ?? DEFAULT_THREAD_PITCH, threadDiameter ?? DEFAULT_THREAD_DIAMETER), customization.threadTaper === true)
+      : undefined,
     threadAxialClearance: asset.kind === "thread" ? normalizeThreadAxialClearance(customization.threadAxialClearance ?? DEFAULT_THREAD_AXIAL_CLEARANCE, normalizeThreadPitch(customization.threadPitch ?? DEFAULT_THREAD_PITCH, threadDiameter ?? DEFAULT_THREAD_DIAMETER)) : undefined,
     threadDepth: asset.kind === "thread" ? customization.threadDepth : undefined,
     threadFlankAngle: asset.kind === "thread" ? customization.threadFlankAngle : undefined,
@@ -966,10 +1264,9 @@ export function makeShapeFromAsset(
     threadChamfer: threadDefaults ? threadDefaults.chamfer : undefined,
     threadChamferBottom: threadDefaults && customization.threadChamferBottom !== undefined ? threadDefaults.chamferLow : undefined,
     threadHeadChamfer: threadDefaults ? threadDefaults.headChamfer : undefined,
-    springTurns: asset.kind === "spring" ? normalizeSpringTurns(customization.springTurns ?? DEFAULT_SPRING_TURNS, Math.max(width, depth), height, customization.springWire) : undefined,
-    springWire: asset.kind === "spring" ? normalizeSpringWire(customization.springWire ?? DEFAULT_SPRING_WIRE, Math.max(width, depth), height) : undefined,
-    springQuality: asset.kind === "spring" ? normalizeSpringQuality(customization.springQuality ?? DEFAULT_SPRING_QUALITY) : undefined,
-    springHand: asset.kind === "spring" ? normalizeSpringHand(customization.springHand ?? DEFAULT_SPRING_HAND) : undefined,
+    ...(threadDefaults ? threadDriveFields(customization, threadDefaults) : {}),
+    ...(threadDefaults ? threadCollarFields(customization, threadDefaults) : {}),
+    ...(asset.kind === "spring" ? springFields(customization, width, depth, height) : {}),
     starPoints: asset.kind === "star" ? normalizeStarPoints(customization.starPoints ?? DEFAULT_STAR_POINTS) : undefined,
     starInnerSize: asset.kind === "star" ? normalizeStarInnerSize(customization.starInnerSize ?? DEFAULT_STAR_INNER_SIZE, width) : undefined,
     starOuterFillet: asset.kind === "star" ? normalizeStarFillet(customization.starOuterFillet ?? DEFAULT_STAR_OUTER_FILLET) : undefined,
@@ -987,6 +1284,9 @@ export function makeShapeFromAsset(
     gridfinityLip: asset.kind === "gridfinity" ? customization.gridfinityLip ?? DEFAULT_GRIDFINITY_LIP : undefined,
     gridfinityMagnets: asset.kind === "gridfinity" ? customization.gridfinityMagnets ?? DEFAULT_GRIDFINITY_MAGNETS : undefined,
     gridfinityHalfGrid: asset.kind === "gridfinity" ? customization.gridfinityHalfGrid : undefined,
+    gridfinityLargePlate: asset.kind === "gridfinity" ? customization.gridfinityLargePlate : undefined,
+    gridfinitySwallowtail: asset.kind === "gridfinity" ? customization.gridfinitySwallowtail : undefined,
+    gridfinitySwallowtailClearance: asset.kind === "gridfinity" ? customization.gridfinitySwallowtailClearance : undefined,
     gridfinityLabelBack: asset.kind === "gridfinity" ? customization.gridfinityLabelBack : undefined,
     gridfinityLabelFront: asset.kind === "gridfinity" ? customization.gridfinityLabelFront : undefined,
     gridfinityLabelLeft: asset.kind === "gridfinity" ? customization.gridfinityLabelLeft : undefined,
@@ -1005,6 +1305,9 @@ export function makeShapeFromAsset(
     gridfinityLabelRightOffset: asset.kind === "gridfinity" ? customization.gridfinityLabelRightOffset : undefined,
     gridfinityLabelCorner: asset.kind === "gridfinity" ? customization.gridfinityLabelCorner : undefined,
     gridfinityLabelCornerSize: asset.kind === "gridfinity" ? customization.gridfinityLabelCornerSize : undefined,
+    gridfinityLabelFont: asset.kind === "gridfinity" ? customization.gridfinityLabelFont : undefined,
+    gridfinityLabelColor: asset.kind === "gridfinity" ? customization.gridfinityLabelColor : undefined,
+    gridfinityLabelTextSize: asset.kind === "gridfinity" ? customization.gridfinityLabelTextSize : undefined,
     gridfinityScoopBack: asset.kind === "gridfinity" ? customization.gridfinityScoopBack : undefined,
     gridfinityScoopFront: asset.kind === "gridfinity" ? customization.gridfinityScoopFront : undefined,
     gridfinityScoopLeft: asset.kind === "gridfinity" ? customization.gridfinityScoopLeft : undefined,
@@ -1024,14 +1327,26 @@ export function makeShapeFromAsset(
     gridfinityPaddingLeft: asset.kind === "gridfinity" ? customization.gridfinityPaddingLeft : undefined,
     gridfinityPaddingRight: asset.kind === "gridfinity" ? customization.gridfinityPaddingRight : undefined,
     gridfinityCornerRadius: asset.kind === "gridfinity" ? customization.gridfinityCornerRadius : undefined,
+    gridfinityBinCornerRadius: asset.kind === "gridfinity" ? customization.gridfinityBinCornerRadius : undefined,
     gridfinityCompartmentsX: asset.kind === "gridfinity" ? customization.gridfinityCompartmentsX : undefined,
     gridfinityCompartmentsZ: asset.kind === "gridfinity" ? customization.gridfinityCompartmentsZ : undefined,
     gridfinityDividerThickness: asset.kind === "gridfinity" ? customization.gridfinityDividerThickness : undefined,
     hingeClearance: asset.kind === "hinge" ? normalizeHingeClearance(customization.hingeClearance ?? DEFAULT_HINGE_CLEARANCE) : undefined,
     hingePinless: asset.kind === "hinge" ? customization.hingePinless === true : undefined,
     hingeKnuckleWidth: asset.kind === "hinge" ? normalizeHingeKnuckleWidth(customization.hingeKnuckleWidth) : undefined,
-    hingeStyle: asset.kind === "hinge" && (customization.hingeStyle === "cone" || customization.hingeStyle === "pinless") ? customization.hingeStyle : undefined,
+    hingeStyle: asset.kind === "hinge" && (customization.hingeStyle === "cone" || customization.hingeStyle === "pinless" || customization.hingeStyle === "liftOff") ? customization.hingeStyle : undefined,
     hingeConeSize: asset.kind === "hinge" && customization.hingeStyle === "cone" && Number.isFinite(customization.hingeConeSize) ? customization.hingeConeSize : undefined,
+    // Screw holes and round corners only when the defaults ask for them; the geometry fits them to the leaf.
+    hingeScrewHoles: asset.kind === "hinge" && normalizeHingeScrewHoles(customization.hingeScrewHoles) > 0 ? normalizeHingeScrewHoles(customization.hingeScrewHoles) : undefined,
+    hingeScrewDiameter: asset.kind === "hinge" && Number.isFinite(customization.hingeScrewDiameter) ? normalizeHingeScrewDiameter(customization.hingeScrewDiameter) : undefined,
+    hingeScrewSpacing: asset.kind === "hinge" && (customization.hingeScrewSpacing ?? 0) > 0 ? customization.hingeScrewSpacing : undefined,
+    hingeScrewAcross: asset.kind === "hinge" && (customization.hingeScrewAcross ?? 0) > 0 ? customization.hingeScrewAcross : undefined,
+    hingeScrewCountersink: asset.kind === "hinge" && customization.hingeScrewCountersink === false ? false : undefined,
+    hingeCornerRadius: asset.kind === "hinge" && (customization.hingeCornerRadius ?? 0) > 0 ? customization.hingeCornerRadius : undefined,
+    hingeLeafStyle: asset.kind === "hinge" && customization.hingeLeafStyle && customization.hingeLeafStyle !== "plate" ? customization.hingeLeafStyle : undefined,
+    hingeAngle: asset.kind === "hinge" && customization.hingeAngle ? customization.hingeAngle : undefined,
+    hingeScrewHead: asset.kind === "hinge" && customization.hingeScrewHead && customization.hingeScrewHead !== "countersunk" ? customization.hingeScrewHead : undefined,
+    hingeNutWidth: asset.kind === "hinge" && (customization.hingeNutWidth ?? 0) > 0 ? customization.hingeNutWidth : undefined,
     hingeKnuckles: asset.kind === "hinge" ? normalizeHingeKnuckles(customization.hingeKnuckles ?? DEFAULT_HINGE_KNUCKLES, width, normalizeHingeClearance(customization.hingeClearance)) : undefined,
     hingePinDiameter: asset.kind === "hinge" ? normalizeHingePinDiameter(customization.hingePinDiameter ?? DEFAULT_HINGE_PIN_DIAMETER, height, normalizeHingeClearance(customization.hingeClearance)) : undefined,
     hingeLeafThickness: asset.kind === "hinge"
@@ -1048,13 +1363,32 @@ export function makeShapeFromAsset(
     knurlDepth: asset.kind === "knurl" ? normalizeKnurlDepth(customization.knurlDepth ?? DEFAULT_KNURL_DEPTH, width) : undefined,
     knurlAngle: asset.kind === "knurl" ? normalizeKnurlAngle(customization.knurlAngle ?? DEFAULT_KNURL_ANGLE) : undefined,
     knurlChamfer: asset.kind === "knurl" ? normalizeKnurlChamfer(customization.knurlChamfer ?? DEFAULT_KNURL_CHAMFER, width, height) : undefined,
+    vase: asset.kind === "vase" ? normalizeVaseSettings(undefined) : undefined,
     dovetailNeckWidth: asset.kind === "dovetail" ? normalizeDovetailNeckWidth(customization.dovetailNeckWidth, width) : undefined,
     dovetailClearance: asset.kind === "dovetail" ? normalizeDovetailClearance(customization.dovetailClearance ?? DEFAULT_DOVETAIL_CLEARANCE) : undefined,
-    screwHoleShaft: asset.kind === "counterbore" || asset.kind === "countersink" || asset.kind === "doubleCountersink" ? normalizeScrewHoleShaft(customization.screwHoleShaft ?? DEFAULT_SCREW_HOLE_SHAFT, width) : undefined,
-    screwHoleHeadDepth: asset.kind === "counterbore" ? normalizeScrewHoleHeadDepth(customization.screwHoleHeadDepth ?? DEFAULT_SCREW_HOLE_HEAD_DEPTH, height) : undefined,
-    screwHoleAngle: asset.kind === "countersink" || asset.kind === "doubleCountersink" ? normalizeScrewHoleAngle(customization.screwHoleAngle ?? DEFAULT_SCREW_HOLE_ANGLE) : undefined,
-    cornerFillet: asset.kind === "roundedBox" ? normalizeCornerFillet(customization.cornerFillet ?? DEFAULT_ROUNDED_BOX_CORNER_FILLET, Math.min(width, depth) / 2) : undefined,
-    topBottomFillet: asset.kind === "roundedBox" ? normalizeTopBottomFillet(customization.topBottomFillet ?? DEFAULT_ROUNDED_BOX_TOP_BOTTOM_FILLET, height / 2) : undefined,
+    screwHoleShaft: asset.kind === "counterbore" || asset.kind === "countersink" || asset.kind === "doubleCountersink" ? normalizeScrewHoleShaft(customization.screwHoleShaft ?? DEFAULT_SCREW_HOLE_SHAFT, width)
+      : asset.kind === "finishingWasher" ? customization.screwHoleShaft ?? DEFAULT_FINISHING_WASHER_SHAFT : undefined,
+    screwHoleHeadDepth: asset.kind === "counterbore" ? normalizeScrewHoleHeadDepth(customization.screwHoleHeadDepth ?? DEFAULT_SCREW_HOLE_HEAD_DEPTH, height)
+      : asset.kind === "finishingWasher" ? customization.screwHoleHeadDepth ?? DEFAULT_FINISHING_WASHER_SEAT_DEPTH : undefined,
+    screwHoleAngle: asset.kind === "countersink" || asset.kind === "doubleCountersink" || asset.kind === "finishingWasher" ? normalizeScrewHoleAngle(customization.screwHoleAngle ?? DEFAULT_SCREW_HOLE_ANGLE) : undefined,
+    // A drill point saved with the defaults (Discussion #621); a new cylinder is solid and takes it once it is a hole.
+    drillPointAngle: asset.kind === "cylinder" || asset.kind === "counterbore" || asset.kind === "countersink" ? normalizeDrillPointAngle(customization.drillPointAngle) : undefined,
+    // A slotted hole and a recessed head (Discussion #1531); left out when off, as the editor leaves them.
+    screwHoleSlot: (asset.kind === "counterbore" || asset.kind === "countersink" || asset.kind === "doubleCountersink") && customization.screwHoleSlot ? true : undefined,
+    screwHoleRecess: (asset.kind === "countersink" || asset.kind === "doubleCountersink") && (customization.screwHoleRecess ?? 0) > 0 ? customization.screwHoleRecess : undefined,
+    // A chamfer at the rim of a counterbore (Discussion #1632); left out when off, as the editor leaves it.
+    screwHoleChamfer: asset.kind === "counterbore" && (customization.screwHoleChamfer ?? 0) > 0 ? customization.screwHoleChamfer : undefined,
+    cornerFillet: asset.kind === "roundedBox" ? normalizeCornerFillet(customization.cornerFillet ?? DEFAULT_ROUNDED_BOX_CORNER_FILLET, Math.min(width, depth) / 2)
+      : asset.kind === "port" ? normalizePortCorner(customization.cornerFillet, width, height, customization.portProfile) : undefined,
+    portProfile: asset.kind === "port" ? normalizePortProfile(customization.portProfile) : undefined,
+    portClearance: asset.kind === "port" && normalizePortClearance(customization.portClearance) > 0 ? normalizePortClearance(customization.portClearance) : undefined,
+    ...(asset.kind === "roundedBox"
+      ? (() => {
+          // Top and bottom on their own: the two have to fit in the height together.
+          const [top, bottom] = normalizeEndFillets(customization.topBottomFillet ?? DEFAULT_ROUNDED_BOX_TOP_BOTTOM_FILLET, customization.bottomFillet, height);
+          return { topBottomFillet: top, bottomFillet: customization.bottomFillet === undefined ? undefined : bottom };
+        })()
+      : { topBottomFillet: undefined, bottomFillet: undefined }),
     roundedBoxQuality: asset.kind === "roundedBox" ? normalizeRoundedBoxQuality(customization.roundedBoxQuality ?? DEFAULT_ROUNDED_BOX_QUALITY) : undefined,
     ...(bentTube ?? {}),
     ...(loftMeasures ? loftFieldsFromMeasures(loftMeasures) : {}),
@@ -1085,6 +1419,7 @@ const GENERATED_NAME_KEYS: Record<string, MessageKey> = {
   "Icon tag": "shape.iconTag",
   "QR code": "shape.qrCode",
   "QR plate": "shape.qrPlate",
+  Board: "sbcBoard.board",
 };
 
 /**

@@ -1,18 +1,26 @@
 /**
- * Patterns: the selection repeated n times in a row or around a circle - hole
- * rows, bolt circles, the teeth of a ring, and with a rise or a growing radius
- * stairs, screws and spirals. Pure numbers; the editor turns them into copies.
+ * Patterns: the selection repeated n times in a row, in a grid of columns and
+ * rows or around a circle - hole rows, hole grids, bolt circles, the teeth of a
+ * ring, and with a rise or a growing radius stairs, screws and spirals. Pure
+ * numbers; the editor turns them into copies.
  *
  * Coordinates as the user sees them, like a slicer: X to the right, Y to the
  * back, Z up. In the scene that is x, -z and y.
  */
-export type ArrayMode = "row" | "circle";
+export type ArrayMode = "row" | "grid" | "circle";
 export type ArrayDirection = "x" | "y" | "z";
 
 export type ArraySettings = {
   mode: ArrayMode;
-  /** Pieces in the pattern, the original included. */
+  /** Pieces in the pattern, the original included; in a grid the columns along X. */
   count: number;
+  /** Grid (#1227): rows along Y, the original's included; the columns step by spacingX. */
+  rows?: number;
+  /**
+   * Grid: centre to centre from row to row along Y; negative runs to the front. Its own number, not spacingY: that one
+   * would turn the row diagonal after a look at the grid.
+   */
+  rowSpacing?: number;
   /** Row: centre to centre along X, Y and Z (up) at once; negative runs the other way. */
   spacingX: number;
   spacingY: number;
@@ -33,14 +41,54 @@ export type ArraySettings = {
    * on above ARRAY_AUTO_GROUP_ABOVE. Once the person ticks or unticks the box, their choice stays.
    */
   groupCopies?: boolean;
+  /**
+   * Row: spread over a body (#1037) - the plate the holes go into. The row runs along X or Y to the body's far end and
+   * leaves the same gap there as the original has at its own end; the spacing follows the count. Null: the spacings count.
+   */
+  fit?: ArrayFit | null;
 };
+
+export type ArrayFit = { axis: "x" | "y"; bodyId: string };
+
+/** Where a piece or a body reaches along one axis. */
+export type ArraySpan = { min: number; max: number };
+
+/** The piece's gap to the body's nearer end, and whether that end is the start (min) of the axis. */
+export function arrayFitGap(piece: ArraySpan, body: ArraySpan) {
+  const start = piece.min - body.min;
+  const end = body.max - piece.max;
+  return start <= end + 1e-9 ? { gap: start, fromStart: true } : { gap: end, fromStart: false };
+}
+
+/**
+ * The step from piece to piece that ends the row as far from the body's far end as the original stands from its near
+ * one: 5 holes of 8 mm, 20 mm in from both ends of a 150 mm plate, are 25.5 mm apart. Negative runs towards the start.
+ */
+export function arrayFitStep(count: number, piece: ArraySpan, body: ArraySpan) {
+  const { gap, fromStart } = arrayFitGap(piece, body);
+  const free = body.max - body.min - (piece.max - piece.min) - 2 * gap;
+  return (fromStart ? 1 : -1) * free / (clampArrayCount(count) - 1);
+}
+
+/** How far the piece moves along the axis for its gap to the nearer end to become `gap`. */
+export function arrayFitShift(piece: ArraySpan, body: ArraySpan, gap: number) {
+  const current = arrayFitGap(piece, body);
+  return current.fromStart ? gap - current.gap : current.gap - gap;
+}
 
 /** A pattern of more pieces than this is grouped unless the person says otherwise. */
 export const ARRAY_AUTO_GROUP_ABOVE = 5;
 
 /** Whether creating the pattern also groups its pieces: the person's choice, or by count while there is none. */
-export function arrayGroupsCopies(settings: Pick<ArraySettings, "count" | "groupCopies">) {
-  return settings.groupCopies ?? settings.count > ARRAY_AUTO_GROUP_ABOVE;
+export function arrayGroupsCopies(settings: Pick<ArraySettings, "count" | "groupCopies"> & Partial<Pick<ArraySettings, "mode" | "rows">>) {
+  return settings.groupCopies ?? arrayPieceCount(settings) > ARRAY_AUTO_GROUP_ABOVE;
+}
+
+/** How many pieces the pattern makes, the original included: a grid's columns times its rows, else the count. */
+export function arrayPieceCount(settings: Pick<ArraySettings, "count"> & Partial<Pick<ArraySettings, "mode" | "rows">>) {
+  if (settings.mode !== "grid") return settings.count;
+  const { columns, rows } = arrayGridSize(settings);
+  return columns * rows;
 }
 
 /**
@@ -53,12 +101,51 @@ export function arrayFollowingPivot(settings: ArraySettings, pivot: { x: number;
   return settings.centerX === centerX && settings.centerY === centerY ? settings : { ...settings, centerX, centerY };
 }
 
+/**
+ * Where a circle pattern turned its pieces, as the pivot they keep (#990): the circle's centre, at the height of a pivot that
+ * stood there already, or else halfway up the pieces (`bottom` to `top`, scene y). The middle of the pieces' box is not it:
+ * three legs round a ball fill a box wider one way than the other. Null for a row.
+ */
+export function arrayCirclePivot(settings: Pick<ArraySettings, "mode" | "centerX" | "centerY">, bottom: number, top: number, pivot?: { x: number; y: number; z: number } | null) {
+  if (settings.mode !== "circle") return null;
+  const x = settings.centerX;
+  const z = -settings.centerY || 0;
+  const onCentre = pivot && Math.abs(pivot.x - x) < 1e-6 && Math.abs(pivot.z - z) < 1e-6;
+  return { x, y: onCentre ? pivot.y : (bottom + top) / 2, z };
+}
+
 export const ARRAY_MIN_COUNT = 2;
 export const ARRAY_MAX_COUNT = 100;
 
 export function clampArrayCount(count: number) {
   if (!Number.isFinite(count)) return ARRAY_MIN_COUNT;
   return Math.min(ARRAY_MAX_COUNT, Math.max(ARRAY_MIN_COUNT, Math.round(count)));
+}
+
+/**
+ * A grid's columns and rows, each at least 1 - one column of rows is a line along Y - and together at most
+ * ARRAY_MAX_COUNT pieces, as many as a row or a circle may have: past that the rows are cut back (`capped`).
+ */
+export function arrayGridSize(settings: Pick<ArraySettings, "count"> & Partial<Pick<ArraySettings, "rows">>) {
+  const whole = (value: number | undefined, fallback: number) => (Number.isFinite(value) ? Math.round(value as number) : fallback);
+  const columns = Math.min(ARRAY_MAX_COUNT, Math.max(1, whole(settings.count, 1)));
+  const asked = Math.min(ARRAY_MAX_COUNT, Math.max(1, whole(settings.rows, 1)));
+  const rows = Math.min(asked, Math.floor(ARRAY_MAX_COUNT / columns));
+  return { columns, rows, capped: rows < asked };
+}
+
+/** Scene offsets of a grid's copies, row by row from the original's corner: the original itself (0, 0) is left out. */
+export function gridOffsets(settings: Pick<ArraySettings, "count" | "spacingX"> & Partial<Pick<ArraySettings, "rows" | "rowSpacing">>) {
+  const { columns, rows } = arrayGridSize(settings);
+  const offsets: { dx: number; dz: number }[] = [];
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      if (row === 0 && column === 0) continue;
+      // Y points to the back, which is -z in the scene.
+      offsets.push({ dx: settings.spacingX * column, dz: -(settings.rowSpacing ?? 0) * row || 0 });
+    }
+  }
+  return offsets;
 }
 
 /** The three spacings of a row that steps `spacing` along one axis only - what a row was before it could use all three. */
@@ -68,6 +155,24 @@ export function singleAxisSpacing(direction: ArrayDirection, spacing: number) {
     spacingY: direction === "y" ? spacing : 0,
     spacingZ: direction === "z" ? spacing : 0,
   };
+}
+
+/**
+ * The row's spacings with a fit to a body worked out (pieces and body in scene coordinates): along the chosen axis only,
+ * the step from arrayFitStep. Without a fit, or for a circle, the settings as they are.
+ */
+export function arrayWithFit<T extends Pick<ArraySettings, "mode" | "count" | "spacingX" | "spacingY" | "spacingZ" | "fit">>(
+  settings: T,
+  pieces: { minX: number; maxX: number; minZ: number; maxZ: number },
+  body: { minX: number; maxX: number; minZ: number; maxZ: number } | null,
+): T {
+  if (settings.mode !== "row" || !settings.fit || !body) return settings;
+  if (settings.fit.axis === "x") {
+    return { ...settings, ...singleAxisSpacing("x", arrayFitStep(settings.count, { min: pieces.minX, max: pieces.maxX }, { min: body.minX, max: body.maxX })) };
+  }
+  // Y points to the back, -z in the scene: a step towards +z is a negative Y spacing.
+  const step = arrayFitStep(settings.count, { min: pieces.minZ, max: pieces.maxZ }, { min: body.minZ, max: body.maxZ });
+  return { ...settings, ...singleAxisSpacing("y", -step || 0) };
 }
 
 /** Scene offset of the copy at `index` (1 = first copy) in a row. */

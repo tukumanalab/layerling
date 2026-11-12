@@ -1,5 +1,7 @@
 import type { OcctKernel, ShapeHandle, SweepMode } from "occt-wasm";
 import type { CadModifierThreadPart } from "@/lib/cadModifierTypes";
+import type { ThreadDriveOutline } from "@/lib/threadGeometry";
+import type { ThreadOutline, ThreadOutlineTier } from "@/lib/threadOutline";
 
 /** SweepMode.FixedUp, by value: the STEP export runs this outside the worker, where occt-wasm is only a type. */
 const FIXED_UP = 2 as SweepMode;
@@ -59,6 +61,62 @@ function hexPrism(cad: OcctKernel, acrossFlats: number, height: number) {
 /** Both rims of a turned body broken at 45 degrees: what is left of anything round within `faceRadius` at the faces. */
 function rimChamferBound(cad: OcctKernel, faceRadius: number, height: number) {
   return revolved(cad, [[0, 0], [faceRadius, 0], [faceRadius + height / 2, height / 2], [faceRadius, height], [0, height]]);
+}
+
+/** A prism of `height` from z = 0 on a polygon in the shape's x/z plane, taken to the kernel's (x, -z) as the drive is. */
+function polygonPrism(cad: OcctKernel, corners: readonly Point[], height: number) {
+  const points = corners.map(([x, z]) => ({ x, y: -z, z: 0 }));
+  const wire = cad.makeWire(points.map((point, index) => cad.makeLineEdge(point, points[(index + 1) % points.length])));
+  return cad.extrude(cad.makeFace(wire), 0, 0, height);
+}
+
+/** An upright cylinder of `radius` and `height` from z = 0 round the point (x, z) of the shape's plane. */
+function cylinderAt(cad: OcctKernel, radius: number, height: number, x: number, z: number) {
+  const cylinder = cad.makeCylinder(radius, height);
+  return x === 0 && z === 0 ? cylinder : cad.translate(cylinder, x, -z, 0);
+}
+
+/** The outline of a nut body or screw head (#1131) as a prism of `height` from z = 0, as `outlineRadius` draws it. */
+function outlinePrism(cad: OcctKernel, outline: ThreadOutline, height: number): ShapeHandle {
+  switch (outline.kind) {
+    case "round":
+      return cad.makeCylinder(outline.radius, height);
+    case "hex":
+      return hexPrism(cad, outline.acrossFlats, height);
+    case "square": {
+      const half = outline.acrossFlats / 2;
+      return polygonPrism(cad, [[half, half], [-half, half], [-half, -half], [half, -half]], height);
+    }
+    case "knob": {
+      let body = cad.makeCylinder(outline.radius, height);
+      for (let index = 0; index < outline.lobes; index += 1) {
+        const angle = ((index + 0.5) * Math.PI * 2) / outline.lobes;
+        // A little taller than the knob, so the cut leaves no skin at either face.
+        const scallop = cad.translate(cylinderAt(cad, outline.scallopRadius, height + 2, Math.cos(angle) * outline.scallopCenter, Math.sin(angle) * outline.scallopCenter), 0, 0, -1);
+        body = oneSolid(cad, cad.cut(body, scallop), "star knob");
+      }
+      return body;
+    }
+    case "wing": {
+      const straight = Math.max(0, outline.halfSpan - outline.halfWidth);
+      let body = cad.makeCylinder(outline.hubRadius, height);
+      if (straight > 0) body = oneSolid(cad, cad.fuse(body, polygonPrism(cad, [[straight, outline.halfWidth], [-straight, outline.halfWidth], [-straight, -outline.halfWidth], [straight, -outline.halfWidth]], height)), "wings");
+      for (const side of [1, -1]) body = oneSolid(cad, cad.fuse(body, cylinderAt(cad, outline.halfWidth, height, side * straight, 0)), "wings");
+      return body;
+    }
+  }
+}
+
+/** The tiers of a nut body or screw head, each its outline's prism at its height, fused into one solid. */
+function tiersSolid(cad: OcctKernel, tiers: readonly ThreadOutlineTier[], what: string) {
+  let body: ShapeHandle | null = null;
+  for (const tier of tiers) {
+    const prism = outlinePrism(cad, tier.outline, tier.to - tier.from);
+    const placed = tier.from === 0 ? prism : cad.translate(prism, 0, 0, tier.from);
+    body = body ? oneSolid(cad, cad.fuse(body, placed), what) : placed;
+  }
+  if (!body) throw new Error(`The thread's ${what} has no tiers`);
+  return body;
 }
 
 function oneSolid(cad: OcctKernel, shape: ShapeHandle, what: string) {
@@ -142,33 +200,153 @@ function profileEdges(cad: OcctKernel, part: CadModifierThreadPart): ShapeHandle
  */
 function halfTurnFaces(cad: OcctKernel, part: CadModifierThreadPart, climbsCounterClockwise: boolean) {
   const pitch = part.pitch;
+  // With several starts (#1348) the profile is still one pitch tall, but it climbs the lead a turn.
+  const lead = threadPartLead(part);
   // Both ends of the profile lie at the crest radius of its first point.
   const crestRadius = part.curve ? part.major : part.minor + (part.major - part.minor) * part.profile[0].level;
   const edges = profileEdges(cad, part);
   // The profile keeps the axis in its plane (fixed binormal), so every point
   // of it runs on a helix of its own radius and the same pitch - the
   // display's own construction.
-  const helix = cad.makeHelixWireHanded({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, pitch, pitch / 2, crestRadius, !climbsCounterClockwise);
+  const helix = cad.makeHelixWireHanded({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, lead, lead / 2, crestRadius, !climbsCounterClockwise);
   const flanks = cad.getSubShapes(cad.sweepAdvanced(cad.makeWire(edges), helix, { mode: FIXED_UP, up: { x: 0, y: 0, z: 1 } }), "face");
   // Inside the thread wherever two half turns meet, so only the outermost
   // strips and sections remain - and those are cut away with the ends.
-  const strip = cad.getSubShapes(cad.loft([cad.makeWire([cad.makeLineEdge({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: pitch / 2 })]), helix], false, true), "face");
+  const strip = cad.getSubShapes(cad.loft([cad.makeWire([cad.makeLineEdge({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: lead / 2 })]), helix], false, true), "face");
   const section = cad.makeFace(cad.makeWire([
     lineEdge(cad, [0, 0], [crestRadius, 0]),
     ...edges,
     lineEdge(cad, [crestRadius, pitch], [0, pitch]),
     lineEdge(cad, [0, pitch], [0, 0]),
   ]));
-  const sectionEnd = cad.translate(cad.rotate(section, AXIS, Math.PI), 0, 0, pitch / 2);
+  const sectionEnd = cad.translate(cad.rotate(section, AXIS, Math.PI), 0, 0, lead / 2);
   return [...flanks, ...strip, ...strip.map((face) => cad.translate(face, 0, 0, pitch)), section, sectionEnd];
 }
 
+/** How far the part's thread climbs in a turn: the pitch times its starts (#1348). */
+function threadPartLead(part: CadModifierThreadPart) {
+  return part.pitch * Math.max(1, part.starts ?? 1);
+}
+
+/**
+ * Where half turn `index` starts: an even one on +x, an odd one turned half round. The even ones
+ * stand a pitch apart, one on the next - the strip on top of one is the strip under the next, even
+ * when that is another start (#1348) - and each odd one continues the even one below it, half a
+ * lead up. With one start that is half a pitch for every index, as it always was.
+ */
+function halfTurnBase(index: number, crestZ: number, part: CadModifierThreadPart) {
+  const odd = ((index % 2) + 2) % 2;
+  return crestZ + ((index - odd) / 2) * part.pitch + (odd * threadPartLead(part)) / 2;
+}
+
 /** Half turn `index` (0 starts on +x with its crest at z = `crestZ`), as faces. */
-function halfTurn(cad: OcctKernel, unit: readonly ShapeHandle[], index: number, crestZ: number, pitch: number) {
+function halfTurn(cad: OcctKernel, unit: readonly ShapeHandle[], index: number, crestZ: number, part: CadModifierThreadPart) {
+  const base = halfTurnBase(index, crestZ, part);
   return unit.map((face) => {
     const turned = index % 2 === 0 ? face : cad.rotate(face, AXIS, Math.PI);
-    return cad.translate(turned, 0, 0, crestZ + (index * pitch) / 2);
+    return cad.translate(turned, 0, 0, base);
   });
+}
+
+/** How far the radii of a thread are shifted at height z: the taper (#1267), or nothing. */
+function taperShift(part: CadModifierThreadPart, z: number) {
+  return part.taper ? part.taper.slope * (z - part.taper.at) : 0;
+}
+
+/** Points a tapered helix of half a turn is interpolated through: off the true curve by far less than a micron. */
+const TAPERED_HELIX_STEPS = 24;
+
+/**
+ * The half turns of a tapered thread (NPT, #1267), as `halfTurn` gives those of a straight one -
+ * but each built where it stands, since every turn is a little wider than the one below and no
+ * copy fits. Each profile point runs on a helix of its own whose radius shifts with the height as
+ * the taper says (the display's construction: radius plus the shift at that height); the faces
+ * between two neighbouring points are ruled between their helices. A rigid profile swept along a
+ * tapered helix would not do: its top crest would lie a thirty-second of a pitch inside the next
+ * turn's bottom crest, and the turns would not close.
+ *
+ * Half turns meet as copies do: the strip from the axis to the crest of one is the strip of the
+ * one two above it, its end section the start section of the next. Those are built once and handed
+ * to both, so `sewnSolid` finds them twice and drops them.
+ */
+function taperedHalfTurns(cad: OcctKernel, part: CadModifierThreadPart, crestZ: number, climbsCounterClockwise: boolean) {
+  const { pitch, major, minor } = part;
+  const points = part.profile;
+  const count = points.length;
+  const turn = climbsCounterClockwise ? 1 : -1;
+  const startAngle = (index: number) => (((index % 2) + 2) % 2 === 0 ? 0 : Math.PI);
+  const base = (index: number) => crestZ + (index * pitch) / 2;
+  // Point j of the profile at the start of half turn `index`, as (radius, z); j = count is the closing crest a pitch up.
+  const sectionPoint = (index: number, j: number): Point => {
+    const { u, level } = j < count ? points[j] : { u: points[0].u + 1, level: points[0].level };
+    const z = base(index) + u * pitch;
+    return [Math.max(1e-3, minor + (major - minor) * level + taperShift(part, z)), z];
+  };
+  const at = ([radius, z]: Point, angle: number) => ({ x: radius * Math.cos(angle), y: radius * Math.sin(angle), z });
+  const helices = new Map<string, ShapeHandle>();
+  // The helix of point j over half turn `index`; the closing crest's is the first point's two half turns up.
+  const helix = (index: number, j: number): ShapeHandle => {
+    if (j >= count) return helix(index + 2, j - count);
+    const key = `${index}:${j}`;
+    const known = helices.get(key);
+    if (known) return known;
+    const { u, level } = points[j];
+    const along = Array.from({ length: TAPERED_HELIX_STEPS + 1 }, (_, step) => {
+      const t = step / TAPERED_HELIX_STEPS;
+      const z = base(index) + (u + t / 2) * pitch;
+      const radius = Math.max(1e-3, minor + (major - minor) * level + taperShift(part, z));
+      return at([radius, z], startAngle(index) + turn * t * Math.PI);
+    });
+    const made = cad.makeWire([cad.interpolatePoints(along)]);
+    helices.set(key, made);
+    return made;
+  };
+  const strips = new Map<number, ShapeHandle[]>();
+  // From the axis to the crest helix at the bottom of half turn `index`.
+  const strip = (index: number) => {
+    const known = strips.get(index);
+    if (known) return known;
+    const z = base(index) + points[0].u * pitch;
+    const axis = cad.makeWire([cad.makeLineEdge({ x: 0, y: 0, z }, { x: 0, y: 0, z: z + pitch / 2 })]);
+    const made = cad.getSubShapes(cad.loft([axis, helix(index, 0)], false, true), "face");
+    strips.set(index, made);
+    return made;
+  };
+  const sections = new Map<number, ShapeHandle>();
+  // The flat profile section where half turn `index` starts (and `index - 1` ends).
+  const section = (index: number) => {
+    const known = sections.get(index);
+    if (known) return known;
+    const angle = startAngle(index);
+    const corners: Point[] = [[0, sectionPoint(index, 0)[1]], ...Array.from({ length: count + 1 }, (_, j) => sectionPoint(index, j)), [0, sectionPoint(index, count)[1]]];
+    const edges: ShapeHandle[] = [];
+    for (let k = 0; k < corners.length; k += 1) {
+      const a = corners[k];
+      const b = corners[(k + 1) % corners.length];
+      if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-9) continue;
+      edges.push(cad.makeLineEdge(at(a, angle), at(b, angle)));
+    }
+    const made = cad.makeFace(cad.makeWire(edges));
+    sections.set(index, made);
+    return made;
+  };
+  return (index: number) => {
+    const flanks: ShapeHandle[] = [];
+    for (let j = 0; j < count; j += 1) {
+      const a = sectionPoint(index, j);
+      const b = sectionPoint(index, j + 1);
+      if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-9) continue;
+      flanks.push(...cad.getSubShapes(cad.loft([helix(index, j), helix(index, j + 1)], false, true), "face"));
+    }
+    return [...flanks, ...strip(index), ...strip(index + 2), section(index), section(index + 1)];
+  };
+}
+
+/** Half turn `index` of the part as faces: copies of one unit for a straight thread, each built anew for a tapered one. */
+function halfTurnMaker(cad: OcctKernel, part: CadModifierThreadPart, crestZ: number, climbsCounterClockwise: boolean) {
+  if (part.taper) return taperedHalfTurns(cad, part, crestZ, climbsCounterClockwise);
+  const unit = halfTurnFaces(cad, part, climbsCounterClockwise);
+  return (index: number) => halfTurn(cad, unit, index, crestZ, part);
 }
 
 /** Faces sewn into one solid, less the faces two half turns share: those are inside it. */
@@ -189,34 +367,51 @@ function sewnSolid(cad: OcctKernel, faces: readonly ShapeHandle[], pitch: number
 /**
  * Half turns covering z = `zFrom`..`zTo` at every angle, at least half a
  * pitch past both, crest at z = `crestZ` on +x. Half turn i covers its half
- * of the circle from z = crestZ + i pitch/2 (rising half a pitch across it)
- * to one pitch higher.
+ * of the circle from its base (`halfTurnBase`, rising half a lead across it)
+ * to a pitch above that. With several starts (#1348) a half turn reaches half
+ * a lead up, so the first ones start that much lower.
+ *
+ * With several starts the run also begins on an even half turn and ends on an
+ * odd one: both halves of the circle then have the same layers, half turns
+ * 2m and 2m + 1, and the helicoid at each end runs on across the half way.
+ * Begun on an odd one, the odd half had a layer the even half lacked, and the
+ * steps at the ends met on the axis in staggered pieces: one shell, but no
+ * valid solid (three and five starts; one start climbs a single layer a turn
+ * and never had the gap).
  */
-function halfTurnRange(zFrom: number, zTo: number, crestZ: number, pitch: number) {
-  return { first: 2 * Math.floor((zFrom - crestZ) / pitch) - 3, last: 2 * Math.ceil((zTo - crestZ) / pitch) + 1 };
+function halfTurnRange(zFrom: number, zTo: number, crestZ: number, part: CadModifierThreadPart) {
+  const pitch = part.pitch;
+  const starts = Math.max(1, part.starts ?? 1);
+  const extra = 2 * (starts - 1);
+  const first = 2 * Math.floor((zFrom - crestZ) / pitch) - 3 - extra;
+  return { first: starts > 1 ? first - 1 : first, last: 2 * Math.ceil((zTo - crestZ) / pitch) + 1 };
 }
 
 /** The tap: the thread as a solid from `zFrom` to `zTo` (at least), uncut. */
 function helicalSolid(cad: OcctKernel, part: CadModifierThreadPart, zFrom: number, zTo: number, crestZ: number, climbsCounterClockwise: boolean) {
-  const unit = halfTurnFaces(cad, part, climbsCounterClockwise);
-  const { first, last } = halfTurnRange(zFrom, zTo, crestZ, part.pitch);
+  const halfTurnAt = halfTurnMaker(cad, part, crestZ, climbsCounterClockwise);
+  const { first, last } = halfTurnRange(zFrom, zTo, crestZ, part);
   const faces: ShapeHandle[] = [];
-  for (let index = first; index <= last; index += 1) faces.push(...halfTurn(cad, unit, index, crestZ, part.pitch));
+  for (let index = first; index <= last; index += 1) faces.push(...halfTurnAt(index));
   return sewnSolid(cad, faces, part.pitch);
 }
 
 /** The outside thread from `bottom` to the top: within the major radius, less the chamfer cones at its ends. */
 function outsideThreadBound(cad: OcctKernel, part: CadModifierThreadPart, bottom: number, chamferBottom: boolean) {
   const { major, height, chamfer, chamferLow } = part;
+  // A tapered thread's chamfer starts from the outer diameter at its own end (#1267), as the display's does: at
+  // `shaftBottom`, which is the bottom face, not the bottom of the overlap into a screw head.
+  const majorLow = major + taperShift(part, part.shaftBottom);
+  const majorTop = major + taperShift(part, height);
   // Wider than the crest, so no face of the bound lies on a crest; the
   // chamfer cones run on to that width, past the crest, where they cut
   // nothing more but cross the crest instead of touching it.
-  const clear = major + Math.max(0.1, part.pitch);
+  const clear = Math.max(major + taperShift(part, bottom), majorLow, majorTop) + Math.max(0.1, part.pitch);
   const broken = chamfer > 0;
   const outline: Point[] = [[0, bottom]];
-  if (chamferLow > 0 && chamferBottom) outline.push([major - chamferLow, bottom], [clear, bottom + chamferLow + (clear - major)]);
+  if (chamferLow > 0 && chamferBottom) outline.push([majorLow - chamferLow, bottom], [clear, bottom + chamferLow + (clear - majorLow)]);
   else outline.push([clear, bottom]);
-  if (broken) outline.push([clear, height - chamfer - (clear - major)], [major - chamfer, height]);
+  if (broken) outline.push([clear, height - chamfer - (clear - majorTop)], [majorTop - chamfer, height]);
   else outline.push([clear, height]);
   outline.push([0, height]);
   return revolved(cad, outline);
@@ -229,31 +424,46 @@ function outsideThreadBound(cad: OcctKernel, part: CadModifierThreadPart, bottom
  */
 function outsideThread(cad: OcctKernel, part: CadModifierThreadPart, bottom: number, crestZ: number, climbsCounterClockwise: boolean) {
   const { pitch, height, chamfer, chamferLow } = part;
-  const unit = halfTurnFaces(cad, part, climbsCounterClockwise);
+  const halfTurnAt = halfTurnMaker(cad, part, crestZ, climbsCounterClockwise);
   const bound = outsideThreadBound(cad, part, bottom, part.chamferBottom);
-  const { first, last } = halfTurnRange(bottom, height, crestZ, pitch);
+  const { first, last } = halfTurnRange(bottom, height, crestZ, part);
   const broken = chamfer > 0;
   const clearOfBottom = bottom + (chamferLow > 0 && part.chamferBottom ? chamferLow + Math.max(0.1, pitch) : 0) + pitch * 0.01;
   const clearOfTop = height - (broken ? chamfer + Math.max(0.1, pitch) : 0) - pitch * 0.01;
+  /*
+   * The ends are cut from a run of half turns, the first ones and the last ones by index. With one
+   * start the heights rise with the index, so that is just the half turns that reach the chamfers.
+   * With several (#1348) an odd half turn stands half a lead up, above even ones of higher index:
+   * each group is then whole layers, half turns 2m and 2m + 1, for the reason `halfTurnRange`
+   * gives - picked by height alone, the groups met in pieces and sewed into no solid.
+   */
+  const from = (index: number) => halfTurnBase(index, crestZ, part);
+  const to = (index: number) => from(index) + threadPartLead(part) / 2 + pitch;
+  let lastLow = first - 1;
+  for (let index = first; index <= last; index += 1) if (from(index) < clearOfBottom) lastLow = index;
+  let firstHigh = last + 1;
+  if ((part.starts ?? 1) > 1 && lastLow >= first && ((lastLow % 2) + 2) % 2 === 0) lastLow += 1;
+  for (let index = last; index > lastLow; index -= 1) if (to(index) > clearOfTop) firstHigh = index;
+  if ((part.starts ?? 1) > 1 && firstHigh <= last && ((firstHigh % 2) + 2) % 2 === 1) firstHigh -= 1;
   const low: ShapeHandle[] = [];
   const middle: ShapeHandle[] = [];
   const high: ShapeHandle[] = [];
   for (let index = first; index <= last; index += 1) {
-    const from = crestZ + (index * pitch) / 2;
-    const to = from + 1.5 * pitch;
-    const faces = halfTurn(cad, unit, index, crestZ, pitch);
-    if (from < clearOfBottom) low.push(...faces);
-    else if (to > clearOfTop) high.push(...faces);
+    const faces = halfTurnAt(index);
+    if (index <= lastLow) low.push(...faces);
+    else if (index >= firstHigh) high.push(...faces);
     else middle.push(...faces);
   }
   const trimmed = (faces: ShapeHandle[]) => cad.getSubShapes(oneSolid(cad, cad.common(sewnSolid(cad, faces, pitch), bound), "thread end"), "face");
-  if (middle.length === 0) return oneSolid(cad, cad.common(sewnSolid(cad, [...low, ...high], pitch), bound), "thread");
+  if (middle.length === 0) return oneSolid(cad, cad.common(sewnSolid(cad, [...low, ...middle, ...high], pitch), bound), "thread");
   return sewnSolid(cad, [...trimmed(low), ...middle, ...(high.length ? trimmed(high) : [])], pitch);
 }
 
 /** The cone a chamfer cuts into an inside thread at z = `face`, opening outwards from it (`direction` 1 at the bottom, -1 at the top). */
 function insideChamferCone(cad: OcctKernel, part: CadModifierThreadPart, face: number, direction: 1 | -1, chamfer: number) {
-  const { major, minor } = part;
+  // A tapered thread's cone starts from its diameters at this face (#1267).
+  const major = part.major + taperShift(part, face);
+  const minor = part.minor + taperShift(part, face);
   const beyond = Math.max(1, part.pitch);
   // The cone runs on a little past the crest into the tap, so it crosses the
   // crest instead of ending on it: a ring lying on the crest made the boolean
@@ -266,14 +476,33 @@ function insideChamferCone(cad: OcctKernel, part: CadModifierThreadPart, face: n
   return revolved(cad, direction === 1 ? outline : [...outline].reverse());
 }
 
-function screwHead(cad: OcctKernel, head: NonNullable<CadModifierThreadPart["head"]>) {
+function screwHead(cad: OcctKernel, head: NonNullable<CadModifierThreadPart["head"]>, tiers?: readonly ThreadOutlineTier[]) {
   let body: ShapeHandle;
-  if (head.kind === "hex") body = hexPrism(cad, head.acrossFlats, head.height);
+  if (tiers) body = tiersSolid(cad, tiers, "head");
+  else if (head.kind === "hex") body = hexPrism(cad, head.acrossFlats, head.height);
   else if (head.kind === "countersunk") body = revolved(cad, [[0, 0], [head.radius, 0], [head.neckRadius, head.height], [0, head.height]]);
   else body = cad.makeCylinder(head.radius, head.height);
   if (head.chamferFaceRadius > 0) body = oneSolid(cad, cad.common(body, rimChamferBound(cad, head.chamferFaceRadius, head.height)), "head");
-  if (head.socketDepth > 0) body = oneSolid(cad, cad.cut(body, hexPrism(cad, head.socketAcrossFlats, head.socketDepth)), "head");
+  if (head.socketDepth > 0 && head.driveOutline) body = oneSolid(cad, cad.cut(body, drivePrism(cad, head.driveOutline, head.socketDepth)), "head");
+  // After the chamfer bound, which would clip it: the collar (#1152) stands on the head's shaft face.
+  if (head.collar) body = oneSolid(cad, cad.fuse(body, cad.translate(cad.makeCylinder(head.collar.radius, head.collar.height), 0, 0, head.height)), "head");
   return body;
+}
+
+/**
+ * The drive as a prism of `depth` from z = 0, from its outline: straight
+ * edges and true arcs. The outline lies in the shape's x/z plane; the turn
+ * up to y takes this z-up (x, y) to (x, -z), so z goes in as -y.
+ */
+function drivePrism(cad: OcctKernel, outline: ThreadDriveOutline, depth: number) {
+  const at = ([x, z]: readonly [number, number]) => ({ x, y: -z, z: 0 });
+  const edges: ShapeHandle[] = [];
+  let from = outline.start;
+  for (const edge of outline.edges) {
+    edges.push(edge.mid ? cad.makeArcEdge(at(from), at(edge.mid), at(edge.to)) : cad.makeLineEdge(at(from), at(edge.to)));
+    from = edge.to;
+  }
+  return cad.extrude(cad.makeFace(cad.makeWire(edges)), 0, 0, depth);
 }
 
 /** The thread part's exact solid in the shape's own frame, y up. Throws when the kernel cannot build it. */
@@ -281,6 +510,8 @@ export function threadPartSolid(cad: OcctKernel, part: CadModifierThreadPart): S
   const { role, pitch, height, shaftBottom } = part;
   if (!(part.major > part.minor && part.minor > 0 && pitch > 0 && height > 0)) throw new Error("The thread's measures are out of range");
   if (Math.max(part.chamfer, part.chamferLow) > 0.001 && part.major - Math.max(part.chamfer, part.chamferLow) < 0.05) throw new Error("The thread's chamfer reaches its axis");
+  // A tapered thread's core must not reach the axis anywhere its turns are built, a pitch and a half past both ends.
+  if (part.taper && Math.min(taperShift(part, -2 * pitch), taperShift(part, height + 2 * pitch)) + part.minor < 0.05) throw new Error("The tapered thread narrows to its axis");
   // A thread that climbs with the angle from +x towards +z (hand 1) is a
   // left-hand one; the turn up to y maps it to clockwise about +z seen from above.
   const counterClockwise = part.hand !== 1;
@@ -292,7 +523,7 @@ export function threadPartSolid(cad: OcctKernel, part: CadModifierThreadPart): S
     const into = head ? Math.min(pitch, (shaftBottom - (head.socketDepth > 0 ? head.socketDepth : 0)) * 0.5) : 0;
     const bottom = shaftBottom - into;
     solid = outsideThread(cad, part, bottom, shaftBottom, counterClockwise);
-    if (head) solid = oneSolid(cad, cad.fuse(screwHead(cad, head), solid), "screw");
+    if (head) solid = oneSolid(cad, cad.fuse(screwHead(cad, head, part.tiers), solid), "screw");
   } else {
     // A nut or a tapped hole: the thread as the tap that cuts it, reaching
     // past both faces, and the chamfer cones that widen its mouths.
@@ -302,8 +533,12 @@ export function threadPartSolid(cad: OcctKernel, part: CadModifierThreadPart): S
       ...(part.chamfer > 0 ? [insideChamferCone(cad, part, height, -1, part.chamfer)] : []),
     ];
     if (role === "nut" && part.nut) {
-      let body = hexPrism(cad, part.nut.acrossFlats, height);
-      if (part.nut.chamferFaceRadius > 0) body = oneSolid(cad, cad.common(body, rimChamferBound(cad, part.nut.chamferFaceRadius, height)), "nut");
+      // The collar (#1175) stands on the body's top face; the body is the height less the collar, and the thread runs through both.
+      const collar = part.nut.collar;
+      const bodyHeight = collar ? height - collar.height : height;
+      let body = part.tiers ? tiersSolid(cad, part.tiers, "nut") : hexPrism(cad, part.nut.acrossFlats, bodyHeight);
+      if (part.nut.chamferFaceRadius > 0) body = oneSolid(cad, cad.common(body, rimChamferBound(cad, part.nut.chamferFaceRadius, bodyHeight)), "nut");
+      if (collar) body = oneSolid(cad, cad.fuse(body, cad.translate(cad.makeCylinder(collar.radius, collar.height), 0, 0, bodyHeight)), "nut");
       for (const cone of cones) body = oneSolid(cad, cad.cut(body, cone), "nut");
       solid = oneSolid(cad, cad.cut(body, tap), "nut");
     } else {

@@ -8,13 +8,17 @@ import { type ResolvedAppTheme } from "@/lib/appTheme";
 import { t } from "@/lib/i18n";
 import { horizontalPlacementWorkplane, type PlacementWorkplane } from "@/lib/placementWorkplane";
 import { liftGeometryForFrame, type SelectionFrame } from "@/lib/liftGeometry";
-import { liftHandleScreenPoint } from "@/components/workplane/transformOverlayTypes";
-import { dimensionMarkScreenPush, isPointInsideTransformBounds, rotateHandleArrow, rotationPlaneDirectionSign, transformBoundsIntersectClipVolume, transformOverlayScreenPoint, type DimensionMark, type RotationAxis, type RotationPlaneView, type TransformOverlayState } from "@/components/workplane/TransformOverlay";
+import { handleClearOfOthers, liftHandleScreenPoint } from "@/components/workplane/transformOverlayTypes";
+import { SLIDE_AXES, SLIDE_HANDLE_KEYS, slideArrowLayout, slideAxisVector } from "@/lib/slideArrows";
+import { dimensionMarkNeedsScreenLayout, dimensionMarkScreenPush, isPointInsideTransformBounds, screenSpaceDimensionMark, rotateHandleArrow, rotationPlaneDirectionSign, transformBoundsIntersectClipVolume, transformOverlayScreenPoint, type DimensionMark, type RotationAxis, type RotationPlaneView, type TransformOverlayState } from "@/components/workplane/TransformOverlay";
 import { cuboidCorners, pointAlongAxes } from "@/lib/alignFrame";
 import type { AlignAxis, AlignHandleStatus, AlignTarget, MeasurementAccuracy, WorkplaneShape } from "@/types/layerling";
 import { outwardFaceNormal } from "@/lib/layFlat";
+import { CORNER_SIGNS, DEFAULT_ROUNDED_BOX_CORNER_FILLET, normalizeCornerFillets } from "@/lib/roundedBoxGeometry";
+import { narrowEndWidth, normalizeSlopeSide, shapeSupportsNarrow, shapeSupportsSlope, slopeEndHeight } from "@/lib/slopeAlong";
 import { JOINED_FACE_REACH, nearestFaceTriangle, planarFaceTriangles } from "@/lib/rotationPivot";
 import { roundFaceTriangles } from "@/lib/roundFaceAxis";
+import { flatOrRoundFaceTriangles } from "@/lib/holePatternShapes";
 import { isReferenceImage, referenceImageFacingAxis } from "@/lib/referenceImage";
 import { aimPickRay, firstShapeHit, RENDER_LAYER_SHAPES } from "@/components/workplane/viewportPicking";
 import { type ThreeState, type RotationHandleSide, type RotationHandleSides, syncTransformGuideWorldLines, formatMeasure, findShapeObject, disposeChildren } from "@/components/workplane/ViewportOverlays";
@@ -28,8 +32,32 @@ export const LIFT_HANDLE_MAX_OFFSET = 12;
  *  selection (16 % of its largest side), which put it 15 mm and more away from a larger body; it stays
  *  close now, as in Tinkercad. Handles that land on one spot are still pushed apart on the screen. */
 export const ALIGN_HANDLE_OFFSET = 3;
+/** On the screen the line of alignment handles stands at most this far beside the selection: zoomed in on a part
+ *  below a millimetre, the 3 mm put it far off the part or off the screen (Discussion #989). */
+export const ALIGN_HANDLE_MAX_SCREEN_OFFSET = 40;
+
+/**
+ * Factor that pulls a line of alignment handles towards the selection when the projected offset between a handle and
+ * the point of the box it stands beside is larger than `maxOffset` on the screen; 1 when it is close enough.
+ */
+export function alignHandleScreenShrink(handle: { x: number; y: number }, base: { x: number; y: number }, maxOffset = ALIGN_HANDLE_MAX_SCREEN_OFFSET) {
+  const distance = Math.hypot(handle.x - base.x, handle.y - base.y);
+  return Number.isFinite(distance) && distance > maxOffset ? maxOffset / distance : 1;
+}
 
 /** How far the lift arrow stands over the face it belongs to; the overlay and the drag plane both use this. */
+/**
+ * The marks a lone selection shows without a handle hovered, by the handles they belong to: width, depth (not for a
+ * round footprint) and height, and the height above the workplane when the body does not stand on it, as Tinkercad
+ * shows it (#979); on the workplane that would only be a 0.
+ */
+export function alwaysVisibleDimensionKeysFor(circular: boolean, elevation: number, keys: { width: string; depth: string; height: string; lift: string }) {
+  return [
+    ...(circular ? [keys.width, keys.height] : [keys.width, keys.depth, keys.height]),
+    ...(Math.abs(elevation) > 0.005 ? [keys.lift] : []),
+  ];
+}
+
 export function liftHandleOffset(liftHeight: number) {
   return Math.max(2, Math.min(liftHeight * LIFT_HANDLE_HEIGHT_OFFSET_FRACTION, LIFT_HANDLE_MAX_OFFSET));
 }
@@ -148,7 +176,7 @@ export function makeDimensionMark(
   fromWorld: THREE.Vector3,
   toWorld: THREE.Vector3,
   outwardWorld: THREE.Vector3,
-  project: (point: THREE.Vector3) => { x: number; y: number },
+  project: (point: THREE.Vector3) => { x: number; y: number; visible?: boolean },
 ): DimensionMark {
   const from = project(fromWorld);
   const to = project(toWorld);
@@ -158,17 +186,28 @@ export function makeDimensionMark(
   const railOffset = 5.8;
   const extensionOverrun = 1.4;
   const labelOffset = 3.2;
-  const railFrom = project(fromWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset)));
-  const railTo = project(toWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset)));
-  const extensionFrom = project(fromWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset + extensionOverrun)));
-  const extensionTo = project(toWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset + extensionOverrun)));
-  const edgeMidpoint = project(fromWorld.clone().lerp(toWorld, 0.5));
-  const labelPoint = project(
-    fromWorld
-      .clone()
-      .lerp(toWorld, 0.5)
-      .add(outwardAxis.clone().multiplyScalar(railOffset + labelOffset)),
-  );
+  const midpointWorld = fromWorld.clone().lerp(toWorld, 0.5);
+  const edgeMidpoint = project(midpointWorld);
+  let railFrom: { x: number; y: number; visible?: boolean } = project(fromWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset)));
+  let railTo: { x: number; y: number; visible?: boolean } = project(toWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset)));
+  let extensionFrom: { x: number; y: number; visible?: boolean } = project(fromWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset + extensionOverrun)));
+  let extensionTo: { x: number; y: number; visible?: boolean } = project(toWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset + extensionOverrun)));
+  let labelPoint: { x: number; y: number; visible?: boolean } = project(midpointWorld.clone().add(outwardAxis.clone().multiplyScalar(railOffset + labelOffset)));
+  // Zoomed far in on a tiny part, the same world offset lands the mark off screen
+  // or behind the camera, where it flips back across the body (#989). Then take
+  // only the outward direction from a tiny world step and place the mark in pixels.
+  const offsetPointsVisible = [railFrom, railTo, extensionFrom, extensionTo, labelPoint].every((point) => point.visible !== false);
+  if (dimensionMarkNeedsScreenLayout(edgeMidpoint, labelPoint, offsetPointsVisible)) {
+    const step = Math.max(fromWorld.distanceTo(toWorld), 0.01) * 0.01;
+    const probe = project(midpointWorld.clone().add(outwardAxis.clone().multiplyScalar(step)));
+    const length = Math.hypot(probe.x - edgeMidpoint.x, probe.y - edgeMidpoint.y);
+    if (Number.isFinite(length) && length > 1e-6) {
+      const direction = { x: (probe.x - edgeMidpoint.x) / length, y: (probe.y - edgeMidpoint.y) / length };
+      ({ railFrom, railTo, extensionFrom, extensionTo, labelPoint } = screenSpaceDimensionMark(
+        from, to, edgeMidpoint, direction, { rail: railOffset, overrun: extensionOverrun, label: labelOffset },
+      ));
+    }
+  }
   // The world offset above shrinks to a few pixels when zoomed out, which puts
   // the label under a rotate handle. Lift the whole mark together so the label
   // keeps its distance without tearing away from its own rail.
@@ -249,6 +288,16 @@ export function updateTransformOverlayDom(state: ThreeState, next: TransformOver
     element.style.setProperty("--overlay-y", `${handle.y}px`);
     element.querySelector(".rotate-arrow-arc")?.setAttribute("d", handle.arc);
     element.querySelector(".rotate-arrow-heads")?.setAttribute("d", handle.heads);
+  });
+  const slideHandles = root.querySelectorAll<HTMLElement>(".transform-overlay .slide-handle");
+  next.slideHandles.forEach((handle, index) => {
+    const element = slideHandles[index];
+    if (!element) {
+      return;
+    }
+    element.style.setProperty("--overlay-x", `${handle.x}px`);
+    element.style.setProperty("--overlay-y", `${handle.y}px`);
+    element.style.setProperty("--slide-handle-angle", `${handle.angle}deg`);
   });
 }
 
@@ -364,9 +413,62 @@ export function syncTransformOverlay(
     left: project(footprintWorld.left),
   };
   const heightPoint = project(showLowerHandles ? lowerCenterWorld : upperCenterWorld);
+  // Slope along (slopeAlong.ts): a dot on the top of the lower end, dragged up and down like the height.
+  const slopeShape = frame.singleShape && shapeSupportsSlope(frame.singleShape) && typeof frame.singleShape.slopeEnd === "number" ? frame.singleShape : null;
+  const slopePoint = (() => {
+    if (!slopeShape) return { x: 0, y: 0, visible: false };
+    const side = normalizeSlopeSide(slopeShape.kind, slopeShape.slopeSide);
+    const y = frame.min.y + slopeEndHeight(slopeShape);
+    const world = side === "back" ? framePoint(frame, 0, y, frame.min.z)
+      : side === "front" ? framePoint(frame, 0, y, frame.max.z)
+        : side === "left" ? framePoint(frame, frame.min.x, y, 0)
+          : framePoint(frame, frame.max.x, y, 0);
+    return project(world);
+  })();
+  // Narrow along: a dot on the narrow end's side, dragged across like a width.
+  const narrowShape = frame.singleShape && shapeSupportsNarrow(frame.singleShape) && typeof frame.singleShape.narrowEnd === "number" ? frame.singleShape : null;
+  const narrowPoint = (() => {
+    if (!narrowShape) return { x: 0, y: 0, visible: false };
+    const side = normalizeSlopeSide(narrowShape.kind, narrowShape.narrowSide);
+    const half = narrowEndWidth({ ...narrowShape, narrowSide: side }) / 2;
+    // On a box halfway up its end; on a round roof at the foot, where its side meets the plate.
+    const y = frame.min.y + (narrowShape.kind === "roundRoof" ? 0 : (frame.max.y - frame.min.y) / 2);
+    const world = side === "back" ? framePoint(frame, half, y, frame.min.z)
+      : side === "front" ? framePoint(frame, half, y, frame.max.z)
+        : side === "left" ? framePoint(frame, frame.min.x, y, half)
+          : framePoint(frame, frame.max.x, y, half);
+    return project(world);
+  })();
   const liftBasePoint = project(liftBaseWorld);
   // A thin body puts the arrow a few pixels from the height handle; it keeps its distance on the screen.
   const liftPoint = liftHandleScreenPoint(liftBasePoint, project(liftHandle), showLowerLiftHandle);
+  // Corner radius (like the corner dot in Inkscape): on the top's back edge, where the rounding of the back right corner starts;
+  // dragged along the edge, the radius follows. A plain Box has it too, with no radius yet: the first pull turns it into
+  // a Rounded box with flat top and bottom. The dot keeps clear of the other handles on the screen.
+  const plainBox = frame.singleShape?.kind === "box" && !frame.singleShape.imagePlate && !((frame.singleShape.radius ?? 0) > 0);
+  const cornerShape = frame.singleShape?.kind === "roundedBox" || plainBox ? frame.singleShape : null;
+  const cornerEntries = (() => {
+    if (!cornerShape) return [];
+    const largest = Math.min(frame.max.x - frame.min.x, frame.max.z - frame.min.z) / 2;
+    // With flat top and bottom a Rounded box may give each corner its own radius: then every corner has a dot.
+    const flat = (cornerShape.topBottomFillet ?? 0) <= 1e-4;
+    const own = flat ? normalizeCornerFillets(cornerShape.cornerFillets, largest) : undefined;
+    const corners = own
+      ? own.map((radius, index) => ({ key: `corner-radius-${index}`, radius, sx: CORNER_SIGNS[index].sx, sz: CORNER_SIGNS[index].sz }))
+      : [{ key: "corner-radius", radius: plainBox ? 0 : Math.min(Math.max(0, cornerShape.cornerFillet ?? DEFAULT_ROUNDED_BOX_CORNER_FILLET), largest), sx: 1, sz: -1 }];
+    const others = [bottom.nearLeft, bottom.nearRight, bottom.farRight, bottom.farLeft, mid.near, mid.right, mid.far, mid.left, heightPoint, slopePoint, narrowPoint, liftPoint].filter((other) => other.visible);
+    return corners.map(({ key, radius, sx, sz }) => {
+      const edgeX = sx > 0 ? frame.max.x - radius : frame.min.x + radius;
+      const edgeZ = sz > 0 ? frame.max.z : frame.min.z;
+      const point = project(framePoint(frame, edgeX, frame.max.y, edgeZ));
+      // Along the edge, into the body: the way the dot may slide to leave room.
+      const inward = project(framePoint(frame, edgeX - sx * largest, frame.max.y, edgeZ));
+      const clear = handleClearOfOthers(point, { x: inward.x - point.x, y: inward.y - point.y }, others);
+      // The next corner's dot keeps clear of this one too.
+      if (clear.visible) others.push(clear);
+      return { point: clear, handle: { key, className: "height-top slope-end", kind: "height" as const, x: clear.x, y: clear.y, title: t("transform.cornerRadius") } };
+    });
+  })();
   const liftTargetAngle = THREE.MathUtils.radToDeg(
     Math.atan2(liftPoint.y - liftBasePoint.y, liftPoint.x - liftBasePoint.x),
   );
@@ -418,7 +520,7 @@ export function syncTransformOverlay(
   // handle shows that single mark instead of a separate width and depth line
   // (which used to appear together at a corner handle, and independently
   // editable at all, letting the two drift apart).
-  const isCircularFootprint = frame.singleShape?.kind === "cylinder" || frame.singleShape?.kind === "star";
+  const isCircularFootprint = frame.singleShape?.kind === "cylinder" || frame.singleShape?.kind === "star" || frame.singleShape?.kind === "hirth" || frame.singleShape?.kind === "pulley" || frame.singleShape?.kind === "finishingWasher";
   const footprintDimensionMarks = Object.fromEntries(
     footprintHandleKeys.map((handleKey) => {
       if (isCircularFootprint) {
@@ -541,11 +643,14 @@ export function syncTransformOverlay(
     { point: bottom.nearRight, handle: { key: "near-right", className: "corner", kind: "scale" as const, x: bottom.nearRight.x, y: bottom.nearRight.y, title: t("transform.resize") } },
     { point: bottom.farRight, handle: { key: "far-right", className: "corner", kind: "scale" as const, x: bottom.farRight.x, y: bottom.farRight.y, title: t("transform.resize") } },
     { point: bottom.farLeft, handle: { key: "far-left", className: "corner", kind: "scale" as const, x: bottom.farLeft.x, y: bottom.farLeft.y, title: t("transform.resize") } },
-    { point: mid.near, handle: { key: "near-mid", className: "edge dark", kind: "scale" as const, x: mid.near.x, y: mid.near.y, title: t("transform.resize") } },
-    { point: mid.right, handle: { key: "right-mid", className: "edge dark", kind: "scale" as const, x: mid.right.x, y: mid.right.y, title: t("transform.resize") } },
-    { point: mid.far, handle: { key: "far-mid", className: "edge dark", kind: "scale" as const, x: mid.far.x, y: mid.far.y, title: t("transform.resize") } },
-    { point: mid.left, handle: { key: "left-mid", className: "edge dark", kind: "scale" as const, x: mid.left.x, y: mid.left.y, title: t("transform.resize") } },
-    { point: heightPoint, handle: { key: heightHandleKey, className: "height-top", kind: "height" as const, x: heightPoint.x, y: heightPoint.y, title: t("transform.height") } },
+    { point: mid.near, handle: { key: "near-mid", className: "edge dark axis-y", kind: "scale" as const, x: mid.near.x, y: mid.near.y, title: t("transform.resize") } },
+    { point: mid.right, handle: { key: "right-mid", className: "edge dark axis-x", kind: "scale" as const, x: mid.right.x, y: mid.right.y, title: t("transform.resize") } },
+    { point: mid.far, handle: { key: "far-mid", className: "edge dark axis-y", kind: "scale" as const, x: mid.far.x, y: mid.far.y, title: t("transform.resize") } },
+    { point: mid.left, handle: { key: "left-mid", className: "edge dark axis-x", kind: "scale" as const, x: mid.left.x, y: mid.left.y, title: t("transform.resize") } },
+    { point: heightPoint, handle: { key: heightHandleKey, className: "height-top axis-z", kind: "height" as const, x: heightPoint.x, y: heightPoint.y, title: t("transform.height") } },
+    { point: slopePoint, handle: { key: "slope-end", className: "height-top slope-end", kind: "height" as const, x: slopePoint.x, y: slopePoint.y, title: t("transform.slope") } },
+    { point: narrowPoint, handle: { key: "narrow-end", className: "height-top slope-end", kind: "height" as const, x: narrowPoint.x, y: narrowPoint.y, title: t("transform.narrow") } },
+    ...cornerEntries,
     { point: liftPoint, handle: { key: liftHandleKey, className: showLowerLiftHandle ? "height-lift lower" : "height-lift", kind: "lift" as const, x: liftPoint.x, y: liftPoint.y, title: t("transform.lift"), angle: liftHandleAngle } },
   ].filter(({ point }) => point.visible).map(({ handle }) => handle);
   const rotationChromeVisible = !cameraInsideSelection && centerPoint.visible;
@@ -592,17 +697,42 @@ export function syncTransformOverlay(
     rotateRightSource.visible ? rotateArrowHandle("rotate-right", "screen-right axis-y", zFootAxis, zFaceCenter, sidePoint(rotationSides.z, frame.max.y), yFootAxis) : null,
     rotateBottomSource.visible ? rotateArrowHandle("rotate-bottom", "screen-bottom axis-z", yFootAxis, yFaceCenter, sidePoint(rotationSides.y, footprintY), xFootAxis) : null,
   ].filter((handle): handle is NonNullable<typeof handle> => Boolean(handle)) : [];
+  // The X and Y arrows (Discussion #1434) stand round the middle of the top, where the lift arrow starts.
+  // Each axis is measured against a step across the view: one seen end on gets no arrow.
+  const liftBaseScreen = liftBasePoint;
+  const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(state.camera.quaternion);
+  const acrossScreen = project(liftBaseWorld.clone().addScaledVector(cameraRight, planeWorldStep));
+  const acrossLength = Math.hypot(acrossScreen.x - liftBaseScreen.x, acrossScreen.y - liftBaseScreen.y);
+  const slideHandles = rotationChromeVisible && liftBaseScreen.visible && acrossLength > 1e-6
+    ? slideArrowLayout(
+        liftBaseScreen,
+        SLIDE_AXES.map((axis) => {
+          const vector = slideAxisVector(activeWorkplane, axis);
+          const tip = project(liftBaseWorld.clone().add(new THREE.Vector3(vector.x, vector.y, vector.z).multiplyScalar(planeWorldStep)));
+          const dx = tip.x - liftBaseScreen.x;
+          const dy = tip.y - liftBaseScreen.y;
+          return { axis, dx, dy, foreshortening: tip.visible ? Math.hypot(dx, dy) / acrossLength : 0 };
+        }),
+        liftPoint.visible ? { x: liftPoint.x - liftBasePoint.x, y: liftPoint.y - liftBasePoint.y } : null,
+      ).map((placement) => ({
+        key: SLIDE_HANDLE_KEYS[placement.axis],
+        className: `axis-${placement.axis}`,
+        x: placement.x,
+        y: placement.y,
+        angle: placement.angle,
+        title: t(placement.axis === "x" ? "transform.slideX" : "transform.slideY"),
+      }))
+    : [];
 
   // Which mid-edge handle sits on the side of the shape currently facing the
   // camera - same sign convention as showLowerHandles above, so always-visible
-  // dimension labels for a lone selection land on a readable, visible face.
+  // dimension labels land on a readable, visible face. A selection of several bodies shows its
+  // box's marks too, as a group of them does (#1574).
   const cameraView = state.camera.position.clone().sub(frame.center);
   const widthMidHandleKey = cameraView.dot(xFootAxis) >= 0 ? "right-mid" : "left-mid";
   const depthMidHandleKey = cameraView.dot(zFootAxis) >= 0 ? "near-mid" : "far-mid";
-  const alwaysVisibleDimensionKeys = dimensionsAlwaysVisible && frame.singleShape
-    ? isCircularFootprint
-      ? [widthMidHandleKey, heightHandleKey]
-      : [widthMidHandleKey, depthMidHandleKey, heightHandleKey]
+  const alwaysVisibleDimensionKeys = dimensionsAlwaysVisible
+    ? alwaysVisibleDimensionKeysFor(isCircularFootprint, lift.elevation, { width: widthMidHandleKey, depth: depthMidHandleKey, height: heightHandleKey, lift: liftHandleKey })
     : [];
 
   const next = {
@@ -612,6 +742,7 @@ export function syncTransformOverlay(
     guides: [],
     handles,
     rotateHandles,
+    slideHandles,
     dimensions: dimensionMarks,
     alwaysVisibleDimensionKeys,
     rotationWheel: rotationWheels.y,
@@ -653,6 +784,9 @@ export function drawnShapesBounds(state: ThreeState, ids: string[]): THREE.Box3 
   });
   return bounds.isEmpty() ? null : bounds;
 }
+
+/** How far, in screen pixels, the equal-gaps dot of an axis stands out from the middle dot of its line. */
+const ALIGN_SPREAD_OFFSET = 26;
 
 export function syncAlignOverlay(
   state: ThreeState,
@@ -740,33 +874,43 @@ export function syncAlignOverlay(
 
   // The three handles of an axis, minimum, middle and maximum, stand on one line. Where they land close
   // together on the screen they are pushed apart (alignHandleSpread.ts), so each can still be picked.
-  const groups: Array<{ axis: AlignAxis; points: [THREE.Vector3, THREE.Vector3, THREE.Vector3]; along: THREE.Vector3 }> = [
+  // Each line also keeps the points of the box it stands beside (`bases`, the same points without the offset).
+  const line = (point: (shift: number) => [THREE.Vector3, THREE.Vector3, THREE.Vector3]) => ({ points: point(offset), bases: point(0) });
+  const groups: Array<{ axis: AlignAxis; points: [THREE.Vector3, THREE.Vector3, THREE.Vector3]; bases: [THREE.Vector3, THREE.Vector3, THREE.Vector3]; along: THREE.Vector3 }> = [
     {
       axis: "x",
-      points: [at(worldMinX, worldMinY, worldMaxZ + offset), at(worldCenterX, worldMinY, worldMaxZ + offset), at(worldMaxX, worldMinY, worldMaxZ + offset)],
+      ...line((shift) => [at(worldMinX, worldMinY, worldMaxZ + shift), at(worldCenterX, worldMinY, worldMaxZ + shift), at(worldMaxX, worldMinY, worldMaxZ + shift)]),
       along: at(1, 0, 0),
     },
     {
       axis: "z",
-      points: [at(worldMaxX + offset, worldMinY, worldMinZ), at(worldMaxX + offset, worldMinY, worldCenterZ), at(worldMaxX + offset, worldMinY, worldMaxZ)],
+      ...line((shift) => [at(worldMaxX + shift, worldMinY, worldMinZ), at(worldMaxX + shift, worldMinY, worldCenterZ), at(worldMaxX + shift, worldMinY, worldMaxZ)]),
       along: at(0, 0, 1),
     },
     {
       axis: "y",
-      points: [at(worldMinX - offset, worldMinY, worldMaxZ + offset), at(worldMinX - offset, worldCenterY, worldMaxZ + offset), at(worldMinX - offset, worldMaxY, worldMaxZ + offset)],
+      ...line((shift) => [at(worldMinX - shift, worldMinY, worldMaxZ + shift), at(worldMinX - shift, worldCenterY, worldMaxZ + shift), at(worldMinX - shift, worldMaxY, worldMaxZ + shift)]),
       along: at(0, 1, 0),
     },
   ];
   const targets: AlignTarget[] = ["min", "center", "max"];
   const handles: AlignOverlayState["handles"] = [];
   const guides: AlignOverlayState["guides"] = [];
-  groups.forEach(({ axis, points, along }) => {
-    const screen = points.map(project);
-    if (screen.some((point) => !point)) return;
-    const [lo, mid, hi] = screen as Array<{ x: number; y: number }>;
+  const spreads: AlignOverlayState["spreads"] = [];
+  groups.forEach(({ axis, points, bases, along }) => {
+    const projected = points.map(project);
+    const baseScreen = bases.map(project);
+    if (projected.some((point) => !point) || baseScreen.some((point) => !point)) return;
+    // Zoomed far in on a tiny part, pull the whole line towards the box by one factor (Discussion #989).
+    const shrink = alignHandleScreenShrink(projected[1]!, baseScreen[1]!);
+    const screen = projected.map((point, index) => {
+      const base = baseScreen[index]!;
+      return shrink === 1 ? point! : { x: base.x + (point!.x - base.x) * shrink, y: base.y + (point!.y - base.y) * shrink };
+    });
+    const [lo, mid, hi] = screen;
     // Which way the axis runs on the screen, from a point a unit further along it.
     const ahead = project(points[1].clone().add(along));
-    const direction = ahead ? { x: ahead.x - mid.x, y: ahead.y - mid.y } : { x: 1, y: 0 };
+    const direction = ahead ? { x: ahead.x - projected[1]!.x, y: ahead.y - projected[1]!.y } : { x: 1, y: 0 };
     const spread = spreadAlignHandles(lo, mid, hi, direction);
     guides.push({ key: axis, x1: spread[0].x, y1: spread[0].y, x2: spread[2].x, y2: spread[2].y });
     targets.forEach((target, index) => {
@@ -774,13 +918,27 @@ export function syncAlignOverlay(
       if (!status) return;
       handles.push({ ...status, key: `${axis}-${target}`, x: spread[index].x, y: spread[index].y });
     });
+    // Equal gaps: a dot of its own beside the middle of the line, further out from the box, where it is clear
+    // of the other two lines that meet this one at its ends.
+    const even = statusByKey.get(`${axis}:center`)?.spread;
+    if (even) {
+      const base = baseScreen[1]!;
+      let out = { x: spread[1].x - base.x, y: spread[1].y - base.y };
+      let length = Math.hypot(out.x, out.y);
+      if (length < 1) {
+        out = { x: -direction.y, y: direction.x };
+        length = Math.hypot(out.x, out.y) || 1;
+      }
+      const angle = (Math.atan2(spread[2].y - spread[0].y, spread[2].x - spread[0].x) * 180) / Math.PI;
+      spreads.push({ ...even, axis, key: `${axis}-spread`, x: spread[1].x + (out.x / length) * ALIGN_SPREAD_OFFSET, y: spread[1].y + (out.y / length) * ALIGN_SPREAD_OFFSET, angle });
+    }
   });
   if (handles.length === 0) {
     clear();
     return;
   }
 
-  const next = { guides, handles };
+  const next = { guides, handles, spreads };
 
   overlayRef.current = next;
   setOverlay(next);
@@ -931,7 +1089,8 @@ export function syncLayFlatHover(
   theme: ResolvedAppTheme,
   clientX: number | null,
   clientY: number | null,
-  round = false,
+  /** A round face (a hole's wall) instead of a flat one; "either" lights a round wall or a flat face, as the hole pattern picks (#1393). */
+  round: boolean | "either" = false,
   joined: ArrayLike<number> | null = null,
 ) {
   if (!state) return;
@@ -979,7 +1138,7 @@ export function syncLayFlatHover(
   let positions: ArrayLike<number>;
   // With a group's parts joined, the face runs on across them; where the joined body has no face there, the part's is lit.
   let joinedTriangle = -1;
-  if (joined && !round && joined.length / 3 <= 600000) {
+  if (joined && round !== true && joined.length / 3 <= 600000) {
     const faceIndex = hit.faceIndex;
     const [a, b, c] = [0, 1, 2].map((offset) => worldCorner(faceIndex * 3 + offset).clone());
     const normal = outwardFaceNormal(a, b, c, state.raycaster.ray.direction);
@@ -993,7 +1152,7 @@ export function syncLayFlatHover(
   }
   if (joined && joinedTriangle >= 0) {
     positions = joined;
-    triangles = planarFaceTriangles(joined, joinedTriangle)?.triangles ?? [joinedTriangle];
+    triangles = (round === "either" ? flatOrRoundFaceTriangles(joined, joinedTriangle) : planarFaceTriangles(joined, joinedTriangle))?.triangles ?? [joinedTriangle];
   } else if (cornerCount <= 600000) {
     const world = new Float64Array(cornerCount * 3);
     for (let offset = 0; offset < cornerCount; offset += 1) {
@@ -1003,7 +1162,9 @@ export function syncLayFlatHover(
       world[offset * 3 + 2] = corner.z;
     }
     positions = world;
-    triangles = (round ? roundFaceTriangles(world, hit.faceIndex) : planarFaceTriangles(world, hit.faceIndex))?.triangles ?? triangles;
+    triangles = (round === "either"
+      ? flatOrRoundFaceTriangles(world, hit.faceIndex)
+      : round ? roundFaceTriangles(world, hit.faceIndex) : planarFaceTriangles(world, hit.faceIndex))?.triangles ?? triangles;
   } else {
     // A very dense mesh is too slow to search on every move: show the one facet.
     const world = new Float64Array(9);

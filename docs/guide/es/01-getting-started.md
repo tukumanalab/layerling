@@ -17,12 +17,15 @@ Todos tus diseños aparecen después en la página de inicio, con una imagen de 
 
 ## El editor de un vistazo
 
-![El editor con dos formas sobre el plano de trabajo. Arriba, la cinta; a la izquierda, los controles de cámara; a la derecha, los ajustes de la forma seleccionada.](shot:editor-overview)
+![El editor con sus zonas rotuladas: arriba la cinta, a la izquierda el cubo de vista con la barra de vista debajo, a su lado el mensaje de estado y la lista de objetos, a la derecha las propiedades de la forma seleccionada.](shot:editor-areas)
 
-- **Arriba** está la cinta, ordenada por tareas: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.group.modify}}, {{ui:editor.group.arrange}}, {{ui:editor.group.manage}} y {{ui:editor.group.help}}. Pasa el ratón por encima de un icono para ver su nombre. Allí donde veas un pequeño signo de interrogación, por ejemplo en los ajustes de una forma, en la biblioteca de formas o en los paneles de herramientas, te lleva directamente al capítulo de esta guía que trata ese tema.
+- **Arriba** está la **cinta**, ordenada por tareas: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.section.mirrorPattern}}, {{ui:editor.section.splitShape}}, {{ui:editor.section.edgesWalls}}, {{ui:editor.section.surface}}, {{ui:editor.group.arrange}} y {{ui:editor.group.file}}; {{ui:editor.group.help}} está encima, en la fila del título, y la casa junto a las pestañas te devuelve a la página de inicio. Cuando la ventana es demasiado estrecha para todos los grupos, los que menos se usan se pliegan en un solo botón bajo su nombre, con una flechita del color del grupo colgando debajo: señálalo o tócalo y sus herramientas se abren debajo. {{ui:editor.group.history}} plegado es la excepción: su botón es el propio {{ui:editor.tool.undo}}, y solo la flecha de debajo abre {{ui:editor.tool.redo}} y lo demás. La chincheta de arriba a la derecha, a la izquierda de la lupa, mantiene en cambio todos los grupos abiertos. Pasa el ratón por encima de un icono para ver su nombre, también si está en gris; {{ui:interactiveHelp.title}} (el signo de interrogación de {{ui:editor.group.help}}, o Mayús+F1) explica cualquiera de ellos con un clic y te lleva a su apartado de esta guía. Allí donde veas un pequeño signo de interrogación, por ejemplo en los ajustes de una forma, en la biblioteca de formas o en las ventanas de herramientas, te lleva directamente al capítulo de esta guía que trata ese tema. Un icono en gris dice además qué le falta, por ejemplo {{ui:editor.needs.oneBody}} o {{ui:editor.needs.locked}}. ¿No encuentras una herramienta? Pulsa [[Ctrl]]+[[K]] y escribe su nombre; un diseño vacío te lo recuerda abajo en la vista.
 - **En el centro** está el plano de trabajo. Ahí colocas las formas, las ajustas a tu gusto y ves el resultado.
-- **A la derecha** aparecen los ajustes de la forma seleccionada: color, medidas, posición y todo lo demás que define la forma. Escribir números es más exacto que arrastrar.
-- **A la izquierda** están los controles de cámara, con el cubo de vista encima. Con ellos te mueves por la escena; tienes más detalles en [Vista y plano de trabajo](chapter:view-and-workplane).
+- **A la derecha** está el **panel de propiedades** de la forma seleccionada: color, medidas, posición y todo lo demás que define la forma. Escribir números es más exacto que arrastrar.
+- **A la izquierda** está la **barra de vista**, con el **cubo de vista** encima. Con ellos te mueves por la escena; tienes más detalles en [Vista y plano de trabajo](chapter:view-and-workplane).
+- **Junto a la barra de vista** se abre la **lista de objetos** ([[Ctrl]]+[[U]]), con todas las formas del diseño. Más en [Seleccionar y organizar](chapter:select-and-arrange).
+- **A la derecha del cubo de vista** aparece el **mensaje de estado** cuando layerling tiene algo que decirte, por ejemplo qué espera de ti una herramienta. Si no hay nada que decir, no está.
+- Las **ventanas de herramientas** se abren sobre el plano de trabajo cuando empiezas una herramienta como el redondeo, el patrón o el vaciado. Apártalas por su barra de título cuando tapen algo.
 - **Arriba del todo** cambias entre {{ui:editor.modeGeometry}} y {{ui:editor.modeSketch}}, cambias el nombre del diseño y eliges el idioma y el tema.
 
 ## Los botones alrededor de la zona de trabajo
@@ -31,7 +34,7 @@ Pasa el ratón por encima de un botón para ver su nombre. Si no tienes claro qu
 
 ### Pegar
 
-{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) añade al diseño lo que hayas copiado con {{ui:editor.tool.copy}}. {{ui:common.duplicate}} copia y pega en un solo paso.
+{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) añade al diseño lo que hayas copiado con {{ui:editor.tool.copy}}. {{ui:common.duplicate}} copia y pega en un solo paso. Al pegar, cada pieza queda un poco al lado de donde estaba. Las piezas que vienen de otro programa pueden caer lejos de la placa, y para ellas está {{ui:workspace.pasteCentered}} en los ajustes, dentro de {{ui:workspace.appearance}}: al pegar, las piezas se juntan en el centro del plano de trabajo y bajan hasta él.
 
 ### Eliminar
 
@@ -69,9 +72,9 @@ El nombre del diseño ({{ui:confirm.projectName}}) está arriba del todo. Haz cl
 
 {{ui:palette.open}}: escribe lo que buscas, ya sea una herramienta, una forma o un ajuste, y haz clic en el resultado.
 
-### Ocultar los controles de cámara
+### Ocultar la barra de vista
 
-{{ui:camera.hide}} recoge los controles de cámara de la izquierda y deja más sitio a la zona de trabajo; {{ui:camera.show}} los vuelve a mostrar.
+{{ui:camera.hide}} recoge la barra de vista de la izquierda y deja más sitio a la zona de trabajo; {{ui:camera.show}} la vuelve a mostrar.
 
 ### Cuadrícula de ajuste
 
@@ -84,6 +87,10 @@ El interruptor **mm | in**, junto a {{ui:inspector.snapGrid}}, cambia en este di
 ### El pie de página
 
 En la parte de abajo de la ventana: {{ui:dashboard.sponsor}} lleva a la página donde puedes apoyar el proyecto; {{ui:dashboard.userGuide}} abre esta guía; {{ui:dashboard.forum}} lleva al sitio para preguntas, ideas e informes de errores (las discusiones de GitHub; en alemán, el foro de drucktipps3d); {{ui:editor.bugReport}} genera un ZIP para un informe de error; {{ui:dashboard.projectOnGitHub}} lleva al proyecto en GitHub, y el número de versión abre las notas de la versión. Los enlaces al aviso legal y a la política de privacidad son responsabilidad de quien gestiona la copia de layerling que usas.
+
+### Modo concentración
+
+En una pantalla pequeña, {{ui:focusMode.enter}} cede la fila del título y el pie de página al trabajo: lo activan el botón con las dos flechas hacia fuera arriba a la derecha, [[Ctrl]]+[[Shift]]+[[F]] o la búsqueda de comandos. La cinta sube y la vista llega hasta el borde de la ventana. Una pequeña barra bajo la cinta conserva la casa para la página de inicio, las pestañas {{ui:editor.modeGeometry}} y {{ui:editor.modeSketch}}, la lupa, los ajustes y el botón con las dos flechas hacia dentro, que termina el modo; arrastra la barra por su asa a otro sitio, y un doble clic en el asa la devuelve. layerling recuerda la elección en este navegador y, mientras el navegador ocupa toda la pantalla (F11), pasa solo al modo concentración.
 
 ## Tu primera pieza
 
@@ -103,7 +110,7 @@ Así se hacen orificios, ranuras y huecos. El capítulo [Sólidos y orificios](c
 
 ## Novedades desde tu última visita
 
-Cuando vuelves a abrir layerling después de una actualización, una tarjeta en la página de inicio muestra lo que se ha añadido desde tu última visita: cada versión publicada desde entonces, empezando por la más reciente. Si llevabas mucho tiempo sin entrar, desplázate hacia abajo dentro de la tarjeta. Debajo, {{ui:whatsNew.earlier}} añade también las versiones anteriores a tu última visita. Ciérrala con {{ui:whatsNew.dismiss}} y no volverá a aparecer hasta la próxima actualización. {{ui:whatsNew.footerLink}}, en el pie de la página de inicio, vuelve a mostrar las últimas novedades cuando quieras. El navegador recuerda la última versión que viste, y nada sobre ti sale de él.
+Cuando vuelves a abrir layerling después de una actualización, una tarjeta en la página de inicio muestra lo que se ha añadido desde tu última visita: cada versión publicada desde entonces, empezando por la más reciente. Si llevabas mucho tiempo sin entrar, desplázate hacia abajo dentro de la tarjeta. Debajo, {{ui:whatsNew.earlier}} añade también las versiones anteriores a tu última visita. Ciérrala con {{ui:whatsNew.dismiss}} y no volverá a aparecer hasta la próxima actualización. {{ui:whatsNew.footerLink}}, en el pie de la página de inicio, vuelve a mostrar las últimas novedades cuando quieras. En el editor, el botón {{ui:whatsNew.footerLink}} junto a {{ui:editor.guide}}, arriba a la derecha, o la búsqueda de comandos abre la misma lista; se queda abierta junto a tu diseño mientras pruebas lo nuevo. El navegador recuerda la última versión que viste, y nada sobre ti sale de él.
 
 En una copia de layerling instalada en tu propio ordenador o servidor, el aviso «Actualización disponible» tiene un botón, {{ui:update.previewShow}}, que muestra lo que trae la actualización antes de instalarla. La lista se descarga de GitHub solo cuando pulsas el botón.
 

@@ -16,9 +16,13 @@ summary: 在場景中移動、正對著觀察，以及把新形狀放到任何�
 | 按住 [[Ctrl]] / [[Cmd]] 並以左鍵拖曳 | 也可平移檢視（在 MacBook 觸控式軌跡板上：按住 [[Cmd]]，按下並拖曳） |
 | 按兩下工作平面上的空白處或平台旁邊 | 平移檢視，使該處位於中央；之後檢視繞該處旋轉 |
 
-滾輪縮放的速度在設定的 {{ui:workspace.appearance}} 下用 {{ui:workspace.zoomSpeed}} 設定：滑桿範圍 1 到 14，初始值為 5。它只影響滾輪與觸控式軌跡板：按鈕與 [[+]]、[[−]] 鍵一律以相同的小步距縮放。滑鼠滾輪的一格在任何瀏覽器中的縮放幅度都相同，觸控式軌跡板則依你滑過的距離縮放。
+滾輪縮放的速度在設定的 {{ui:workspace.appearance}} 下用 {{ui:workspace.zoomSpeed}} 設定：滑桿範圍 1 到 14，初始值為 5。它只影響滾輪與觸控式軌跡板：按鈕與 [[+]]、[[−]] 鍵一律以相同的小步距縮放。滑鼠滾輪的一格在任何瀏覽器中的縮放幅度都相同，觸控式軌跡板則依你滑過的距離縮放。其下方的 {{ui:workspace.panSpeed}} 設定平移時檢視跟隨滑鼠的速度：滑桿範圍 1 到 9，初始值為 5，此時你抓住的點會一直停在游標下。
 
-在平板或手機上，兩根手指可縮放（張開與捏合）並平移檢視（併攏滑動）。一根手指在空白處會轉動檢視，在那裡輕點則清除選取；落在形狀或控制點上時，則如同滑鼠左鍵般操作設計。若要讓從形狀上開始的手指也能轉動檢視，請開啟相機列中的 {{ui:camera.touchRotate}}。這個開關只會在具有觸控螢幕的裝置上顯示。
+**與切片軟體一致的滑鼠按鍵。** 如果你習慣了 Bambu Studio 或 OrcaSlicer，在設定的 {{ui:workspace.appearance}} 下把 {{ui:workspace.mouseScheme}} 設為 {{ui:workspace.mouseSchemeSlicer}}。這樣在空白處左鍵拖曳會轉動檢視，右鍵像中鍵一樣平移檢視，Shift 加左鍵拖曳會畫出選取框。拖曳實體仍會移動它，短按右鍵仍會開啟選單。在草圖中右鍵同樣平移檢視。
+
+**3D 滑鼠。** SpaceMouse 或其他 3D 滑鼠可以轉動、平移和縮放 3D 檢視：把帽往前推即可放大，滑動它平移檢視，傾斜它傾斜檢視，扭轉它轉動檢視。在設定的 {{ui:workspace.appearance}} 下點擊 {{ui:workspace.spaceMouseConnect}}，並在瀏覽器開啟的視窗中選擇裝置；瀏覽器會記住這個選擇，所以只需做一次。這在能存取此類裝置的 Chrome 與 Edge 中可用；Firefox 與 Safari 不行。如果某個方向的操作反了，請在按鈕下方勾選它：左右平移、上下平移、縮放、傾斜或扭轉。
+
+在平板或手機上，兩根手指可縮放（張開與捏合）並平移檢視（併攏滑動）。一根手指在空白處會轉動檢視，在那裡輕點則清除選取；落在形狀或控制點上時，則如同滑鼠左鍵般操作設計。若要讓從形狀上開始的手指也能轉動檢視，請開啟檢視列中的 {{ui:camera.touchRotate}}。這個開關只會在具有觸控螢幕的裝置上顯示。
 
 搭配筆的繪圖板用起來像滑鼠：筆尖是左鍵，筆身側鍵是右鍵，可用來轉動檢視與開啟選單。繪圖板的快速鍵可在其驅動程式中設為 layerling 的[鍵盤快速鍵](chapter:shortcuts)。
 
@@ -32,7 +36,7 @@ summary: 在場景中移動、正對著觀察，以及把新形狀放到任何�
 
 拖曳立方體可以轉動檢視，就像按住右鍵拖曳一樣。沒有選取任何東西時，方向鍵也會轉動檢視：每按一次 15°，搭配 [[Shift]] 則為 90°。它們會依所指的方向轉動模型——[[→]] 將模型正面轉向右側，[[↑]] 將正面向上抬起。按住 [[Ctrl]] 時，方向鍵改為在螢幕上平移檢視：每按一次移動畫面的十分之一，同時按 [[Shift]] 則為一半。模型會依所指的方向移動。如果選取了東西，方向鍵會移動它；請先點擊空白處再轉動檢視。在觸控螢幕上，用一根手指即可，不必開啟 {{ui:camera.touchRotate}}。
 
-### 相機列
+### 檢視列
 
 左側邊緣有一條窄列。由上而下：
 
@@ -40,8 +44,12 @@ summary: 在場景中移動、正對著觀察，以及把新形狀放到任何�
 - {{ui:camera.focusSelection}} 縮放至選取項目（[[F]] 或 [[Shift]]+[[F]]）。
 - {{ui:camera.zoomIn}} 與 {{ui:camera.zoomOut}} 逐步縮放，[[+]] 與 [[−]] 鍵也是如此。
 - {{ui:camera.orthographic}} 切換到平面檢視，平行邊會保持平行。對於量測與對齊邊，這通常比透視檢視更順手。[[O]] 可來回切換，再點一次也會返回。
+- {{ui:camera.secondView}} 在獨立的視窗中開啟設計的第二檢視，詳見下文。再點一次將其關閉。
+- {{ui:camera.showScrollbars}} 會在視圖底部和右側邊緣各顯示一條捲動軸。拖曳捲動軸可平順地移動視圖，按一下兩端的箭頭可小幅移動（按住會持續移動），按一下滑塊旁邊則移動幾乎整個視圖。視圖不會旋轉，而且與方向鍵不同，選取零件時捲動軸照樣可用——在近處處理小細節時很方便。再按一下即可隱藏；設定中的 {{ui:workspace.startWithScrollbars}} 決定設計開啟時是否顯示它們。此瀏覽器也會記住這個選擇。
 - {{ui:camera.hideWorkplane}}（網格上方的眼睛）會連同網格一起隱藏平台，讓你從下方查看設計的底面。改變的只有檢視：新形狀仍會落在工作平面上。再點一次就會重新顯示。
 - {{ui:camera.placeWorkplane}}、捲尺與角尺是各自的工具，下文以及[量測與備註](chapter:measuring-and-notes)中會介紹。
+
+{{ui:camera.secondView}} 會開啟一個視窗，用它自己的相機顯示同一個設計，讓你同時從兩個方向觀察——例如你從上方操作時，從前方看它。你在編輯器裡做的每處變更都會立即顯示在那裡；設計只在主視窗中修改，控制點也只留在主視窗。在第二視窗中，滑鼠與視圖立方體像這裡一樣轉動它的檢視，按鍵也一樣：[[1]] 到 [[6]]、[[F]]、[[Home]]、[[O]]、[[+]] 與 [[−]]，方向鍵轉動，[[Ctrl]] 加方向鍵平移。在那裡 [[F]] 會縮放到編輯器中選取的物件。設計的四個已儲存檢視在那裡也可用：[[7]]、[[8]]、[[9]] 與 [[0]] 叫出它們，[[Shift]] 加其中一個鍵會把該視窗的檢視儲存到這個鍵下——兩個視窗共用。它自己的檢視列有 {{ui:camera.home}}、{{ui:camera.focusSelection}}、{{ui:camera.zoomIn}}、{{ui:camera.zoomOut}}、{{ui:camera.orthographic}} 與 {{ui:camera.hideWorkplane}}，只作用於該視窗。視窗會在你上次離開的位置以相同大小開啟，並隨編輯器一起關閉。在手機與平板上不顯示此按鈕。
 
 列最頂端的小箭頭可在它擋住畫面時將它收起。
 
@@ -51,7 +59,7 @@ summary: 在場景中移動、正對著觀察，以及把新形狀放到任何�
 
 ## 查看內部：剖視圖
 
-{{ui:camera.sectionView}}，列中最後一個按鈕（切割工具），會沿一個平面將檢視切開，讓你檢查壁面、空腔與互相嵌合的零件。不會真的切掉任何東西：設計、其檔案與所有匯出都保持完整。平面穿過實體的地方，切口會以該實體稍暗的顏色填滿，內部的孔則保持空白，因此能分辨實心與空心；平面停止移動片刻後，填滿的面才會出現。
+{{ui:camera.sectionView}}，列中最後一個按鈕（切割工具），會沿一個平面將檢視切開，讓你檢查壁面、空腔與互相嵌合的零件。不會真的切掉任何東西：設計、其檔案與所有匯出都保持完整。平面穿過實體的地方，切口會以該實體稍暗的顏色填滿，內部的孔則保持空白，因此能分辨實心與空心；平面停止移動片刻後，填滿的面才會出現。在{{ui:camera.sectionCutFace}}中選擇剖切面的樣子：{{ui:camera.sectionCutFaceHatch}}（預設）像工程圖一樣畫剖面線，位於另一實體內部的實體剖面線方向相反，兩者因此分得清；{{ui:camera.sectionCutFaceFill}}以單色填滿；{{ui:camera.sectionCutFaceOpen}}保持開放，你會看到實體外殼的內部。這個選擇對所有設計都有效。
 
 - 選擇平面橫跨的軸：X（寬度）、Y（深度）或 Z（高度），與位置欄位中的相同。平面會從設計中央開始。
 - {{ui:camera.sectionOrientation}} 設定這些軸要跟隨什麼。{{ui:camera.sectionOrientationWorld}} 採用設計的座標軸。{{ui:camera.sectionOrientationWorkplane}} 採用工作平面的座標軸：此時 Z 平行於它切割，X 與 Y 則與它垂直，位置從其原點起算。工作平面位於斜面時，你就平行於該面切割，移動工作平面時切口也會跟著移動。{{ui:camera.sectionOrientationView}} 會將平面轉向螢幕：它會移除前方遮擋的部分，滑桿則沿你的視線將平面往設計深處推，例如為了搆到埋在裡面的零件並點擊它。轉動檢視後再點一次，切口就會跟隨新的檢視。
@@ -59,12 +67,13 @@ summary: 在場景中移動、正對著觀察，以及把新形狀放到任何�
 - 座標軸旁的按鈕會切換到切口的另一側，{{ui:camera.sectionReset}} 將平面放回中央，{{ui:camera.sectionShowPlane}} 則隱藏藍色平面。
 - 你可以點擊並選取切口露出的內容，包括內壁。
 - {{ui:camera.sectionWorkplane}} 會將工作平面放到切口上。它位於剖面上，朝向保留下來的實體外側，就像切割留下的面。若你接著切換到草圖，草圖會正好從那裡開始，淡淡的輪廓會顯示切口，你可以沿著它繪製並吸附。例如，這就是為你用剖視圖打開的空腔畫出合適蓋子的方法。座標軸旁的按鈕可選擇保留哪一側，也就決定工作平面朝向哪邊。你可以照平常的方式將工作平面放回底板。
+- {{ui:camera.sectionSketch}} 直接在切口上開始一個新草圖，切口的輪廓已經作為線條放在裡面：孔是真正的圓，圓角是圓弧。修改它們，刪掉不需要的，繼續繪製，然後完成：實體從切口向被切掉的那一側長出，因此必須與另一個零件配合的零件，例如蓋子、嵌件或密封墊，正是從那個零件自己的輪廓開始。座標軸旁邊的按鈕選擇這一側。與 SVG 一樣，只計入可見實體，孔已經扣除。
 - {{ui:camera.sectionMeasure}} 可直接在切口上量測：輪廓會以藍色顯示，在它上面點擊兩次即可得到距離，以及沿平面兩個軸的分量。兩個點都會吸附到輪廓上，並優先吸附角點。當第二次點擊落在對側壁面的任何位置時，它會與第一個點垂直對齊——因此不必精確瞄準，就能讀出壁厚、間隙與公差。第三次點擊會開始下一次量測，[[Esc]] 則結束量測。移動平面會清除量測結果。在圓形輪廓上，例如穿過圓柱或孔的切口，小十字會標出圓心，圓心也會吸附。點擊圓上的一點，再靠近它正對面的點：第二次點擊會正好落在圓心的另一側，讀數顯示 Ø，也就是直徑。從圓心到圓上的一點則得到 R，也就是半徑。
 - {{ui:camera.sectionExportSvg}} 會將切割平面上的輪廓以 1:1 儲存為 SVG，供雷射切割機、繪圖機、模板或墊片使用。X 切口從右側觀看，Y 切口從前方觀看，Z 切口從上方觀看。與匯出時相同，只有可見的實體會包含在內，孔已經扣除，同色的實體會合併成一個輪廓。每種顏色各自保持為獨立的無填色路徑，讓雷射軟體能將它們當作不同圖層分開。
 
-面板附著在它的按鈕上。如果它擋住東西，可以抓住標題列將它拖曳到工作平面上的任何位置；下次也會在那裡開啟。雙擊標題列或將它放回按鈕處，即可歸位。
+工具視窗附著在它的按鈕上。如果它擋住東西，可以抓住標題列將它拖曳到工作平面上的任何位置；下次也會在那裡開啟。雙擊標題列或將它放回按鈕處，即可歸位。
 
-X 與 [[Esc]] 會關閉面板；若正在量測，[[Esc]] 會先結束量測。切口會一直保留，直到你用 {{ui:camera.sectionActive}} 關閉它，或回到設計起始頁。開啟期間，它的按鈕會保持醒目。放在被切掉那一側的任何東西，都要等你關閉切口後才會顯示。平板沒有 [[Esc]]，所以那裡的面板多了兩個按鈕：{{ui:camera.sectionBack}} 會在量測進行中時結束量測，否則關閉面板；{{ui:camera.sectionConfirm}} 則一步關閉面板。電腦上不會顯示這兩個按鈕。
+X 與 [[Esc]] 會關閉視窗；若正在量測，[[Esc]] 會先結束量測。切口會一直保留，直到你用 {{ui:camera.sectionActive}} 關閉它，或回到設計起始頁。開啟期間，它的按鈕會保持醒目。放在被切掉那一側的任何東西，都要等你關閉切口後才會顯示。平板沒有 [[Esc]]，所以那裡的視窗多了兩個按鈕：{{ui:camera.sectionBack}} 會在量測進行中時結束量測，否則關閉視窗；{{ui:camera.sectionConfirm}} 則一步關閉視窗。電腦上不會顯示這兩個按鈕。
 
 ## 工作平面
 
@@ -78,27 +87,56 @@ X 與 [[Esc]] 會關閉面板；若正在量測，[[Esc]] 會先結束量測。�
 
 在面上時，工作平面的原點一般會吸附到網格。點擊靠近面角的位置，它就會正好落在該角上。靠近邊時，它會落在邊上，網格也與邊對齊；這就是刻意選擇網格角度的方式。若沒有角或邊，平放面上的網格會與實體平行，所以在轉過的長方體上，網格也會跟著轉。
 
-點擊平台旁邊或按 [[Esc]]，會將工作平面送回底板。更快的方法是 {{ui:camera.resetWorkplane}}：工作平面位於面上時，帶有向下箭頭的按鈕會出現在相機列中眼睛的下方。[[Shift]]+[[W]] 會直接將它放到目前選取的面。[[Alt]]+[[W]] 隨時將它放回底板，無論是否選取了東西。若點擊時按住 [[Shift]]，平面會朝向另一邊。
+點擊平台旁邊或按 [[Esc]]，會將工作平面送回底板。更快的方法是 {{ui:camera.resetWorkplane}}：工作平面位於面上時，帶有向下箭頭的按鈕會出現在檢視列中眼睛的下方。[[Shift]]+[[W]] 會直接將它放到目前選取的面。[[Alt]]+[[W]] 隨時將它放回底板，無論是否選取了東西。若點擊時按住 [[Shift]]，平面會朝向另一邊。
 
 工作平面位於面上時，{{ui:camera.placeWorkplane}} 旁邊會出現一隻眼睛。它會隱藏工作平面而不取消它，方便清楚查看設計：新形狀仍會落在該面上，旋轉也仍繞著它進行。點擊眼睛會重新顯示，設定新的工作平面也會。
+
+要正對工作平面查看，按 [[P]] 或點擊視圖列中 {{ui:camera.placeWorkplane}} 旁邊的 {{ui:camera.lookOntoWorkplane}}。視圖會轉到正對平面的方向，從新形狀生長的那一側看過去，平面原點位於中間。在底板上，這就是俯視圖。
+
+## 列印板
+
+當一個設計的內容超出一個列印板所能列印的範圍時，例如一個盒子連同蓋子和內襯，它可以有多個列印板。按一下 {{ui:editor.group.arrange}} 群組中的 {{ui:editor.tool.buildPlates}}，或在物體的右鍵選單中選擇 {{ui:plates.moveTo}}。檢視底部會出現一列，每個列印板一個按鈕；按鈕上的數字表示該列印板上有多少個物體。
+
+- 每個列印板與工作平面一樣大，列印板並排排列在第一個列印板的右側，相距 20 公釐。物體屬於其底面中心所在的列印板，因此把它拖到另一邊就會放到另一個列印板上。一個設計最多有 12 個列印板。
+- 在列中按一下列印板會顯示它，之後新形狀和匯入的檔案會放在它上面。{{ui:plates.showAll}} 顯示全部。按兩下列印板或使用 {{ui:plates.rename}} 可以給它取一個名字，例如「蓋子」，名字會寫在列印板上。
+- 在列印板上新建的草圖也從目前列印板開始：草圖區域顯示該列印板及其上的實體，完成的實體也放在那裡。
+- {{ui:plates.moveLeft}} 和 {{ui:plates.moveRight}} 改變順序，物體隨其列印板一起移動。{{ui:plates.remove}} 移除目前的列印板；其上的物體會移到第一個列印板的相同位置。
+- {{ui:plates.arrange}} 將所選物體（或全部物體）逐行排列到列印板上，先放最大的，間距 5 公釐，並在需要時新增列印板。比列印板大的物體會留在原處。
+- 選擇印表機後，每個物體都按自己的列印板檢查，列印高度從該列印板上最低的物體算起。有物體放不下的列印板，其數字顯示為紅色。
+- 在屬性中，X 從物體所在列印板的中心算起。
+
+匯出視窗隨後提供 {{ui:export.plates}}：所有列印板在一個檔案中，像設計中一樣並排；每個列印板一個檔案，打包成 ZIP（STL、3MF 和 OBJ）；或單一列印板，放到第一個列印板的位置。切片軟體會把每個檔案當作一個列印板開啟，所以要依序列印各個列印板，請使用按列印板分開的檔案。在列印板之間移動物體和分配物體可以復原；新增、命名、排序和移除列印板會隨設計儲存，但不能復原。
 
 ## 網格與吸附
 
 網格顯示平台的大小。右下角是**吸附步距**：移動與縮放會依這個步距吸附，例如 1 mm。精細作業時調小，粗略擺放時調大。功能區中的 {{ui:editor.tool.snapToGrid}} 會在事後將選取的形狀移到最近的網格交叉點。移動時，形狀也會吸附到其他形狀，參見[選取與排列](chapter:select-and-arrange)。
+不移動滑鼠、用滑鼠中鍵短按一下，會在指標處直接開啟吸附步長選單，在草圖中也一樣；按住中鍵拖曳仍然平移視圖。
 
 > **提示：** 精確拼合零件時，不要一邊轉動檢視。用數字鍵切到俯視或正視，再按 [[O]] 切換為平面顯示。這樣就能立刻看出兩條邊是否真的齊平。
 
 ### 設定視窗
 
-功能區中的齒輪（{{ui:editor.workspaceSettings}}）會開啟設定。左側有五個區域：{{ui:workspace.appearance}}、{{ui:workspace.measurement}}、{{ui:workspace.workplane}}、{{ui:workspace.shapeDefaults}} 與 {{ui:workspace.history}}。變更會立即生效。底部的 {{ui:workspace.makeDefault}} 會將目前設定儲存為預設值，讓新設計從這些設定開始；右上角的 {{ui:workspace.close}} 則關閉視窗。本節會逐一說明這些設定。
+標題列中的齒輪（{{ui:editor.workspaceSettings}}）會開啟設定。左側有五個區域：{{ui:workspace.appearance}}、{{ui:workspace.measurement}}、{{ui:workspace.workplane}}、{{ui:workspace.shapeDefaults}} 與 {{ui:workspace.history}}。變更會立即生效。底部的 {{ui:workspace.makeDefault}} 會將目前設定儲存為預設值，讓新設計從這些設定開始。開啟的檔案會帶著它自己的設定；旁邊的 {{ui:workspace.useMyDefault}} 會把你儲存的顏色、網格等套用到開啟的設計上，同時保留它的單位。如果你的預設設定裡有印表機，這台印表機連同它的平台尺寸也會一起帶過來；沒有的話，設計保留原有的平台與印表機。右上角的 {{ui:workspace.close}} 則關閉視窗。本節會逐一說明這些設定。
+
+{{ui:workspace.exportSettings}} 把視窗的設定儲存成檔案（layerling-settings-<日期>.json）：顏色、格線、陰影、相機和形狀預設值，以及主題、工具列大小、檢視立方體的角落、形狀顏色和每台印表機的間隙。在另一台電腦上或瀏覽器資料遺失後，{{ui:workspace.importSettings}} 會再次讀取該檔案：它成為新設計的預設值，並像 {{ui:workspace.useMyDefault}} 一樣套用到已開啟的設計。你在鍵盤快速鍵中設定的自訂按鍵也會一起儲存。
 
 ### 外觀：主題、工具列與視圖立方體
 
 {{ui:workspace.theme}} 設定整個程式的配色方案：{{ui:workspace.themeSystem}} 跟隨你的電腦，其餘為 {{ui:workspace.themeLight}}、{{ui:workspace.themeDark}} 與 {{ui:workspace.themeGraphite}}。也可以在編輯器右上角變更。
 
-{{ui:workspace.toolbarSize}} 會讓頂部功能區的按鈕、其形狀選單、左側的相機控制項與右側的屬性面板變小或變大：{{ui:workspace.toolbarSizeSmall}}、{{ui:workspace.toolbarSizeMedium}}（一直以來的樣子）或 {{ui:workspace.toolbarSizeLarge}}。小尺寸在筆記型電腦上能為工作平面留出更多空間；大尺寸在大螢幕上或用手點按時更容易命中。使用大按鈕時，若視窗太窄，功能區的各群組會排到第二列。尺寸會儲存在這個瀏覽器中，並套用於所有設計。
+{{ui:workspace.toolbarSize}} 會讓頂部功能區的按鈕、其形狀選單、左側的檢視列與右側的屬性面板變小或變大：{{ui:workspace.toolbarSizeSmall}}、{{ui:workspace.toolbarSizeMedium}}（一直以來的樣子）或 {{ui:workspace.toolbarSizeLarge}}。小尺寸在筆記型電腦上能為工作平面留出更多空間；大尺寸在大螢幕上或用手點按時更容易命中。使用大按鈕時，若視窗太窄，功能區的各群組會排到第二列。尺寸位於設定的「{{ui:workspace.ribbon}}」分頁，會儲存在這個瀏覽器中，並套用於所有設計。
 
-{{ui:workspace.viewCubePosition}} 會將視圖立方體放到工作平面的另一個角：{{ui:workspace.viewCubePositionTopLeft}}（一直以來的位置）、{{ui:workspace.viewCubePositionTopRight}}、{{ui:workspace.viewCubePositionBottomLeft}} 或 {{ui:workspace.viewCubePositionBottomRight}}。除了左上角以外，相機控制項都會上移到立方體讓出的位置。在右下角時，立方體會正好位於 {{ui:inspector.snapGrid}} 控制項上方。右側開啟形狀屬性時，位於右側的立方體會讓到屬性面板左邊。這個角會儲存在瀏覽器中，並套用於所有設計。視窗較窄時（例如手機），此設定會隱藏，立方體則留在左上角。
+{{ui:workspace.shapeColors}} 會把新形狀的初始顏色（其類型的顏色，或你用 {{ui:inspector.saveDefaults}} 儲存的顏色）顯示在形狀庫的圖片上。如果你比較喜歡灰色圖片，就把它關掉；瀏覽器會記住你的選擇。
+
+{{ui:workspace.viewCubePosition}} 會將視圖立方體放到工作平面的另一個角：{{ui:workspace.viewCubePositionTopLeft}}（一直以來的位置）、{{ui:workspace.viewCubePositionTopRight}}、{{ui:workspace.viewCubePositionBottomLeft}} 或 {{ui:workspace.viewCubePositionBottomRight}}。除了左上角以外，檢視列都會上移到立方體讓出的位置。在右下角時，立方體會正好位於 {{ui:inspector.snapGrid}} 控制項上方。右側開啟形狀屬性時，位於右側的立方體會讓到屬性面板左邊。這個角會儲存在瀏覽器中，並套用於所有設計。視窗較窄時（例如手機），此設定會隱藏，立方體則留在左上角。
+
+### 外觀：功能區中的按鈕
+
+{{ui:workspace.ribbonButtons}} 把你從不使用的群組和按鈕從功能區中移除。按一下群組開啟它的清單：{{ui:workspace.ribbonGroupShown}} 移除整個群組，按鈕旁的勾選框只移除這一個按鈕。{{ui:workspace.ribbonShowAll}} 把一切恢復。沒有按鈕的群組會消失，其他群組隨之前移，一列就能放下更多功能區。
+
+移除的內容只是不在功能區中：命令搜尋（[[Ctrl]]+[[K]]）仍能找到它，它的快速鍵仍能執行它。群組旁邊的箭頭會把它在清單中上移或下移，也就是在功能區中移動；{{ui:workspace.ribbonResetOrder}}會恢復原來的順序。按鈕旁邊的箭頭以同樣方式在其群組內移動它。「說明」始終保留。「形狀」群組可以像其他群組一樣移動和移除；移除後，它的面板仍可從命令搜尋開啟。這個瀏覽器會記住你的選擇，它也會寫入 {{ui:workspace.exportSettings}} 的檔案。它適用於 3D 編輯器；草圖有自己的工具列。
+
+群組清單中 {{ui:workspace.ribbonGroupShown}} 下方的 {{ui:workspace.ribbonFold}} 決定視窗放不下所有群組時這個群組怎麼做。{{ui:workspace.ribbonFoldAuto}} 是預設設定：最少用到的群組先摺疊。{{ui:workspace.ribbonFoldAlways}} 讓這個群組即使在寬視窗中也摺疊成一個按鈕，佔用空間很少，又隨手可用。{{ui:workspace.ribbonFoldKeep}} 讓它在其他所有群組之後才摺疊。{{ui:workspace.ribbonResetOrder}} 也會恢復這項選擇。{{ui:editor.section.mirrorPattern}}、{{ui:editor.section.splitShape}}、{{ui:editor.section.edgesWalls}} 與 {{ui:editor.section.surface}} 是四個獨立的群組：每個都可以單獨移動、摺疊和移除。
 
 ### 外觀：快速模式
 
@@ -126,9 +164,11 @@ X 與 [[Esc]] 會關閉面板；若正在量測，[[Esc]] 會先結束量測。�
 
 {{ui:workspace.strongHoles}} 會將孔畫成較深的灰色、較不透明，並在周圍加上深色線條。當孔在透明實體中難以找到時很有幫助。與邊線不同，它在快速模式下仍會保持開啟。
 
+下方的{{ui:workspace.holeOpacity}}設定孔繪製得有多實，範圍為 10% 到 90%。數值越低，越容易看出孔與實體相接的位置。預設為自動：52%，開啟{{ui:workspace.strongHoles}}時為 72%；按兩下滑桿即可恢復。
+
 ### 外觀：光線與陰影
 
-{{ui:workspace.showShadows}} 開啟或關閉投射陰影。兩個滑桿設定實體的受光方式。{{ui:workspace.shadowStrength}} 決定投射陰影的深淺，{{ui:workspace.shadeContrast}} 則將光線從均勻的環境光轉向主光源：偏向「強烈」時，背光面會更暗、陰影更明顯；偏向「柔和」時，整體會更平坦。對比拉到最高時會非常強烈，背光面與陰影會變得非常暗。{{ui:workspace.shadowSoftness}} 讓陰影邊緣變得柔和而不是銳利。{{ui:workspace.lightAzimuth}} 讓主光源繞著平台旋轉（0° 從前方，90° 從右方），{{ui:workspace.lightElevation}} 則將它抬高；在 90° 時它會像 Tinkercad 那樣位於平台正上方，陰影正好落在實體下方。{{ui:workspace.lightReset}} 會還原所有設定。
+{{ui:workspace.showShadows}} 開啟或關閉投射陰影。兩個滑桿設定實體的受光方式。{{ui:workspace.shadowStrength}} 決定投射陰影的深淺，{{ui:workspace.shadeContrast}} 則將光線從均勻的環境光轉向主光源：偏向「強烈」時，背光面會更暗、陰影更明顯；偏向「柔和」時，整體會更平坦。對比拉到最高時會非常強烈，背光面與陰影會變得非常暗。{{ui:workspace.shadowSoftness}} 讓陰影邊緣變得柔和而不是銳利。{{ui:workspace.lightAzimuth}} 讓主光源繞著平台旋轉（0° 從前方，90° 從右方），{{ui:workspace.lightElevation}} 則將它抬高；在 90° 時它會像 Tinkercad 那樣位於平台正上方，陰影正好落在實體下方。{{ui:workspace.softLighting}} 讓大部分光線來自你觀察的方向，並隨檢視轉動：沒有哪個面會留在暗處，朝上的深色面也不再被照得發白。主光源仍保留一點用於陰影，對比度滑桿依然有效。如果光線放低後仍能看到明亮的反光，把 {{ui:workspace.lightElevation}} 抬到 90°：這時看起來就像 Tinkercad。{{ui:workspace.lightReset}} 會還原所有設定。
 
 ### 外觀：工作平面上的量測
 
@@ -144,13 +184,19 @@ X 與 [[Esc]] 會關閉面板；若正在量測，[[Esc]] 會先結束量測。�
 
 {{ui:workspace.objectSnap}} 讓形狀的邊與中心在拖曳時吸附到其他形狀；右下角的網格選單有同樣的開關。{{ui:workspace.cruise}} 讓新形狀掛在滑鼠指標上，並落在其下方的面，類似 Tinkercad 的 Cruise；關閉時，新形狀會出現在平台中央。更多內容見[選取與排列](chapter:select-and-arrange)。
 
+{{ui:workspace.startView}} 設定新設計開啟時的角度，也是 {{ui:camera.home}} 返回的角度。把檢視轉動、縮放到你喜歡的樣子，然後點擊 {{ui:workspace.startViewUseCurrent}}；{{ui:workspace.startViewStandard}} 恢復一般的右前方檢視。它對此瀏覽器中的所有設計都有效。再次開啟的設計仍依你離開時的樣子開啟。
+
 ### 外觀：檢視
 
 {{ui:workspace.startInPerspective}}：編輯器接著會以透視檢視開啟，而不是平面檢視。
 
-{{ui:workspace.zoomSpeed}} 是一個從慢到快的滑桿：滾輪與觸控式軌跡板的縮放速度；縮放按鈕與按鍵仍維持自己的小步距。{{ui:workspace.cameraInertia}}：放開滑鼠後，檢視會繼續轉一下子並平緩減速。關閉後它會立刻停住，與 Tinkercad 和 Fusion 360 相同。
+{{ui:workspace.startWithScrollbars}}：設計開啟時即顯示視圖的捲動軸。此設定會隨設計一起儲存，也會隨 {{ui:workspace.makeDefault}} 儲存。
 
-{{ui:workspace.overhangAngle}} 是在可見度選單中開啟「顯示懸垂」時，面被視為懸垂的起始角度：這些面會以紅白斜線標示。30° 偏保守，70° 則仰賴良好的列印冷卻；45° 是常用的起點。
+{{ui:workspace.viewBarOpensOnHover}}：收合的視圖列在滑鼠停在其箭頭上時展開，滑鼠離開後不久再次收合，除非正在使用它的某個工具。以這種方式展開時按一下箭頭，可使其保持展開。僅適用於滑鼠；在觸控螢幕上，仍像以前一樣輕觸即可開啟視圖列。
+
+{{ui:workspace.zoomSpeed}} 是一個從慢到快的滑桿：滾輪與觸控式軌跡板的縮放速度；縮放按鈕與按鍵仍維持自己的小步距。{{ui:workspace.panSpeed}} 同樣是一個從慢到快的滑桿：平移時檢視跟隨滑鼠的速度；置中時你抓住的點會一直停在游標下。{{ui:workspace.cameraInertia}}：放開滑鼠後，檢視會繼續轉動或平移一下子並平緩減速。關閉後它會立刻停住，與 Tinkercad 和 Fusion 360 相同。
+
+{{ui:workspace.overhangAngle}} 是在可見度選單中開啟「顯示懸垂」時，面被視為懸垂的起始角度：這些面會以紅白斜線標示。30° 偏保守，70° 則仰賴良好的列印冷卻；45° 是常用的起點。顯示時，視圖下方的一行會寫出最陡的懸垂，以及有多少 cm² 需要支撐。
 
 {{ui:workspace.booleanTriangleLimit}} 限制匯入網格在切割、合併或交集時可容許的三角形數量，因為這些計算是在你的瀏覽器中進行。超過上限的網格不會被處理；請先簡化網格，或者若你的電腦負荷得了，就提高上限。上限過高可能讓編輯器凍結幾秒鐘。
 
@@ -162,9 +208,13 @@ X 與 [[Esc]] 會關閉面板；若正在量測，[[Esc]] 會先結束量測。�
 
 在 {{ui:workspace.customSnapGrids}} 下可以新增自己的吸附步距：一個名稱與一個以公釐為單位的大小，例如「Pin pitch 2.54 mm」代表 DIP 晶片、排針與洞洞板孔的間距，或用 19.05 mm 的「MX Key Unit」代表鍵盤按鍵的間距。吸附步距選單接著會提供該尺寸的整份、一半與四分之一（1 ×、½ × 與 ¼ ×），因此形狀可以按一個間距、半個間距或四分之一個間距移動。如果你只想要該尺寸本身，取消勾選旁邊的 {{ui:workspace.customSnapGridParts}}；選單就只會有這一個步距。自訂步距會隨設計儲存，也會跟著 {{ui:workspace.makeDefault}} 一起儲存。
 
+{{ui:workspace.startWithCornerRuler}}：此瀏覽器中的每個新設計都會在原點自帶一把角尺，見 [量測與備註](chapter:measuring-and-notes)。既有的設計保持不變；你從某個設計中移除的角尺也不會再出現。
+
 ### 工作平面：平台與印表機
 
 {{ui:workspace.printer}} 會將工作平面調整為印表機的列印平台大小，並標出超出範圍的實體，參見[列印](chapter:printing)。{{ui:workspace.showPlateLabels}} 會在平台上寫出設計名稱；選擇印表機後，還會寫上印表機名稱與建構體積。
+
+{{ui:workspace.printerPlay}}是在你的印表機上，列印出的銷釘要能在列印出的孔中轉動所需的每側餘量。{{ui:workspace.fitTestMake}}會把用來測量它的配合測試件放到平台上；之後新的蓋子、燕尾、卡扣、螺帽和間隙檢查都以它為起點，見[列印](chapter:printing)。它保存在這個瀏覽器中，而不是設計裡。
 
 {{ui:workspace.size}} 可為平台設定自訂尺寸，使用 {{ui:workspace.width}} 與 {{ui:workspace.length}}，單位為公釐或你選擇的單位。網格一律穿過原點，所以無論平台多大，較粗的線都會位於座標軸上。
 

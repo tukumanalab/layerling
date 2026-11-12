@@ -13,6 +13,7 @@ This was selected over pure JSON because imported STL/STEP data and exact B-Rep 
 ```text
 project.lyl
 ├── project.json
+├── thumbnail.png        Picture of the design, as its card shows it (optional)
 └── assets/
     ├── source/          Original imported STL, OBJ, 3MF, SVG, or STEP files
     ├── derived-mesh/    Exact caches for baked operations or legacy imports
@@ -34,6 +35,8 @@ project.lyl
 - `workplanes`: base and selected offset workplanes
 - `exactCad`: objects with exact B-Rep or imported STEP sources
 - `editor`: workspace dimensions, units, snap grid, and selected workplane elevation
+
+`thumbnail.png` is a PNG of the design as the card on the start page shows it, all its bodies framed from the side the view looked from, at most 512 × 320 pixels. It is there for other programs, a file manager or a library of models, to show the design without building it; layerling writes it when it saves or downloads a design, or puts one on the server, and does not read it. It is not listed in `project.json` and has no hash there. A file written by an older version, through an AI agent while the view has no size, or from the start page's backup has none.
 
 Object nodes keep stable layerling object IDs. Groups refer to child node IDs instead of array positions. Fillet/chamfer history refers to explicit “before” nodes. Feature dependencies are explicit and checked for cycles.
 
@@ -79,7 +82,7 @@ Version 4 adds more types of attachment and larger limits for them, and nothing 
 - Imported STL, OBJ, 3MF, SVG, and STEP sources, stored once and reused by instances
 - Exact imported STEP data, current exact CAD B-Rep, display edges, chamfer/fillet settings, and reversible edge-treatment history
 - Attachments, the files kept with the design (version 3), in the order they are listed, with their names and their exact bytes
-- Custom fonts used by texts, embedded in `project.json` as a subset of the characters the design's texts use (at most 64 fonts), so the file opens with its lettering on another computer
+- Custom fonts used by texts and Gridfinity bins' letters, embedded in `project.json` (at most 64 fonts) as a subset of the characters they use, and for a bin also the "H" its letters are sized on, so the file opens with its lettering on another computer; 1.145.0 does not open a design with a bin in such a font
 - Undo and redo states according to the export choice: Unlimited, 100, 50, or 30 recent actions, the custom limit set in the workspace settings, or None (the current state only, for sharing a file without its steps). Unlimited means every state still retained by the editor, including available redo states.
 - Workspace units, grid/snap settings, dimensions, and active offset workplane
 

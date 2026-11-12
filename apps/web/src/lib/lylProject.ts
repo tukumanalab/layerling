@@ -19,15 +19,22 @@ import {
   attachmentsFormatVersion,
 } from "@/lib/projectAttachments";
 import { normalizeQrSettings } from "@/lib/qrCode";
-import { importedShapeFromStl } from "@/lib/stlImport";
+import { MAX_SBC_BUTTON_REACH, MAX_SBC_CLEARANCE, MAX_SBC_REACH, MAX_SBC_UP_REACH, MIN_SBC_UP_REACH, SBC_BOARD_ORDER } from "@/lib/sbcBoards";
+import { importedShapeFromStl, stlReadBeforeZUp, type StlReadOptions } from "@/lib/stlImport";
 import { importedShapeFromSvg } from "@/lib/svgImport";
 import { importedShapeFrom3mf } from "@/lib/threemfImport";
 import { normalizeDesignView, normalizeSavedViews, readDesignView, readSavedViews, type DesignView, type SavedDesignViews } from "@/lib/designView";
 import { normalizeSavedCornerRulers, readCornerRulers, type SavedCornerRuler } from "@/lib/cornerRulerStore";
 import { normalizeSavedTape, readTape, type SavedTape } from "@/lib/tapeStore";
 import { isSketchKeyring } from "@/lib/sketchKeyring";
+import { findSketchOutlineIntersection } from "@/lib/sketchProfileValidation";
 import { isReferenceImageOpacity } from "@/lib/referenceImage";
 import { isThreadProfile } from "@/lib/threadProfiles";
+import { PORT_PROFILES } from "@/lib/portGeometry";
+import { normalizePaintStroke, PAINT_MAX_STROKES } from "@/lib/paint";
+import { MAX_GEAR_TEETH, MIN_GEAR_TEETH } from "@/lib/gearGeometry";
+import { GRIDFINITY_LABEL_FONTS, GRIDFINITY_LABEL_TEXT_KEYS, MAX_GRIDFINITY_LABEL_TEXT_LENGTH, MAX_GRIDFINITY_OUTLINE_POINTS } from "@/lib/gridfinityGeometry";
+import type { PortProfile } from "@/types/layerling";
 import { normalizeSnapGrid, normalizeWorkspaceSettings } from "@/lib/workplaneSettings";
 import type { CadDisplayEdge, GridSize, ProjectAsset, ProjectAssetSourceFormat, ProjectAttachment, SketchOperation, SketchRevolveSettings, WorkplaneNote, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
 
@@ -57,7 +64,7 @@ export const LYL_FILE_TYPES_FORMAT_VERSION = 4;
 /** The newest format this layerling reads. */
 export const LYL_NEWEST_READABLE_FORMAT_VERSION = LYL_FILE_TYPES_FORMAT_VERSION;
 export const LYL_OLDEST_READABLE_FORMAT_VERSION = 1;
-export const LYL_CREATED_WITH_VERSION = "1.113.0";
+export const LYL_CREATED_WITH_VERSION = "1.159.1";
 export const LYL_MEDIA_TYPE = "application/vnd.layerling.project+zip";
 
 export const LYL_LIMITS = {
@@ -75,7 +82,7 @@ export const LYL_LIMITS = {
 
 const SHAPE_KINDS = new Set([
   "box", "roundedBox", "cylinder", "slot", "ellipse", "sphere", "sketch", "scribble", "cone", "pyramid", "roof", "text", "roundRoof",
-  "halfSphere", "paraboloid", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "honeycomb", "hinge", "knurl", "dovetail", "counterbore", "countersink", "doubleCountersink", "teardrop", "loft", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
+  "halfSphere", "paraboloid", "curvedCone", "torus", "tube", "bentTube", "star", "heart", "crescent", "gear", "hirth", "pulley", "honeycomb", "hinge", "knurl", "dovetail", "screwBoss", "snapFit", "rib", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "teardrop", "port", "loft", "vase", "thread", "spring", "gridfinity", "ring", "wedge", "polygon", "icosahedron", "ruler", "mesh",
 ]);
 
 const FEATURE_TYPES = new Set([
@@ -160,17 +167,23 @@ export type LylFontV1 = { id: string; name: string; typeface: unknown };
 const LYL_MAX_FONTS = 64;
 
 /**
- * The letters each font of one's own needs in these states: every character of every text that
- * uses it, in every undo state, so going back in the history still finds its letters.
+ * The letters each font of one's own needs in these states: every character of every text and of
+ * every Gridfinity bin's shelves that use it, in every undo state, so going back in the history
+ * still finds its letters.
  */
 function embeddedFonts(states: WorkplaneShape[][]): LylFontV1[] {
   const characters = new Map<string, Set<string>>();
+  const use = (font: string, texts: string[]) => {
+    const used = characters.get(font) ?? new Set<string>();
+    const glyphs = customFontEntry(font)?.data.glyphs as Record<string, unknown> | undefined;
+    texts.forEach((text) => textCharacters(text.trim() || " ", glyphs).forEach((character) => used.add(character)));
+    characters.set(font, used);
+  };
   const visit = (shape: WorkplaneShape) => {
-    if (isCustomFontId(shape.font) && shape.kind === "text") {
-      const used = characters.get(shape.font) ?? new Set<string>();
-      const glyphs = customFontEntry(shape.font)?.data.glyphs as Record<string, unknown> | undefined;
-      textCharacters((shape.text ?? "TEXT").trim() || " ", glyphs).forEach((character) => used.add(character));
-      characters.set(shape.font, used);
+    if (isCustomFontId(shape.font) && shape.kind === "text") use(shape.font, [shape.text ?? "TEXT"]);
+    // A bin's letters (#1308) and the H their size is measured on: without it they would come out another size elsewhere.
+    if (isCustomFontId(shape.gridfinityLabelFont) && shape.kind === "gridfinity") {
+      use(shape.gridfinityLabelFont, ["H", ...Object.values(GRIDFINITY_LABEL_TEXT_KEYS).map((key) => shape[key] ?? ""), ...(shape.gridfinityCompartmentLabels ?? []).map((label) => label.text ?? "")]);
     }
     shape.groupedShapes?.forEach(visit);
   };
@@ -227,9 +240,9 @@ export type LylProjectDocumentV1 = {
   /** The files kept with the design (#820), in the order they are listed; a version 3 package only. */
   attachments?: LylAttachmentV3[];
   /**
-   * Fonts of one's own the texts use (#customFonts): only the letters they use, as outlines in the
-   * three.js typeface format - never the font file. Older readers pass over them and draw those
-   * texts in the default font.
+   * Fonts of one's own the texts and Gridfinity bins' letters use (#customFonts): only the letters
+   * they use, as outlines in the three.js typeface format - never the font file. Older readers pass
+   * over them and draw those texts in the default font; 1.145.0 refuses a bin in such a font.
    */
   fonts?: LylFontV1[];
   editor: {
@@ -317,10 +330,17 @@ export type LylProjectPackageSummary = {
   formatVersion: number;
 };
 
-export type LylSourceImporter = (asset: ProjectAsset) => Promise<NonNullable<WorkplaneShape["importedMesh"]>>;
+/** Reads an imported file again. `stl.yUp` reads an STL as it was read before 1.151.0 (Issue #1518). */
+export type LylSourceImporter = (asset: ProjectAsset, options?: { stl?: StlReadOptions }) => Promise<NonNullable<WorkplaneShape["importedMesh"]>>;
 
 export type ImportLylOptions = {
   sourceImporter?: LylSourceImporter;
+  /**
+   * Only the current state, without the undo history (#1157). The earlier states are neither
+   * unpacked nor rebuilt, so a design whose history grew too large to open in the browser
+   * opens again; it comes back with a history of one entry, as after "Delete history".
+   */
+  currentStateOnly?: boolean;
 };
 
 type ArchiveFiles = Record<string, Uint8Array>;
@@ -526,9 +546,19 @@ function encodedAssetPayload(resource: object, encode: () => Uint8Array) {
 // The exact-CAD text of a body (its B-rep) is a string, which a WeakMap cannot
 // key, yet every undo state of an unchanged body carries the very same string.
 // Without this each state encoded and hashed it again on every autosave. The
-// cache is small and keeps the most recently used few.
-const TEXT_PAYLOAD_CACHE_LIMIT = 6;
+// cache keeps the most recently used ones. It once held only six: an autosave
+// walks the bodies of the new state in the same order every time, so with seven
+// exact bodies or more each one had pushed out the next before it was asked for,
+// and nothing was ever found. Now it holds as many as fit in a budget of text,
+// so a design full of large bodies does not keep copies of all of them either.
+const TEXT_PAYLOAD_CACHE_LIMIT = 256;
+const TEXT_PAYLOAD_CACHE_CHARS = 48 * 1024 * 1024;
 const encodedTextPayloads = new Map<string, Promise<EncodedAssetPayload>>();
+let encodedTextChars = 0;
+
+function forgetTextPayload(text: string) {
+  if (encodedTextPayloads.delete(text)) encodedTextChars -= text.length;
+}
 
 function encodedTextPayload(text: string) {
   const cached = encodedTextPayloads.get(text);
@@ -542,15 +572,17 @@ function encodedTextPayload(text: string) {
       const bytes = strToU8(text);
       return { bytes, sha256: await sha256Hex(bytes) };
     } catch (error) {
-      encodedTextPayloads.delete(text);
+      forgetTextPayload(text);
       throw error;
     }
   })();
   encodedTextPayloads.set(text, pending);
-  while (encodedTextPayloads.size > TEXT_PAYLOAD_CACHE_LIMIT) {
+  encodedTextChars += text.length;
+  // The newest stays even when it alone is over the budget: it is the one being written.
+  while (encodedTextPayloads.size > 1 && (encodedTextPayloads.size > TEXT_PAYLOAD_CACHE_LIMIT || encodedTextChars > TEXT_PAYLOAD_CACHE_CHARS)) {
     const oldest = encodedTextPayloads.keys().next();
     if (oldest.done) break;
-    encodedTextPayloads.delete(oldest.value);
+    forgetTextPayload(oldest.value);
   }
   return pending;
 }
@@ -563,6 +595,8 @@ const serializedStateCache = new WeakMap<object, {
   sourceKey: string;
   json: string;
   used: Array<{ record: LylAssetRecordV1; bytes: Uint8Array }>;
+  /** The indexes of the project file when this state is the active one, worked out the first time it is. */
+  indexes?: ReturnType<typeof activeProjectIndexes>;
 }>();
 
 class LylArchiveBuilder {
@@ -904,7 +938,7 @@ function nodeGroupOperation(node: LylShapeNodeV1, nodeById: Map<string, LylShape
   if (node.definition.groupOperation === "intersection") return "boolean-intersection";
   if (node.definition.groupOperation === "bundle") return "group";
   // A hull keeps its parts as a group does; the operation itself travels in the definition (#863).
-  if (node.definition.groupOperation === "hull") return "group";
+  if (node.definition.groupOperation === "hull" || node.definition.groupOperation === "loft") return "group";
   const children = (node.groupedShapeNodeIds ?? []).map((id) => nodeById.get(id)).filter(Boolean) as LylShapeNodeV1[];
   const hasHole = children.some((child) => child.definition.hole === true);
   const hasSolid = children.some((child) => child.definition.hole !== true);
@@ -1029,6 +1063,31 @@ function unzipAsync(bytes: Uint8Array) {
   });
 }
 
+/** Only the project.json of a package, or nothing when it cannot be read; the rest stays packed. */
+function unzipProjectJson(bytes: Uint8Array) {
+  return new Promise<Uint8Array | null>((resolve) => {
+    try {
+      inspectZipBeforeExpansion(bytes);
+    } catch {
+      resolve(null);
+      return;
+    }
+    unzip(bytes, { filter: (file) => file.name === "project.json" }, (error, files) => {
+      resolve(error ? null : files["project.json"] ?? null);
+    });
+  });
+}
+
+function packagedLylProjectName(projectJson: Uint8Array | null) {
+  if (!projectJson) return null;
+  try {
+    const name = (JSON.parse(strFromU8(projectJson)) as { metadata?: { projectName?: unknown } } | null)?.metadata?.projectName;
+    return typeof name === "string" ? name : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function exportLylProject(input: LylProjectExportInput) {
   const placementElevation = Number.isFinite(input.placementElevation) ? input.placementElevation : 0;
   const placementWorkplane = normalizePlacementWorkplane(input.placementWorkplane, placementElevation);
@@ -1062,6 +1121,7 @@ export async function exportLylProject(input: LylProjectExportInput) {
   const freshStates = new Map<string, LylStateV1>();
   const stateIdByFingerprint = new Map<string, string>();
   const historyEntries: LylProjectDocumentV1["history"]["entries"] = [];
+  const reusedStates = new Map<string, NonNullable<ReturnType<typeof serializedStateCache.get>>>();
 
   for (const entry of exportEntries) {
     let stateId = stateIdByFingerprint.get(entry.fingerprint);
@@ -1071,6 +1131,7 @@ export async function exportLylProject(input: LylProjectExportInput) {
       if (cached && cached.stateId === stateId && cached.sourceKey === sourceKey) {
         builder.adopt(cached.used);
         stateTexts.push(cached.json);
+        reusedStates.set(stateId, cached);
       } else {
         const { result: state, used } = await builder.recording(() => serializeState(stateId as string, entry.shapes, builder, sourceAssetsByArchiveId, normalizeNotes(entry.notes)));
         const json = JSON.stringify(state);
@@ -1090,11 +1151,15 @@ export async function exportLylProject(input: LylProjectExportInput) {
 
   const sceneStateId = historyEntries[hydrated.index]?.stateId;
   const activeStateIndex = sceneStateId ? Number(sceneStateId.slice("state-".length)) - 1 : -1;
-  const activeState = sceneStateId && stateTexts[activeStateIndex] !== undefined
-    ? (freshStates.get(sceneStateId) ?? (JSON.parse(stateTexts[activeStateIndex]) as LylStateV1))
-    : undefined;
-  if (!activeState) throw new Error("Could not identify the active project state");
-  const indexes = activeProjectIndexes(activeState);
+  if (!sceneStateId || stateTexts[activeStateIndex] === undefined) throw new Error("Could not identify the active project state");
+  // A state kept from an earlier save (after an undo, say) is not parsed again on every autosave: its indexes are kept with it.
+  const freshActive = freshStates.get(sceneStateId);
+  const reusedActive = freshActive ? undefined : reusedStates.get(sceneStateId);
+  const indexes = freshActive
+    ? activeProjectIndexes(freshActive)
+    : reusedActive
+      ? (reusedActive.indexes ??= activeProjectIndexes(JSON.parse(reusedActive.json) as LylStateV1))
+      : activeProjectIndexes(JSON.parse(stateTexts[activeStateIndex]) as LylStateV1);
   const now = Date.now();
   const sketchPlacementWorkplane = normalizePlacementWorkplane(input.sketchPlacementWorkplane);
   const view = input.view === undefined ? readDesignView(input.projectId) : normalizeDesignView(input.view);
@@ -1342,6 +1407,21 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
       if (typeof text !== "string" || text.length > 80) throw new Error(`${label}.formulas.${field} must be a short text`);
     }
   }
+  // Paint on the body (paint.ts): strokes, each of which must be one.
+  if (definition.paint !== undefined) {
+    if (!Array.isArray(definition.paint) || definition.paint.length > PAINT_MAX_STROKES || definition.paint.some((stroke) => !normalizePaintStroke(stroke))) {
+      throw new Error(`${label}.paint must be a list of at most ${PAINT_MAX_STROKES} paint strokes`);
+    }
+  }
+  // Marks and switches the editor writes as true or false, and the id of the body a rib was made for (lib/supportRib).
+  for (const field of ["breakawayBase", "stencilBridge", "hullKeepHoles", "multicolor", "shapeLocked"] as const) {
+    if (definition[field] !== undefined && typeof definition[field] !== "boolean") throw new Error(`${label}.${field} must be true or false`);
+  }
+  if (definition.supportRibFor !== undefined && typeof definition.supportRibFor !== "string") throw new Error(`${label}.supportRibFor must be an id`);
+  // What a group does with its parts when it is resized (Discussion #526).
+  if (definition.groupResize !== undefined && definition.groupResize !== "stretch" && definition.groupResize !== "keepParts") {
+    throw new Error(`${label}.groupResize must be stretch or keepParts`);
+  }
   // A text's fill mode (#215): a stroke like a sketch's, and the silhouette switch.
   if (definition.textStroke !== undefined && !normalizeSketchStroke(definition.textStroke)) {
     throw new Error(`${label}.textStroke must be a stroke with a width above 0`);
@@ -1352,9 +1432,19 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   if (definition.textStretch !== undefined && typeof definition.textStretch !== "boolean") {
     throw new Error(`${label}.textStretch must be true or false`);
   }
+  if (definition.textVertical !== undefined && typeof definition.textVertical !== "boolean") {
+    throw new Error(`${label}.textVertical must be true or false`);
+  }
+  if (definition.textKerning !== undefined && typeof definition.textKerning !== "boolean") {
+    throw new Error(`${label}.textKerning must be true or false`);
+  }
   // The space between a text's letters (#594), in per cent of the letter size.
   if (definition.textSpacing !== undefined && !(typeof definition.textSpacing === "number" && Number.isFinite(definition.textSpacing) && definition.textSpacing >= -50 && definition.textSpacing <= 300)) {
     throw new Error(`${label}.textSpacing must be a number from -50 to 300`);
+  }
+  // How wide curved text's letters are drawn (#1196), in per cent of their own width.
+  if (definition.textLetterWidth !== undefined && !(typeof definition.textLetterWidth === "number" && Number.isFinite(definition.textLetterWidth) && definition.textLetterWidth >= 25 && definition.textLetterWidth <= 400)) {
+    throw new Error(`${label}.textLetterWidth must be a number from 25 to 400`);
   }
   // The top edge of a text's letters (#225): round or chamfer, with a size.
   if (definition.textEdge !== undefined && !normalizeTextEdge(definition.textEdge)) {
@@ -1376,6 +1466,29 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   // A QR code's settings (#553): a text and known choices. Old projects have none.
   if (definition.qrCode !== undefined && !normalizeQrSettings(definition.qrCode)) {
     throw new Error(`${label}.qrCode must hold the code's text`);
+  }
+  // An SBC board's settings (#1098): a known board, a clearance of 0 to 2 mm and a reach of 0 to 10 mm;
+  // the openings up and out as true or false, and how far up as 20 to 100 mm. Old projects have none.
+  if (definition.sbcBoard !== undefined) {
+    const board = definition.sbcBoard as { board?: unknown; clearance?: unknown; reach?: unknown; ribbonUp?: unknown; ribbonSide?: unknown; gpioUp?: unknown; lensUp?: unknown; upReach?: unknown; buttonReach?: unknown } | null;
+    if (!board || typeof board !== "object" || !SBC_BOARD_ORDER.includes(board.board as never)) {
+      throw new Error(`${label}.sbcBoard.board must be one of ${SBC_BOARD_ORDER.join(", ")}`);
+    }
+    if (board.clearance !== undefined && (typeof board.clearance !== "number" || !Number.isFinite(board.clearance) || board.clearance < 0 || board.clearance > MAX_SBC_CLEARANCE)) {
+      throw new Error(`${label}.sbcBoard.clearance is outside the supported range`);
+    }
+    if (board.reach !== undefined && (typeof board.reach !== "number" || !Number.isFinite(board.reach) || board.reach < 0 || board.reach > MAX_SBC_REACH)) {
+      throw new Error(`${label}.sbcBoard.reach is outside the supported range`);
+    }
+    for (const key of ["ribbonUp", "ribbonSide", "gpioUp", "lensUp"] as const) {
+      if (board[key] !== undefined && typeof board[key] !== "boolean") throw new Error(`${label}.sbcBoard.${key} must be true or false`);
+    }
+    if (board.upReach !== undefined && (typeof board.upReach !== "number" || !Number.isFinite(board.upReach) || board.upReach < MIN_SBC_UP_REACH || board.upReach > MAX_SBC_UP_REACH)) {
+      throw new Error(`${label}.sbcBoard.upReach is outside the supported range`);
+    }
+    if (board.buttonReach !== undefined && (typeof board.buttonReach !== "number" || !Number.isFinite(board.buttonReach) || board.buttonReach < 0 || board.buttonReach > MAX_SBC_BUTTON_REACH)) {
+      throw new Error(`${label}.sbcBoard.buttonReach is outside the supported range`);
+    }
   }
   // The corners of a text's line (#215): a layer of a name tag can be bevelled or sharp now, so an
   // unknown corner is refused rather than read as sharp.
@@ -1417,7 +1530,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.threadRole !== undefined && !["rod", "screw", "nut", "bore"].includes(definition.threadRole as string)) {
       throw new Error(`${label}.threadRole is invalid`);
     }
-    if (definition.threadHead !== undefined && !["cylinder", "countersunk", "hex"].includes(definition.threadHead as string)) {
+    if (definition.threadHead !== undefined && !["cylinder", "countersunk", "hex", "square", "flange", "wing", "knob"].includes(definition.threadHead as string)) {
       throw new Error(`${label}.threadHead is invalid`);
     }
     if (definition.threadHand !== undefined && definition.threadHand !== "right" && definition.threadHand !== "left") {
@@ -1425,6 +1538,9 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     }
     if (definition.threadProfile !== undefined && !isThreadProfile(definition.threadProfile)) {
       throw new Error(`${label}.threadProfile is invalid`);
+    }
+    if (definition.threadTaper !== undefined && typeof definition.threadTaper !== "boolean") {
+      throw new Error(`${label}.threadTaper is invalid`);
     }
     if (definition.threadDiameter !== undefined) {
       const threadDiameter = finiteNumber(definition.threadDiameter, `${label}.threadDiameter`);
@@ -1445,6 +1561,11 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.threadAxialClearance !== undefined) {
       const threadAxialClearance = finiteNumber(definition.threadAxialClearance, `${label}.threadAxialClearance`);
       if (threadAxialClearance < 0 || threadAxialClearance > 1) throw new Error(`${label}.threadAxialClearance is outside the supported range`);
+    }
+    // Starts (#1348): a whole number of threads side by side.
+    if (definition.threadStarts !== undefined) {
+      const threadStarts = finiteNumber(definition.threadStarts, `${label}.threadStarts`);
+      if (!Number.isInteger(threadStarts) || threadStarts < 1 || threadStarts > 8) throw new Error(`${label}.threadStarts is outside the supported range`);
     }
     if (definition.threadDepth !== undefined) {
       const threadDepth = finiteNumber(definition.threadDepth, `${label}.threadDepth`);
@@ -1476,6 +1597,14 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
       const threadHeadChamfer = finiteNumber(definition.threadHeadChamfer, `${label}.threadHeadChamfer`);
       if (threadHeadChamfer < 0 || threadHeadChamfer > 480) throw new Error(`${label}.threadHeadChamfer is outside the supported range`);
     }
+    if (definition.threadDrive !== undefined && !["hex", "torx", "phillips", "slot", "robertson", "none"].includes(definition.threadDrive as string)) {
+      throw new Error(`${label}.threadDrive is invalid`);
+    }
+    for (const field of ["threadHeadDiameter", "threadDriveSize", "threadDriveDepth", "threadCollarHeight", "threadCollarDiameter"] as const) {
+      if (definition[field] === undefined) continue;
+      const value = finiteNumber(definition[field], `${label}.${field}`);
+      if (value < 0 || value > 640) throw new Error(`${label}.${field} is outside the supported range`);
+    }
   }
   if (kind === "pyramid") {
     ["topWidth", "topDepth"].forEach((field) => {
@@ -1500,6 +1629,15 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.springHand !== undefined && definition.springHand !== "right" && definition.springHand !== "left") {
       throw new Error(`${label}.springHand is invalid`);
     }
+    if (definition.springForm !== undefined && definition.springForm !== "coil" && definition.springForm !== "flat") {
+      throw new Error(`${label}.springForm is invalid`);
+    }
+    if (definition.springPattern !== undefined && !["round", "zigzag", "square"].includes(definition.springPattern as string)) {
+      throw new Error(`${label}.springPattern is invalid`);
+    }
+    if (definition.springEnds !== undefined && !["eye", "tab", "none"].includes(definition.springEnds as string)) {
+      throw new Error(`${label}.springEnds is invalid`);
+    }
     if (definition.springQuality !== undefined) {
       const springQuality = finiteNumber(definition.springQuality, `${label}.springQuality`);
       if (!Number.isInteger(springQuality) || springQuality < 12 || springQuality > 96) {
@@ -1509,7 +1647,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "gear") {
     const teeth = finiteNumber(definition.teeth, `${label}.teeth`);
-    if (!Number.isInteger(teeth) || teeth < 6 || teeth > 150) throw new Error(`${label}.teeth is outside the supported range`);
+    if (!Number.isInteger(teeth) || teeth < MIN_GEAR_TEETH || teeth > MAX_GEAR_TEETH) throw new Error(`${label}.teeth is outside the supported range`);
     const toothSize = finiteNumber(definition.toothSize, `${label}.toothSize`);
     if (toothSize <= 0) throw new Error(`${label}.toothSize must be positive`);
     if (definition.toothWidth !== undefined) {
@@ -1528,6 +1666,17 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.helixAngle !== undefined) {
       const helixAngle = finiteNumber(definition.helixAngle, `${label}.helixAngle`);
       if (helixAngle < -45 || helixAngle > 45) throw new Error(`${label}.helixAngle is outside the supported range`);
+    }
+    if (definition.bevelHelixAngle !== undefined) {
+      const bevelHelixAngle = finiteNumber(definition.bevelHelixAngle, `${label}.bevelHelixAngle`);
+      if (bevelHelixAngle < -45 || bevelHelixAngle > 45) throw new Error(`${label}.bevelHelixAngle is outside the supported range`);
+    }
+    if (definition.ringRackHelixAngle !== undefined) {
+      const ringRackHelixAngle = finiteNumber(definition.ringRackHelixAngle, `${label}.ringRackHelixAngle`);
+      if (ringRackHelixAngle < -45 || ringRackHelixAngle > 45) throw new Error(`${label}.ringRackHelixAngle is outside the supported range`);
+    }
+    if (definition.ringRackHerringbone !== undefined && typeof definition.ringRackHerringbone !== "boolean") {
+      throw new Error(`${label}.ringRackHerringbone must be a boolean`);
     }
     if (definition.helixQuality !== undefined) {
       const helixQuality = finiteNumber(definition.helixQuality, `${label}.helixQuality`);
@@ -1599,12 +1748,47 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
       }
     }
   }
-  if (kind === "counterbore" || kind === "countersink" || kind === "doubleCountersink") {
+  if (kind === "counterbore" || kind === "countersink" || kind === "doubleCountersink" || kind === "finishingWasher") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["screwHoleShaft", "screwHoleHeadDepth", "screwHoleAngle"] as const) {
+    for (const key of ["screwHoleShaft", "screwHoleHeadDepth", "screwHoleAngle", "screwHoleRecess", "screwHoleChamfer"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       if (value < 0 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
+    }
+  }
+  if ((kind === "counterbore" || kind === "countersink" || kind === "doubleCountersink") && definition.screwHoleSlot !== undefined && typeof definition.screwHoleSlot !== "boolean") {
+    // A slotted screw hole (Discussion #1531): on or off.
+    throw new Error(`${label}.screwHoleSlot must be true or false`);
+  }
+  if ((kind === "cylinder" || kind === "counterbore" || kind === "countersink" || kind === "doubleCountersink") && definition.drillPointAngle !== undefined) {
+    // The drill point (Discussion #621). Lenient on purpose: 0 is a flat bottom and the geometry clamps the rest.
+    const drillPointAngle = finiteNumber(definition.drillPointAngle, `${label}.drillPointAngle`);
+    if (drillPointAngle < 0 || drillPointAngle > 1e6) throw new Error(`${label}.drillPointAngle is outside the supported range`);
+  }
+  if (kind === "curvedCone") {
+    // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
+    for (const key of ["curvedConeTop", "curvedConeBend"] as const) {
+      if (definition[key] === undefined) continue;
+      const value = finiteNumber(definition[key], `${label}.${key}`);
+      if (value < -1e6 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
+    }
+  }
+  if (kind === "screwBoss" || kind === "snapFit") {
+    // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
+    for (const key of ["screwBossHole", "screwBossHoleDepth", "screwBossDiameter", "screwBossGussets", "screwBossGussetHeight", "screwBossGussetThickness", "snapFitThickness", "snapFitUndercut", "snapFitClearance", "snapFitLeadAngle", "snapFitRetainAngle", "snapFitFoot"] as const) {
+      if (definition[key] === undefined) continue;
+      const value = finiteNumber(definition[key], `${label}.${key}`);
+      if (value < -1e6 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
+    }
+  }
+  if (kind === "rib") {
+    // The foot (Discussion #1307). Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
+    if (definition.ribFoot !== undefined && typeof definition.ribFoot !== "boolean") throw new Error(`${label}.ribFoot must be true or false`);
+    if (definition.ribFootShape !== undefined && definition.ribFootShape !== "square" && definition.ribFootShape !== "oval") throw new Error(`${label}.ribFootShape must be "square" or "oval"`);
+    for (const key of ["ribThickness", "ribFootThickness"] as const) {
+      if (definition[key] === undefined) continue;
+      const value = finiteNumber(definition[key], `${label}.${key}`);
+      if (value < -1e6 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
     }
   }
   if (kind === "knurl") {
@@ -1619,14 +1803,14 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     }
   }
   if (kind === "gridfinity") {
-    // The size is rounded to whole grid units on loading (a tray's is kept to its limits), and the geometry clamps the label shelf's, the finger scoop's, the floor's, the lip chamfer's, the wall's, the corners' and the dividers' values; only nonsense is refused.
+    // The size is rounded to whole grid units on loading (a tray's is kept to its limits), and the geometry clamps the label shelf's, the finger scoop's, the floor's, the lip chamfer's, the wall's, the corners' (a baseplate's and a bin's), the keys' clearance and the dividers' values; only nonsense is refused.
     if (definition.gridfinityType !== undefined && definition.gridfinityType !== "bin" && definition.gridfinityType !== "baseplate" && definition.gridfinityType !== "tray") {
       throw new Error(`${label}.gridfinityType is invalid`);
     }
-    for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityOpenBack", "gridfinityOpenFront", "gridfinityOpenLeft", "gridfinityOpenRight", "hingePinless"] as const) {
+    for (const key of ["gridfinityLip", "gridfinityMagnets", "gridfinityHalfGrid", "gridfinityLargePlate", "gridfinitySwallowtail", "gridfinityLabelBack", "gridfinityLabelFront", "gridfinityLabelLeft", "gridfinityLabelRight", "gridfinityScoopBack", "gridfinityScoopFront", "gridfinityScoopLeft", "gridfinityScoopRight", "gridfinityOpenBack", "gridfinityOpenFront", "gridfinityOpenLeft", "gridfinityOpenRight", "hingePinless"] as const) {
       if (definition[key] !== undefined && typeof definition[key] !== "boolean") throw new Error(`${label}.${key} must be true or false`);
     }
-    for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityOpeningCornerSize", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
+    for (const key of ["gridfinityLabelBackWidth", "gridfinityLabelBackLength", "gridfinityLabelBackOffset", "gridfinityLabelFrontWidth", "gridfinityLabelFrontLength", "gridfinityLabelFrontOffset", "gridfinityLabelLeftWidth", "gridfinityLabelLeftLength", "gridfinityLabelLeftOffset", "gridfinityLabelRightWidth", "gridfinityLabelRightLength", "gridfinityLabelRightOffset", "gridfinityLabelCornerSize", "gridfinityLabelTextSize", "gridfinityScoopRadius", "gridfinityFloorHeight", "gridfinityLipChamfer", "gridfinityWallThickness", "gridfinityOpeningCornerSize", "gridfinityPaddingBack", "gridfinityPaddingFront", "gridfinityPaddingLeft", "gridfinityPaddingRight", "gridfinityCornerRadius", "gridfinityBinCornerRadius", "gridfinitySwallowtailClearance", "gridfinityCompartmentsX", "gridfinityCompartmentsZ", "gridfinityDividerThickness"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       // Only an offset runs both ways along a wall.
@@ -1634,6 +1818,16 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     }
     if (definition.gridfinityLabelCorner !== undefined && definition.gridfinityLabelCorner !== "round" && definition.gridfinityLabelCorner !== "chamfer") {
       throw new Error(`${label}.gridfinityLabelCorner is invalid`);
+    }
+    // The letters on the shelves (#1308): a text as long as a text shape's, in a built-in font or a font of one's own, whose letters the design brings along.
+    for (const key of Object.values(GRIDFINITY_LABEL_TEXT_KEYS)) {
+      if (definition[key] !== undefined && (typeof definition[key] !== "string" || definition[key].length > MAX_GRIDFINITY_LABEL_TEXT_LENGTH)) throw new Error(`${label}.${key} must be a string of at most ${MAX_GRIDFINITY_LABEL_TEXT_LENGTH} characters`);
+    }
+    if (definition.gridfinityLabelFont !== undefined && !GRIDFINITY_LABEL_FONTS.includes(definition.gridfinityLabelFont as string) && !isCustomFontId(definition.gridfinityLabelFont)) {
+      throw new Error(`${label}.gridfinityLabelFont is invalid`);
+    }
+    if (definition.gridfinityLabelColor !== undefined && (typeof definition.gridfinityLabelColor !== "string" || !/^#[0-9a-f]{6}$/i.test(definition.gridfinityLabelColor))) {
+      throw new Error(`${label}.gridfinityLabelColor must be a colour as #rrggbb`);
     }
     if (definition.gridfinityOpeningCorner !== undefined && definition.gridfinityOpeningCorner !== "round" && definition.gridfinityOpeningCorner !== "chamfer") {
       throw new Error(`${label}.gridfinityOpeningCorner is invalid`);
@@ -1666,6 +1860,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
           if (value < 0 || value > 1e6) throw new Error(`${entryLabel}.${key} is outside the supported range`);
         }
         if (entry.align !== undefined && entry.align !== "start" && entry.align !== "middle" && entry.align !== "end") throw new Error(`${entryLabel}.align is invalid`);
+        if (entry.text !== undefined && (typeof entry.text !== "string" || entry.text.length > MAX_GRIDFINITY_LABEL_TEXT_LENGTH)) throw new Error(`${entryLabel}.text must be a string of at most ${MAX_GRIDFINITY_LABEL_TEXT_LENGTH} characters`);
       });
     }
     if (definition.gridfinityOpenings !== undefined) {
@@ -1687,14 +1882,31 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
         if (entry.align !== undefined && entry.align !== "start" && entry.align !== "middle" && entry.align !== "end") throw new Error(`${entryLabel}.align is invalid`);
       });
     }
+    if (definition.gridfinityOutline !== undefined) {
+      if (!Array.isArray(definition.gridfinityOutline)) throw new Error(`${label}.gridfinityOutline must be an array`);
+      const outline = definition.gridfinityOutline as unknown[];
+      if (outline.length > MAX_GRIDFINITY_OUTLINE_POINTS) throw new Error(`${label}.gridfinityOutline has too many points`);
+      const points = outline.map((raw, index) => {
+        const entryLabel = `${label}.gridfinityOutline[${index}]`;
+        const entry = objectRecord(raw, entryLabel);
+        return { x: finiteNumber(entry.x, `${entryLabel}.x`), y: finiteNumber(entry.z, `${entryLabel}.z`) };
+      });
+      if (findSketchOutlineIntersection([points])) throw new Error(`${label}.gridfinityOutline crosses itself`);
+    }
   }
   if (kind === "hinge") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["hingeKnuckles", "hingeKnuckleWidth", "hingeConeSize", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeAngle"] as const) {
+    for (const key of ["hingeKnuckles", "hingeKnuckleWidth", "hingeConeSize", "hingePinDiameter", "hingeLeafThickness", "hingeClearance", "hingeAngle", "hingeScrewHoles", "hingeScrewDiameter", "hingeScrewSpacing", "hingeScrewAcross", "hingeCornerRadius", "hingeNutWidth"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
-      if (value < 0 || value > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
+      // The opening angle may fold the leaf down below lying flat (#1259).
+      if ((key !== "hingeAngle" && value < 0) || Math.abs(value) > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
     }
+  }
+  if (kind === "torus" && definition.torusTubeRatio !== undefined) {
+    // Up to 1, not 0.5: a design from before #981 carries its height as the tube, and that may have been taller than the hole allowed.
+    const ratio = finiteNumber(definition.torusTubeRatio, `${label}.torusTubeRatio`);
+    if (ratio <= 0 || ratio > 1) throw new Error(`${label}.torusTubeRatio is outside the supported range`);
   }
   if (kind === "slot" && definition.slotEndRatio !== undefined) {
     const ratio = finiteNumber(definition.slotEndRatio, `${label}.slotEndRatio`);
@@ -1702,7 +1914,7 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   }
   if (kind === "loft") {
     // Lenient on purpose: the geometry clamps the values itself; only nonsense is refused.
-    for (const key of ["loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftBottomSides", "loftTopSides", "loftOffsetX", "loftOffsetZ", "loftWall", "loftTwist", "loftTiltX", "loftTiltZ", "loftSmooth", "loftSegments"] as const) {
+    for (const key of ["loftBottomWidth", "loftBottomDepth", "loftTopWidth", "loftTopDepth", "loftBottomCorner", "loftTopCorner", "loftBottomSides", "loftTopSides", "loftOffsetX", "loftOffsetZ", "loftWall", "loftTopWall", "loftTwist", "loftTiltX", "loftTiltZ", "loftSmooth", "loftSegments"] as const) {
       if (definition[key] === undefined) continue;
       const value = finiteNumber(definition[key], `${label}.${key}`);
       if (Math.abs(value) > 1e6) throw new Error(`${label}.${key} is outside the supported range`);
@@ -1712,6 +1924,24 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
       if (value !== undefined && value !== "round" && value !== "rectangle" && value !== "polygon") {
         throw new Error(`${label}.${key} must be round, rectangle or polygon`);
       }
+    }
+    // Sections between the ends (#1034): a list of plain sections; the geometry sorts and clamps them.
+    if (definition.loftSections !== undefined) {
+      if (!Array.isArray(definition.loftSections)) throw new Error(`${label}.loftSections must be a list`);
+      definition.loftSections.forEach((section: unknown, index: number) => {
+        const at = `${label}.loftSections[${index}]`;
+        if (!section || typeof section !== "object") throw new Error(`${at} must be an object`);
+        const entry = section as Record<string, unknown>;
+        if (entry.outline !== "round" && entry.outline !== "rectangle" && entry.outline !== "polygon") throw new Error(`${at}.outline must be round, rectangle or polygon`);
+        for (const key of ["at", "width", "depth", "corner", "sides", "offsetX", "offsetZ"]) {
+          if (entry[key] === undefined && key !== "at" && key !== "width" && key !== "depth") continue;
+          const value = finiteNumber(entry[key], `${at}.${key}`);
+          if (Math.abs(value) > 1e6) throw new Error(`${at}.${key} is outside the supported range`);
+        }
+      });
+    }
+    if (definition.loftThrough !== undefined && definition.loftThrough !== "smooth" && definition.loftThrough !== "straight") {
+      throw new Error(`${label}.loftThrough must be smooth or straight`);
     }
   }
   if (kind === "dovetail") {
@@ -1744,6 +1974,17 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
   if (kind === "bentTube" || parametricKind === "bentTube") {
     validateBentTubeDefinition(definition, label);
   }
+  if (kind === "port" && definition.portProfile !== undefined && !PORT_PROFILES.includes(definition.portProfile as PortProfile)) {
+    throw new Error(`${label}.portProfile is not supported`);
+  }
+  if (kind === "port" && definition.portClearance !== undefined) {
+    const portClearance = finiteNumber(definition.portClearance, `${label}.portClearance`);
+    if (portClearance < 0 || portClearance > 2) throw new Error(`${label}.portClearance is outside the supported range`);
+  }
+  if (kind === "port" && definition.cornerFillet !== undefined) {
+    const cornerFillet = finiteNumber(definition.cornerFillet, `${label}.cornerFillet`);
+    if (cornerFillet < 0 || cornerFillet > 1e6) throw new Error(`${label}.cornerFillet is outside the supported range`);
+  }
   if (kind === "roundedBox") {
     if (definition.cornerFillet !== undefined) {
       const cornerFillet = finiteNumber(definition.cornerFillet, `${label}.cornerFillet`);
@@ -1752,6 +1993,10 @@ function validateShapeDefinition(definition: Record<string, unknown>, label: str
     if (definition.topBottomFillet !== undefined) {
       const topBottomFillet = finiteNumber(definition.topBottomFillet, `${label}.topBottomFillet`);
       if (topBottomFillet < 0 || topBottomFillet > 1e6) throw new Error(`${label}.topBottomFillet is outside the supported range`);
+    }
+    if (definition.bottomFillet !== undefined) {
+      const bottomFillet = finiteNumber(definition.bottomFillet, `${label}.bottomFillet`);
+      if (bottomFillet < 0 || bottomFillet > 1e6) throw new Error(`${label}.bottomFillet is outside the supported range`);
     }
     if (definition.roundedBoxQuality !== undefined) {
       const roundedBoxQuality = finiteNumber(definition.roundedBoxQuality, `${label}.roundedBoxQuality`);
@@ -1982,14 +2227,14 @@ function sharedImportedMesh(decoded: object, reference: string, create: () => Im
   return mesh;
 }
 
-async function defaultSourceImporter(asset: ProjectAsset) {
+async function defaultSourceImporter(asset: ProjectAsset, options: { stl?: StlReadOptions } = {}) {
   if (asset.sourceFormat === "stl") {
     // In the browser the file is read off the page (lib/geometryWorker.ts); the server reads it here.
     if (typeof window !== "undefined") {
       const { importedShapeFromStlOffThread } = await import("@/lib/geometryWorker");
-      return (await importedShapeFromStlOffThread(asset.name, exactArrayBuffer(asset.bytes))).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
+      return (await importedShapeFromStlOffThread(asset.name, exactArrayBuffer(asset.bytes), options.stl)).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
     }
-    return importedShapeFromStl(asset.name, exactArrayBuffer(asset.bytes)).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
+    return importedShapeFromStl(asset.name, exactArrayBuffer(asset.bytes), options.stl).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
   }
   if (asset.sourceFormat === "obj") return importedShapeFromObj(asset.name, strFromU8(asset.bytes), true).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
   if (asset.sourceFormat === "svg") return importedShapeFromSvg(asset.name, strFromU8(asset.bytes)).importedMesh as NonNullable<WorkplaneShape["importedMesh"]>;
@@ -2060,8 +2305,20 @@ async function restoreShapeFromNode(
       promise = sourceImporter(sourceAsset);
       sourceMeshCache.set(sourceAsset.id, promise);
     }
-    const regenerated = await promise;
-    importedMesh = sharedImportedMesh(regenerated, sourceAsset.id, () => ({ ...regenerated, assetId: sourceAsset.id }));
+    let regenerated = await promise;
+    let meshKey = sourceAsset.id;
+    // An STL imported before 1.151.0 may have been read Y-up; read Z-up now, it would open turned and stretched (Issue #1518).
+    if (sourceAsset.sourceFormat === "stl" && stlReadBeforeZUp(regenerated, node.importedMesh, definition as { width?: number; depth?: number; height?: number })) {
+      meshKey = `${sourceAsset.id}#y-up`;
+      let legacy = sourceMeshCache.get(meshKey);
+      if (!legacy) {
+        legacy = sourceImporter(sourceAsset, { stl: { yUp: true } });
+        sourceMeshCache.set(meshKey, legacy);
+      }
+      regenerated = await legacy;
+    }
+    const mesh = regenerated;
+    importedMesh = sharedImportedMesh(mesh, meshKey, () => ({ ...mesh, assetId: sourceAsset.id }));
   } else if (node.importedMesh?.meshAssetId) {
     const meshRecord = assetById.get(node.importedMesh.meshAssetId);
     if (!meshRecord) throw new Error(`Object '${node.objectId}' is missing its derived mesh`);
@@ -2274,19 +2531,79 @@ function newerDesignError(saved: unknown, error: unknown) {
   return new Error(`This design was saved with layerling ${saved as string}, newer than this layerling ${LYL_CREATED_WITH_VERSION}, and holds something this version does not know yet (${detail})`);
 }
 
-async function readPackagedLyl(bytes: Uint8Array) {
+/** Every string anywhere in a value: the asset ids a state refers to, whatever field holds them. */
+function collectStrings(value: unknown, into: Set<string>) {
+  if (typeof value === "string") into.add(value);
+  else if (Array.isArray(value)) value.forEach((item) => collectStrings(item, into));
+  else if (value && typeof value === "object") Object.values(value).forEach((item) => collectStrings(item, into));
+}
+
+/**
+ * The document cut down to its current state (#1157): one state, one history entry, and only the
+ * assets that state, the attached files and the editor settings refer to. Null when the document
+ * is not shaped well enough to cut; it is then read whole and checked as usual.
+ */
+function sceneOnlyLylDocument(raw: unknown): { document: Record<string, unknown>; paths: Set<string> } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const document = raw as Partial<LylProjectDocumentV1>;
+  if (!Array.isArray(document.states) || !Array.isArray(document.assets) || !Array.isArray(document.history?.entries)) return null;
+  const scene = document.states.find((state) => state?.id === document.sceneStateId);
+  if (!scene) return null;
+  const entries = document.history.entries;
+  const atIndex = entries[document.history.index];
+  const entry = atIndex?.stateId === scene.id ? atIndex : [...entries].reverse().find((candidate) => candidate?.stateId === scene.id);
+  const referenced = new Set<string>();
+  collectStrings(scene, referenced);
+  collectStrings(document.attachments, referenced);
+  collectStrings(document.editor, referenced);
+  const assets = document.assets.filter((asset) => typeof asset?.id === "string" && referenced.has(asset.id));
+  return {
+    document: {
+      ...document,
+      assets,
+      states: [scene],
+      history: { entries: [entry ? { ...entry, stateId: scene.id } : { stateId: scene.id, selectedObjectIds: [] }], index: 0 },
+    },
+    paths: new Set(assets.map((asset) => asset.path)),
+  };
+}
+
+function unzipOnly(bytes: Uint8Array, paths: Set<string>) {
+  return new Promise<ArchiveFiles>((resolve, reject) => {
+    unzip(bytes, { filter: (file) => paths.has(file.name) }, (error, files) => {
+      if (error) reject(error);
+      else resolve(files);
+    });
+  });
+}
+
+async function readPackagedLyl(bytes: Uint8Array, currentStateOnly = false) {
   inspectZipBeforeExpansion(bytes);
   let files: ArchiveFiles;
+  let raw: unknown;
   try {
-    files = await unzipAsync(bytes);
+    if (currentStateOnly) {
+      // project.json first: it says which files the current state needs, and only those are unpacked.
+      files = await unzipOnly(bytes, new Set(["project.json"]));
+    } else {
+      files = await unzipAsync(bytes);
+    }
   } catch (error) {
     throw new Error(`Could not expand .lyl package: ${error instanceof Error ? error.message : "corrupt ZIP data"}`);
   }
-  let raw: unknown;
   try {
     raw = JSON.parse(strFromU8(files["project.json"]));
   } catch {
     throw new Error("project.json is malformed");
+  }
+  if (currentStateOnly) {
+    const cut = sceneOnlyLylDocument(raw);
+    try {
+      files = cut ? await unzipOnly(bytes, cut.paths) : await unzipAsync(bytes);
+    } catch (error) {
+      throw new Error(`Could not expand .lyl package: ${error instanceof Error ? error.message : "corrupt ZIP data"}`);
+    }
+    if (cut) raw = cut.document;
   }
   try {
     return { files, validated: await validateDocumentAndAssets(raw, files) };
@@ -2318,11 +2635,39 @@ export async function withLylProjectName(input: ArrayBuffer | Uint8Array, projec
   const name = projectName.trim();
   const prefix = strFromU8(bytes.subarray(0, Math.min(bytes.length, 64))).trimStart();
   if (!name || prefix.startsWith("{")) return bytes;
+  // Only project.json is read to compare the name: unpacking and checking every mesh of every design
+  // made backing up many large designs slow (#991). The whole package is opened only to rename it.
+  if (packagedLylProjectName(await unzipProjectJson(bytes)) === name) return bytes;
   const { files, validated } = await readPackagedLyl(bytes);
   if (validated.document.metadata.projectName === name) return bytes;
   const raw = JSON.parse(strFromU8(files["project.json"])) as { metadata: { projectName: string } };
   raw.metadata.projectName = name;
   files["project.json"] = strToU8(JSON.stringify(raw));
+  return zipAsync(Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))), 1);
+}
+
+/**
+ * Where a package carries the picture of its design, the one on the design's card: other programs, a file manager or a
+ * library of models, show it without building the design (Discussion #1226). layerling itself does not read it.
+ */
+export const LYL_THUMBNAIL_FILE = "thumbnail.png";
+
+/** The picture as an extra file of the package (`extraFiles`), or nothing when there is none. */
+export function lylThumbnailFiles(png: Uint8Array | null | undefined): Record<string, Uint8Array> | undefined {
+  return png && png.byteLength > 0 ? { [LYL_THUMBNAIL_FILE]: png } : undefined;
+}
+
+/**
+ * The package with the picture of its design in it, in place of one it had; without a picture, as it is. For a package
+ * written before, as the browser keeps it, on its way to the server.
+ */
+export async function withLylThumbnail(input: ArrayBuffer | Uint8Array, png: Uint8Array | null | undefined): Promise<Uint8Array> {
+  const bytes = projectInputBytes(input);
+  const prefix = strFromU8(bytes.subarray(0, Math.min(bytes.length, 64))).trimStart();
+  if (!png || png.byteLength === 0 || prefix.startsWith("{")) return bytes;
+  inspectZipBeforeExpansion(bytes);
+  const files = await unzipAsync(bytes);
+  files[LYL_THUMBNAIL_FILE] = png;
   return zipAsync(Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))), 1);
 }
 
@@ -2346,7 +2691,7 @@ export async function importLylProject(input: ArrayBuffer | Uint8Array, options:
     throw new Error("This legacy project version is not supported");
   }
 
-  const { files, validated } = await readPackagedLyl(bytes);
+  const { files, validated } = await readPackagedLyl(bytes, options.currentStateOnly === true);
   // The letters a design brought along: its texts draw in their own font, even where the font
   // is not installed. A complete font kept in this browser wins over them.
   validateFonts(validated.document.fonts).forEach((font) => registerCustomFont(font, false));

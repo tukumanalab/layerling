@@ -10,7 +10,7 @@ layerling kører i browseren på en tablet, og som en app fra hjemmeskærmen. En
 | Du vil | På en tablet |
 | --- | --- |
 | Vælge et legeme | Tryk på det. |
-| Vælge flere legemer | Hold en finger stille i et halvt sekund, vælg {{ui:contextMenu.selectMultiple}}, og tryk så på ét legeme efter det andet. Et tryk på et valgt legeme tager det ud igen. |
+| Vælge flere legemer | Tryk på et legeme: en rund knap dukker op nederst til venstre. Tryk på den, og hvert legeme du trykker på bagefter lægges til markeringen; et tryk på et valgt legeme tager det ud igen. Et tryk på tom plads gør intet; et tryk på knappen igen afslutter og rydder markeringen. Eller hold en finger stille i et halvt sekund, vælg {{ui:contextMenu.selectMultiple}}, og tryk så på ét legeme efter det andet. |
 | Vælge alle legemer | Hold en finger stille på tom plads i et halvt sekund, og vælg {{ui:contextMenu.selectAll}}. |
 | Åbne menuen fra et højreklik | Hold en finger stille på et legeme eller på tom plads i et halvt sekund. |
 | Flytte et legeme | Træk det. |
@@ -28,13 +28,15 @@ Den samme menu har {{ui:contextMenu.carry}}, tasten [[C]] til en berøringsskær
 
 ## Dreje og zoome i visningen
 
-Én finger på tom plads drejer visningen, to fingre zoomer den og flytter den. En finger der begynder på et legeme arbejder på legemet, ikke på visningen. Vil du hellere have den til at dreje visningen, slår du {{ui:camera.touchRotate}} til i kamerabjælken: én finger drejer så visningen i stedet for at vælge, uanset hvor den begynder. Den kontakt vises kun på en enhed med en berøringsskærm.
+Én finger på tom plads drejer visningen, to fingre zoomer den og flytter den. En finger der begynder på et legeme arbejder på legemet, ikke på visningen. Vil du hellere have den til at dreje visningen, slår du {{ui:camera.touchRotate}} til i visningsbjælken: én finger drejer så visningen i stedet for at vælge, uanset hvor den begynder. Den kontakt vises kun på en enhed med en berøringsskærm.
 
 Visningskuben øverst til venstre drejer visningen når du trækker i den, og et tryk på en af dens sider, hjørner eller kanter springer til den visning. Se [Visning og arbejdsplan](chapter:view-and-workplane).
 
 ## Håndtag, små punkter og en pen
 
 En fingertip dækker det, den sigter efter. layerling lader en finger nå lidt længere ud til håndtag, punkter, linjer og kanter end en musemarkør gør, men en pen er finere. Det gælder en pen, som tabletten kender som en pen, for eksempel en Apple Pencil eller en S Pen. En almindelig pen med gummispids tæller for skærmen som en finger og er ikke finere end en, så arbejd med den som med en finger. En Apple Pencil der svæver over skærmen på en iPad viser også navnet på en kontrol efter et øjeblik, i en lille boble, som musemarkøren gør med et værktøjstip.
+
+I skitsetilstand tegner {{ui:sketch.freehand}} med pen eller finger som på papir; når du løfter, bliver linjen til skitsepunkter, du kan redigere, se [Skitser](chapter:sketches).
 
 Skrider legemer, når børn eller travle hænder rører ved dem, slår du {{ui:workspace.selectBeforeMoving}} til i indstillingerne: et legeme skal så vælges først, og først det næste træk flytter det.
 

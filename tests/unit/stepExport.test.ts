@@ -94,6 +94,19 @@ describe("stepSourceForShape", () => {
     expect(stepSourceForShape(verrundet)).toBe("baked");
   });
 
+  it("leaves out a stored or imported B-Rep that was tapered or twisted afterwards (#1237)", () => {
+    // Baking clears the deformation; one set after that only bends the mesh, not the B-Rep.
+    expect(stepSourceForShape(shape({ kind: "mesh", cadBrep: "DBRep …", extrudeTwist: 25 }))).toBe("unsupported");
+    expect(stepSourceForShape(shape({ kind: "mesh", cadBrep: "DBRep …", taperBottomWidth: 25, taperBottomDepth: 25 }))).toBe("unsupported");
+    expect(stepSourceForShape(shape({ kind: "mesh", cadBrep: "DBRep …", extrudeTopOffsetX: 4 }))).toBe("unsupported");
+    const eingelesen = shape({
+      kind: "mesh",
+      extrudeTwist: 30,
+      importedMesh: { positions: new Float32Array(), baseWidth: 1, baseDepth: 1, baseHeight: 1, triangleCount: 0, brepStep: "ISO-10303-21;" },
+    });
+    expect(stepSourceForShape(eingelesen)).toBe("unsupported");
+  });
+
   it("nimmt auch bei einer Aussparung das abgelegte B-Rep", () => {
     expect(stepSourceForShape(shape({ kind: "mesh", hole: true, cadBrep: "DBRep …" }))).toBe("baked");
   });
@@ -127,6 +140,9 @@ describe("stepSourceForShape", () => {
     expect(stepSourceForShape(shape({ kind: "gear", width: 30, depth: 18, height: 6, gearType: "bevel" }))).toBe("profile");
     // Ein ovales Schraegrad dreht keinen festen Zahnkranz: es bleibt ein Netz.
     expect(stepSourceForShape(shape({ kind: "gear", width: 30, depth: 18, height: 6, gearType: "helical" }))).toBe("unsupported");
+    // Ein Pfeilrad ist exakt, oval bleibt es ein Netz (#1007).
+    expect(stepSourceForShape(shape({ kind: "gear", width: 30, depth: 30, height: 6, gearType: "herringbone" }))).toBe("helicalGear");
+    expect(stepSourceForShape(shape({ kind: "gear", width: 30, depth: 18, height: 6, gearType: "herringbone" }))).toBe("unsupported");
   });
 
   it("laesst tragen, was STEP nicht abbilden kann", () => {

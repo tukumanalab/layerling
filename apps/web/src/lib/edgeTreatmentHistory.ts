@@ -1,3 +1,4 @@
+import { bentTubeSettings } from "@/lib/bentTubeGeometry";
 import { canonicalizeShape, hollowStretchSincePicture } from "@/lib/workplaneShapes";
 import type { EdgeTreatmentHistoryEntry, WorkplaneShape } from "@/types/layerling";
 
@@ -64,6 +65,19 @@ export function groupBeforeEdgeTreatments(shape: WorkplaneShape): WorkplaneShape
   return restoreShapeBeforeEdgeTreatment(shape, shape.edgeTreatmentHistory![0]);
 }
 
+/**
+ * The tube, ring or bent tube such a body was before its first fillet or chamfer, with the body's own place and size;
+ * null when it was none. Its bore still cuts what the body is grouped with (#1067): the fillet made it one mesh,
+ * and the mesh alone has no bore to hand on.
+ */
+export function tubeBeforeEdgeTreatments(shape: WorkplaneShape): WorkplaneShape | null {
+  const first = shape.edgeTreatmentHistory?.[0];
+  if (!shape.importedMesh || shape.groupedShapes?.length || !first) return null;
+  const before = first.before;
+  const hollow = before.kind === "tube" || before.kind === "ring" || (before.kind === "bentTube" && bentTubeSettings(before).innerProfile !== "none");
+  return hollow ? restoreShapeBeforeEdgeTreatment(shape, first) : null;
+}
+
 export function restoreShapeBeforeEdgeTreatment(shape: WorkplaneShape, entry: EdgeTreatmentHistoryEntry) {
   const before = cloneWorkplaneShapeSnapshot(entry.before);
   const entryIndex = (shape.edgeTreatmentHistory ?? []).findIndex((candidate) => candidate.id === entry.id);
@@ -88,7 +102,11 @@ export function restoreShapeBeforeEdgeTreatment(shape: WorkplaneShape, entry: Ed
     hidden: shape.hidden,
     x: applied ? before.x + shape.x - applied.x : before.x,
     z: applied ? before.z + shape.z - applied.z : before.z,
-    elevation: applied ? (before.elevation ?? 0) + (shape.elevation ?? 0) - applied.elevation : before.elevation,
+    // Kept by its middle, as x and z are: a body turned before it was baked has its bottom elsewhere, and kept by
+    // the bottom a teardrop stood up and hollowed sank 28 mm into the plate when it was made bigger (Discussion #1150).
+    elevation: applied
+      ? (before.elevation ?? 0) + before.height / 2 + ((shape.elevation ?? 0) + shape.height / 2) - (applied.elevation + applied.height / 2) - height / 2
+      : before.elevation,
     width,
     depth,
     height,

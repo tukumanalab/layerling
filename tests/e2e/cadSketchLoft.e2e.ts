@@ -1,0 +1,163 @@
+import { beforeAll, describe, expect, it } from "vitest";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { OcctKernel } from "occt-wasm";
+import { buildSketchLoftSolid, SKETCH_LOFT_HOLES, SKETCH_LOFT_OUTLINES, SKETCH_LOFT_STROKE_UNSUPPORTED, type SketchLoftPlace } from "@/lib/cadSketchLoft";
+import { applySketchFillet } from "@/lib/sketchFilletChamfer";
+import type { SketchPoint, SketchProfile, SketchSegment, SketchStroke } from "@/types/layerling";
+
+const K = 0.5522847498;
+
+/** A rectangle round (cx, cz), `ring` naming its points so that several fit in one sketch. */
+function rectangle(width: number, depth: number, cx = 0, cz = 0, ring = "r"): SketchProfile {
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  const points: SketchPoint[] = corners.map(([sx, sz], index) => ({ id: `${ring}${index}`, x: cx + (sx * width) / 2, z: cz + (sz * depth) / 2, mode: "corner" }));
+  const segments: SketchSegment[] = corners.map((_, index) => ({ id: `${ring}s${index}`, kind: "line", startId: `${ring}${index}`, endId: `${ring}${(index + 1) % 4}` }));
+  return { points, segments };
+}
+
+/** A circle of four Bezier quarters, as the sketch draws one. */
+function circle(radius: number, cx = 0, cz = 0, ring = "c"): SketchProfile {
+  const at = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+  const points: SketchPoint[] = at.map(([x, z], index) => ({
+    id: `${ring}${index}`,
+    x: cx + x * radius,
+    z: cz + z * radius,
+    mode: "smooth",
+    handleIn: { x: cx + x * radius + z * radius * K, z: cz + z * radius - x * radius * K },
+    handleOut: { x: cx + x * radius - z * radius * K, z: cz + z * radius + x * radius * K },
+  }));
+  const segments: SketchSegment[] = at.map((_, index) => ({ id: `${ring}s${index}`, kind: "bezier", startId: `${ring}${index}`, endId: `${ring}${(index + 1) % 4}` }));
+  return { points, segments };
+}
+
+function joined(...profiles: SketchProfile[]): SketchProfile {
+  return { points: profiles.flatMap((profile) => profile.points), segments: profiles.flatMap((profile) => profile.segments) };
+}
+
+const at = (y: number, extra: Partial<SketchLoftPlace> = {}): SketchLoftPlace => ({ centerX: 0, centerZ: 0, x: 0, z: 0, y, rotation: 0, ...extra });
+
+/** The loft of two sketches, the bottom one placed by `lower`, the top one by `upper`. */
+const loft = (cad: OcctKernel, bottom: SketchProfile, top: SketchProfile, lower: SketchLoftPlace, upper: SketchLoftPlace, stroke?: SketchStroke) =>
+  buildSketchLoftSolid(cad, { profile: bottom, place: lower, ...(stroke ? { stroke } : {}) }, { profile: top, place: upper, ...(stroke ? { stroke } : {}) });
+
+describe("a loft between two sketches with the real OCCT kernel", () => {
+  let kernel: OcctKernel;
+
+  beforeAll(async () => {
+    const wasm = join(dirname(fileURLToPath(import.meta.resolve("occt-wasm"))), "occt-wasm.wasm");
+    kernel = await OcctKernel.init({ wasm });
+  });
+
+  it("lofts a square into a smaller square as a frustum", () => {
+    const solid = loft(kernel, rectangle(20, 20), rectangle(10, 10), at(0), at(10));
+    expect(kernel.isValid(solid)).toBe(true);
+    // A frustum: h/3 (A1 + A2 + sqrt(A1 A2)).
+    expect(kernel.getVolume(solid)).toBeCloseTo((10 / 3) * (400 + 100 + 200), 3);
+    // Straight walls: six plane faces.
+    expect(kernel.getSubShapes(solid, "face")).toHaveLength(6);
+  });
+
+  it("puts each outline where its body stands, also turned and drawn away from the middle", () => {
+    // The top sketch is drawn round (50, 50) and stands at (30, -10), turned by 90 degrees.
+    const solid = loft(kernel, rectangle(40, 20), rectangle(20, 10, 50, 50), at(2), at(12, { centerX: 50, centerZ: 50, x: 30, z: -10, rotation: 90 }));
+    const box = kernel.getBoundingBox(solid, true);
+    expect(box.ymin).toBeCloseTo(2, 5);
+    expect(box.ymax).toBeCloseTo(12, 5);
+    expect(box.xmin).toBeCloseTo(-20, 5);
+    // Turned, the 20 x 10 top is 10 across and 20 along: x 25 to 35.
+    expect(box.xmax).toBeCloseTo(35, 5);
+    expect(box.zmin).toBeCloseTo(-20, 5);
+    expect(box.zmax).toBeCloseTo(10, 5);
+  });
+
+  it("lofts a rectangle into a circle", () => {
+    const solid = loft(kernel, rectangle(30, 30), circle(10), at(0), at(20));
+    expect(kernel.isValid(solid)).toBe(true);
+    const volume = kernel.getVolume(solid);
+    // Between the prism of the square (18 000) and the cylinder of the circle (6 283).
+    expect(volume).toBeGreaterThan(8000);
+    expect(volume).toBeLessThan(16000);
+    const box = kernel.getBoundingBox(solid, true);
+    expect(box.ymax - box.ymin).toBeCloseTo(20, 4);
+  });
+
+  it("lofts the hole of a ring too, so two frames give a hollow wall", () => {
+    const lower = joined(rectangle(60, 30, 0, 0, "o"), rectangle(56, 26, 0, 0, "i"));
+    const upper = joined(rectangle(40, 20, 0, 0, "o"), rectangle(36, 16, 0, 0, "i"));
+    const solid = loft(kernel, lower, upper, at(0), at(30));
+    expect(kernel.isValid(solid)).toBe(true);
+    // Prismatoids: h/6 (bottom + top + 4 x the section halfway up).
+    const outer = (30 / 6) * (60 * 30 + 40 * 20 + 4 * 50 * 25);
+    const inner = (30 / 6) * (56 * 26 + 36 * 16 + 4 * 46 * 21);
+    expect(kernel.getVolume(solid)).toBeCloseTo(outer - inner, 2);
+  });
+
+  it("lofts two lines with a width as the walls they are, their round corners arcs", () => {
+    const wall: SketchStroke = { width: 2, align: "outside", join: "round", cap: "flat" };
+    const solid = loft(kernel, rectangle(80, 30), rectangle(50, 20), at(0), at(30, { x: 10 }), wall);
+    expect(kernel.isValid(solid)).toBe(true);
+    const box = kernel.getBoundingBox(solid, true);
+    expect(box.xmin).toBeCloseTo(-42, 4);
+    expect(box.xmax).toBeCloseTo(42, 4);
+    expect(box.ymax).toBeCloseTo(30, 4);
+    // Four sides and four rounded corners outside, four sides inside: 12 walls and the two rims, not hundreds of facets.
+    expect(kernel.getSubShapes(solid, "face")).toHaveLength(14);
+    // A line with bevelled corners is left to the straight pieces.
+    expect(() => loft(kernel, rectangle(80, 30), rectangle(50, 20), at(0), at(30), { ...wall, join: "bevel" })).toThrow(SKETCH_LOFT_STROKE_UNSUPPORTED);
+  });
+
+  it("lofts two straight-sided outlines with a different number of corners, in either order (#286)", () => {
+    // A ship's side and its keel line as a user drew them: ten and eight corners, short pieces along a curve.
+    const polygon = (corners: Array<[number, number]>, ring: string): SketchProfile => ({
+      points: corners.map(([x, z], index) => ({ id: `${ring}${index}`, x, z, mode: "corner" as const })),
+      segments: corners.map((_, index) => ({ id: `${ring}s${index}`, kind: "line" as const, startId: `${ring}${index}`, endId: `${ring}${(index + 1) % corners.length}` })),
+    });
+    const wide = polygon([[-63.2441, 13.3958], [-1.8885, 13.474], [-1.8885, 14.5692], [-33.5645, 14.5692], [-35.0679, 14.6034], [-39.1921, 15.8938], [-42.6921, 16.7718], [-47.9281, 17.8338], [-55.0038, 18.9382], [-63.1961, 19.8318]], "a");
+    const narrow = polygon([[-56.956, 1.561], [4.186, 1.561], [4.186, 4.0401], [-0.956, 4.9309], [-15.2, 6.4], [-28.3, 7.3], [-45.8, 8.3], [-56.956, 9.031]], "b");
+    const area = (profile: SketchProfile) =>
+      Math.abs(profile.points.reduce((sum, point, index) => {
+        const next = profile.points[(index + 1) % profile.points.length];
+        return sum + point.x * next.z - next.x * point.z;
+      }, 0)) / 2;
+    const wideAt = { centerX: -32.5663, centerZ: 16.6138 };
+    const narrowAt = { centerX: -26.385, centerZ: 5.296 };
+    for (const flipped of [false, true]) {
+      const lower = flipped ? narrow : wide;
+      const upper = flipped ? wide : narrow;
+      const solid = loft(kernel, lower, upper, at(0, flipped ? narrowAt : wideAt), at(2, flipped ? wideAt : narrowAt));
+      expect(kernel.isValid(solid)).toBe(true);
+      // Walls that run straight from one outline to the other, not crossing: between the two areas times the height.
+      const volume = kernel.getVolume(solid);
+      expect(volume).toBeGreaterThan(2 * Math.min(area(wide), area(narrow)) * 0.9);
+      expect(volume).toBeLessThan(2 * Math.max(area(wide), area(narrow)) * 1.1);
+      expect(kernel.getBoundingBox(solid, true).ymax).toBeCloseTo(2, 4);
+    }
+  });
+
+  it("keeps the inner wall inside when a rounded rectangle's line goes into a ring, rounds as big as the line is wide", () => {
+    // As in a video of the tool: a frame 89 x 38 built as a 3 mm line inside, its corners rounded by 3 mm, under a
+    // circle built as a 3 mm line on the middle, 137 mm up. The inner side of the frame loses its rounds and has four
+    // pieces like the circle; lofted piece to piece it turned by 45 degrees and came out through the outer wall.
+    let frame = rectangle(89, 38);
+    let next = 0;
+    for (const corner of ["r0", "r1", "r2", "r3"]) {
+      frame = applySketchFillet(frame, corner, 3, (prefix) => `${prefix}-${(next += 1)}`)!.profile;
+    }
+    const inside: SketchStroke = { width: 3, align: "inside", join: "miter", cap: "flat" };
+    const middle: SketchStroke = { width: 3, align: "center", join: "miter", cap: "flat" };
+    const solid = buildSketchLoftSolid(kernel, { profile: frame, stroke: inside, place: at(0) }, { profile: circle(30.25), stroke: middle, place: at(137) });
+    expect(kernel.isValid(solid)).toBe(true);
+    // The wall is what lies between the outer loft and the inner one, which must not reach out of it.
+    const outer = loft(kernel, frame, circle(31.75), at(0), at(137));
+    const inner = loft(kernel, rectangle(83, 32), circle(28.75), at(0), at(137));
+    expect(kernel.getVolume(kernel.cut(inner, outer))).toBeLessThan(1);
+    const wall = kernel.getVolume(outer) - kernel.getVolume(inner);
+    expect(Math.abs(kernel.getVolume(solid) - wall) / wall).toBeLessThan(0.002);
+  });
+
+  it("refuses sketches with more than one outline, or with holes that do not match", () => {
+    expect(() => loft(kernel, joined(rectangle(10, 10, 0, 0, "a"), rectangle(10, 10, 30, 0, "b")), rectangle(10, 10), at(0), at(10))).toThrow(SKETCH_LOFT_OUTLINES);
+    expect(() => loft(kernel, joined(rectangle(20, 20, 0, 0, "o"), rectangle(10, 10, 0, 0, "i")), rectangle(20, 20), at(0), at(10))).toThrow(SKETCH_LOFT_HOLES);
+  });
+});

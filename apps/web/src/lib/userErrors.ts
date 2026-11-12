@@ -9,6 +9,11 @@ import type { MessageKey } from "@/lib/messages.en";
  * sentence in the person's language around it, instead of standing alone.
  */
 
+function denseTriangleCounts(match: RegExpMatchArray) {
+  const format = new Intl.NumberFormat(getLanguage());
+  return { triangles: format.format(Number(match[1])), limit: format.format(Number(match[2])) };
+}
+
 type ErrorRule = {
   pattern: RegExp;
   key: MessageKey;
@@ -40,11 +45,27 @@ export const ERROR_RULES: ErrorRule[] = [
   { pattern: /Finish the current action before opening the history view/i, key: "error.finishBeforeHistory" },
   // CAD kernel: stored and rebuilt bodies
   { pattern: /could not be restored as a valid solid/i, key: "error.storedBodyRestore" },
-  { pattern: /The exact (profile|thread|spring|gear) body (is not|does not)/i, key: "error.exactBodyInvalid" },
-  { pattern: /The (thread|gear|spring) body is not a valid solid/i, key: "error.solidNotValid" },
-  { pattern: /The (thread|gear|spring)'s .* (came out as|sewed into|did not close|did not sweep)/i, key: "error.solidNotValid" },
-  { pattern: /The (thread|gear|spring)'s measures are out of range/i, key: "error.measuresOutOfRange" },
-  { pattern: /gear with its bore came out as/i, key: "error.solidNotValid" },
+  { pattern: /The exact (profile body|thread body|spring body|gear body|Hirth joint|Gridfinity body|screw boss|snap-fit|rib) (is not|does not)|The pulley body is not a valid solid|The imported STEP body does not match/i, key: "error.exactBodyInvalid" },
+  // No exact body, and the mesh too dense to stand in for it (cadModifier.worker.ts).
+  { pattern: /could not be (re)?built as an exact( CAD)? body, and its mesh is too dense|could not be restored for edge treatment, and its mesh is too dense/i, key: "error.solidNotValid" },
+  { pattern: /The (thread|gear|ring gear|rack|spring) body is not a valid solid|The (Hirth joint|Gridfinity body) is not a valid solid/i, key: "error.solidNotValid" },
+  // Enclosure parts (enclosureSolid.ts): screw boss, snap-fit and rib.
+  { pattern: /The (screw boss|snap-fit|rib) is not a valid solid|The (screw boss|rib|gusset)[\w' ]{0,40} came out as \d+ solids|The snap-fit has neither hook nor catch/i, key: "error.solidNotValid" },
+  { pattern: /The (thread|gear|ring gear|spring|Hirth joint)'s .* (came out as|sewed into|did not close|did not sweep)/i, key: "error.solidNotValid" },
+  { pattern: /The (thread|gear|rack|spring|Hirth joint|pulley)'s measures are out of range|The ring gear's rim does not reach round its teeth/i, key: "error.measuresOutOfRange" },
+  { pattern: /(gear|rack|Hirth joint)( with its bore)? came out as|The pulley [\w ]{1,40} came out as/i, key: "error.solidNotValid" },
+  // Measures a profile cannot be built from (cadProfileSolid.ts): an outline, a loft or a sweep path that does not hold together.
+  { pattern: /The profile (has no height|has no outline|outline (is incomplete|has an invalid|has a zero-length|is not closed))|A profile arc does not meet|The loft's (point is not a number|top does not match)|A section of the loft does not match|A loft to a point (needs|cannot)|The sweep has no centre line|A sweep (piece|bend)|A straight sweep piece has no length/i, key: "error.primitiveDimensions" },
+  { pattern: /(loft|sweep|swept|tapered)[\w' ]{0,40} did not (become|close|make)|moved outlines are not a valid face|(elliptical arc|half ellipse) differently than expected|The profile did not become one solid|^sweep:invalid|letter could not be widened|widened text (has no letters|is not a valid solid|does not keep)/i, key: "error.solidNotValid" },
+  { pattern: /Gridfinity \w+ came out as|Gridfinity bin's [\w ]+ could not be (cut|joined)/i, key: "error.solidNotValid" },
+  { pattern: /thread's \w+ has no tiers|tapered thread narrows to its axis/i, key: "error.measuresOutOfRange" },
+  { pattern: /The lid cannot be built as an exact body/i, key: "lid.error.kernelUnknown" },
+  { pattern: /Drawing source contains/i, key: "error.drawingNoGeometry" },
+  // Profiles turned, swept, lofted, trimmed or with rounded or chamfered ends (cadProfileSolid.ts), and lofts.
+  { pattern: /profile solid (is not valid|is inside out|are not valid|does not keep)|A loft through its sections did not become one solid/i, key: "error.solidNotValid" },
+  // A slotted hole's straight section and a sloped profile's rounded rims (cadProfileSolid.ts).
+  { pattern: /A slotted hole's section has no width/i, key: "error.measuresOutOfRange" },
+  { pattern: /A slotted hole needs one section of straight lines|The slotted hole (did not become one solid|is not a valid solid)|The sloped profile solid has no edges to round/i, key: "error.solidNotValid" },
   { pattern: /thread's chamfer reaches its axis/i, key: "error.threadChamferAxis" },
   { pattern: /gear's centre hole reaches its teeth/i, key: "error.gearHoleTeeth" },
   { pattern: /crescent horn rounding does not fit/i, key: "error.crescentRounding" },
@@ -66,7 +87,8 @@ export const ERROR_RULES: ErrorRule[] = [
   { pattern: /stored STEP body holds no solid/i, key: "error.storedStepNoSolid" },
   { pattern: /Text fonts are not loaded yet/i, key: "error.fontsNotLoaded" },
   // sketch
-  { pattern: /Draw at least one closed profile on the left side/i, key: "error.revolveNoProfile" },
+  { pattern: /Draw at least one closed profile on the left side|profile crosses the revolve axis|profile lies right of the revolve axis|No closed profile found/i, key: "error.revolveNoProfile" },
+  { pattern: /OpenCascade produced invalid sketch topology/i, key: "error.revolveNotValid" },
   { pattern: /revolve profile has no filled area/i, key: "error.revolveNoArea" },
   { pattern: /profile could not be revolved into a valid solid/i, key: "error.revolveNotValid" },
   { pattern: /All profile paths are open/i, key: "error.sketchOpenPaths" },
@@ -86,10 +108,13 @@ export const ERROR_RULES: ErrorRule[] = [
   { pattern: /SVG is not valid XML/i, key: "error.svgInvalidXml" },
   { pattern: /Mesh does not contain complete triangles|Mesh contains non-finite/i, key: "error.meshBroken" },
   { pattern: /is too complex \(\d+ triangles/i, key: "error.meshTooComplex" },
+  // Too many triangles for hollowing or edge treatment (LayerlingEditor prepareCadModifierForMcp); a vase is told its own way (#1153).
+  { pattern: /This vase has (\d+) triangles; .*? stop at (\d+)/, key: "status.vaseTooDense", values: (m) => denseTriangleCounts(m) },
+  { pattern: /This mesh has (\d+) triangles; interactive edge treatment stops at (\d+)/, key: "status.meshTooDense", values: (m) => denseTriangleCounts(m) },
   { pattern: /contains \d+ zero-area triangle/i, key: "error.meshDegenerate" },
   { pattern: /is not a watertight manifold/i, key: "error.meshNotWatertight" },
   { pattern: /does not enclose a non-zero volume/i, key: "error.meshNoVolume" },
-  { pattern: /SVG projection (contains no readable contours|does not enclose)/i, key: "error.svgProjectionEmpty" },
+  { pattern: /SVG projection (contains no readable contours|does not enclose)|DXF export contains no readable contours|SVG top view contains no visible edges/i, key: "error.svgProjectionEmpty" },
   // OBJ, STL, 3MF, STEP import
   { pattern: /^OBJ (has no readable mesh geometry|geometry is empty)/i, key: "error.objEmpty" },
   { pattern: /^OBJ /i, key: "error.objBroken" },
@@ -121,6 +146,9 @@ export const ERROR_RULES: ErrorRule[] = [
   { pattern: /That folder is not empty/i, key: "error.folderNotEmpty" },
   { pattern: /store folder itself cannot be renamed/i, key: "error.storeFolderRename" },
   { pattern: /store folder itself cannot be removed/i, key: "error.storeFolderRemove" },
+  { pattern: /custom shapes folder cannot be renamed/i, key: "error.shapesFolderRename" },
+  { pattern: /custom shapes folder cannot be removed/i, key: "error.shapesFolderRemove" },
+  { pattern: /cannot list all of its designs/i, key: "error.serverListAll" },
   { pattern: /currently being changed by someone else/i, key: "error.sharedBusy" },
   { pattern: /Shared project was not found/i, key: "error.sharedNotFound" },
   { pattern: /Invalid shared project name/i, key: "error.sharedNameInvalid" },

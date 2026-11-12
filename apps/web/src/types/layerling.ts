@@ -14,6 +14,10 @@ export type ShapeKind =
   | "roundRoof"
   | "halfSphere"
   | "paraboloid"
+  | "curvedCone"
+  | "screwBoss"
+  | "snapFit"
+  | "rib"
   | "torus"
   | "tube"
   | "bentTube"
@@ -21,6 +25,8 @@ export type ShapeKind =
   | "heart"
   | "crescent"
   | "gear"
+  | "hirth"
+  | "pulley"
   | "honeycomb"
   | "hinge"
   | "knurl"
@@ -28,8 +34,11 @@ export type ShapeKind =
   | "counterbore"
   | "countersink"
   | "doubleCountersink"
+  | "finishingWasher"
   | "teardrop"
+  | "port"
   | "loft"
+  | "vase"
   | "thread"
   | "spring"
   | "gridfinity"
@@ -39,6 +48,9 @@ export type ShapeKind =
   | "icosahedron"
   | "ruler"
   | "mesh";
+
+/** Outline of a port opening (portGeometry.ts): rounded corners, or the lower corners cut as on these sockets. */
+export type PortProfile = "rounded" | "hdmi" | "miniHdmi" | "microHdmi" | "displayPort" | "miniDisplayPort" | "xt60" | "xt30" | "mt60" | "dsub9";
 
 /** Cross-section of a bent tube; the inner one may also be "none" for a solid tube. */
 export type BentTubeProfile = "round" | "square" | "hexagon" | "octagon";
@@ -113,7 +125,11 @@ export type ShapeCustomization = {
   height?: number;
   maxDimension?: number;
   cornerFillet?: number;
+  /** Rounded box with flat top and bottom: an own radius for each corner (back left, back right, front right, front left); wins over cornerFillet. */
+  cornerFillets?: [number, number, number, number];
   topBottomFillet?: number;
+  /** Rounded box only: the bottom edge on its own; left out, the bottom takes the top's radius. */
+  bottomFillet?: number;
   roundedBoxQuality?: number;
   steps?: number;
   sides?: number;
@@ -121,15 +137,73 @@ export type ShapeCustomization = {
   segments?: number;
   topRadius?: number;
   baseRadius?: number;
+  /** Curved cone (#1211): the top's diameter as a share of the bottom's, 0 to 1. */
+  curvedConeTop?: number;
+  /** Curved cone: how far the side bends, -1 inward (a trumpet) to 1 outward (a dome). */
+  curvedConeBend?: number;
+  /** Screw boss: what goes into its hole - a heat-set insert, a self-tapping screw, or a hole of one's own. */
+  screwBossFastener?: "insert" | "selfTapping" | "custom";
+  /** Screw boss: the size from its list (M3, #4-40, ST2.9 ...); the hole follows it unless typed in. */
+  screwBossSize?: string;
+  /** Screw boss: the hole's diameter and depth in mm, when typed in. */
+  screwBossHole?: number;
+  screwBossHoleDepth?: number;
+  /** Screw boss: the post's outer diameter in mm (the footprint may be wider for the gussets). */
+  screwBossDiameter?: number;
+  /** Screw boss: how many gussets brace it (0 to 6), how high they reach and how thick they are, in mm. */
+  screwBossGussets?: number;
+  screwBossGussetHeight?: number;
+  screwBossGussetThickness?: number;
+  /** Snap-fit: the hook and its catch together, or one of them. */
+  snapFitPart?: "both" | "hook" | "catch";
+  /** Snap-fit: the arm's thickness, the barb's undercut and the clearance to the catch, in mm. */
+  snapFitThickness?: number;
+  snapFitUndercut?: number;
+  snapFitClearance?: number;
+  /** Snap-fit: the barb's entry angle and the angle of the face that holds, in degrees from the direction it goes in. */
+  snapFitLeadAngle?: number;
+  snapFitRetainAngle?: number;
+  /** Snap-fit: the foot's thickness under the arm in mm (0: no foot). */
+  snapFitFoot?: number;
+  /** Rib: a straight rib or a gusset, and a straight rib's top. */
+  ribStyle?: "straight" | "gusset";
+  ribTop?: "flat" | "round" | "chamfer";
+  /** Rib: a thin, wider plate under it (Discussion #1307); missing means none. With it the depth is the foot's width. */
+  ribFoot?: boolean;
+  /** Rib on its foot: the rib's own thickness, and the foot's thickness from the bottom, in mm. */
+  ribThickness?: number;
+  ribFootThickness?: number;
+  /** Rib on its foot: square (missing) or an ellipse seen from above; on an oval foot the width is the foot's length. */
+  ribFootShape?: "square" | "oval";
   topWidth?: number;
   topDepth?: number;
   teeth?: number;
   toothSize?: number;
   toothWidth?: number;
   centerHoleSize?: number;
+  /** Hirth joint with saw teeth (Discussion #1320): the steep flank's angle to the face, 45 to 90 degrees; missing or 0 means symmetric teeth. */
+  hirthSteepFlank?: number;
+  /** Hirth joint with saw teeth: the steep flank on the other side of each tooth. */
+  hirthReverse?: boolean;
+  /** GT2 pulley (Discussion #1319): the toothed band's width along the axis, the belt's width plus a little play. */
+  pulleyBeltWidth?: number;
+  /** GT2 pulley: each flange's thickness, 0 for none. */
+  pulleyFlange?: number;
+  /** GT2 pulley: how far a flange reaches past the teeth. */
+  pulleyFlangeRise?: number;
+  /** GT2 pulley: the hub's height on top, 0 for none. */
+  pulleyHubHeight?: number;
+  /** GT2 pulley: the hub's diameter. */
+  pulleyHubDiameter?: number;
   gearType?: GearType;
   helixAngle?: number;
   helixQuality?: number;
+  /** A bevel gear's helix angle (Discussion #1299): its teeth turn while they taper, a spiral bevel gear; missing or 0 keeps them straight. */
+  bevelHelixAngle?: number;
+  /** A ring gear's or a rack's helix angle (Discussion #1627): its teeth run at a slant; missing or 0 keeps them straight. */
+  ringRackHelixAngle?: number;
+  /** A ring gear or a rack with a helix angle: its teeth turn back at half the height, herringbone teeth (Discussion #1627). */
+  ringRackHerringbone?: boolean;
   /** Involute teeth (#201) or the straight ones every gear had before; missing means straight. */
   gearProfile?: GearProfile;
   /** Involute teeth: pressure angle in degrees (20 by default). */
@@ -142,12 +216,16 @@ export type ShapeCustomization = {
   threadHead?: ThreadHead;
   threadHand?: ThreadHand;
   threadProfile?: ThreadProfile;
+  /** Tapered 1 in 16 on the diameter, as the pipe thread NPT (#1267); missing means straight. */
+  threadTaper?: boolean;
   threadDiameter?: number;
   threadPitch?: number;
   threadClearance?: number;
   /** Rod and screw: how much thinner (in diameter) the bolt comes out, for a metal nut. */
   threadBoltClearance?: number;
   threadAxialClearance?: number;
+  /** Starts (#1348): threads side by side, each a pitch from the next; 1 when absent. */
+  threadStarts?: number;
   /** Own profile: the thread depth in mm (outer minus core radius) and the included flank angle in degrees. */
   threadDepth?: number;
   threadFlankAngle?: number;
@@ -157,10 +235,22 @@ export type ShapeCustomization = {
   /** The chamfer at the bottom end; without it the bottom end has the same chamfer as the top. */
   threadChamferBottom?: number;
   threadHeadChamfer?: number;
+  /** Screw only (#1052): the head diameter (across flats on a hex head), the drive in its free face, and the drive's size and depth. Unset = the standard measure. */
+  threadHeadDiameter?: number;
+  threadDrive?: ThreadDrive;
+  threadDriveSize?: number;
+  threadDriveDepth?: number;
+  /** Screw (#1152): a round collar between the head and the thread; nut (#1175): on its top face. This high in mm; unset or 0 = none. Its diameter unset = twice the thread. */
+  threadCollarHeight?: number;
+  threadCollarDiameter?: number;
   springTurns?: number;
   springWire?: number;
   springHand?: ThreadHand;
   springQuality?: number;
+  /** A flat spring (#1076) instead of the coil: a band that runs in waves across the plate, `height` thick. Unset = the coil. */
+  springForm?: SpringForm;
+  springPattern?: FlatSpringPattern;
+  springEnds?: FlatSpringEnds;
   starPoints?: number;
   starInnerSize?: number;
   starOuterFillet?: number;
@@ -183,7 +273,7 @@ export type ShapeCustomization = {
   /** Hinge, cone style: the diameter of the cones at their root in mm; left out, the largest that fits (#907). */
   hingeConeSize?: number;
   /** Hinge: "pin" (default) or "cone": cones on every other knuckle that nest into the others, printing without bridges (#907). */
-  hingeStyle?: "pin" | "pinless" | "cone";
+  hingeStyle?: "pin" | "pinless" | "cone" | "liftOff";
   /** Hinge: diameter of the pin in mm; the other part's bore is wider by the clearance. */
   hingePinDiameter?: number;
   /** Hinge: thickness of the two leaves in mm. */
@@ -192,8 +282,26 @@ export type ShapeCustomization = {
   hingeClearance?: number;
   /** Hinge: no printed pin; the bore runs through every knuckle for a pin of one's own (filament, wire). */
   hingePinless?: boolean;
-  /** Hinge: the second leaf folded up about the pin, in degrees; 0 lies flat, 180 is closed. */
+  /** Hinge: the second leaf folded up about the pin, in degrees; 0 lies flat, 180 is closed, below 0 folded down. */
   hingeAngle?: number;
+  /** Hinge: screw holes in each leaf along the axis, 0 to 6; left out, none. */
+  hingeScrewHoles?: number;
+  /** Hinge: the screw holes' diameter in mm. */
+  hingeScrewDiameter?: number;
+  /** Hinge: from one screw hole's middle to the next along the axis in mm; left out, they share the length evenly. */
+  hingeScrewSpacing?: number;
+  /** Hinge: from the hole in one leaf to the hole in the other, across the axis, in mm; left out, each in the middle of its leaf. */
+  hingeScrewAcross?: number;
+  /** Hinge: false for straight screw holes; otherwise countersunk on the side that faces the other leaf when closed. */
+  hingeScrewCountersink?: boolean;
+  /** Hinge: the screw holes' top - "countersunk", "straight", "nut" (a hexagonal pocket for a nut) or "countersunkNut" (countersunk on leaf A, a nut on B); left out, hingeScrewCountersink decides. */
+  hingeScrewHead?: "countersunk" | "straight" | "nut" | "countersunkNut";
+  /** Hinge: a nut's width across the flats in mm for the nut's pockets; left out, from the hole's diameter. */
+  hingeNutWidth?: number;
+  /** Hinge: the leaves' outer corners rounded with this radius in mm. */
+  hingeCornerRadius?: number;
+  /** Hinge: "fingers" gives each knuckle its own finger instead of a leaf each side, the two sides' alternating like combs; "raised" lifts the second leaf so that it closes flat on the first (#1259); left out, plates. */
+  hingeLeafStyle?: "plate" | "fingers" | "raised";
   /** Gridfinity: a bin or the baseplate it stands in, whose size counts grid units of 42 mm (height units of 7 mm), or a tray of any size in mm (#837). */
   gridfinityType?: GridfinityType;
   /** Gridfinity bin: the stacking lip on top of the wall; missing means on. */
@@ -202,6 +310,12 @@ export type ShapeCustomization = {
   gridfinityMagnets?: boolean;
   /** Gridfinity bin: the size counts cells of 21 mm, each with a foot, four to a baseplate's socket; missing means the 42 mm grid. */
   gridfinityHalfGrid?: boolean;
+  /** Gridfinity baseplate: up to 12 units across and deep instead of 6, for print beds over 256 mm (#1061); missing means 6. */
+  gridfinityLargePlate?: boolean;
+  /** Gridfinity baseplate: Swallowtail, on a 2.4 mm floor with a pocket for a key under each side without padding (#1061); missing means off. */
+  gridfinitySwallowtail?: boolean;
+  /** Gridfinity baseplate with Swallowtail: the clearance of the keys Add keys lays out, in mm on every side; missing means 0.05, at most 0.15; the plate stays as it is (#1061). */
+  gridfinitySwallowtailClearance?: number;
   /** Gridfinity bin: a label shelf along the back wall. */
   gridfinityLabelBack?: boolean;
   /** Gridfinity bin: a label shelf along the front wall. */
@@ -238,6 +352,12 @@ export type ShapeCustomization = {
   gridfinityLabelCorner?: GridfinityLabelCorner;
   /** Gridfinity bin: the size of that rounding or chamfer in mm; 0 leaves the corner sharp. */
   gridfinityLabelCornerSize?: number;
+  /** Gridfinity bin: the font of the letters on its label shelves (#1308), one of the built-in ones; missing is Multilanguage. */
+  gridfinityLabelFont?: string;
+  /** Gridfinity bin: the colour of the letters on its label shelves (#1308), "#rrggbb"; missing, or the bin's own colour, is the bin's. */
+  gridfinityLabelColor?: string;
+  /** Gridfinity bin: how high the capitals on its label shelves are, in mm (#1308), the same on every shelf as far as each lets them; missing or 0 is as large as each shelf lets them. */
+  gridfinityLabelTextSize?: number;
   /** Gridfinity bin: a finger scoop along the back wall, the floor rising along a quarter circle into it. */
   gridfinityScoopBack?: boolean;
   /** Gridfinity bin: a finger scoop along the front wall. */
@@ -276,6 +396,8 @@ export type ShapeCustomization = {
   gridfinityPaddingRight?: number;
   /** Gridfinity baseplate: the radius of its four outer corners in mm; missing is the specification's 4, at least 0 (square), at most 4; the sockets keep theirs (#856). */
   gridfinityCornerRadius?: number;
+  /** Gridfinity bin: the radius of its outer corners above the feet in mm; missing is the specification's 3.75, at least 0 (square), at most 3.75; the feet, the inside and the lip's slopes keep theirs (#856). */
+  gridfinityBinCornerRadius?: number;
   /** Gridfinity bin: compartments across, a whole number; missing is 1, a bin without dividers (#554). */
   gridfinityCompartmentsX?: number;
   /** Gridfinity bin: compartments deep, a whole number; missing is 1. */
@@ -315,6 +437,8 @@ export type ShapeCustomization = {
   loftOffsetZ?: number;
   /** Transition: wall thickness in mm; 0 is a solid body, more a tube open at both ends. */
   loftWall?: number;
+  /** Transition: the wall at the top end in mm, when it differs from loftWall (Forum 624069); left out, it is loftWall. */
+  loftTopWall?: number;
   /** Transition: degrees the section turns from bottom to top (#205). */
   loftTwist?: number;
   /** Transition: 0 to 1, how much of an S-curve the sides take between the ends (#271). */
@@ -323,6 +447,8 @@ export type ShapeCustomization = {
   loftSegments?: number;
   /** Capsule: the small end's diameter as a share of the large one, 1 or missing for equal ends (#206). */
   slotEndRatio?: number;
+  /** Torus: how thick the tube is seen from above, as a share of the outer size; the height only squashes it (#981). */
+  torusTubeRatio?: number;
   /** Transition: degrees the top end tilts about the x axis and about the z axis (#205). */
   loftTiltX?: number;
   loftTiltZ?: number;
@@ -332,6 +458,22 @@ export type ShapeCustomization = {
   screwHoleHeadDepth?: number;
   /** Countersink and double countersink: opening angle of the cone in degrees. */
   screwHoleAngle?: number;
+  /**
+   * Drill point (Discussion #621): the point angle in degrees of the cone a drill leaves at the bottom of a blind
+   * hole, 60 to 150 (118 for a common twist drill); missing or 0 means a flat bottom. A cylinder, counterbore and
+   * countersink take it while they are holes. The height still counts to the shoulder, the tip lies below it.
+   */
+  drillPointAngle?: number;
+  /** Counterbore, countersink and double countersink: a slotted hole (Discussion #1531), as on the shape. */
+  screwHoleSlot?: boolean;
+  /** Countersink and double countersink: how far in mm the head sits below the face (Discussion #1531), as on the shape. */
+  screwHoleRecess?: number;
+  /** Counterbore: a 45-degree chamfer in mm at the rim of the pocket (Discussion #1632), as on the shape. */
+  screwHoleChamfer?: number;
+  /** Port opening: rounded corners, or the lower ones cut off as on an HDMI or DisplayPort socket. */
+  portProfile?: PortProfile;
+  /** Port opening: extra room in mm on every side on top of the preset's, already in width and height; it lets the preset be recognised. */
+  portClearance?: number;
   bentTubeProfile?: BentTubeProfile;
   bentTubeInnerProfile?: BentTubeInnerProfile;
   bentTubeSize?: number;
@@ -349,6 +491,8 @@ export type ShapeCustomization = {
   textInward?: boolean;
   /** Curved text: same place on the circle, letters turned upside down (read from the other side). */
   textFlipped?: boolean;
+  /** Automatic kerning (#1297); a new text has it on unless this says false. */
+  textKerning?: boolean;
 };
 
 export type ShapeCustomizationMap = Partial<Record<ShapeKind, ShapeCustomization>>;
@@ -359,6 +503,12 @@ export type WorkplaneWorkspaceSettings = {
   sizePreset: string;
   /** Id of the chosen printer preset (printerPresets.generated.ts), or "" for none. */
   printer: string;
+  /**
+   * The design's build plates by name, "" for a plate without one, side by side along X as large as the
+   * workplane (Discussion #456, buildPlates.ts). Left out, the design has one plate. A design's own, never
+   * part of the default workplane.
+   */
+  plates?: string[];
   gridBlockSize: number;
   gridBlockPreset: string;
   /** The grid preset of the unit system left by the last switch between mm and in, so switching back finds it again (#442). */
@@ -384,6 +534,11 @@ export type WorkplaneWorkspaceSettings = {
   edgeColor: string;
   /** Holes drawn darker and denser, with a line round them, so they stand out among see-through bodies (#662). */
   strongHoles: boolean;
+  /**
+   * How solid holes are drawn, 10 to 90 percent, so one can see better where a hole meets a body (#1566).
+   * 0 is automatic: 52 %, or 72 % with Show holes more clearly, as before the slider.
+   */
+  holeOpacity: number;
   showShadows: boolean;
   /** The camera keeps turning for a moment after you let go, and slows down. */
   cameraInertia: boolean;
@@ -428,12 +583,30 @@ export type WorkplaneWorkspaceSettings = {
   objectSnap: boolean;
   /** An STL leaves as a plain download each time, which the browser numbers (name (1).stl), instead of writing into one linked file (#731). */
   stlAsDownload: boolean;
+  /** Export > LYL, Ctrl+S and Save as leave as a plain download, without the browser's save dialog (Discussion #1449). */
+  lylAsDownload: boolean;
   /** The browser asks "Leave site?" when a design is open and the tab is closed or reloaded; off by default (#683 mail). */
   confirmTabClose: boolean;
   dimensionsAlwaysVisible: boolean;
+  /** The value boxes beside a selection take the colour of their axis, red X, green Y, blue Z; off by default (#1279). */
+  dimensionAxisColors: boolean;
   /** A turned body shows its angles about X, Y and Z beside it while it is selected. */
   showRotationAngles: boolean;
+  /** The red X and green Y arrows round the top of a selection that move it along one axis (Discussion #1434); on by default. */
+  showSlideArrows: boolean;
+  /** The editor opens a design with the view's scrollbars shown (Discussion #1241); the view bar still switches them. */
+  startWithScrollbars: boolean;
+  /** A folded view bar opens while the mouse is over its arrow and folds again once the mouse has left it (Discussion #1552). */
+  viewBarOpensOnHover: boolean;
   zoomSpeed: number;
+  /** How fast shifting the 3D view follows the mouse, a slider from 1 to 9; at 5 the grabbed point stays under the cursor (#1553). */
+  panSpeed: number;
+  /**
+   * Which mouse buttons steer the view (#1013): layerling's own (right turns, middle shifts, a left drag on empty space draws
+   * a selection box) or as in Bambu Studio and OrcaSlicer (a left drag on empty space turns, the right button shifts,
+   * Shift and a left drag draws the box).
+   */
+  mouseScheme: MouseScheme;
   units: string;
   /** With Imperial: inches as fractions (1⅝, like similar tools) or decimals (1.625). */
   inchFormat: InchFormat;
@@ -449,6 +622,8 @@ export type WorkplaneWorkspaceSettings = {
 
 export type InchFormat = "fraction" | "decimal";
 
+export type MouseScheme = "layerling" | "slicer";
+
 export type AlignAxis = "x" | "y" | "z";
 export type AlignTarget = "min" | "center" | "max";
 export type AlignHandleStatus = {
@@ -457,7 +632,17 @@ export type AlignHandleStatus = {
   disabled: boolean;
   aligned: boolean;
   title: string;
+  /** The same dot with Alt held: it stretches the parts to the reference instead of moving them (#998). */
+  size?: { disabled: boolean; aligned: boolean; title: string };
+  /**
+   * On the middle dot of an axis: the dot beside the line that spreads the parts with equal gaps between them
+   * (alignDistribute.ts). `gapDisabled` and `gapTitle` are for Alt on it, which asks for a gap to type in.
+   */
+  spread?: { disabled: boolean; aligned: boolean; title: string; gapDisabled: boolean; gapTitle: string };
 };
+
+/** Equal gaps on the align dots: null spreads them evenly, a number is the gap typed in, in millimetres. */
+export type AlignSpread = { gap: number | null };
 
 export type SketchPoint = {
   id: string;
@@ -503,8 +688,11 @@ export type SketchImage = {
 export type SketchStrokeAlign = "center" | "inside" | "outside" | "grow" | "shrink";
 export type SketchStrokeJoin = "miter" | "round" | "bevel";
 export type SketchStrokeCap = "flat" | "square" | "round";
-/** A sketch drawn as a line of this width instead of a filled area (#154). */
-export type SketchStroke = { width: number; align: SketchStrokeAlign; join: SketchStrokeJoin; cap: SketchStrokeCap };
+/**
+ * A sketch drawn as a line of this width instead of a filled area (#154). `edge` makes the wall a cutting edge (#982): its top
+ * runs in to that width with a 45° chamfer on both sides; only for a line inside, outside or centred, and narrower than the line.
+ */
+export type SketchStroke = { width: number; align: SketchStrokeAlign; join: SketchStrokeJoin; cap: SketchStrokeCap; edge?: number };
 /** Where a name tag's key ring hole sits, seen from above (#215). */
 export type TextKeyringSide = "left" | "right" | "top";
 /**
@@ -580,7 +768,7 @@ export type GridfinityLabelCorner = "round" | "chamfer";
  * against one side of the compartment, the bin's wall or a divider; `length` is a share of that side in per cent (10 to
  * 100, missing the full length), `align` where a shorter one sits along it (start towards -x on a back or front side and
  * towards -z on a left or right one; missing the middle), `width` how far it reaches out in mm (missing 14, within what
- * the compartment takes).
+ * the compartment takes), `text` the letters raised on it (#1308), up to 24 characters.
  */
 export type GridfinityCompartmentLabel = {
   column: number;
@@ -589,6 +777,7 @@ export type GridfinityCompartmentLabel = {
   length?: number;
   align?: "start" | "middle" | "end";
   width?: number;
+  text?: string;
 };
 
 /**
@@ -605,21 +794,37 @@ export type GridfinityOpening = {
   distance?: number;
 };
 
+/** A point of a Gridfinity baseplate's outline (#1061), in the plate's own frame: x across, z deep, in mm. */
+export type GridfinityOutlinePoint = { x: number; z: number };
+
 /** Was aus dem Gewinde wird: Stange, Schraube, Mutter oder das Loch dafuer. */
 export type ThreadRole = "rod" | "screw" | "nut" | "bore";
-export type ThreadHead = "cylinder" | "countersunk" | "hex";
+export type ThreadHead = "cylinder" | "countersunk" | "hex" | "square" | "flange" | "wing" | "knob";
+/** What drives a screw: a recess in its free head face (#1052). */
+export type ThreadDrive = "hex" | "torx" | "phillips" | "slot" | "robertson" | "none";
 export type ThreadHand = "right" | "left";
+export type SpringForm = "coil" | "flat";
+export type FlatSpringPattern = "round" | "zigzag" | "square";
+export type FlatSpringEnds = "eye" | "tab" | "none";
 /**
  * Die Zahnform: scharfe ISO-Spitze, flache Trapezflanke, rundes Profil oder
  * das Whitworth-Profil der G-Rohrgewinde (55 Grad, Kuppe und Grund gerundet).
  */
 export type ThreadProfile = "v" | "trapezoidal" | "round" | "whitworth" | "custom";
 
+/** A finer cut of an exact revolved body than the usual: see SketchRevolveSettings.smoothness. */
+export type SketchRevolveSmoothness = "fine" | "extraFine";
+
 export type SketchRevolveSettings = {
   startAngle: number;
   sweepAngle: number;
   sides: number;
   quality: number;
+  /**
+   * How finely an exact revolved body is cut into facets (Discussion #1426): left out the usual fineness of a sketch body,
+   * finer for a large round pot whose facets showed on the print. More triangles, so only where they are wanted.
+   */
+  smoothness?: SketchRevolveSmoothness;
   /**
    * How far the profile climbs per full turn, in mm. Left out or 0 the profile turns into rings; above
    * 0 it winds up as one continuous strand (a coil, a filament spool) and the sweep may run past a
@@ -646,8 +851,11 @@ export type ShellOpenings = "none" | "top" | "bottom" | "top-bottom" | ShellSide
 export type ShellEdges = "round" | "sharp";
 
 export type EdgeTreatmentFeature = {
-  /** "shell" hollows the body: `amount` is then the wall thickness. "deleteFace" deletes faces and closes the gap (#451). "offset" moves every face by `amount` (#919). */
-  kind: "fillet" | "chamfer" | "chamfillet" | "shell" | "deleteFace" | "offset";
+  /**
+   * "shell" hollows the body: `amount` is then the wall thickness. "deleteFace" deletes faces and closes the gap (#451). "offset" moves every face by `amount` (#919).
+   * "surfaceTexture" lays a relief onto the body: `amount` is its depth, and the entry keeps the body under it.
+   */
+  kind: "fillet" | "chamfer" | "chamfillet" | "shell" | "deleteFace" | "offset" | "surfaceTexture";
   amount: number;
   edgeCount: number;
   /** The edges picked, as the tool numbered them on the body before this treatment: "Edit" picks them again (#227). */
@@ -655,14 +863,20 @@ export type EdgeTreatmentFeature = {
   chamferAngle?: number;
   /** Only for a fillet of one edge (#687): the radius at the edge's end, `amount` the one at its start. */
   endAmount?: number;
+  /** Only for a fillet (#1160): the edges were scooped out (a concave fillet) instead of rounded. */
+  concave?: boolean;
   openings?: ShellOpenings;
   /** Only for "shell" and "offset"; missing means "round". */
   shellEdges?: ShellEdges;
   /** Only for "offset": the faces moved inward, the body shrunk; missing means grown. */
   offsetShrink?: boolean;
+  /** Only for "offset" (#1057): only the sides moved, flat tops and bottoms kept at their heights; missing means every face. */
+  offsetSideways?: boolean;
   /** Only for "deleteFace": the faces deleted, as the tool numbered them on the body before. */
   faceIds?: number[];
   faceCount?: number;
+  /** Only for "surfaceTexture": the settings it was made with, masks included. */
+  surfaceTexture?: import("@/lib/surfaceTexture").SurfaceTextureSettings;
 };
 
 export type EdgeTreatmentHistoryEntry = {
@@ -701,6 +915,17 @@ export type CadBrepFrame = {
 };
 
 /**
+ * Where an extruded sketch body's sketch lay once an edge treatment or hollowing baked its turn and place into its exact
+ * body (#1006): `transform` takes sketch points (y up from the sketch) into the exact body's own coordinates, `height`
+ * is the extrusion's and `anchor` the point of the outline under the body's middle, as it was before.
+ */
+export type SketchPose = {
+  transform: number[];
+  height: number;
+  anchor: { x: number; z: number };
+};
+
+/**
  * Was ein Koerper war, bevor eine Drehung ihn in ein Netz gebacken hat.
  *
  * Gedreht wird um die Mitte des Rahmens, und danach muss der Rahmen neu
@@ -727,6 +952,16 @@ export type ParametricSource = {
   extrudeTwist?: number;
   extrudeTopOffsetX?: number;
   extrudeTopOffsetZ?: number;
+  slopeEnd?: number;
+  slopeSide?: "back" | "front" | "left" | "right";
+  slopeCurve?: number;
+  slopeFrom?: "end" | "middle" | "arch";
+  sideDrop?: number;
+  sideCurve?: number;
+  narrowEnd?: number;
+  narrowSide?: "back" | "front" | "left" | "right";
+  narrowCurve?: number;
+  narrowStart?: number;
 };
 
 export type CadPrimitiveFrame = {
@@ -744,6 +979,25 @@ export type CadPrimitiveFrame = {
 
 /** The top edge of a text's letters: rounded or chamfered, `size` mm wide and high (#225). */
 export type TextEdge = { kind: "round" | "chamfer"; size: number };
+
+/** A section of a transition between its bottom and its top (#1034). */
+export type LoftMiddleSection = {
+  /** Where it stands, as a share of the height from the bottom, 0 to 1. */
+  at: number;
+  outline: "round" | "rectangle" | "polygon";
+  width: number;
+  depth: number;
+  /** Corner rounding of a rectangle, in mm. */
+  corner?: number;
+  /** Sides of a polygon. */
+  sides?: number;
+  /** How far its middle sits from the bottom's middle, in mm. */
+  offsetX?: number;
+  offsetZ?: number;
+};
+
+/** What a group does with its parts when it is resized (Discussion #526); see WorkplaneShape.groupResize. */
+export type GroupResizeMode = "stretch" | "keepParts";
 
 export type WorkplaneShape = {
   id: string;
@@ -771,6 +1025,44 @@ export type WorkplaneShape = {
   segments?: number;
   topRadius?: number;
   baseRadius?: number;
+  /** Curved cone (#1211): the top's diameter as a share of the bottom's, 0 to 1. */
+  curvedConeTop?: number;
+  /** Curved cone: how far the side bends, -1 inward (a trumpet) to 1 outward (a dome). */
+  curvedConeBend?: number;
+  /** Screw boss: what goes into its hole - a heat-set insert, a self-tapping screw, or a hole of one's own. */
+  screwBossFastener?: "insert" | "selfTapping" | "custom";
+  /** Screw boss: the size from its list (M3, #4-40, ST2.9 ...); the hole follows it unless typed in. */
+  screwBossSize?: string;
+  /** Screw boss: the hole's diameter and depth in mm, when typed in. */
+  screwBossHole?: number;
+  screwBossHoleDepth?: number;
+  /** Screw boss: the post's outer diameter in mm (the footprint may be wider for the gussets). */
+  screwBossDiameter?: number;
+  /** Screw boss: how many gussets brace it (0 to 6), how high they reach and how thick they are, in mm. */
+  screwBossGussets?: number;
+  screwBossGussetHeight?: number;
+  screwBossGussetThickness?: number;
+  /** Snap-fit: the hook and its catch together, or one of them. */
+  snapFitPart?: "both" | "hook" | "catch";
+  /** Snap-fit: the arm's thickness, the barb's undercut and the clearance to the catch, in mm. */
+  snapFitThickness?: number;
+  snapFitUndercut?: number;
+  snapFitClearance?: number;
+  /** Snap-fit: the barb's entry angle and the angle of the face that holds, in degrees from the direction it goes in. */
+  snapFitLeadAngle?: number;
+  snapFitRetainAngle?: number;
+  /** Snap-fit: the foot's thickness under the arm in mm (0: no foot). */
+  snapFitFoot?: number;
+  /** Rib: a straight rib or a gusset, and a straight rib's top. */
+  ribStyle?: "straight" | "gusset";
+  ribTop?: "flat" | "round" | "chamfer";
+  /** Rib: a thin, wider plate under it (Discussion #1307); missing means none. With it the depth is the foot's width. */
+  ribFoot?: boolean;
+  /** Rib on its foot: the rib's own thickness, and the foot's thickness from the bottom, in mm. */
+  ribThickness?: number;
+  ribFootThickness?: number;
+  /** Rib on its foot: square (missing) or an ellipse seen from above; on an oval foot the width is the foot's length. */
+  ribFootShape?: "square" | "oval";
   topWidth?: number;
   topDepth?: number;
   taperTopWidth?: number;
@@ -780,19 +1072,67 @@ export type WorkplaneShape = {
   /** Legacy local-dev taper fields kept for compatibility with in-progress projects. */
   taperTopScale?: number;
   taperBottomScale?: number;
+  /** Keep proportions in the Taper card (#1229): Length and Width of one end change together. */
+  taperKeepProportions?: boolean;
   /** Rotates the top face relative to the base, in degrees, for a twisted extrusion. */
   extrudeTwist?: number;
   /** Shifts the top face along the shape's local X axis, in mm. */
   extrudeTopOffsetX?: number;
   /** Shifts the top face along the shape's local Z axis, in mm. */
   extrudeTopOffsetZ?: number;
+  /**
+   * Slope along: the height of the top at the far end, in mm. The kept
+   * end stays at the body's height; missing or equal to the height means no slope.
+   */
+  slopeEnd?: number;
+  /** Slope along: which end goes down ("back" unless set; a round roof or a wedge slopes front or back). */
+  slopeSide?: "back" | "front" | "left" | "right";
+  /** Slope along: -1 to 1, 0 a straight top, above 0 bulging up, below 0 sagging. */
+  slopeCurve?: number;
+  /** Slope along: where the top line starts: at one end ("end", the default) or in the middle ("middle": both ends low, symmetric). */
+  slopeFrom?: "end" | "middle" | "arch";
+  /** Side drop: how many mm the two longer sides are lowered at their edges, evenly; missing or 0 means none. */
+  sideDrop?: number;
+  /** Side drop: -1 to 1, 0 a straight line from the middle to the edge, above 0 bulging up, below 0 sagging. */
+  sideCurve?: number;
+  /**
+   * Narrow along: seen from above, the width of the narrow end in mm,
+   * both long sides running in evenly. Missing or the full width means no narrowing.
+   */
+  narrowEnd?: number;
+  /** Narrow along: which end narrows ("back" unless set; a round roof or a wedge narrows front or back). */
+  narrowSide?: "back" | "front" | "left" | "right";
+  /** Narrow along: -1 to 1, 0 straight sides, above 0 bulging out, below 0 drawn in. */
+  narrowCurve?: number;
+  /** Narrow along: 0 to 0.95, the share of the length from the wide end where the narrowing starts. */
+  narrowStart?: number;
   teeth?: number;
   toothSize?: number;
   toothWidth?: number;
   centerHoleSize?: number;
+  /** Hirth joint with saw teeth (Discussion #1320): the steep flank's angle to the face, 45 to 90 degrees; missing or 0 means symmetric teeth. */
+  hirthSteepFlank?: number;
+  /** Hirth joint with saw teeth: the steep flank on the other side of each tooth. */
+  hirthReverse?: boolean;
+  /** GT2 pulley (Discussion #1319): the toothed band's width along the axis, the belt's width plus a little play. */
+  pulleyBeltWidth?: number;
+  /** GT2 pulley: each flange's thickness, 0 for none. */
+  pulleyFlange?: number;
+  /** GT2 pulley: how far a flange reaches past the teeth. */
+  pulleyFlangeRise?: number;
+  /** GT2 pulley: the hub's height on top, 0 for none. */
+  pulleyHubHeight?: number;
+  /** GT2 pulley: the hub's diameter. */
+  pulleyHubDiameter?: number;
   gearType?: GearType;
   helixAngle?: number;
   helixQuality?: number;
+  /** A bevel gear's helix angle (Discussion #1299): its teeth turn while they taper, a spiral bevel gear; missing or 0 keeps them straight. */
+  bevelHelixAngle?: number;
+  /** A ring gear's or a rack's helix angle (Discussion #1627): its teeth run at a slant; missing or 0 keeps them straight. */
+  ringRackHelixAngle?: number;
+  /** A ring gear or a rack with a helix angle: its teeth turn back at half the height, herringbone teeth (Discussion #1627). */
+  ringRackHerringbone?: boolean;
   /** Involute teeth (#201) or the straight ones every gear had before; missing means straight. */
   gearProfile?: GearProfile;
   /** Involute teeth: pressure angle in degrees (20 by default). */
@@ -805,12 +1145,16 @@ export type WorkplaneShape = {
   threadHead?: ThreadHead;
   threadHand?: ThreadHand;
   threadProfile?: ThreadProfile;
+  /** Tapered 1 in 16 on the diameter, as the pipe thread NPT (#1267); missing means straight. */
+  threadTaper?: boolean;
   threadDiameter?: number;
   threadPitch?: number;
   threadClearance?: number;
   /** Rod and screw: how much thinner (in diameter) the bolt comes out, for a metal nut. */
   threadBoltClearance?: number;
   threadAxialClearance?: number;
+  /** Starts (#1348): threads side by side, each a pitch from the next; 1 when absent. */
+  threadStarts?: number;
   /** Own profile: the thread depth in mm (outer minus core radius) and the included flank angle in degrees. */
   threadDepth?: number;
   threadFlankAngle?: number;
@@ -820,10 +1164,22 @@ export type WorkplaneShape = {
   /** The chamfer at the bottom end; without it the bottom end has the same chamfer as the top. */
   threadChamferBottom?: number;
   threadHeadChamfer?: number;
+  /** Screw only (#1052): the head diameter (across flats on a hex head), the drive in its free face, and the drive's size and depth. Unset = the standard measure. */
+  threadHeadDiameter?: number;
+  threadDrive?: ThreadDrive;
+  threadDriveSize?: number;
+  threadDriveDepth?: number;
+  /** Screw (#1152): a round collar between the head and the thread; nut (#1175): on its top face. This high in mm; unset or 0 = none. Its diameter unset = twice the thread. */
+  threadCollarHeight?: number;
+  threadCollarDiameter?: number;
   springTurns?: number;
   springWire?: number;
   springHand?: ThreadHand;
   springQuality?: number;
+  /** A flat spring (#1076) instead of the coil: a band that runs in waves across the plate, `height` thick. Unset = the coil. */
+  springForm?: SpringForm;
+  springPattern?: FlatSpringPattern;
+  springEnds?: FlatSpringEnds;
   starPoints?: number;
   starInnerSize?: number;
   starOuterFillet?: number;
@@ -846,7 +1202,7 @@ export type WorkplaneShape = {
   /** Hinge, cone style: the diameter of the cones at their root in mm; left out, the largest that fits (#907). */
   hingeConeSize?: number;
   /** Hinge: "pin" (default) or "cone": cones on every other knuckle that nest into the others, printing without bridges (#907). */
-  hingeStyle?: "pin" | "pinless" | "cone";
+  hingeStyle?: "pin" | "pinless" | "cone" | "liftOff";
   /** Hinge: diameter of the pin in mm; the other part's bore is wider by the clearance. */
   hingePinDiameter?: number;
   /** Hinge: thickness of the two leaves in mm. */
@@ -855,8 +1211,26 @@ export type WorkplaneShape = {
   hingeClearance?: number;
   /** Hinge: no printed pin; the bore runs through every knuckle for a pin of one's own (filament, wire). */
   hingePinless?: boolean;
-  /** Hinge: the second leaf folded up about the pin, in degrees; 0 lies flat, 180 is closed. */
+  /** Hinge: the second leaf folded up about the pin, in degrees; 0 lies flat, 180 is closed, below 0 folded down. */
   hingeAngle?: number;
+  /** Hinge: screw holes in each leaf along the axis, 0 to 6; left out, none. */
+  hingeScrewHoles?: number;
+  /** Hinge: the screw holes' diameter in mm. */
+  hingeScrewDiameter?: number;
+  /** Hinge: from one screw hole's middle to the next along the axis in mm; left out, they share the length evenly. */
+  hingeScrewSpacing?: number;
+  /** Hinge: from the hole in one leaf to the hole in the other, across the axis, in mm; left out, each in the middle of its leaf. */
+  hingeScrewAcross?: number;
+  /** Hinge: false for straight screw holes; otherwise countersunk on the side that faces the other leaf when closed. */
+  hingeScrewCountersink?: boolean;
+  /** Hinge: the screw holes' top - "countersunk", "straight", "nut" (a hexagonal pocket for a nut) or "countersunkNut" (countersunk on leaf A, a nut on B); left out, hingeScrewCountersink decides. */
+  hingeScrewHead?: "countersunk" | "straight" | "nut" | "countersunkNut";
+  /** Hinge: a nut's width across the flats in mm for the nut's pockets; left out, from the hole's diameter. */
+  hingeNutWidth?: number;
+  /** Hinge: the leaves' outer corners rounded with this radius in mm. */
+  hingeCornerRadius?: number;
+  /** Hinge: "fingers" gives each knuckle its own finger instead of a leaf each side, the two sides' alternating like combs; "raised" lifts the second leaf so that it closes flat on the first (#1259); left out, plates. */
+  hingeLeafStyle?: "plate" | "fingers" | "raised";
   /** Gridfinity: a bin or the baseplate it stands in, whose size counts grid units of 42 mm (height units of 7 mm), or a tray of any size in mm (#837). */
   gridfinityType?: GridfinityType;
   /** Gridfinity bin: the stacking lip on top of the wall; missing means on. */
@@ -865,6 +1239,12 @@ export type WorkplaneShape = {
   gridfinityMagnets?: boolean;
   /** Gridfinity bin: the size counts cells of 21 mm, each with a foot, four to a baseplate's socket; missing means the 42 mm grid. */
   gridfinityHalfGrid?: boolean;
+  /** Gridfinity baseplate: up to 12 units across and deep instead of 6, for print beds over 256 mm (#1061); missing means 6. */
+  gridfinityLargePlate?: boolean;
+  /** Gridfinity baseplate: Swallowtail, on a 2.4 mm floor with a pocket for a key under each side without padding (#1061); missing means off. */
+  gridfinitySwallowtail?: boolean;
+  /** Gridfinity baseplate with Swallowtail: the clearance of the keys Add keys lays out, in mm on every side; missing means 0.05, at most 0.15; the plate stays as it is (#1061). */
+  gridfinitySwallowtailClearance?: number;
   /** Gridfinity bin: a label shelf along the back wall. */
   gridfinityLabelBack?: boolean;
   /** Gridfinity bin: a label shelf along the front wall. */
@@ -901,6 +1281,20 @@ export type WorkplaneShape = {
   gridfinityLabelCorner?: GridfinityLabelCorner;
   /** Gridfinity bin: the size of that rounding or chamfer in mm; 0 leaves the corner sharp. */
   gridfinityLabelCornerSize?: number;
+  /** Gridfinity bin: the text raised on the back wall's label shelf (#1308), up to 24 characters; missing or blank has none. */
+  gridfinityLabelBackText?: string;
+  /** Gridfinity bin: the text raised on the front wall's label shelf. */
+  gridfinityLabelFrontText?: string;
+  /** Gridfinity bin: the text raised on the left wall's label shelf. */
+  gridfinityLabelLeftText?: string;
+  /** Gridfinity bin: the text raised on the right wall's label shelf. */
+  gridfinityLabelRightText?: string;
+  /** Gridfinity bin: the font of the letters on its label shelves (#1308), a built-in one or a font of one's own (custom:...); missing is Multilanguage. */
+  gridfinityLabelFont?: string;
+  /** Gridfinity bin: the colour of the letters on its label shelves (#1308), "#rrggbb"; missing, or the bin's own colour, is the bin's. */
+  gridfinityLabelColor?: string;
+  /** Gridfinity bin: how high the capitals on its label shelves are, in mm (#1308), the same on every shelf as far as each lets them; missing or 0 is as large as each shelf lets them. */
+  gridfinityLabelTextSize?: number;
   /** Gridfinity bin: a finger scoop along the back wall, the floor rising along a quarter circle into it. */
   gridfinityScoopBack?: boolean;
   /** Gridfinity bin: a finger scoop along the front wall. */
@@ -935,6 +1329,8 @@ export type WorkplaneShape = {
   gridfinityPaddingRight?: number;
   /** Gridfinity baseplate: the radius of its four outer corners in mm; missing is the specification's 4, at least 0 (square), at most 4; the sockets keep theirs (#856). */
   gridfinityCornerRadius?: number;
+  /** Gridfinity bin: the radius of its outer corners above the feet in mm; missing is the specification's 3.75, at least 0 (square), at most 3.75; the feet, the inside and the lip's slopes keep theirs (#856). */
+  gridfinityBinCornerRadius?: number;
   /** Gridfinity bin: compartments across, a whole number; missing is 1, a bin without dividers (#554). */
   gridfinityCompartmentsX?: number;
   /** Gridfinity bin: compartments deep, a whole number; missing is 1. */
@@ -953,6 +1349,8 @@ export type WorkplaneShape = {
   gridfinityOpeningCorner?: GridfinityLabelCorner;
   /** Gridfinity bin: the size of that rounding or chamfer in mm; missing, 0 or under 0.5 leaves them square. */
   gridfinityOpeningCornerSize?: number;
+  /** Gridfinity baseplate: the outline it fills (#1061), centred on its bounds; built stretched to the box, whole cells inside, the rest solid. */
+  gridfinityOutline?: GridfinityOutlinePoint[];
   /** Knurling: grooves straight along the axis, or crossed into diamonds. */
   knurlPattern?: "straight" | "diamond" | "round";
   /** Knurling: number of grooves around the grip. */
@@ -986,6 +1384,8 @@ export type WorkplaneShape = {
   loftOffsetZ?: number;
   /** Transition: wall thickness in mm; 0 is a solid body, more a tube open at both ends. */
   loftWall?: number;
+  /** Transition: the wall at the top end in mm, when it differs from loftWall (Forum 624069); left out, it is loftWall. */
+  loftTopWall?: number;
   /** Transition: degrees the section turns from bottom to top (#205). */
   loftTwist?: number;
   /** Transition: 0 to 1, how much of an S-curve the sides take between the ends (#271). */
@@ -994,17 +1394,57 @@ export type WorkplaneShape = {
   loftSegments?: number;
   /** Capsule: the small end's diameter as a share of the large one, 1 or missing for equal ends (#206). */
   slotEndRatio?: number;
+  /** Torus: how thick the tube is seen from above, as a share of the outer size; the height only squashes it (#981). */
+  torusTubeRatio?: number;
   /** Transition: degrees the top end tilts about the x axis and about the z axis (#205). */
   loftTiltX?: number;
   loftTiltZ?: number;
+  /**
+   * Transition (#1034): more sections between the bottom and the top, each at a share of the height
+   * (0 to 1) with its own outline, size and offset from the bottom's middle. Missing or empty is the
+   * plain transition between two ends.
+   */
+  loftSections?: LoftMiddleSection[];
+  /** Transition with more sections: one smooth surface through all of them, or straight walls between neighbours. Smooth if missing. */
+  loftThrough?: "smooth" | "straight";
   /** Counterbore/countersink: diameter of the shaft below the head in mm (double countersink: the shaft between the two cones). */
   screwHoleShaft?: number;
   /** Counterbore: depth of the head pocket in mm. */
   screwHoleHeadDepth?: number;
   /** Countersink and double countersink: opening angle of the cone in degrees. */
   screwHoleAngle?: number;
+  /**
+   * Drill point (Discussion #621): the point angle in degrees of the cone a drill leaves at the bottom of a blind
+   * hole, 60 to 150 (118 for a common twist drill); missing or 0 means a flat bottom. A cylinder, counterbore and
+   * countersink take it while they are holes. The height still counts to the shoulder, the tip lies below it.
+   */
+  drillPointAngle?: number;
+  /**
+   * Counterbore, countersink and double countersink: a slotted hole (Discussion #1531). The head and the shaft run
+   * along a slot instead of standing round, so the part can still be moved a little before the screw is tightened.
+   * The shorter of width and depth is the head's diameter, the difference the slot's length, along the longer one.
+   * Missing or false: the round hole, stretched into an oval when width and depth differ, as always.
+   */
+  screwHoleSlot?: boolean;
+  /**
+   * Countersink and double countersink: how far in mm the screw head sits below the face (Discussion #1531) - a
+   * straight pocket as wide as the head above the cone, on the double countersink at both ends. Missing or 0: flush.
+   */
+  screwHoleRecess?: number;
+  /**
+   * Counterbore: a 45-degree chamfer in mm at the rim of the pocket (Discussion #1632). The rim opens by that much
+   * outside the head's diameter, so the pocket keeps its width; it stays shallower than the pocket. Missing or 0: none.
+   */
+  screwHoleChamfer?: number;
+  /** Port opening: rounded corners, or the lower ones cut off as on an HDMI or DisplayPort socket. */
+  portProfile?: PortProfile;
+  /** Port opening: extra room in mm on every side on top of the preset's, already in width and height; it lets the preset be recognised. */
+  portClearance?: number;
   cornerFillet?: number;
+  /** Rounded box with flat top and bottom: an own radius for each corner (back left, back right, front right, front left); wins over cornerFillet. */
+  cornerFillets?: [number, number, number, number];
   topBottomFillet?: number;
+  bottomFillet?: number;
   roundedBoxQuality?: number;
   bentTubeProfile?: BentTubeProfile;
   bentTubeInnerProfile?: BentTubeInnerProfile;
@@ -1039,10 +1479,26 @@ export type WorkplaneShape = {
    */
   textStretch?: boolean;
   /**
+   * The letters stacked top to bottom (#981), each centred on one upright line, instead of side by side. Curved text
+   * runs them as a column along the circle at its left side (its right side with textInward), the letters upright.
+   */
+  textVertical?: boolean;
+  /**
    * Text only (#594): the space between the letters, in per cent of the letter size on top of the typeface's own
    * advance - 0 or left out as the font has it, above it wider, below it (down to -50) tighter. Straight and curved text.
    */
   textSpacing?: number;
+  /**
+   * Text only (#1297): automatic kerning - pairs of letters that leave too much room between them, such as AY, AV, LT
+   * or To, move closer. New texts start with it on; a text without the field (saved before it existed) has it off, so
+   * nothing moves in a saved design. Straight and curved text; not vertical text, Arabic, Hebrew or Japanese.
+   */
+  textKerning?: boolean;
+  /**
+   * Curved text only (#1196): how wide each letter is drawn, in per cent of its own width - 100 or left out as the
+   * font has it, below narrower, above wider (25 to 400). The letters keep their height; the arc and the box follow.
+   */
+  textLetterWidth?: number;
   /**
    * Text only (#225): the top edge of the letters rounded or chamfered by `size` mm, as a name
    * tag's letters on top are finished. Built from the outline stepped inwards, so it works for
@@ -1074,11 +1530,45 @@ export type WorkplaneShape = {
    */
   qrCode?: QrCodeSettings;
   /**
+   * An SBC board (#1098): which board and the extra room for its edge connectors, so the properties
+   * panel can make it again. On the group that holds the board and its parts.
+   */
+  sbcBoard?: SbcBoardSettings;
+  /**
    * Set on a body made by wrapping around a cylinder (#106): its box is
    * centred on the cylinder's axis, and aligning, snapping and centring use
    * that box rather than the arc the mesh actually covers.
    */
   cylinderWrap?: { diameter: number; inward?: boolean };
+  /**
+   * Set on a body made by a surface texture (grooves, knurling, honeycomb, bumps): the
+   * settings it was made with. The body is a mesh with the relief; undo takes it back.
+   */
+  surfaceTexture?: import("@/lib/surfaceTexture").SurfaceTextureSettings;
+  /**
+   * More patterns on the same body, each on the faces it picked (the first, surfaceTexture, takes the faces left over
+   * when it picks none): made one after the other on the body under the texture, changed and taken off with it.
+   */
+  surfaceTextureLayers?: import("@/lib/surfaceTexture").SurfaceTextureSettings[];
+  /**
+   * A helper for another body's surface texture: where this convex body reaches into it, the
+   * texture stays away ("exclude") or goes only there ("only"). It counts when that body gets its
+   * texture, also while this one is hidden.
+   */
+  surfaceTextureMask?: import("@/lib/surfaceTexture").SurfaceTextureMaskMode;
+  /** The gold filling the cracks of this textured body (see surfaceTextureShape.ts): it goes when the texture is made anew or taken off. */
+  surfaceFillOf?: string;
+  /**
+   * Paint on the body's surface, for printing in several colours (paint.ts): strokes laid in order,
+   * each a region found again on the mesh whenever it is built, in a colour of its own or erasing.
+   */
+  paint?: import("@/lib/paint").PaintStroke[];
+  /** Only for "vase": the vase tool's settings; the frame gives its height and widest diameter. */
+  vase?: import("@/lib/vase/vase-geometry.mjs").VaseSettings;
+  /** An accessory laid out for a vase (its id): laying them out again replaces it. */
+  vasePartOf?: string;
+  /** A Swallowtail key laid out for a Gridfinity plate (its id, #1061): laying them out again replaces it. */
+  gridfinityKeyOf?: string;
   importedMesh?: {
     positions: number[];
     normals?: number[];
@@ -1126,6 +1616,7 @@ export type WorkplaneShape = {
   edgeResizeMode?: "scale" | "preserve";
   cadBrep?: string;
   cadBrepFrame?: CadBrepFrame;
+  sketchPose?: SketchPose;
   // The finest tessellation deflection any edge treatment on this body has
   // needed so far. Carried forward as a floor for the next one, so a later
   // fillet with a larger radius cannot re-tessellate an already finely
@@ -1142,7 +1633,25 @@ export type WorkplaneShape = {
    * them together: no cutting, every part keeps its colour and goes out as
    * its own body.
    */
-  groupOperation?: "group" | "intersection" | "hull" | "bundle";
+  groupOperation?: "group" | "intersection" | "hull" | "bundle" | "loft";
+  /**
+   * A support rib (Discussion #1385) keeps the id of the part it holds, as it was before any grouping
+   * (localIdBase): its bridges are meant to reach into that part and to be thin, so the clearance and print
+   * checks leave them out. See lib/supportRib.
+   */
+  supportRibFor?: string;
+  /**
+   * A bridge the stencil bridge tool made (Discussion #1438): a box that holds a part inside a hole, such as the middle
+   * of an "o", to the plate round it. Running the tool on its group again puts new bridges in place of these. See
+   * lib/stencilBridgeTool.
+   */
+  stencilBridge?: boolean;
+  /**
+   * The body stands on a breakaway base (lib/breakawayBase), as the fit test's pin and the Split tool's loose dowels can:
+   * the pin's foot hangs a little over the socket's floor and that floor is one layer thick, on purpose, so the print
+   * check leaves both out (#1633).
+   */
+  breakawayBase?: boolean;
   /**
    * The point this body turns about, kept with the body: a fraction of its
    * width, height and depth from its centre, in its own frame, so it moves,
@@ -1160,7 +1669,25 @@ export type WorkplaneShape = {
    * Left out, see groupShowsPartColors() for what a group shows.
    */
   multicolor?: boolean;
+  /**
+   * What a group does with its parts when it is resized (Discussion #526). Left out, it stretches
+   * them all with it, as groups always have. "keepParts" stretches only the parts that reach across
+   * (nearly) the whole group along the axis that changed; every other part keeps its own size there
+   * and its distance to the nearer side, so the holes in a plate stay round and where they were put.
+   * See lib/groupKeepParts.
+   */
+  groupResize?: GroupResizeMode;
+  /**
+   * A hull only (Discussion #1440): the holes and hollows of each part stay open - a hollowed cylinder, a tube, a part
+   * grouped with its holes - where the hull would wrap and fill them. Left out, the hull fills them, as it always has.
+   */
+  hullKeepHoles?: boolean;
   locked?: boolean;
+  /**
+   * Lock shape (#1277): the part still moves, turns and groups with others, but its size, settings,
+   * name and body stay as they are, and a copy keeps the lock. See lib/shapeLock.
+   */
+  shapeLocked?: boolean;
   hidden?: boolean;
   /** Drawn see-through in its own colour, like the usual "Transparent". Display only - a solid stays a solid. */
   transparent?: boolean;
@@ -1192,6 +1719,10 @@ export type WorkplaneNote = {
   anchor?: WorkplaneNoteAnchor;
   /** Zugeklappt zeigt die Notiz nur ihre Nadel mit der Nummer. */
   collapsed?: boolean;
+  /** A request for the AI agent on the MCP bridge: it reads the note, does the work and answers in `reply` (#1191). */
+  forAi?: boolean;
+  /** The agent's answer to the note, shown under its text. */
+  reply?: string;
   /**
    * "point" makes this a reference point instead of a note: a mark in space
    * that other shapes snap to. It has no text and no anchor, is not counted as
@@ -1204,6 +1735,29 @@ export type QrErrorCorrection = "L" | "M" | "Q" | "H";
 /** What is built: the code alone, a plate with the code raised on it, or a plate with the code engraved. */
 export type QrStyle = "code" | "raised" | "engraved";
 /** What a QR body keeps so it can be made again from the inspector (#553). */
+/** The single-board computers the SBC board shape knows (#1098). */
+export type SbcBoardType = "pi5" | "pi4" | "pi3bPlus" | "zero2w" | "bttPi12" | "xiaoEsp32c6" | "esp32c3SuperMini" | "esp32c6SuperMini" | "featherEsp32s3" | "arduinoUno" | "arduinoMega" | "arduinoNano" | "wemosD1Mini" | "pico" | "picoW" | "pico2" | "pico2W" | "esp32CamMb" | "esp32s3Cam" | "esp32DevKitC" | "esp32DevKitV1" | "cyd" | "cyd2usb";
+
+export type SbcBoardSettings = {
+  board: SbcBoardType;
+  /** Extra room in mm on every side (but the bottom) of the connectors at the edge, 0 to 2. */
+  clearance: number;
+  /** How much further out in mm the connectors at the edge reach, to cut through a case wall, 0 to 10; none on older boards. */
+  reach?: number;
+  /** The ribbon cable connectors (camera, display, PCIe) open up through a lid, by `upReach`. */
+  ribbonUp?: boolean;
+  /** The ribbon cable connectors open out through the nearer wall, across their long side, by `reach`. */
+  ribbonSide?: boolean;
+  /** The GPIO header reaches up through a lid, by `upReach`. */
+  gpioUp?: boolean;
+  /** A camera's lens reaches up through a lid, by `upReach`. */
+  lensUp?: boolean;
+  /** How far in mm the openings going up reach above their part, 20 to 100 (default 20). */
+  upReach?: number;
+  /** How far in mm the buttons reach the way they are pressed (up through a lid, or out of a side), 0 to 100; missing is 0. */
+  buttonReach?: number;
+};
+
 export type QrCodeSettings = {
   text: string;
   errorCorrection: QrErrorCorrection;

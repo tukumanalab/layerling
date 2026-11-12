@@ -1,6 +1,6 @@
 import { unzipSync } from "fflate";
 import { zUpToLayerling } from "@/lib/meshCoordinates";
-import { importedShapeFromTriangleSoup } from "@/lib/stlImport";
+import { importedMeshName, importedShapeFromTriangleSoup } from "@/lib/stlImport";
 import type { WorkplaneShape } from "@/types/layerling";
 import { normalizeHexColor, placeColoredParts } from "@/lib/coloredImport";
 
@@ -67,6 +67,9 @@ function localName(element: Element) {
 
 /** Elemente nach ihrem Namen ohne Praefix - die Materials-Erweiterung schreibt `m:colorgroup`. */
 function elementsByLocalName(root: Document | Element, name: string) {
+  // Asked by name first, prefixed or not, instead of walking every element of a mesh of millions.
+  const named = [...root.getElementsByTagNameNS("*", name)];
+  if (named.length) return named;
   return [...root.getElementsByTagName("*")].filter((element) => localName(element) === name);
 }
 
@@ -306,7 +309,8 @@ function extractObjectMesh(
     const p1 = el.getAttribute("p1");
     const own = colorFor(trianglePid ?? objectPid, Number(p1 ?? (trianglePid ? 0 : objectPindex)));
     const found = own ?? extruderFor(volume);
-    if (el.hasAttribute("paint_color") || el.hasAttribute("slic3rpe:mmu_segmentation")) out.painted += 1;
+    // Bemalt zaehlt nur, wo das Dreieck keine eigene Farbe traegt: layerling schreibt zur Farbe auch die Bemalung (#1308).
+    if (!(trianglePid && own) && (el.hasAttribute("paint_color") || el.hasAttribute("slic3rpe:mmu_segmentation"))) out.painted += 1;
     const key = found?.key ?? "";
     out.keys.push(key);
     if (found && !out.colors.has(key)) out.colors.set(key, { color: found.color, label: found.label });
@@ -495,15 +499,16 @@ export function importedShapesFrom3mf(fileName: string, buffer: ArrayBuffer): Th
   });
   const objects = new Set(order.map((group) => group.item)).size;
 
-  const whole = importedShapeFromTriangleSoup(fileName, triangles.positions, undefined, "3mf");
   if (order.length <= 1) {
+    const whole = importedShapeFromTriangleSoup(fileName, triangles.positions, undefined, "3mf");
     const color = triangles.colors.get(order[0]?.key ?? "")?.color;
     return { shapes: [color ? { ...whole, color } : whole], split: false, objects, painted: triangles.painted };
   }
   const colorsIn = (item: number) => order.filter((group) => group.item === item).length;
   const seenIn = new Map<number, number>();
+  // The parts are named after the file as one body would be; that body itself is not built.
   const shapes = placeColoredParts(
-    whole.name,
+    importedMeshName(fileName, "3mf"),
     order.map(({ item, key }) => {
       const found = triangles.colors.get(key);
       const nth = (seenIn.get(item) ?? 0) + 1;

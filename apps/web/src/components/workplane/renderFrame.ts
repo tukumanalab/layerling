@@ -258,20 +258,189 @@ const plateToCamera = new THREE.Vector3();
 /**
  * The plate is see-through and drawn before the see-through bodies, so a body above it is not laid over by
  * it (viewportScene.ts). Seen from below the plate is in front of them instead, and drawn first it hid them
- * completely (#894). From its back side the plate is drawn after them, so they show through it, faded.
+ * completely (#894). The plate of the active workplane stays first and splits the see-through bodies instead
+ * (splitSeeThroughAtPlate); the muted reference plate is drawn after them from its back side, so they show
+ * through it, faded. Returns the active plate, if there is one.
  */
 function orderPlatesForView(scene: THREE.Scene, camera: THREE.Camera) {
+  let activePlate: THREE.Object3D | null = null;
   scene.traverse((object) => {
-    if (object.name !== "WorkplaneBase" && object.name !== "WorkplaneBaseReference") return;
+    if (object.name === "WorkplaneBase") {
+      activePlate = object;
+      object.renderOrder = -10;
+      return;
+    }
+    if (object.name !== "WorkplaneBaseReference") return;
     plateNormal.set(0, 0, 1).transformDirection(object.matrixWorld);
     object.getWorldPosition(plateCenter);
     const behind = plateToCamera.copy(camera.position).sub(plateCenter).dot(plateNormal) < 0;
     object.renderOrder = behind ? 10 : -10;
   });
+  return activePlate as THREE.Object3D | null;
+}
+
+const nearSide = new THREE.Plane();
+const farSide = new THREE.Plane();
+const bodyCenter = new THREE.Vector3();
+// The far half of a see-through material: a clone that clips to the other side of the plate. One per material,
+// dropped with it.
+const farHalfMaterials = new WeakMap<THREE.Material, THREE.MeshStandardMaterial>();
+const farHalves = new WeakMap<THREE.Mesh, THREE.Mesh>();
+// A face lying on the plate - the floor of a body standing on it - belongs to the near half for sure.
+const NEAR_HALF_TOLERANCE = 1e-3;
+
+function farHalfMaterial(material: THREE.MeshStandardMaterial) {
+  let half = farHalfMaterials.get(material);
+  if (!half) {
+    half = material.clone();
+    // clone() leaves out the overhang stripes, which are put into the shader on compile.
+    half.onBeforeCompile = material.onBeforeCompile;
+    half.customProgramCacheKey = material.customProgramCacheKey;
+    farHalfMaterials.set(material, half);
+  }
+  half.color.copy(material.color);
+  half.opacity = material.opacity;
+  return half;
+}
+
+/**
+ * The plate writes depth, so whatever see-through lies behind it from the camera - holes and see-through
+ * bodies are drawn after it - failed the depth test and was gone: below the plate seen from above (#1077),
+ * above it seen from below (#894). Solid bodies are drawn before every see-through thing and show through
+ * the plate, faded. A see-through body is drawn in two halves now, cut at the plate: the far half goes before
+ * the plate like a solid body, the near half after it as before, so the plate lays over neither more nor
+ * less than it covers. Each half once, also beyond the edge of the plate. Returns what to undo after the frame.
+ */
+function splitSeeThroughAtPlate(state: FrameState, plate: THREE.Object3D) {
+  plateNormal.set(0, 0, 1).transformDirection(plate.matrixWorld);
+  plate.getWorldPosition(plateCenter);
+  const cameraSide = plateToCamera.copy(state.camera.position).sub(plateCenter).dot(plateNormal) >= 0 ? 1 : -1;
+  // three.js keeps what lies on the positive side of a clipping plane.
+  nearSide.setFromNormalAndCoplanarPoint(plateNormal.clone().multiplyScalar(cameraSide), plateCenter);
+  farSide.copy(nearSide).negate();
+  farSide.constant -= NEAR_HALF_TOLERANCE;
+  nearSide.constant += NEAR_HALF_TOLERANCE;
+  const section = state.sectionPlane ?? null;
+  const nearPlanes = section ? [nearSide, section] : [nearSide];
+  const farPlanes = section ? [farSide, section] : [farSide];
+
+  const halves: THREE.Mesh[] = [];
+  const clipped = new Set<THREE.Material>();
+  state.shapeRecords.forEach((record) => {
+    if (record.shape.hidden || !record.object.visible) return;
+    record.object.traverseVisible((child) => {
+      const mesh = child as THREE.Mesh;
+      const material = mesh.material;
+      if (!mesh.isMesh || Array.isArray(material) || !(material instanceof THREE.MeshStandardMaterial) || !material.transparent) return;
+      const geometry = mesh.geometry;
+      if (!geometry.boundingSphere) geometry.computeBoundingSphere();
+      const sphere = geometry.boundingSphere;
+      if (!sphere) return;
+      bodyCenter.copy(sphere.center).applyMatrix4(mesh.matrixWorld);
+      const radius = sphere.radius * mesh.matrixWorld.getMaxScaleOnAxis();
+      // Wholly on the camera's side: nothing to split.
+      if (nearSide.distanceToPoint(bodyCenter) >= radius) return;
+      material.clippingPlanes = nearPlanes;
+      clipped.add(material);
+      let half = farHalves.get(mesh);
+      if (!half) {
+        half = new THREE.Mesh();
+        half.matrixAutoUpdate = false;
+        half.matrixWorldAutoUpdate = false;
+        farHalves.set(mesh, half);
+      }
+      half.geometry = geometry;
+      half.material = farHalfMaterial(material);
+      half.material.clippingPlanes = farPlanes;
+      half.matrixWorld.copy(mesh.matrixWorld);
+      half.layers.mask = mesh.layers.mask;
+      half.renderOrder = -20;
+      halves.push(half);
+      state.scene.add(half);
+    });
+  });
+  return () => {
+    halves.forEach((half) => state.scene.remove(half));
+    clipped.forEach((material) => {
+      material.clippingPlanes = section ? [section] : null;
+    });
+  };
+}
+
+// The light-blue marks on the face a tool waits for: lay flat, align faces and the hole pattern
+// (viewportTransformOverlays.ts), delete faces and the faces of a texture (viewportShapeObjects.ts).
+const FACE_MARK_LAYERS = ["LayFlatHover", "CadFacePick"];
+const PLATE_NAMES = new Set(["WorkplaneBase", "WorkplaneBaseReference"]);
+const markBox = new THREE.Box3();
+const markPart = new THREE.Box3();
+const markCorner = new THREE.Vector3();
+const markPlaneNormal = new THREE.Vector3();
+const markPlaneCenter = new THREE.Vector3();
+const markToCamera = new THREE.Vector3();
+// A face lying on the plate - the floor of a body standing on it - is not behind it.
+const MARK_BEHIND_TOLERANCE = 1e-3;
+
+/**
+ * The face marks are see-through and drawn after the plates, which write depth. A face behind a plate from
+ * the camera - the underside of a part lifted off the plate, picked from below - failed that depth test, and
+ * its mark never showed while the pointer moved over it (#1492). For this frame the plates between the camera
+ * and a mark write no depth, so the mark is drawn over the plate at full strength; a solid body standing in
+ * front of the face still hides it. Returns what to undo after the frame, or null when nothing changed.
+ */
+export function showFaceMarksThroughPlates(scene: THREE.Object3D, camera: THREE.Camera) {
+  markBox.makeEmpty();
+  FACE_MARK_LAYERS.forEach((name) => {
+    const layer = scene.getObjectByName(name);
+    if (!layer?.visible) return;
+    layer.traverseVisible((child) => {
+      const mesh = child as THREE.Mesh;
+      if (!mesh.isMesh || !mesh.geometry) return;
+      if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+      const box = mesh.geometry.boundingBox;
+      if (!box || box.isEmpty()) return;
+      mesh.updateWorldMatrix(true, false);
+      markBox.union(markPart.copy(box).applyMatrix4(mesh.matrixWorld));
+    });
+  });
+  if (markBox.isEmpty()) return null;
+
+  const opened: THREE.Material[] = [];
+  scene.traverse((object) => {
+    if (!PLATE_NAMES.has(object.name) || !object.visible) return;
+    const material = (object as THREE.Mesh).material;
+    if (!material || Array.isArray(material) || !material.depthWrite) return;
+    object.updateWorldMatrix(true, false);
+    markPlaneNormal.set(0, 0, 1).transformDirection(object.matrixWorld);
+    object.getWorldPosition(markPlaneCenter);
+    const cameraSide = markToCamera.copy(camera.position).sub(markPlaneCenter).dot(markPlaneNormal) >= 0 ? 1 : -1;
+    // Behind the plate when any corner of the marks lies on the other side of it from the camera.
+    let behind = false;
+    for (let corner = 0; corner < 8 && !behind; corner += 1) {
+      markCorner.set(
+        corner & 1 ? markBox.max.x : markBox.min.x,
+        corner & 2 ? markBox.max.y : markBox.min.y,
+        corner & 4 ? markBox.max.z : markBox.min.z,
+      );
+      behind = markCorner.sub(markPlaneCenter).dot(markPlaneNormal) * cameraSide < -MARK_BEHIND_TOLERANCE;
+    }
+    if (!behind) return;
+    material.depthWrite = false;
+    opened.push(material);
+  });
+  if (opened.length === 0) return null;
+  return () => {
+    opened.forEach((material) => {
+      material.depthWrite = true;
+    });
+  };
 }
 
 export function renderFrame(state: FrameState) {
-  orderPlatesForView(state.scene, state.camera);
+  const plate = orderPlatesForView(state.scene, state.camera);
+  const undoSplit = plate ? splitSeeThroughAtPlate(state, plate) : null;
+  const undoMarks = showFaceMarksThroughPlates(state.scene, state.camera);
   state.renderer.render(state.scene, state.camera);
+  undoMarks?.();
+  undoSplit?.();
   drawCutPreviews(state);
 }

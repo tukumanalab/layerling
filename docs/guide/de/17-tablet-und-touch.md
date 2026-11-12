@@ -28,13 +28,15 @@ Im selben Menü steht {{ui:contextMenu.carry}}, die Taste [[C]] für den Touchsc
 
 ## Ansicht drehen und zoomen
 
-Ein Finger auf der leeren Fläche dreht die Ansicht, zwei Finger zoomen und verschieben sie. Ein Finger, der auf einem Körper beginnt, arbeitet am Körper, nicht an der Ansicht. Soll er lieber die Ansicht drehen, schalte {{ui:camera.touchRotate}} in der Kameraleiste ein: Ein Finger dreht dann die Ansicht statt zu wählen, wo er auch beginnt. Der Schalter erscheint nur auf einem Gerät mit Touchscreen.
+Ein Finger auf der leeren Fläche dreht die Ansicht, zwei Finger zoomen und verschieben sie. Ein Finger, der auf einem Körper beginnt, arbeitet am Körper, nicht an der Ansicht. Soll er lieber die Ansicht drehen, schalte {{ui:camera.touchRotate}} in der Ansichtsleiste ein: Ein Finger dreht dann die Ansicht statt zu wählen, wo er auch beginnt. Der Schalter erscheint nur auf einem Gerät mit Touchscreen.
 
 Der Ansichtswürfel oben links dreht die Ansicht, wenn du ihn ziehst, und ein Tipp auf eine seiner Seiten, Ecken oder Kanten springt in diese Ansicht. Siehe [Ansicht und Arbeitsebene](chapter:ansicht-und-arbeitsebene).
 
 ## Griffe, kleine Punkte und ein Stift
 
 Eine Fingerspitze verdeckt, worauf sie zielt. layerling lässt einen Finger an Griffe, Punkte, Linien und Kanten etwas weiter heranreichen als einen Mauszeiger, aber ein Stift ist feiner. Das gilt für einen Stift, den das Tablet als Stift kennt, etwa einen Apple Pencil oder einen S Pen. Ein einfacher Stift mit Gummispitze gilt für den Bildschirm als Finger und ist nicht feiner als einer, arbeite damit also wie mit dem Finger. Schwebt ein Apple Pencil auf dem iPad über einem Knopf, erscheint nach einem Moment sein Name in einer kleinen Blase, wie bei der Maus der Tooltip.
+
+Im Skizzenmodus zeichnet {{ui:sketch.freehand}} mit Stift oder Finger wie auf Papier; beim Absetzen wird die Linie zu Skizzenpunkten, die du bearbeiten kannst, siehe [Skizzen](chapter:skizzen).
 
 Wenn Körper verrutschen, weil Kinder oder eilige Hände sie berühren, schalte in den Einstellungen {{ui:workspace.selectBeforeMoving}} ein: Ein Körper muss dann erst gewählt sein, und erst der nächste Zug verschiebt ihn.
 

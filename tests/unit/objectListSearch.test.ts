@@ -3,11 +3,15 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   hasMatchingPart,
+  isObjectListOrder,
+  moveShapeBefore,
   normalizeObjectListQuery,
   shapeMatchesSearch,
   showInObjectList,
+  sortObjectList,
   type ObjectListLabels,
 } from "@/lib/objectListSearch";
+import { hasOwnShapeName } from "@/lib/shapeCatalog";
 import type { WorkplaneShape } from "@/types/layerling";
 
 // Only the fields the search reads; the rest of a shape does not matter here.
@@ -91,6 +95,44 @@ describe("which top-level rows stay in the list", () => {
   });
 });
 
+describe("sorting the list by name (#1046)", () => {
+  const ids = (items: WorkplaneShape[]) => items.map((item) => item.id);
+  const byName = (items: WorkplaneShape[]) =>
+    ids(sortObjectList(items, "name", hasOwnShapeName, (item) => item.name ?? item.kind, "en"));
+
+  // In the order they were added: two left with the editor's name, the rest renamed.
+  const added = [
+    shape("box1", "box", "Box"),
+    shape("p10", "box", "Part 10"),
+    shape("lid", "box", "lid"),
+    shape("cyl", "cylinder"),
+    shape("p2", "box", "Part 2"),
+    shape("base", "box", "Base"),
+  ];
+
+  it("puts named shapes first, A to Z with numbers counted, and the rest below as added", () => {
+    expect(byName(added)).toEqual(["base", "lid", "p2", "p10", "box1", "cyl"]);
+  });
+
+  it("keeps the design's order with \"added\" and leaves the given list alone", () => {
+    const sorted = sortObjectList(added, "added", hasOwnShapeName, (item) => item.name ?? item.kind);
+    expect(ids(sorted)).toEqual(ids(added));
+    byName(added);
+    expect(ids(added)).toEqual(["box1", "p10", "lid", "cyl", "p2", "base"]);
+  });
+
+  it("keeps the order of equal names", () => {
+    expect(byName([shape("a", "box", "Leg"), shape("b", "box", "leg"), shape("c", "box", "Leg")])).toEqual(["a", "b", "c"]);
+  });
+
+  it("reads a stored order only when it is one of the two", () => {
+    expect(isObjectListOrder("name")).toBe(true);
+    expect(isObjectListOrder("added")).toBe(true);
+    expect(isObjectListOrder("size")).toBe(false);
+    expect(isObjectListOrder(null)).toBe(false);
+  });
+});
+
 describe("the object list panel", () => {
   const panel = readFileSync(
     fileURLToPath(new URL("../../apps/web/src/components/workplane/ObjectListPanel.tsx", import.meta.url)),
@@ -107,6 +149,34 @@ describe("the object list panel", () => {
   });
 
   it("shows all parts of a group that matches by its own name", () => {
-    expect(panel).toContain("renderGroupParts(shape.groupedShapes, 0, !query || shapeMatches(shape))");
+    // The fourth argument opens the group when one of its parts is clicked (#1316).
+    expect(panel).toContain("renderGroupParts(shape.groupedShapes, 0, !query || shapeMatches(shape), ");
+  });
+
+  it("sorts its rows and the parts of groups in the chosen order", () => {
+    expect(panel).toContain("const listedShapes = sortShapes(filteredShapes)");
+    expect(panel).toContain("sortShapes(parts).flatMap(");
+  });
+});
+
+describe("moving a shape in the list (#1233)", () => {
+  const list = ["a", "b", "c", "d"].map((id) => ({ id }));
+  const ids = (shapes: readonly { id: string }[]) => shapes.map((shape) => shape.id).join("");
+
+  it("puts a shape in front of another one", () => {
+    expect(ids(moveShapeBefore(list, "d", "b"))).toBe("adbc");
+    expect(ids(moveShapeBefore(list, "a", "c"))).toBe("bacd");
+  });
+
+  it("puts a shape last when no shape follows it", () => {
+    expect(ids(moveShapeBefore(list, "a", null))).toBe("bcda");
+  });
+
+  it("leaves the list as it is when nothing would change", () => {
+    expect(moveShapeBefore(list, "b", "c")).toBe(list);
+    expect(moveShapeBefore(list, "d", null)).toBe(list);
+    expect(moveShapeBefore(list, "b", "b")).toBe(list);
+    expect(moveShapeBefore(list, "x", "a")).toBe(list);
+    expect(moveShapeBefore(list, "a", "x")).toBe(list);
   });
 });

@@ -1,13 +1,18 @@
 
+import { paintColors } from "@/lib/paint";
 import { loftMeasures } from "@/lib/loftGeometry";
 import { roundSideCount } from "@/lib/roundSideCount";
 import { customFontList } from "@/lib/textFonts";
 import { isCustomFontId } from "@/lib/customFonts";
 import { shapeDepth, shapeWidth } from "@/lib/workplaneShapes";
+import { offersGroupResize } from "@/lib/groupScale";
 import { shapePivotWorld, type PivotPoint } from "@/lib/rotationPivot";
 import { MCP_SHAPE_SETTING_KEYS, mcpThreadSizeName } from "@/lib/mcpShapeSettings";
 import { DEFAULT_SKETCH_STROKE, normalizeSketchStroke } from "@/lib/sketchStroke";
+import { surfaceTextureEntry } from "@/lib/surfaceTextureShape";
 import { type LayerlingMcpShapeSummary } from "@/lib/layerlingMcpProtocol";
+import { vaseSettingsChanges } from "@/lib/vaseSettings";
+import { GRIDFINITY_LABEL_FONTS, gridfinityOutlinePoints } from "@/lib/gridfinityGeometry";
 import type { ShapeKind, SketchProfile, WorkplaneShape } from "@/types/layerling";
 
 export function debugShapeSummary(shape: WorkplaneShape): Record<string, unknown> {
@@ -66,7 +71,7 @@ export function compactShapeSummary(shape: WorkplaneShape, index: number) {
     `${index}:${shape.kind}${shape.hole ? "H" : "S"}${shape.importedMesh ? "I" : ""}${shape.imagePlate ? "P" : ""}`,
     `g${shape.groupedShapes?.length ?? 0}`,
     `tri${shape.importedMesh?.triangleCount ?? 0}`,
-    `edge${shape.edgeTreatments?.map((feature) => `${feature.kind}:${feature.amount}:${feature.edgeCount}:${feature.chamferAngle ?? ""}${feature.endAmount !== undefined ? `>${feature.endAmount}` : ""}`).join("|") ?? ""}`,
+    `edge${shape.edgeTreatments?.map((feature) => `${feature.kind}:${feature.amount}:${feature.edgeCount}:${feature.chamferAngle ?? ""}${feature.endAmount !== undefined ? `>${feature.endAmount}` : ""}${feature.concave ? "~" : ""}`).join("|") ?? ""}`,
     `viewEdges${shape.cadDisplayEdges?.length ?? "auto"}v${shape.cadDisplayEdgesVersion ?? 0}`,
     `edgeResize${shape.edgeResizeMode ?? "scale"}`,
     `brep${shape.cadBrep?.length ?? 0}`,
@@ -88,10 +93,16 @@ function mcpShapeSettings(shape: WorkplaneShape): Record<string, string | number
     const value = shape[key];
     if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
       settings[key] = value;
+    } else if (key === "gridfinityOutline" && Array.isArray(value)) {
+      // As the plate's box stretches it (#1061), so that given back it keeps the box.
+      settings[key] = JSON.stringify(gridfinityOutlinePoints(shape)?.map((p) => ({ x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100 })));
     } else if ((key === "bentTubeSegments" || key === "gridfinityDividerPositionsX" || key === "gridfinityDividerPositionsZ" || key === "gridfinityCompartmentLabels" || key === "gridfinityOpenings") && Array.isArray(value)) {
       // Eine Liste passt nicht in die flache Auskunft; als Text geht sie
       // hinaus und wird so auch wieder angenommen.
       settings[key] = JSON.stringify(value);
+    } else if (key === "vase" && value && typeof value === "object") {
+      // The vase's many settings go out as text too, only those that differ from the defaults.
+      settings[key] = JSON.stringify(vaseSettingsChanges(value));
     }
   });
   // Steht keine Seitenzahl im Objekt, folgt sie der Groesse. Dann gehoert hier
@@ -118,6 +129,7 @@ export function mcpShapeSummary(shape: WorkplaneShape): LayerlingMcpShapeSummary
     color: shape.color,
     hole: Boolean(shape.hole),
     locked: Boolean(shape.locked),
+    ...(shape.shapeLocked ? { shapeLocked: true } : {}),
     hidden: Boolean(shape.hidden),
     position: {
       x: shape.x,
@@ -144,6 +156,10 @@ export function mcpShapeSummary(shape: WorkplaneShape): LayerlingMcpShapeSummary
     edgeTreatments: shape.edgeTreatments ?? [],
     settings: mcpShapeSettings(shape),
     groupedCount: shape.groupedShapes?.length ?? 0,
+    // What a group does with its parts when it is resized (Discussion #526).
+    ...(offersGroupResize(shape) ? { groupResize: shape.groupResize ?? "stretch" } : {}),
+    // A hull: whether its parts' own holes stay open (Discussion #1440).
+    ...(shape.groupOperation === "hull" ? { keepHoles: Boolean(shape.hullKeepHoles) } : {}),
     importedTriangles: shape.importedMesh?.triangleCount ?? 0,
     cadDisplayEdgeCount: shape.cadDisplayEdges?.length ?? null,
     sketchPointCount: shape.sketchProfile?.points.length ?? 0,
@@ -152,13 +168,19 @@ export function mcpShapeSummary(shape: WorkplaneShape): LayerlingMcpShapeSummary
       ? { sketchStroke: shape.sketchProfile.stroke ?? null, silhouette: Boolean(shape.sketchProfile.silhouette), sketchInset: shape.sketchProfile.inset ?? null }
       : {}),
     // A text's fill (#215) reads like a sketch body's: its stroke, and whether the counters are left out.
-    ...(shape.kind === "text" ? { textStroke: shape.textStroke ?? null, textSilhouette: Boolean(shape.textSilhouette), textStretch: Boolean(shape.textStretch), textSpacing: shape.textSpacing ?? 0, textEdge: shape.textEdge ?? null } : {}),
+    ...(shape.kind === "text" ? { textStroke: shape.textStroke ?? null, textSilhouette: Boolean(shape.textSilhouette), textStretch: Boolean(shape.textStretch), textVertical: Boolean(shape.textVertical), textSpacing: shape.textSpacing ?? 0, textKerning: Boolean(shape.textKerning), textLetterWidth: shape.textLetterWidth ?? 100, textEdge: shape.textEdge ?? null } : {}),
     // A name tag's key ring hole (#215), on the layers it goes through; the bottom one carries the ear.
     ...(shape.kind === "text" && shape.textKeyring ? { textKeyring: shape.textKeyring } : {}),
     ...(shape.layeredText ? { layeredText: true } : {}),
     ...(shape.layeredIcon ? { layeredIcon: true } : {}),
     // A QR code (#553): the text and the choices it was made with.
     ...(shape.qrCode ? { qrCode: shape.qrCode } : {}),
+    ...(shape.sbcBoard ? { sbcBoard: shape.sbcBoard } : {}),
+    // A surface texture: its settings, the masks as a count, and whether the body under it is kept to change or remove it.
+    ...(shape.surfaceTexture ? { surfaceTexture: { ...shape.surfaceTexture, masks: shape.surfaceTexture.masks.length, changeable: Boolean(surfaceTextureEntry(shape)) } } : {}),
+    ...(shape.surfaceTextureLayers?.length ? { surfaceTextureLayers: shape.surfaceTextureLayers.map((layer) => ({ pattern: layer.pattern, faces: layer.faces.length })) } : {}),
+    // Paint (paint.ts): how many strokes the body carries and the colours they show.
+    ...(shape.paint?.length ? { paint: { strokes: shape.paint.length, colors: paintColors(shape) } } : {}),
     children: shape.groupedShapes?.map(mcpShapeSummary),
   };
 }
@@ -196,6 +218,16 @@ export function mcpTextFont(value: string) {
   return customFontList().find((font) => font.name.toLowerCase() === wanted)?.id ?? null;
 }
 
+/**
+ * The font an MCP command names for a Gridfinity bin's letters (#1308): a built-in one, or a font of one's own by its name
+ * or id. The shape defaults would drop any other without a word, so it is refused here.
+ */
+export function mcpGridfinityLabelFont(value: unknown) {
+  const font = typeof value !== "string" ? null : GRIDFINITY_LABEL_FONTS.includes(value) ? value : mcpTextFont(value);
+  if (!font) throw new Error(`gridfinityLabelFont must be one of ${GRIDFINITY_LABEL_FONTS.join(", ")}, or a font of one's own by its name or id (layerling_list_fonts)`);
+  return font;
+}
+
 /** The transition's values as the body shows them, under the names a command sets them by. */
 function mcpLoftSettings(shape: WorkplaneShape): Record<string, string | number> {
   const m = loftMeasures(shape);
@@ -203,7 +235,9 @@ function mcpLoftSettings(shape: WorkplaneShape): Record<string, string | number>
     loftBottomOutline: m.bottomOutline, loftTopOutline: m.topOutline,
     loftBottomWidth: m.bottomWidth, loftBottomDepth: m.bottomDepth, loftTopWidth: m.topWidth, loftTopDepth: m.topDepth,
     loftBottomCorner: m.bottomCorner, loftTopCorner: m.topCorner, loftBottomSides: m.bottomSides, loftTopSides: m.topSides,
-    loftOffsetX: m.offsetX, loftOffsetZ: m.offsetZ, loftWall: m.wall,
+    loftOffsetX: m.offsetX, loftOffsetZ: m.offsetZ, loftWall: m.wall, loftTopWall: m.topWall,
     loftTwist: m.twist, loftTiltX: m.tiltX, loftTiltZ: m.tiltZ, loftSmooth: m.smooth, loftSegments: m.segments,
+    // Sections between the ends (#1034) go out as JSON text, as the flat answer has no lists; it is taken back as such.
+    ...(m.middles.length ? { loftSections: JSON.stringify(m.middles), loftThrough: m.through } : {}),
   };
 }

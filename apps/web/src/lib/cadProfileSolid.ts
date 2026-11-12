@@ -1,6 +1,7 @@
 import { loftEaseShare, LOFT_SMOOTH_SECTIONS } from "@/lib/loftEase";
 import { JoinType, type OcctKernel, type ShapeHandle } from "occt-wasm";
 import type { CadModifierProfileLoop, CadModifierProfilePart, CadModifierProfileSegment } from "@/lib/cadModifierTypes";
+import { isKernelMemoryFault } from "@/lib/kernelFault";
 
 /*
  * Exact solids for catalog shapes that are an outline pushed straight up
@@ -111,7 +112,18 @@ export function validateCadProfile(profile: CadModifierProfilePart) {
   if (!Number.isFinite(profile.height) || profile.height <= 0) throw new Error("The profile has no height");
   if (!profile.loops.length) throw new Error("The profile has no outline");
   if (profile.kind === "sweep") validateSweepPath(profile.path);
-  if (profile.kind === "loft") {
+  if (profile.kind === "loft" && profile.apex) {
+    // A loft to a point: one outline of straight lines below it, and no top section.
+    if (!Number.isFinite(profile.apex.x) || !Number.isFinite(profile.apex.z)) throw new Error("The loft's point is not a number");
+    if (profile.topLoops || profile.loops.length !== 1 || profile.loops[0].segments.some((segment) => segment.kind !== "line")) {
+      throw new Error("A loft to a point needs one straight-sided outline and no top");
+    }
+    // Its sides are built flat, so nothing may turn, tilt, smooth or chamfer them.
+    const tilted = Math.abs(profile.tilt?.x ?? 0) > 1e-9 || Math.abs(profile.tilt?.z ?? 0) > 1e-9;
+    if (Math.abs(profile.twist ?? 0) > 1e-9 || tilted || (profile.smooth ?? 0) > 1e-9 || (profile.capChamfer?.size ?? 0) > 1e-4) {
+      throw new Error("A loft to a point cannot be turned, tilted, smoothed or chamfered");
+    }
+  } else if (profile.kind === "loft") {
     // The top has to be the bottom's partner piece for piece: the loft joins them in that order.
     // A piece may face one of another kind - a side of a square a quarter of a circle (#188).
     const top = profile.topLoops ?? [];
@@ -120,6 +132,11 @@ export function validateCadProfile(profile: CadModifierProfilePart) {
     ));
     if (!sameShape) throw new Error("The loft's top does not match its bottom");
     validateLoops({ ...profile, kind: "extrusion", loops: top });
+    (profile.through ?? []).forEach((section) => {
+      const alike = Number.isFinite(section.y) && section.loops.length === profile.loops.length && section.loops.every((loop, index) => loop.segments.length === profile.loops[index].segments.length);
+      if (!alike) throw new Error("A section of the loft does not match its bottom");
+      validateLoops({ ...profile, kind: "extrusion", loops: section.loops });
+    });
   }
   validateLoops(profile);
 }
@@ -387,7 +404,8 @@ function sidesAreFlat(profile: CadModifierProfilePart, tolerance: number) {
 /**
  * A tapered or leaning prism whose sides all stay flat (a box, or a polygon
  * scaled evenly), built face by face so that every side is a plane - a
- * lofted side comes out as a B-spline even when it is flat.
+ * lofted side comes out as a B-spline even when it is flat. A loft to a point
+ * (a pyramid) has no top: each side is the triangle from a bottom edge to the point.
  */
 function flatLoftSolid(cad: OcctKernel, profile: CadModifierProfilePart, tolerance: number) {
   const top = profile.topLoops ?? [];
@@ -399,13 +417,14 @@ function flatLoftSolid(cad: OcctKernel, profile: CadModifierProfilePart, toleran
     faces.push(face);
   };
   cap(profile.loops, 0);
-  cap(top, profile.height);
+  const apex = profile.apex ? { x: profile.apex.x, y: profile.height, z: profile.apex.z } : null;
+  if (!apex) cap(top, profile.height);
   profile.loops.forEach((loop, index) => {
     const lower = loopCorners(loop, 0);
-    const upper = loopCorners(top[index], profile.height);
+    const upper = apex ? [] : loopCorners(top[index], profile.height);
     lower.forEach((a, corner) => {
       const next = (corner + 1) % lower.length;
-      faces.push(cad.makeFace(ring([a, lower[next], upper[next], upper[corner]])));
+      faces.push(cad.makeFace(ring(apex ? [a, lower[next], apex] : [a, lower[next], upper[next], upper[corner]])));
     });
   });
   const sewn = cad.sew(faces, tolerance * 100);
@@ -586,8 +605,78 @@ function piecewiseLoftSolid(cad: OcctKernel, profile: CadModifierProfilePart, to
   return solid;
 }
 
+/** A loop scaled by `sx` across (x) and `sz` in height (z) about the origin. */
+function loopScaled(loop: CadModifierProfileLoop, sx: number, sz: number): CadModifierProfileLoop {
+  return {
+    x: loop.x * sx,
+    z: loop.z * sz,
+    segments: loop.segments.map((segment): CadModifierProfileSegment => {
+      if (segment.kind === "line") return { ...segment, x: segment.x * sx, z: segment.z * sz };
+      if (segment.kind === "bezier") return { ...segment, x: segment.x * sx, z: segment.z * sz, controls: segment.controls.map((control) => ({ x: control.x * sx, z: control.z * sz })) };
+      return { ...segment, x: segment.x * sx, z: segment.z * sz, cx: segment.cx * sx, cz: segment.cz * sz, rx: segment.rx * sx, rz: segment.rz * sz };
+    }),
+  };
+}
+
+/**
+ * A loft through the bottom section scaled step by step (slope and narrowing along, `sections`):
+ * split at its corners into runs, each run ruled between two sections or smooth through more,
+ * the runs fused into one body.
+ */
+function sectionedLoftSolid(cad: OcctKernel, profile: CadModifierProfilePart, tolerance: number) {
+  const sections = profile.sections ?? [];
+  const runs: Array<typeof sections> = [];
+  let run: typeof sections = [];
+  sections.forEach((section, index) => {
+    run.push(section);
+    if (index > 0 && (section.corner || index === sections.length - 1)) {
+      runs.push(run);
+      run = [section];
+    }
+  });
+  // `loops` is the first section already: the others are scaled relative to it.
+  const first = sections[0];
+  const runSolid = (index: number, part: typeof sections) => {
+    const wires = part.map((section) => cad.transform(loopWire(cad, loopScaled(profile.loops[index], section.sx / first.sx, section.sz / first.sz), tolerance), [1, 0, 0, 0, 0, 1, 0, profile.height * section.t, 0, 0, 1, 0]));
+    const lofted = cad.loft(wires, true, part.length === 2);
+    const solids = cad.isSolid(lofted) ? [lofted] : cad.getSubShapes(lofted, "solid");
+    if (solids.length !== 1) throw new Error("A sectioned loft did not become one solid");
+    return cad.getVolume(solids[0]) < 0 ? cad.reverseShape(solids[0]) : solids[0];
+  };
+  const solidOf = (index: number) => runs.slice(1).reduce((body, part) => cad.fuse(body, runSolid(index, part)), runSolid(index, runs[0]));
+  let solid = solidOf(0);
+  for (let index = 1; index < profile.loops.length; index += 1) solid = cad.cut(solid, solidOf(index));
+  const solids = cad.isSolid(solid) ? [solid] : cad.getSubShapes(solid, "solid");
+  if (solids.length !== 1) throw new Error("The sectioned loft did not become one solid");
+  return solids[0];
+}
+
+/**
+ * A loft through more sections (#1034): the wires of every section at its height, lofted in one go - ruled
+ * between neighbours, or smoothly through all of them; the opening lofted the same way and taken away.
+ */
+function throughLoftSolid(cad: OcctKernel, profile: CadModifierProfilePart, tolerance: number) {
+  const sections = profile.through ?? [];
+  const solidOf = (index: number) => {
+    const wires = sections.map((section) => cad.transform(loopWire(cad, section.loops[index], tolerance), [1, 0, 0, 0, 0, 1, 0, section.y, 0, 0, 1, 0]));
+    const lofted = cad.loft(wires, true, profile.throughRuled === true);
+    const solids = cad.isSolid(lofted) ? [lofted] : cad.getSubShapes(lofted, "solid");
+    if (solids.length !== 1) throw new Error("A loft through its sections did not become one solid");
+    return cad.getVolume(solids[0]) < 0 ? cad.reverseShape(solids[0]) : solids[0];
+  };
+  let solid = solidOf(0);
+  for (let index = 1; index < profile.loops.length; index += 1) solid = cad.cut(solid, solidOf(index));
+  const solids = cad.isSolid(solid) ? [solid] : cad.getSubShapes(solid, "solid");
+  if (solids.length !== 1) throw new Error("The loft through its sections with its opening did not become one solid");
+  return solids[0];
+}
+
 function loftSolid(cad: OcctKernel, profile: CadModifierProfilePart, tolerance: number) {
+  // A triangle is always flat.
+  if (profile.apex) return flatLoftSolid(cad, profile, tolerance);
   const top = profile.topLoops ?? [];
+  if ((profile.through?.length ?? 0) > 2) return throughLoftSolid(cad, profile, tolerance);
+  if ((profile.sections?.length ?? 0) > 2) return sectionedLoftSolid(cad, profile, tolerance);
   if (Math.abs(profile.twist ?? 0) > 1e-9 || Math.abs(profile.tilt?.x ?? 0) > 1e-9 || Math.abs(profile.tilt?.z ?? 0) > 1e-9 || (profile.smooth ?? 0) > 1e-9) {
     return twistedLoftSolid(cad, profile, tolerance);
   }
@@ -610,6 +699,8 @@ function loftSolid(cad: OcctKernel, profile: CadModifierProfilePart, tolerance: 
    * are split into two halves from the angle 0 and pi: both ends start at
    * the same point of the outline and every ruling joins a point to its own
    * partner. Ends built the same way stay one edge each - one rim to pick.
+   * Still needed with occt-wasm 5.17.1, which lines up a loft's sections itself: without the halves the thin rod
+   * flattening into a blade (cadTaperedBodies) came out twisted, 1.24 instead of 2.04 mm³ (checked 11.11.2026).
    */
   const halves = (loop: CadModifierProfileLoop): CadModifierProfileLoop => {
     if (loop.segments.length !== 1 || !isWholeEllipse(loop.segments[0])) return loop;
@@ -708,7 +799,8 @@ function offsetFaces(cad: OcctKernel, wire: ShapeHandle, delta: number, wider: b
         const face = validFace(cad, cad.makeFace(piece));
         return { face, area: cad.getSurfaceArea(face) };
       }).sort((a, b) => b.area - a.area);
-    } catch {
+    } catch (error) {
+      if (isKernelMemoryFault(error)) throw error;
       continue;
     }
     if (!pieces.length) continue;
@@ -870,8 +962,80 @@ export function grownProfileSolid(cad: OcctKernel, profile: CadModifierProfilePa
   return solid;
 }
 
-export function profileExtrusionSolid(cad: OcctKernel, profile: CadModifierProfilePart) {
+/**
+ * A slotted screw hole (Discussion #1531): the half-section turned whole at each end of the slot, and the whole
+ * section - the half-section and its mirror image across the axis - pushed along the slot from one end to the
+ * other, fused into one body and its faces that continue each other merged, so each half cone or half cylinder
+ * at an end meets the flat side along the slot in one tangent seam. The slot runs along y, or along x with
+ * `alongX`; the profile's transform then stands it in the shape.
+ */
+function slottedRevolutionSolid(cad: OcctKernel, profile: CadModifierProfilePart, tolerance: number) {
+  const slot = profile.slot;
+  const loop = profile.loops[0];
+  if (!slot || profile.loops.length !== 1 || loop.segments.some((segment) => segment.kind !== "line")) throw new Error("A slotted hole needs one section of straight lines");
+  const points = [{ x: loop.x, z: loop.z }, ...loop.segments.map((segment) => ({ x: segment.x, z: segment.z }))];
+  // The section's corners off the axis, bottom to top; the mirror image runs back down on the other side.
+  const side = points.filter((point) => point.x > tolerance);
+  if (side.length < 2) throw new Error("A slotted hole's section has no width");
+  const whole = [...side, ...side.slice().reverse().map((point) => ({ x: -point.x, z: point.z }))];
+  const wholeLoop: CadModifierProfileLoop = { x: whole[0].x, z: whole[0].z, segments: [...whole.slice(1), whole[0]].map((point) => ({ kind: "line" as const, x: point.x, z: point.z })) };
+  const turned = cad.revolve(cad.makeFace(loopWire(cad, loop, tolerance)), { point: ORIGIN, direction: { x: 0, y: 0, z: 1 } }, TWO_PI);
+  const half = slot.length / 2;
+  const middle = cad.translate(faceSolid(cad, cad.makeFace(loopWire(cad, wholeLoop, tolerance)), slot.length), 0, -half, 0);
+  const fused = cad.fuse(cad.fuse(cad.translate(turned, 0, half, 0), middle), cad.translate(turned, 0, -half, 0));
+  let solid = cad.unifySameDomain(fused);
+  const solids = cad.isSolid(solid) ? [solid] : cad.getSubShapes(solid, "solid");
+  if (solids.length !== 1) throw new Error("The slotted hole did not become one solid");
+  // Along x: a quarter turn about the axis takes the slot from y to x.
+  solid = slot.alongX ? cad.transform(solids[0], [0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0]) : solids[0];
+  if (!cad.isValid(solid) || !(cad.getVolume(solid) > 0)) throw new Error("The slotted hole is not a valid solid");
+  return solid;
+}
+
+/**
+ * A sloped rounded box's ends rounded after its top was cut (Discussion #1544): the bottom's edges lie in y = 0,
+ * the top's are every other edge but the upright lines where the walls meet their rounded corners.
+ */
+function roundedTrimmedEnds(cad: OcctKernel, solid: ShapeHandle, top: number, bottom: number): ShapeHandle {
+  if (!(top > 1e-4) && !(bottom > 1e-4)) return solid;
+  const atBottom = (edge: ShapeHandle) => {
+    const box = cad.getBoundingBox(edge);
+    return Math.abs(box.ymax) < 1e-6 && Math.abs(box.ymin) < 1e-6;
+  };
+  const upright = (edge: ShapeHandle) => {
+    const box = cad.getBoundingBox(edge);
+    return Math.abs(box.xmax - box.xmin) < 1e-6 && Math.abs(box.zmax - box.zmin) < 1e-6;
+  };
+  const round = (body: ShapeHandle, edges: ShapeHandle[], radius: number) => {
+    if (edges.length === 0) throw new Error("The sloped profile solid has no edges to round");
+    const rounded = cad.fillet(body, edges, radius);
+    if (!cad.isSolid(rounded) || !cad.isValid(rounded) || !(cad.getVolume(rounded) > 0)) throw new Error("The rounded ends of the sloped profile solid are not valid");
+    return rounded;
+  };
+  const edges = cad.getSubShapes(solid, "edge");
+  const bottomEdges = edges.filter(atBottom);
+  const topEdges = edges.filter((edge) => !atBottom(edge) && !upright(edge));
+  if (Math.abs(top - bottom) < 1e-9) return round(solid, [...topEdges, ...bottomEdges], top);
+  let rounded = top > 1e-4 ? round(solid, topEdges, top) : solid;
+  if (bottom > 1e-4) rounded = round(rounded, cad.getSubShapes(rounded, "edge").filter(atBottom), bottom);
+  return rounded;
+}
+
+export function profileExtrusionSolid(cad: OcctKernel, profile: CadModifierProfilePart): ShapeHandle {
+  if (profile.trim && profile.kind === "extrusion") {
+    // Slope along: the plain body, and what of it lies inside the side outline pushed across.
+    // A rounded box's rounded ends are rounded after the cut, so the top's round follows the slope (Discussion #1544).
+    const base = profileExtrusionSolid(cad, { ...profile, trim: undefined, capFillet: undefined, capFilletBottom: undefined });
+    const trim = profile.trim;
+    const face = cad.makeFace(loopWire(cad, trim.loops[0], profileExtent(profile) * 1e-6));
+    const prism = cad.transform(cad.extrude(face, 0, trim.height, 0), trim.frame);
+    const kept = cad.common(base, prism);
+    const solids = cad.isSolid(kept) ? [kept] : cad.getSubShapes(kept, "solid");
+    if (solids.length !== 1 || !cad.isValid(solids[0]) || !(cad.getVolume(solids[0]) > 0)) throw new Error("The trimmed profile solid is not valid");
+    return roundedTrimmedEnds(cad, solids[0], profile.capFillet ?? 0, profile.capFilletBottom ?? profile.capFillet ?? 0);
+  }
   validateCadProfile(profile);
+  if (profile.kind === "extrusion" && profile.pulley) return pulleySolid(cad, profile, profile.pulley);
   if (profile.kind === "extrusion" && profile.grow) {
     try {
       return grownProfileSolid(cad, profile);
@@ -887,6 +1051,7 @@ export function profileExtrusionSolid(cad: OcctKernel, profile: CadModifierProfi
     if (!(cad.getVolume(solid) > 0)) throw new Error("The lofted profile solid is inside out");
     return profile.capChamfer && profile.capChamfer.size > 1e-4 ? chamferedLoft(cad, solid, profile) : solid;
   }
+  if (profile.kind === "revolution" && profile.slot && profile.slot.length > 0) return slottedRevolutionSolid(cad, profile, tolerance);
   const [outer, ...holes] = profile.loops;
   let face = cad.makeFace(loopWire(cad, outer, tolerance));
   if (holes.length > 0) face = cad.addHolesInFace(face, holes.map((hole) => loopWire(cad, hole, tolerance)));
@@ -902,7 +1067,8 @@ export function profileExtrusionSolid(cad: OcctKernel, profile: CadModifierProfi
   const isValid = (candidate: ShapeHandle) => {
     try {
       return Boolean(cad.isValid(candidate));
-    } catch {
+    } catch (error) {
+      if (isKernelMemoryFault(error)) throw error;
       return false;
     }
   };
@@ -923,14 +1089,28 @@ export function profileExtrusionSolid(cad: OcctKernel, profile: CadModifierProfi
     solid = repairedSolids[0];
   }
   if (!(cad.getVolume(solid) > 0)) throw new Error("The profile solid is inside out");
-  if (profile.capFillet && profile.capFillet > 1e-4 && profile.kind === "extrusion") {
-    // The flat ends of the extrusion: every edge lying in the plane y = 0 or y = height.
-    const edges = cad.getSubShapes(solid, "edge").filter((edge) => {
+  const topFillet = profile.capFillet ?? 0;
+  const bottomFillet = profile.capFilletBottom ?? topFillet;
+  if ((topFillet > 1e-4 || bottomFillet > 1e-4) && profile.kind === "extrusion") {
+    // The flat ends of the extrusion: every edge lying in the plane y = 0 (the bottom) or y = height (the top).
+    const endEdges = (body: typeof solid, atTop: boolean) => cad.getSubShapes(body, "edge").filter((edge) => {
       const box = cad.getBoundingBox(edge);
-      return Math.abs(box.ymax - box.ymin) < 1e-6 && (Math.abs(box.ymin) < 1e-6 || Math.abs(box.ymin - profile.height) < 1e-6);
+      return Math.abs(box.ymax - box.ymin) < 1e-6 && Math.abs(box.ymin - (atTop ? profile.height : 0)) < 1e-6;
     });
-    const rounded = cad.fillet(solid, edges, profile.capFillet);
-    if (!cad.isSolid(rounded) || !isValid(rounded) || !(cad.getVolume(rounded) > 0)) throw new Error("The rounded ends of the profile solid are not valid");
+    const roundEnd = (body: typeof solid, atTop: boolean, radius: number) => {
+      const rounded = cad.fillet(body, endEdges(body, atTop), radius);
+      if (!cad.isSolid(rounded) || !isValid(rounded) || !(cad.getVolume(rounded) > 0)) throw new Error("The rounded ends of the profile solid are not valid");
+      return rounded;
+    };
+    // One radius at both ends is one fillet; two radii are two, each end on its own and the other end left as it was.
+    if (Math.abs(topFillet - bottomFillet) < 1e-9) {
+      const rounded = cad.fillet(solid, [...endEdges(solid, true), ...endEdges(solid, false)], topFillet);
+      if (!cad.isSolid(rounded) || !isValid(rounded) || !(cad.getVolume(rounded) > 0)) throw new Error("The rounded ends of the profile solid are not valid");
+      return rounded;
+    }
+    let rounded = solid;
+    if (topFillet > 1e-4) rounded = roundEnd(rounded, true, topFillet);
+    if (bottomFillet > 1e-4) rounded = roundEnd(rounded, false, bottomFillet);
     return rounded;
   }
   if (profile.capChamfer && profile.capChamfer.size > 1e-4 && profile.kind === "extrusion") {
@@ -950,6 +1130,32 @@ export function profileExtrusionSolid(cad: OcctKernel, profile: CadModifierProfi
     if (solids.length !== 1 || !isValid(solids[0]) || !(cad.getVolume(solids[0]) > 0)) throw new Error("The chamfered ends of the profile solid are not valid");
     return solids[0];
   }
+  return solid;
+}
+
+/** z up to y up: (x, y, z) -> (x, z, -y). */
+const Z_TO_Y_UP = [1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0];
+
+/**
+ * A GT2 pulley (Discussion #1319): the toothed band pushed up between its two heights, the flanges
+ * and the hub as cylinders on the y axis joined to it, the bore cut through all of it last.
+ */
+function pulleySolid(cad: OcctKernel, profile: CadModifierProfilePart, pulley: NonNullable<CadModifierProfilePart["pulley"]>): ShapeHandle {
+  const { teethBottom, teethTop, discs, boreRadius } = pulley;
+  if (!(teethTop > teethBottom && teethBottom >= 0 && boreRadius >= 0 && discs.every((disc) => disc.top > disc.bottom && disc.radius > 0))) {
+    throw new Error("The pulley's measures are out of range");
+  }
+  const one = (shape: ShapeHandle, what: string) => {
+    const solids = cad.isSolid(shape) ? [shape] : cad.getSubShapes(shape, "solid");
+    if (solids.length !== 1) throw new Error(`The pulley ${what} came out as ${solids.length} solids`);
+    return solids[0];
+  };
+  const cylinder = (radius: number, bottom: number, top: number) => cad.translate(cad.transform(cad.makeCylinder(radius, top - bottom), Z_TO_Y_UP), 0, bottom, 0);
+  const face = cad.makeFace(loopWire(cad, profile.loops[0], profileExtent(profile) * 1e-6));
+  let solid = one(cad.translate(cad.extrude(face, 0, teethTop - teethBottom, 0), 0, teethBottom, 0), "teeth");
+  for (const disc of discs) solid = one(cad.fuse(solid, cylinder(disc.radius, disc.bottom, disc.top)), "with its flanges and hub");
+  if (boreRadius > 0) solid = one(cad.cut(solid, cylinder(boreRadius, -1, profile.height + 1)), "with its bore");
+  if (!cad.isValid(solid) || !(cad.getVolume(solid) > 0)) throw new Error("The pulley body is not a valid solid");
   return solid;
 }
 

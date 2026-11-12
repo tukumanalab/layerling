@@ -328,6 +328,35 @@ export function ToolbarFaceToolIcon(props: IconProps) {
   );
 }
 
+/** A part standing tilted on one edge, a thin triangle under its lower face with two small bridges (#1385). */
+export function ToolbarSupportRibIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M4 42h40" />
+      <path d="M8 40 22 26l12 12-14 14Z" transform="translate(-4 -12)" {...SOLID} />
+      <path d="M8 40 22 26l12 12-14 14Z" transform="translate(-4 -12)" />
+      <path d="M22 41 38 25v16Z" {...SOLID} />
+      <path d="M22 41 38 25v16Z" />
+      <path d="M26 32h3M31 27h3" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A plate with an "O" cut through it, its middle held by two bridges, as on a stencil (#1438). */
+export function ToolbarStencilBridgeIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M5 9h38v30H5ZM11 24a13 13 0 1 0 26 0a13 13 0 1 0-26 0Z" fillRule="evenodd" {...SOLID} />
+      <path d="M5 9h38v30H5Z" />
+      <path d="M11 24a13 13 0 1 0 26 0a13 13 0 1 0-26 0Z" />
+      <path d="M18 24a6 6 0 1 0 12 0a6 6 0 1 0-12 0Z" {...SOLID} />
+      <path d="M18 24a6 6 0 1 0 12 0a6 6 0 1 0-12 0Z" />
+      <path d="M22 11h4v7h-4ZM22 30h4v7h-4Z" {...SOLID} />
+      <path d="M22 11v7M26 11v7M22 30v7M26 30v7" />
+    </ToolbarVectorIcon>
+  );
+}
+
 /** A dashed line with a dot at each end: a construction line in a sketch (#229). */
 export function ToolbarConstructionLineIcon(props: IconProps) {
   return (
@@ -413,6 +442,19 @@ export function ToolbarCutOutIcon(props: IconProps) {
   );
 }
 
+/** A star held over a plate, its outline running down in dashes to the star-shaped opening it leaves: a punch. */
+export function ToolbarPunchIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M24 5l3 6h6l-5 4 2 6-6-4-6 4 2-6-5-4h6Z" {...SOLID} />
+      <path d="M24 5l3 6h6l-5 4 2 6-6-4-6 4 2-6-5-4h6Z" />
+      <path d="M18 21v9M30 21v9" strokeDasharray="3 3" />
+      <path d="M6 30h12v10H6ZM30 30h12v10H30Z" {...SOLID} />
+      <path d="M6 30h12M30 30h12M42 30v10H6V30M18 40h12" />
+    </ToolbarVectorIcon>
+  );
+}
+
 /** A block whose boss on top is drawn dashed: the faces that go, the top closed again. */
 export function ToolbarDeleteFaceIcon(props: IconProps) {
   return (
@@ -432,6 +474,101 @@ export function ToolbarSimplifyIcon(props: IconProps) {
       <path d="M24 6 40 15v18L24 42 8 33V15Z" />
       <path d="M24 6v36M24 24 40 15M24 24l16 9" />
       <path d="M8 21h16M8 27h16M13.5 12v27M19 9v30" strokeWidth="1.6" opacity="0.7" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A cylinder faceted on its left half and round on its right: a mesh made an exact body. */
+export function ToolbarMakeExactIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M8 13 14 9h10v30H14l-6-4Z" {...SOLID} />
+      <path d="M24 9c9 0 16 2.2 16 5v20c0 2.8-7 5-16 5" {...SOLID} />
+      <path d="M8 13 14 9h10M8 13v22l6 4h10M14 9v30M8 35" />
+      <path d="M24 9c9 0 16 2.2 16 5v20c0 2.8-7 5-16 5M24 19c9 0 16-2.2 16-5" />
+      <path d="M8 13l6 4h10M14 17v22" strokeWidth="1.6" opacity="0.7" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A block with a relief of bumps on its top: a surface texture laid onto a body. */
+export function ToolbarSurfaceTextureIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M8 40V22c2.7-4.5 5.3-4.5 8 0s5.3 4.5 8 0 5.3-4.5 8 0 5.3 4.5 8 0v18Z" {...SOLID} />
+      <path d="M8 40V22c2.7-4.5 5.3-4.5 8 0s5.3 4.5 8 0 5.3-4.5 8 0 5.3 4.5 8 0v18Z" />
+      <path d="M8 31c2.7-4.5 5.3-4.5 8 0s5.3 4.5 8 0 5.3-4.5 8 0 5.3 4.5 8 0" strokeWidth="1.6" opacity="0.7" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A block with a round patch of paint on its face and a brush over it: parts of a body painted in a colour of their own. */
+export function ToolbarPaintIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M5 20h28v22H5Z" {...SOLID} />
+      <path d="M5 20h28v22H5Z" />
+      <circle cx="16" cy="31" r="6" fill="currentColor" stroke="none" opacity="0.55" />
+      <path d="M43 5 33 15" strokeWidth="3.2" />
+      <path d="m31 14 3 3" strokeWidth="2.4" />
+      <path d="M30.5 16.5c-3.5.2-5.2 2.5-5.5 6.5 3.8-.2 6.2-2 6.5-5.5Z" fill="currentColor" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** Three links of a print-in-place chain in a gentle bend, held by the round joints between them. */
+export function ToolbarFlexiIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <rect x="4" y="25" width="14" height="10" rx="3.5" transform="rotate(-24 11 30)" {...SOLID} />
+      <rect x="4" y="25" width="14" height="10" rx="3.5" transform="rotate(-24 11 30)" />
+      <rect x="17" y="18" width="14" height="10" rx="3.5" {...SOLID} />
+      <rect x="17" y="18" width="14" height="10" rx="3.5" />
+      <rect x="30" y="25" width="14" height="10" rx="3.5" transform="rotate(24 37 30)" {...SOLID} />
+      <rect x="30" y="25" width="14" height="10" rx="3.5" transform="rotate(24 37 30)" />
+      <circle cx="17.5" cy="26" r="3" fill="currentColor" stroke="none" />
+      <circle cx="30.5" cy="26" r="3" fill="currentColor" stroke="none" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A round cookie with a bite out of it and a few chips: what the cutter is for (Stefan, 29.10.2026 - a star read as a star). */
+export function ToolbarCookieCutterIcon(props: IconProps) {
+  const cookie = "M28.5 11A16 16 0 1 0 38 20.5A9 9 0 0 1 28.5 11Z";
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d={cookie} {...SOLID} />
+      <path d={cookie} />
+      <circle cx="17" cy="21" r="2" fill="currentColor" stroke="none" />
+      <circle cx="25.5" cy="30" r="2" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="32" r="1.7" fill="currentColor" stroke="none" />
+      <circle cx="24" cy="19.5" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="32" cy="30.5" r="1.7" fill="currentColor" stroke="none" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A box cut open, its lid lifted above it with the lip that fits into the opening. */
+export function ToolbarLidIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M8 23h7v10h18V23h7v17H8Z" {...SOLID} />
+      <path d="M8 23h7v10h18V23h7v17H8Z" />
+      <path d="M6 9h36v6H6Z" {...SOLID} />
+      <path d="M6 9h36v6H6Z" />
+      <path d="M16.5 15v4h15v-4" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** A block with a round channel through it: in at the side, a gentle bend, out at the top. */
+export function ToolbarCableChannelIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <path d="M7 12h34v28H7Z" {...SOLID} />
+      <path d="M7 12h34v28H7Z" />
+      <path d="M7 33.5h12a11.5 11.5 0 0 0 11.5-11.5V12" />
+      <path d="M7 28.5h12a6.5 6.5 0 0 0 6.5-6.5V12" />
     </ToolbarVectorIcon>
   );
 }
@@ -489,6 +626,19 @@ export function ToolbarMateFacesIcon(props: IconProps) {
       <rect x="6" y="17" width="13" height="14" rx="2" />
       <path d="M21 24h3" />
       <path d="M21 20l3 4-3 4" />
+    </ToolbarVectorIcon>
+  );
+}
+
+/** Build plates (Discussion #456): two plates side by side, a body on each. */
+export function ToolbarBuildPlatesIcon(props: IconProps) {
+  return (
+    <ToolbarVectorIcon {...props}>
+      <rect x="3" y="12" width="19" height="26" rx="3" {...SOLID} />
+      <rect x="3" y="12" width="19" height="26" rx="3" />
+      <rect x="26" y="12" width="19" height="26" rx="3" />
+      <rect x="8" y="20" width="9" height="9" rx="1.5" />
+      <path d="M35.5 19v12M29.5 25h12" />
     </ToolbarVectorIcon>
   );
 }

@@ -6,6 +6,7 @@ import { shapeText, textNeedsShaping } from "@/lib/arabicShaping";
 import { normalizeSketchStroke } from "@/lib/sketchStroke";
 import { customFontRevision, ensureJapaneseGlyphs, textFont } from "@/lib/textFonts";
 import { shapeDepth, shapeWidth } from "@/lib/workplaneShapes";
+import { kernBetween, kernedFont } from "@/lib/textKerning";
 import type { FreeKeyring, TextKeyring, TextKeyringSide, WorkplaneShape } from "@/types/layerling";
 
 /** Font size the straight text is laid out at before it is fitted into its box. */
@@ -48,6 +49,16 @@ export function textSpacingOf(shape: Pick<WorkplaneShape, "textSpacing">): numbe
   return Number.isFinite(value) ? clamp(value, MIN_TEXT_SPACING, MAX_TEXT_SPACING) : 0;
 }
 
+/** How wide the letters of curved text are drawn (#1196), in per cent of their own width, either way. */
+export const MIN_TEXT_LETTER_WIDTH = 25;
+export const MAX_TEXT_LETTER_WIDTH = 400;
+
+/** The letter width a shape asks for, as a factor: 1 when it has none. */
+export function textLetterWidthOf(shape: Pick<WorkplaneShape, "textLetterWidth">): number {
+  const value = Number(shape.textLetterWidth);
+  return Number.isFinite(value) && value > 0 ? clamp(value, MIN_TEXT_LETTER_WIDTH, MAX_TEXT_LETTER_WIDTH) / 100 : 1;
+}
+
 const spacedFonts = new WeakMap<Font, Map<number, Font>>();
 
 /**
@@ -75,11 +86,67 @@ export function spacedFont(font: Font, percent: number): Font {
   return made;
 }
 
-/** The typeface a shape's text is laid out with: its font, with its spacing. */
-export function textLayoutFont(shape: Pick<WorkplaneShape, "font" | "text" | "textSpacing">): Font {
+/** The typeface a shape's text is laid out with: its font, with its spacing and, when switched on, its kerning (#1297). */
+export function textLayoutFont(shape: Pick<WorkplaneShape, "font" | "text" | "textSpacing" | "textKerning">): Font {
   // Arabic and Hebrew letters join up and read from the right: a gap between them would break the words (#594).
-  const spaced = textNeedsShaping(shape.text ?? "") ? 0 : textSpacingOf(shape);
-  return spacedFont(textFont(shape.font ?? "Multilanguage"), spaced);
+  const shaped = textNeedsShaping(shape.text ?? "");
+  const base = textFont(shape.font ?? "Multilanguage");
+  const spaced = spacedFont(base, shaped ? 0 : textSpacingOf(shape));
+  // Kerned on the font's own advances, so the spacing stays as set on top of it; without it the font is as before.
+  return shape.textKerning && !shaped ? kernedFont(spaced, base) : spaced;
+}
+
+/** The gap between two letters of vertical text, in parts of a capital's height, with no spacing set. */
+const VERTICAL_GAP = 0.35;
+
+/** Moves every point of a glyph outline, its holes included; a point two curves share is moved once. */
+function translateGlyph(glyph: THREE.Shape, dx: number, dy: number) {
+  const moved = new Set<THREE.Vector2>();
+  [glyph, ...glyph.holes].forEach((path) => path.curves.forEach((curve) => {
+    for (const key of ["v0", "v1", "v2", "v3"] as const) {
+      const point = (curve as unknown as Record<string, THREE.Vector2 | undefined>)[key];
+      if (point instanceof THREE.Vector2 && !moved.has(point)) {
+        point.x += dx;
+        point.y += dy;
+        moved.add(point);
+      }
+    }
+  }));
+}
+
+/**
+ * The outlines of straight text at `size`, as the font lays out the line - or, for vertical text (#981), the
+ * letters stacked top to bottom, each centred on one upright line, a gap of about a third of a capital between
+ * them plus the spacing in per cent of the letter size. A space leaves the room of a capital. Everything that
+ * draws or measures straight text takes its outlines from here.
+ */
+export function straightTextShapes(shape: Pick<WorkplaneShape, "text" | "font" | "textSpacing" | "textKerning" | "textVertical">, size: number): THREE.Shape[] {
+  const font = textLayoutFont(shape);
+  const text = displayTextOf(shape);
+  if (!shape.textVertical) return font.generateShapes(text, size);
+  const plain = textFont(shape.font ?? "Multilanguage");
+  const cap = capHeightOf(plain, size);
+  const gap = Math.max(0, cap * VERTICAL_GAP + (size * textSpacingOf(shape)) / 100);
+  const shapes: THREE.Shape[] = [];
+  let top = 0;
+  for (const char of [...text]) {
+    const glyphs = char.trim() ? plain.generateShapes(char, size) : [];
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    glyphs.forEach((glyph) => glyph.getPoints().forEach((point) => {
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+      maxY = Math.max(maxY, point.y);
+    }));
+    if (!Number.isFinite(minX)) {
+      top -= cap + gap;
+      continue;
+    }
+    glyphs.forEach((glyph) => translateGlyph(glyph, -(minX + maxX) / 2, top - maxY));
+    shapes.push(...glyphs);
+    top -= maxY - minY + gap;
+  }
+  return shapes;
 }
 
 function textOptions(shape: WorkplaneShape, size: number) {
@@ -411,13 +478,17 @@ export function curvedTextLayout(shape: WorkplaneShape) {
   const text = displayTextOf(shape);
   const radius = curvedRadius(shape);
   const baseFont = textFont(shape.font ?? "Multilanguage");
+  if (shape.textVertical) return curvedColumnLayout(shape, text, radius, baseFont);
   // The spacing (#594) goes into the advances; a glyph still sits in the middle of its own natural width.
   const font = textLayoutFont(shape);
   let size = curvedSize(shape);
   const chars = [...text];
+  // Wider or narrower letters (#1196): the glyph and its own advance stretch along the arc, the spacing stays as set.
+  const stretch = textLetterWidthOf(shape);
+  const advanceAt = (char: string, letterSize: number) => advanceOf(font, char, letterSize) + (stretch - 1) * advanceOf(baseFont, char, letterSize);
 
   // Too long for the circle: shrink the letters rather than let the ends overlap.
-  const naturalLength = chars.reduce((sum, char) => sum + advanceOf(font, char, size), 0);
+  const naturalLength = chars.reduce((sum, char, index) => sum + advanceAt(char, size) + (index + 1 < chars.length ? kernBetween(font, char, chars[index + 1], size) : 0), 0);
   const maxLength = 2 * Math.PI * radius * MAX_ARC_SHARE;
   if (naturalLength > maxLength) size *= maxLength / naturalLength;
 
@@ -426,8 +497,14 @@ export function curvedTextLayout(shape: WorkplaneShape) {
   // so the line keeps its place on the circle and reads from the other side.
   const flipped = Boolean(shape.textFlipped);
   const ordered = flipped ? [...chars].reverse() : chars;
-  const advances = ordered.map((char) => advanceOf(font, char, size));
-  const totalLength = advances.reduce((sum, advance) => sum + advance, 0);
+  const advances = ordered.map((char) => advanceAt(char, size));
+  // Kerning (#1297) between neighbours, taken in reading order: upside down the line runs the other way round.
+  const kerns = ordered.map((char, index) => {
+    const next = ordered[index + 1];
+    if (next === undefined) return 0;
+    return flipped ? kernBetween(font, next, char, size) : kernBetween(font, char, next, size);
+  });
+  const totalLength = advances.reduce((sum, advance) => sum + advance, 0) + kerns.reduce((sum, kern) => sum + kern, 0);
   const bandMiddle = capHeightOf(font, size) / 2;
   const inward = Boolean(shape.textInward);
   const options = textOptions(shape, size);
@@ -437,7 +514,7 @@ export function curvedTextLayout(shape: WorkplaneShape) {
   ordered.forEach((char, index) => {
     const advance = advances[index];
     const angle = (run + advance / 2) / radius;
-    run += advance;
+    run += advance + kerns[index];
     if (!char.trim()) return;
 
     // Built right to left: the first factor is the last step.
@@ -457,10 +534,65 @@ export function curvedTextLayout(shape: WorkplaneShape) {
     }
     // Centre the glyph's own width on its arc point - horizontally only, the baseline stays at z = 0. With spacing the
     // arc point is the middle of the wider box, so the extra room lies half before and half behind the glyph.
-    matrix.multiply(new THREE.Matrix4().makeTranslation(-advanceOf(baseFont, char, size) / 2, 0, 0));
+    matrix.multiply(new THREE.Matrix4().makeTranslation(-(stretch * advanceOf(baseFont, char, size)) / 2, 0, 0));
     // Flat on the workplane: letter height points to -Z, thickness to +Y.
     matrix.multiply(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+    if (stretch !== 1) matrix.multiply(new THREE.Matrix4().makeScale(stretch, 1, 1));
     glyphs.push({ char, matrix });
+  });
+  return { options, glyphs };
+}
+
+/**
+ * Vertical text on a curve (#981): the letters one under another as in straight vertical text - the same gap, a space the room
+ * of a capital - but the column follows the circle of `textRadius` at its left side, bulging outwards, the middle of the column
+ * at the circle's 9 o'clock; "inward" puts it on the right side instead. Every letter keeps standing upright, only its place
+ * runs along the arc, so a name down the rim of a disk reads as it would written by hand. A column too long for the circle
+ * shrinks its letters like curved text does.
+ */
+function curvedColumnLayout(shape: WorkplaneShape, text: string, radius: number, baseFont: Font) {
+  const chars = [...text];
+  let size = curvedSize(shape);
+  const measure = (letterSize: number) => {
+    const cap = capHeightOf(baseFont, letterSize);
+    const gap = Math.max(0, cap * VERTICAL_GAP + (letterSize * textSpacingOf(shape)) / 100);
+    const letters = chars.map((char) => {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      if (char.trim()) {
+        baseFont.generateShapes(char, letterSize).forEach((glyph) => glyph.getPoints().forEach((point) => {
+          minX = Math.min(minX, point.x);
+          maxX = Math.max(maxX, point.x);
+          minY = Math.min(minY, point.y);
+          maxY = Math.max(maxY, point.y);
+        }));
+      }
+      return Number.isFinite(minX) ? { char, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, height: maxY - minY } : { char: "", cx: 0, cy: 0, height: cap };
+    });
+    const total = letters.reduce((sum, letter) => sum + letter.height + gap, 0) - gap;
+    return { letters, gap, total };
+  };
+  let layout = measure(size);
+  const maxLength = 2 * Math.PI * radius * MAX_ARC_SHARE;
+  if (layout.total > maxLength) {
+    size *= maxLength / layout.total;
+    layout = measure(size);
+  }
+  const options = textOptions(shape, size);
+  const inward = Boolean(shape.textInward);
+  const glyphs: Array<{ char: string; matrix: THREE.Matrix4 }> = [];
+  let start = -layout.total / 2;
+  layout.letters.forEach((letter) => {
+    const angle = (start + letter.height / 2) / radius;
+    start += letter.height + layout.gap;
+    if (!letter.char) return;
+    const matrix = new THREE.Matrix4().makeTranslation((inward ? 1 : -1) * radius * Math.cos(angle), 0, radius * Math.sin(angle));
+    // Flat on the workplane: letter height points to -Z, thickness to +Y; the glyph's own middle sits on the arc point,
+    // as wide as the letter width asks (#1196).
+    matrix.multiply(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+    const stretch = textLetterWidthOf(shape);
+    if (stretch !== 1) matrix.multiply(new THREE.Matrix4().makeScale(stretch, 1, 1));
+    matrix.multiply(new THREE.Matrix4().makeTranslation(-letter.cx, -letter.cy, 0));
+    glyphs.push({ char: letter.char, matrix });
   });
   return { options, glyphs };
 }
@@ -508,7 +640,7 @@ const footprintCache = new Map<string, { width: number; depth: number }>();
 
 /** The width and depth curved text takes at its own radius and letter size. */
 export function curvedTextFootprint(shape: WorkplaneShape): { width: number; depth: number } {
-  const key = JSON.stringify([textOf(shape), shape.font ?? "Multilanguage", customFontRevision(shape.font), curvedSize(shape), curvedRadius(shape), Boolean(shape.textInward), Boolean(shape.textFlipped), shape.bevel ?? 0, textSpacingOf(shape)]);
+  const key = JSON.stringify([textOf(shape), shape.font ?? "Multilanguage", customFontRevision(shape.font), curvedSize(shape), curvedRadius(shape), Boolean(shape.textInward), Boolean(shape.textFlipped), Boolean(shape.textVertical), shape.bevel ?? 0, textSpacingOf(shape), Boolean(shape.textKerning), textLetterWidthOf(shape)]);
   const cached = footprintCache.get(key);
   if (cached) return cached;
   const geometry = buildCurvedText({ ...shape, height: 1 });
@@ -523,7 +655,7 @@ export function curvedTextFootprint(shape: WorkplaneShape): { width: number; dep
 
 /** Width and depth of the straight line at layout size, before it is fitted into its box. */
 function straightTextExtent(shape: WorkplaneShape) {
-  const geometry = new TextGeometry(displayTextOf(shape), textOptions({ ...shape, height: 1 }, LAYOUT_SIZE));
+  const geometry = new THREE.ExtrudeGeometry(straightTextShapes(shape, LAYOUT_SIZE), textOptions({ ...shape, height: 1 }, LAYOUT_SIZE));
   geometry.computeBoundingBox();
   const box = geometry.boundingBox;
   const extent = box ? { width: Math.max(1, box.max.x - box.min.x), depth: Math.max(1, box.max.y - box.min.y) } : { width: LAYOUT_SIZE, depth: LAYOUT_SIZE };
@@ -531,7 +663,7 @@ function straightTextExtent(shape: WorkplaneShape) {
   return extent;
 }
 
-const CURVE_KEYS = ["textCurved", "textRadius", "textInward", "textFlipped", "textSize", "text", "font", "bevel", "textStroke", "textSpacing"] as const;
+const CURVE_KEYS = ["textCurved", "textVertical", "textRadius", "textInward", "textFlipped", "textSize", "text", "font", "bevel", "textStroke", "textSpacing", "textKerning", "textLetterWidth"] as const;
 
 /**
  * Keeps curved text and its box in step. Straight text simply fills its box;
@@ -592,6 +724,32 @@ export function curvedTextPatch(shape: WorkplaneShape, patch: Partial<WorkplaneS
   return patch;
 }
 
+/**
+ * A new radius from the inspector (#981): the letters stay where they sit and only bend more or less. The circle's centre is
+ * the shape's middle, so on its own a bigger radius pushed the text away from it - a column off the plate to the left. The
+ * middle of the text lies on the circle at 12 o'clock (6 with "along the bottom"), a column at 9 (3); the shape moves the
+ * other way by the change of radius, turned and mirrored as the shape is.
+ */
+export function curvedRadiusPatch(shape: WorkplaneShape, textRadius: number): Partial<WorkplaneShape> {
+  const change = curvedRadius({ ...shape, textRadius }) - curvedRadius(shape);
+  const side = shape.textInward ? 1 : -1;
+  const middle = shape.textVertical ? new THREE.Vector3(side, 0, 0) : new THREE.Vector3(0, 0, side);
+  middle.multiply(new THREE.Vector3(shape.mirrorX ? -1 : 1, shape.mirrorY ? -1 : 1, shape.mirrorZ ? -1 : 1));
+  middle.applyEuler(new THREE.Euler(
+    THREE.MathUtils.degToRad(shape.rotationX ?? 0),
+    THREE.MathUtils.degToRad(shape.rotation),
+    THREE.MathUtils.degToRad(shape.rotationZ ?? 0),
+    "XYZ",
+  ));
+  const round = (value: number) => Number(value.toFixed(3));
+  return {
+    textRadius,
+    x: round(shape.x - middle.x * change),
+    z: round(shape.z - middle.z * change),
+    ...(Math.abs(middle.y) > 1e-9 ? { elevation: round((shape.elevation ?? 0) - middle.y * change) } : {}),
+  };
+}
+
 export type TextGlyphShape = { glyph: THREE.Shape; map: (point: THREE.Vector2) => { x: number; z: number } };
 
 /**
@@ -619,7 +777,7 @@ export function textGlyphShapes(shape: WorkplaneShape): { glyphs: TextGlyphShape
       options.font.generateShapes(char, options.size).forEach((glyph) => glyphs.push({ glyph, map }));
     });
   } else {
-    const shapes = textLayoutFont(shape).generateShapes(displayTextOf(shape), LAYOUT_SIZE);
+    const shapes = straightTextShapes(shape, LAYOUT_SIZE);
     let minX = Infinity;
     let maxX = -Infinity;
     let minY = Infinity;
@@ -658,7 +816,8 @@ export function createTextGeometry(shape: WorkplaneShape): THREE.BufferGeometry 
     return curved;
   }
 
-  const geometry = new TextGeometry(displayTextOf(shape), textOptions(shape, LAYOUT_SIZE));
+  // TextGeometry extrudes font.generateShapes; vertical text (#981) has outlines of its own.
+  const geometry = new THREE.ExtrudeGeometry(straightTextShapes(shape, LAYOUT_SIZE), textOptions(shape, LAYOUT_SIZE));
   geometry.computeBoundingBox();
   const box = geometry.boundingBox;
   if (box) {

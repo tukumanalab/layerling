@@ -4,6 +4,7 @@ import { mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, resolve as resolvePath } from "node:path";
 import { tools } from "./layerling-mcp-tools.mjs";
 import { isLocalBridgeUrl, openEditorAndWait } from "./layerling-mcp-open.mjs";
+import { createNotesSeen, notesWaitMs, waitForNotes } from "./layerling-mcp-notes-wait.mjs";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:3000";
 const MCP_ROUTE = "/api/layerling-mcp";
@@ -84,6 +85,9 @@ async function bridgeCommand(action, args = {}, defaultTimeoutMs = 15000) {
   return payload.data;
 }
 
+// The requests layerling_wait_for_notes has handed over, and the notes the agent wrote itself (#1191).
+const notesSeen = createNotesSeen();
+
 async function callTool(name, args) {
   switch (name) {
     case "layerling_list_editors":
@@ -96,8 +100,14 @@ async function callTool(name, args) {
       return bridgeCommand("list_objects", args);
     case "layerling_select_objects":
       return bridgeCommand("select_objects", args);
+    case "layerling_hide_others":
+      return bridgeCommand("hide_others", args);
+    case "layerling_rename_project":
+      return bridgeCommand("rename_project", args);
     case "layerling_delete_objects":
       return bridgeCommand("delete_objects", args);
+    case "layerling_move_object":
+      return bridgeCommand("move_object", args);
     case "layerling_create_shape":
       return bridgeCommand("create_shape", args);
     case "layerling_import_mesh":
@@ -118,18 +128,38 @@ async function callTool(name, args) {
       return bridgeCommand("sweep_sketch", args, 60000);
     case "layerling_push_face":
       return bridgeCommand("push_face", args, 60000);
+    case "layerling_paint":
+      return bridgeCommand("paint_object", args, 120000);
+    case "layerling_support_rib":
+      return bridgeCommand("support_rib", args, 60000);
+    case "layerling_stencil_bridges":
+      return bridgeCommand("stencil_bridges", args, 120000);
     case "layerling_mate_faces":
       return bridgeCommand("mate_faces", args, 30000);
     case "layerling_open_group":
       return bridgeCommand("open_group", args);
     case "layerling_close_group":
       return bridgeCommand("close_group", args, 45000);
+    case "layerling_add_to_group":
+      return bridgeCommand("add_to_group", args, 45000);
+    case "layerling_take_out_of_group":
+      return bridgeCommand("take_out_of_group", args, 45000);
     case "layerling_group_objects":
       return bridgeCommand("group_objects", args, 30000);
     case "layerling_intersect_objects":
       return bridgeCommand("intersect_objects", args, 30000);
     case "layerling_hull_objects":
       return bridgeCommand("hull_objects", args, 30000);
+    case "layerling_cookie_cutter":
+      return bridgeCommand("cookie_cutter", args, 60000);
+    case "layerling_flexi_joints":
+      return bridgeCommand("flexi_joints", args, 120000);
+    case "layerling_make_lid":
+      return bridgeCommand("make_lid", args, 120000);
+    case "layerling_make_cable_channel":
+      return bridgeCommand("make_cable_channel", args, 120000);
+    case "layerling_loft_sketches":
+      return bridgeCommand("loft_sketches", args, 60000);
     case "layerling_ungroup_objects":
       return bridgeCommand("ungroup_objects", args);
     case "layerling_boolean_cut":
@@ -140,8 +170,12 @@ async function callTool(name, args) {
       return bridgeCommand("split_objects", args, 90000);
     case "layerling_wrap_around_cylinder":
       return bridgeCommand("wrap_around_cylinder", args);
+    case "layerling_texture_surface":
+      return bridgeCommand("texture_surface", args, 120000);
     case "layerling_simplify_mesh":
       return bridgeCommand("simplify_mesh", args, 60000);
+    case "layerling_make_exact":
+      return bridgeCommand("make_exact", args, 260000);
     case "layerling_save_custom_shape":
       return bridgeCommand("save_custom_shape", args, 30000);
     case "layerling_list_custom_shapes":
@@ -162,36 +196,70 @@ async function callTool(name, args) {
       return bridgeCommand("offset_object", args, 90000);
     case "layerling_cut_out":
       return bridgeCommand("cut_out", args, 90000);
+    case "layerling_punch":
+      return bridgeCommand("punch", args, 90000);
     case "layerling_array_objects":
       return bridgeCommand("array_objects", args, 30000);
     case "layerling_apply_edge_treatment":
-      return bridgeCommand("apply_edge_treatment", args, 60000);
+      return bridgeCommand("apply_edge_treatment", args, 120000);
     case "layerling_inspect_errors":
       return bridgeCommand("inspect_errors", args);
     case "layerling_bundle_objects":
       return bridgeCommand("bundle_objects", args);
     case "layerling_layer_text":
       return bridgeCommand("layer_text", args, 30000);
+    case "layerling_text_block":
+      return bridgeCommand("text_block", args, 30000);
     case "layerling_clear_history":
       return bridgeCommand("clear_history", args);
+    case "layerling_list_backups":
+      return bridgeCommand("list_backups", args);
+    case "layerling_open_backup":
+      return bridgeCommand("open_backup", args, 60000);
     case "layerling_layer_icon":
       return bridgeCommand("layer_icon", args, 60000);
     case "layerling_reference_image":
       return bridgeCommand("reference_image", args, 60000);
     case "layerling_create_qr_code":
       return bridgeCommand("create_qr_code", args, 60000);
+    case "layerling_create_sbc_board":
+      return bridgeCommand("create_sbc_board", args, 60000);
     case "layerling_measure_section":
       return bridgeCommand("measure_section", args, 30000);
     case "layerling_show_overhangs":
       return bridgeCommand("show_overhangs", args, 30000);
     case "layerling_estimate_print":
       return bridgeCommand("estimate_print", args, 30000);
+    case "layerling_check_clearance":
+      return bridgeCommand("check_clearance", args, 180000);
+    case "layerling_printer_play":
+      return bridgeCommand("printer_play", args, 60000);
+    case "layerling_check_print":
+      return bridgeCommand("check_print", args, 180000);
     case "layerling_add_reference_points":
       return bridgeCommand("add_reference_points", args);
     case "layerling_list_reference_points":
       return bridgeCommand("list_reference_points", args);
     case "layerling_remove_reference_points":
       return bridgeCommand("remove_reference_points", args);
+    case "layerling_list_notes":
+      return bridgeCommand("list_notes", args);
+    case "layerling_wait_for_notes": {
+      const { seconds, ...target } = args || {};
+      return waitForNotes({ listNotes: () => bridgeCommand("list_notes", { ...target, onlyForAi: true }), seen: notesSeen, timeoutMs: notesWaitMs(seconds) });
+    }
+    case "layerling_add_note": {
+      const data = await bridgeCommand("add_note", args);
+      notesSeen.mark(data?.added);
+      return data;
+    }
+    case "layerling_update_note": {
+      const data = await bridgeCommand("update_note", args);
+      notesSeen.mark(data?.updated);
+      return data;
+    }
+    case "layerling_remove_notes":
+      return bridgeCommand("remove_notes", args);
     case "layerling_set_section_view":
       return bridgeCommand("set_section_view", args);
     case "layerling_set_history_view":
@@ -200,12 +268,20 @@ async function callTool(name, args) {
       return bridgeCommand("restore_from_history", args);
     case "layerling_show_workplane":
       return bridgeCommand("show_workplane", args);
+    case "layerling_focus_mode":
+      return bridgeCommand("focus_mode", args);
     case "layerling_measurements":
       return bridgeCommand("measurements", args);
+    case "layerling_measure_angle":
+      return bridgeCommand("measure_angle", args, 30000);
     case "layerling_saved_view":
       return bridgeCommand("saved_view", args);
+    case "layerling_build_plates":
+      return bridgeCommand("build_plates", args);
     case "layerling_export_section_svg":
       return bridgeCommand("export_section_svg", args);
+    case "layerling_sketch_from_section":
+      return bridgeCommand("sketch_from_section", args);
     case "layerling_export_drawing":
       return bridgeCommand("export_drawing", args);
     case "layerling_export_mesh": {

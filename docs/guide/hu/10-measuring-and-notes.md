@@ -7,17 +7,17 @@ Egy alkatrész pontos megépítéséhez mérni kell. A layerlingben erre több e
 
 ## A mérőszalag
 
-A mérőszalag a bal szélen lévő kamerasáv alsó végén van ({{ui:camera.tapeTools}}). Sarkok, élek és lapok közötti távolságokat mér. Rákattintva öt gomb nyílik meg. Ha eltakarják, amit mérnél, húzd őket a bal oldali fogónál fogva bárhová a munkasíkon; a fogóra dupla kattintás visszateszi őket:
+A mérőszalag a bal szélen lévő nézetsáv alsó végén van ({{ui:camera.tapeTools}}). Sarkok, élek és lapok közötti távolságokat mér. Rákattintva öt gomb nyílik meg. Ha eltakarják, amit mérnél, húzd őket a bal oldali fogónál fogva bárhová a munkasíkon; a fogóra dupla kattintás visszateszi őket:
 
 ![A mérőszalag a gombjaival: mérés hozzáadása, mérési pontok mozgatása, mérés eltávolítása, teljes élek, minden mérés törlése.](shot:tape-menu)
 
-1. **{{ui:camera.addMeasurement}}:** Kattints egy pontra, húzd a következőig, és kattints rá. A távolság felirattal jelenik meg.
+1. **{{ui:camera.addMeasurement}}:** Kattints egy pontra, húzd a következőig, és kattints rá. A távolság felirattal jelenik meg, előtte a tengelyekkel, amelyek mentén halad: X, Y vagy Z egyenesnél, XY, XZ vagy YZ egy síkon át, 3D mindhárom esetén. Vidd a mutatót a felirat fölé, és látod, mennyit nyúlik a mérés az egyes tengelyek mentén; egy pont fölött a koordinátáit. A második pont elhelyezése közben a tengelyek, a távolság és az egyes tengelyek menti kiterjedés a mutató mellett látszik. Az a mérés, amely nagyrészt egy másik test mögött van, halványabb lesz; ha a vonala vagy a felirata fölé viszed a mutatót, újra teljesen látszik. A sarkok és élek mellett egy pont a mutató alatti sík lap közepéhez és egy kerek él – például egy lyuk vagy egy henger pereme – középpontjához is illeszkedik: a felkínált középpontot egy kis kereszt jelöli egy körben; ha a mutató a közelébe ér, a pont odailleszkedik, és egy tipp megmondja, minek a középpontja ({{ui:camera.tapeCentreFace}}, {{ui:camera.tapeCentreHole}} vagy {{ui:camera.tapeCentreCircle}}).
 2. **{{ui:camera.moveMeasurement}}:** Fogd meg a pontokat, és mozgasd őket, a szám követi.
 3. **{{ui:camera.deleteMeasurement}}:** Utána kattints egy mérésre, hogy eltávolítsd.
 4. **{{ui:camera.tapeWholeEdges}}:** Egy élre kattintva az egészet méri, például egy kör kerületét. Ha ez ki van kapcsolva, a kattintás ehelyett egy pontot tesz az élre, a második pont pedig bárhová kerülhet, így az átmérőt vagy bármilyen más távolságot mérheted. Az [[Alt]] egy kattintás erejéig megfordítja a kapcsolót. Körön az elsővel szemközti pont beugrik, amikor a mutató a közelébe ér, és a pontok a valódi körön ülnek, így az átmérő pontosan jön ki.
 5. **{{ui:camera.deleteAllMeasurements}}:** Egyszerre eltávolít minden mérést. Mivel ez nem vonható vissza, a layerling előbb rákérdez; ha nincs mérés, nincs mit tenni.
-6. **{{ui:camera.tapeMarkMiddle}}:** Minden mérés száma alatt egy kis célkereszt gomb van. [Referenciapontot](#referenciapontok) tesz a mérés közepére: egy kerek élre, például egy lyuk peremére kattintva annak a körnek a középpontjába – importált hálón is, ahol semmi más nem jelöli egy lyuk közepét –, átmérőnél vagy bármilyen egyenes mérésnél pedig a felénél. Az az alakzat, amelyet ezután húzol, a középpontjával a ponthoz illeszkedik. Egy már meglévő pontot nem készít el kétszer. A mérőszalag úgy illeszkedik egy referenciaponthoz, mint egy sarokhoz, így egy kör középpontjától vagy egy vonal közepétől is mérhetsz: jelöld meg, majd kattints a pontra.
-7. **{{ui:camera.tapeTypeLength}}:** Ha egy egyenes mérés legalább egyik vége egy testen van, a száma rákattintható. Írj be új hosszt, és nyomd meg az [[Enter]] billentyűt: a második pontnál lévő test a mért vonal mentén addig mozdul, amíg a távolság pontosan ennyi nem lesz, mint a Tinkercad vonalzójánál. Ha csak az első pontnál lévő test van kijelölve, az mozdul. A mérési pontok a testen maradnak, így a mérés követi. Mérj sarokból, élről vagy [referenciapontból](#referenciapontok), például egy kör közepéből, hogy az alkatrészeket pontos távolságra tedd.
+6. **{{ui:camera.tapeMarkMiddle}}:** Minden mérés közepén egy kis kerek jel ül, az alsó fele kitöltve. [Referenciapontot](#referenciapontok) tesz a mérés közepére: egy kerek élre, például egy lyuk peremére kattintva annak a körnek a középpontjába – importált hálón is, ahol semmi más nem jelöli egy lyuk közepét –, átmérőnél vagy bármilyen egyenes mérésnél pedig a felénél. Az az alakzat, amelyet ezután húzol, a középpontjával a ponthoz illeszkedik. Egy már meglévő pontot nem készít el kétszer. A mérőszalag úgy illeszkedik egy referenciaponthoz, mint egy sarokhoz, így egy kör középpontjától vagy egy vonal közepétől is mérhetsz: jelöld meg, majd kattints a pontra.
+7. **{{ui:camera.tapeTypeLength}}:** Ha egy egyenes mérés legalább egyik vége egy testen van, a száma rákattintható. Írj be új hosszt, és nyomd meg az [[Enter]] billentyűt: a második pontnál lévő test a mért vonal mentén addig mozdul, amíg a távolság pontosan ennyi nem lesz, mint a Tinkercad vonalzójánál. Ha csak az első pontnál lévő test van kijelölve, az mozdul. A mérési pontok a testen maradnak, így a mérés követi. Mérj sarokból, élről vagy egy lap vagy lyuk közepéből, hogy az alkatrészeket pontos távolságra tedd: egy lyuk közepétől egy henger tetejének közepéig mérve a henger középponttól középpontig mozdul. Negatív hossz ennyivel az első ponton túlra viszi, például 5 mm-rel egy doboz élén belülre. Egy [referenciapont](#referenciapontok) egyik testhez sem tartozik, ezért két referenciapont között semmi sem mozdul. Ha a mérés két vagy három tengely mentén fut, a mezőben a hossz alatt mindegyikhez van még egy rovat (ΔX, ΔY, ΔZ – a távolságok, amelyek a számra mutatva megjelennek): írj oda, és a test csak az adott tengely mentén mozdul. A [[Tab]] rovatról rovatra lép, az [[Esc]] bezárja a mezőt anélkül, hogy bármi elmozdulna. Ha a számra mutatsz, látod, melyik test mozdul, vagy miért nem mozdulhat egyik sem: zárolva van, mindkét pont ugyanazon a testen van, vagy egyik sincs testen. Az utána megjelenő üzenet megmondja, mi mozdult és mennyit; egy visszavonás visszaállítja.
 
 Az [[Esc]] kilép a mérés módból.
 
@@ -27,13 +27,15 @@ A {{ui:shape.ruler}} alakzatot az alakzattárból veszed elő. Tisztán mérőes
 
 ## A derékszögvonalzó
 
-Néha derékszögben jobban mérsz. Kattints a kamerasávon a {{ui:camera.cornerRulerTool}} gombra, majd a munkasíkra. Oda egy derékszögvonalzó kerül két, egymásra merőleges szárral, osztásokkal, mint egy asztalos derékszögön. Ennek sincs saját teste. Ha egy test sarka közelébe kattintasz, a sarka pontosan oda illeszkedik.
+Néha derékszögben jobban mérsz. Kattints a nézetsávon a {{ui:camera.cornerRulerTool}} gombra, majd a munkasíkra. Oda egy derékszögvonalzó kerül két, egymásra merőleges szárral, osztásokkal, mint egy asztalos derékszögön. Ennek sincs saját teste. Ha egy test sarka közelébe kattintasz, a sarka pontosan oda illeszkedik. Ha szinte minden tervben szükséged van rá, kapcsold be a beállításokban a {{ui:workspace.measurement}} alatt a {{ui:workspace.startWithCornerRuler}} lehetőséget: ekkor minden új terv derékszögvonalzóval indul az origóban.
 
 A derékszögvonalzó a munkasíkon fekszik. Ha az egy test oldalán van, a derékszögvonalzó is azon az oldalon fekszik, lásd a [Nézet és munkasík](chapter:view-and-workplane) fejezetet. Így méretezel egy függőleges falon: tedd a munkasíkot a falra, helyezd a derékszögvonalzót a bal felső sarkára, és kattints a fogantyúra, amíg a szárak jobbra és lefelé nem mutatnak.
 
 - **A fogantyú húzása** mozgatja.
 - **Egy rövid kattintás a fogantyúra** 90°-kal elforgatja.
 - **A mellette lévő ×** eltávolítja.
+- **A szár végén lévő kis kör húzásával** a szár hosszabb vagy rövidebb lesz, egész milliméterenként. A fogantyú alatti legalsó gomb, a {{ui:ruler.armsToPlate}}, mindkét szárat olyan hosszúra állítja, amilyen széles és mély a beállításokban választott nyomtató asztala. A derékszög a terv mellett megőrzi a szárak hosszát, és az újra lerakott átveszi azt.
+- **{{ui:ruler.arms}}** (a háromtengelyes gomb, közvetlenül fölötte) minden szárhoz kapcsolót nyit, annak a tengelynek a nevével, amely mentén fut. A síkban fekvő két szár mellett van egy harmadik is, amely a saroknál merőlegesen áll a munkasíkra: az asztalon Z mentén felfelé mutat, saját beosztással, hengerhez vagy bármihez, amit felfelé építesz. Kezdetben ki van kapcsolva: kattints a betűjére, hogy megjelenjen, és a végén lévő kis kört húzva hosszabbíthatod vagy rövidítheted. A síkbeli szárakat ugyanígy kikapcsolhatod, ha útban vannak; egy szár mindig marad. A kijelölt test zöld számai megmaradnak, bármelyik szár látszik is, és a terv megjegyzi, melyek látszanak.
 - **A fogantyútól balra lévő kis gomb** azt váltja, honnan mér: egy test külső oldalától (végpont, vonalas ikon) vagy a közepétől (középpont, célkereszt). Minden zöld szám mellett egy ugyanilyen kis kapcsoló van, amely csak azt a számot állítja: egy álló hengernél a két szárban a közepet, magasságban az alját, egy fekvőnél keresztben a közepet, hosszában az egyik végét. Ha mindhárom újra egyezik, a fogantyúnál lévő gomb a közös módot mutatja.
 
 Ha testek állnak valamelyik szárnál, a derékszögvonalzó automatikusan mutatja a méreteiket. Ez csak az alaplapon működik, egy test oldalán nem. A derékszögvonalzó fogantyúja alatti nyilas gomb ezt kikapcsolja, így csak a kijelölt testek mutatják a méreteiket; a tervvel együtt mentődik.
@@ -44,14 +46,43 @@ Középpontnál a zöld számok a test közepéig számolnak, magasságban is. �
 
 A mérőszalag és a derékszögvonalzó is a helyén marad, amíg vázlatot készítesz, és visszatér a 3D nézetbe. Egyik sem kerül az előzményekbe. A derékszögvonalzó a tervvel együtt mentődik, és a mérőszalag mérései is, a böngészőben és a .lyl fájlban: a terv megnyitásakor újra ott vannak. A mérőszalag gombjai közötti szem gomb elrejti az összes mérést, és újra megmutatja őket; az is mentődik, hogy el vannak-e rejtve, és mérés felvétele, mozgatása vagy törlése előtt újra megjelennek.
 
+## A szögmérő
+
+Szöget a nézetsáv {{ui:camera.protractor}} gombjával mérsz. Mellette gombsor nyílik, és amíg újra rá nem kattintasz a gombra, vagy meg nem nyomod az [[Esc]] billentyűt, a nézetbe kattintva a szögmérővel mérsz. A mérőszalaghoz hasonlóan a testek sarkaihoz és éleihez illeszkedik; a testek mellett pontot tesz a lapra.
+
+- {{ui:camera.protractorPoints}}: először a szög csúcsára kattints, aztán mindkét szárán egy-egy pontra. Az utolsó pont elhelyezése közben a szög már látszik; a harmadik kattintás után megmarad, a szárak közti ívvel. Ez a csúcsnál lévő szög, 0° és 180° között. Egyenesen felülről, elölről vagy oldalról nézve úgy méri a szöget, ahogy ott látszik: egy felső sarok és a közvetlenül alatta lévő alsó sarok ugyanaz a pont. Ferde nézetben a térbeli szöget méri.
+- {{ui:camera.protractorFaces}}: kattints két sík lapra. Mindegyiken egy rövid kék vonal mutatja, merre néz, a felirat pedig mindkét szöget megadja, amelyet a lapok bezárnak, a kisebbet elöl: egy 45°-os letörés a felső laphoz képest 45° · 135°, egy hasáb két oldala csak 90°. Egy ívelt lapnak nincs egyetlen iránya, ezért a szögmérő sík lapot kér.
+
+Egy kész szög utáni következő kattintás újat kezd, a {{ui:camera.protractorClear}} pedig eltávolítja. A szög követi a testeket, ha elmozdulnak vagy elfordulnak. Semmi sem mentődik belőle, és az előzményekbe sem kerül: eltűnik, amikor elteszed a szögmérőt.
+
 ## Távolságok az origótól és mozgatás közben
 
 A beállításokban a {{ui:workspace.appearance}} alatt két kapcsoló van az élő méretekhez:
 
-- A {{ui:workspace.showMoveDimensions}} húzás közben mutatja, mennyit mozdulsz.
+- A {{ui:workspace.showMoveDimensions}} húzás közben mutatja, mennyit mozdulsz. Ez a test feletti kék nyíllal való emelésre is érvényes; az utat az elülső sarkánál mutatja. Elengedés után kattints egy ilyen számra, és írd be a pontos távolságot; a negatív érték lefelé visz.
 - Az {{ui:workspace.showOriginDimensions}} a kijelölés távolságait mutatja a tárgyasztal origójától, több kijelölt testnél is.
 
-A {{ui:workspace.dimensionsAlwaysVisible}} beállítással a méretek állandóan láthatók maradnak.
+A {{ui:workspace.dimensionsAlwaysVisible}} beállítással a méretek állandóan láthatók maradnak. Ha egy test nem a munkasíkon áll, a fölötte lévő magassága is látszik; a számra kattintva újat írhatsz be.
+A {{ui:workspace.dimensionAxisColors}} beállítással minden mező a tengelye színét kapja, mint a fogantyúk: X piros, Y zöld, Z kék. Így egy kis alkatrésznél is egy pillantással látod, melyik szám melyik.
+
+Ha egy pillanatra zavarnak, nyomd meg a [[Q]] billentyűt: a kijelölés körüli méretek és távolságok eltűnnek, így jól látszik a mozgatott alkatrész. Újabb [[Q]] visszahozza őket. Az a fogantyú, amelyre mutatsz, így is megmutatja a méretét.
+
+## Hézag ellenőrzése
+
+Azoknak az alkatrészeknek, amelyeknek nyomtatás után mozogniuk kell - egy flexi sárkány, egy egyben nyomtatott zsanér, egy doboz a fedelével, egy tengely a furatában -, hézag kell egymás között. Ha túl kicsi, összeragadnak; ha átfedik egymást, egy darabként nyomtatódnak ki. A {{ui:editor.tool.clearance}} az {{ui:editor.tool.loftSketches}} mellett ezt nyomtatás előtt ellenőrzi. A kijelölt objektumokat veszi, vagy ha nincs kijelölés, az összes láthatót (ugyanazokat, mint egy exportálás), és minden párt ellenőriz:
+
+- **{{ui:clearance.kind.overlap}}** (piros): a kettőnek közös térfogata van. Ez pirosan látszik a testek belsejében, amelyek átlátszóvá válnak, és a lista megadja a méretét.
+- **{{ui:clearance.kind.touching}}** (piros): összeérnek, és nyomtatáskor összeolvadnak.
+- **{{ui:clearance.kind.tight}}** (narancs): a legkeskenyebb rés kisebb, mint a(z) {{ui:clearance.threshold}}.
+- **{{ui:clearance.kind.fine}}** (zöld): a legkeskenyebb rés legalább ilyen széles.
+
+Minden sor megnevezi a két alkatrészt, résnél a szélességét és a helyét: {{ui:clearance.direction.side}} (ugyanabban a rétegben) vagy {{ui:clearance.direction.layer}} (felette vagy alatta: ott a szeletelő csak egész rétegeket hagyhat szabadon, így egy rétegnél vékonyabb rés bezárul). Egy sorra kattintva a kamera odamegy, mindkét alkatrész körvonalat kap, és egy vonal a számmal jelöli a legszűkebb helyet. Az 5 mm-nél távolabbi párok nem szerepelnek a listában. A terv nem változik: az ellenőrzés semmit sem ment, és nincs mit visszavonni.
+
+A(z) {{ui:clearance.threshold}} kezdetben 0,3 mm; a 0,3 szoros, a 0,4 az egyben nyomtatásnál szokásos. Módosítása azonnal újrarendezi a listát új ellenőrzés nélkül, és a böngésző megjegyzi az értéket. A(z) {{ui:clearance.splitParts}} (kezdetben bekapcsolva) egy objektum különálló részeit is ellenőrzi egymással szemben: egy egyetlen STL-ként importált flexi sárkány vagy zsanér egy objektum, de a tagjai különálló részek. Ezek „Név · 2. rész” formában szerepelnek. Egy másik üregében lévő rész, például egy golyó egy kalitkában, külön résznek számít.
+
+Ha a tervet módosítod, miközben az ablak nyitva van, megjelenik a(z) {{ui:clearance.stale}}; kattints rá vagy a(z) {{ui:clearance.checkAgain}} gombra. Az [[Esc]] vagy a(z) {{ui:clearance.close}} bezárja az ablakot. A méretezés is megváltoztatja a réseket: egy 70 %-ra kicsinyített flexi modell hézagának csak 70 %-a marad meg, ezért méretezés után ellenőrizz újra.
+
+Az ellenőrzés azt a háromszöghálót méri, amelyet a szeletelő is megkap. Egy kerek tengely és a furata sokszög, a csúcsaik a körön vannak, így egy rés néhány századdal kisebbre jöhet ki a kerek méreteknél. A túl sok háromszögből álló pár {{ui:clearance.kind.unchecked}} jelöléssel szerepel. Egy MI ugyanezt az ellenőrzést végzi a `layerling_check_clearance` eszközzel.
 
 ## Jegyzetek
 
@@ -60,20 +91,21 @@ Egy jegyzet azt rögzíti, amit a geometria nem mond el: „Ez a csavar 0,3 mm-r
 - Ha a jegyzetet **egy testre** teszed, vele együtt utazik.
 - Ha **mellé** teszed, a munkasíkon marad ({{ui:note.free}}).
 - A {{ui:note.detach}} leválasztja a testről a hozzá csatolt jegyzetet.
+- A {{ui:note.forAi}} a jegyzetből kérést csinál egy MI-ügynöknek az MCP-hídon (lásd „MI az MCP-vel”): az ügynök a `layerling_list_notes` segítségével elolvassa, elvégzi a munkát, és ugyanabban a jegyzetben, a szöveged alatt válaszol. Saját jegyzeteket is tehet a modellre, hogy egy helyen kérdezzen vagy jelentsen valamit. Kérd meg az ügynököt, hogy figyelje a jegyzeteidet, és `layerling_wait_for_notes` segítségével várja őket: ezután csak a modellen dolgozol, és minden új kérést azonnal felvesz, amint bejelölöd a négyzetet, anélkül hogy visszamennél az ügynök ablakába.
 - A {{ui:editor.tool.group}} a csatolt jegyzetet is beviszi a csoportba; a {{ui:editor.tool.ungroup}} az alatta lévő látható részhez adja tovább, akár egy belső csoporthoz is. Amíg egy csoport a {{ui:group.edit}} gombbal nyitva van, a jegyzetei az alattuk lévő résszel együtt mozognak, és a {{ui:group.done}} gombbal visszakerülnek a csoporthoz; a megszakítás visszaállítja őket az eredeti állapotukba.
 - Ha a testét törlöd, vagy már nincs alatta látható test, a jegyzet ott marad, ahol volt, a munkasíkon.
 - A tűt húzva a jegyzet elmozdul. Egy kattintás a tűre összecsukja a kártyát, csak a kis szám marad; egy újabb kattintás újra kinyitja. A szövegbe kattintva szerkesztheted.
 - Írás közben az [[Enter]] megtartja a szöveget, az [[Esc]] visszaállítja olyanra, amilyen az írás megkezdése előtt volt; a [[Shift]]+[[Enter]] új sort kezd.
-- **Vázlatban** is elhelyez egy jegyzetet a {{ui:editor.tool.note}} (a {{ui:editor.group.manage}} alatt) vagy az [[N]], bárhol a vázlaton. A vázlat összes jegyzete a vázlat testéhez tartozik: a 3D nézetben rajta ülnek, a {{ui:sketch.extrude}} vagy {{ui:sketch.sweep}} művelettel készült test tetején és a {{ui:sketch.revolve}} művelettel készült test megrajzolt profilján, és vele együtt mozognak. Ha újra megnyitod a vázlatot, megmutatja a test jegyzeteit, a 3D-ben elhelyezetteket is. A vázlatban a {{ui:sketch.undo}} egy jegyzetet ugyanúgy visszavon, mint egy vonalat, a {{ui:sketch.cancel}} pedig elveti, amit a jegyzeteken módosítottál. A [[Shift]]+[[N]] itt is megjeleníti vagy elrejti a jegyzeteket.
+- **Vázlatban** is elhelyez egy jegyzetet a {{ui:editor.tool.note}} vagy az [[N]], bárhol a vázlaton. A vázlat összes jegyzete a vázlat testéhez tartozik: a 3D nézetben rajta ülnek, a {{ui:sketch.extrude}} vagy {{ui:sketch.sweep}} művelettel készült test tetején és a {{ui:sketch.revolve}} művelettel készült test megrajzolt profilján, és vele együtt mozognak. Ha újra megnyitod a vázlatot, megmutatja a test jegyzeteit, a 3D-ben elhelyezetteket is. A vázlatban a {{ui:sketch.undo}} egy jegyzetet ugyanúgy visszavon, mint egy vonalat, a {{ui:sketch.cancel}} pedig elveti, amit a jegyzeteken módosítottál. A [[Shift]]+[[N]] itt is megjeleníti vagy elrejti a jegyzeteket.
 
 A jegyzetek a tervben mentődnek, egyik exportban sem jelennek meg, és a {{ui:visibility.notes}} (a {{ui:editor.visibilityOptions}} alatt, a szem ikon melletti nyílnál) kapcsolóval vagy a [[Shift]]+[[N]] billentyűkkel megjeleníthetők vagy elrejthetők.
 
 ## Referenciapontok
 
-A referenciapont egy puszta jel a térben, mint egy ceruzajel vagy egy kijelölő pont a műhelyben: egyik testhez sem tartozik, sosem nyomtatódik ki, és más dolgok illeszkednek hozzá. Kattints jobb gombbal egy testre, és válaszd az {{ui:contextMenu.markCenter}}, az {{ui:contextMenu.markCorners}} vagy az {{ui:contextMenu.markMidpoints}} lehetőséget: a pontok a test felső lapján jelennek meg (a teljes kijelölésén, ha többet jelöltél ki). {{ui:contextMenu.markFaceCenter}} ehelyett annak a sík lapnak a közepére tesz egyet, amelyre jobb gombbal kattintottál, például egy oldalon vagy egy végén.
+A referenciapont egy puszta jel a térben, mint egy ceruzajel vagy egy kijelölő pont a műhelyben: egyik testhez sem tartozik, sosem nyomtatódik ki, és más dolgok illeszkednek hozzá. Kattints jobb gombbal egy testre, és válaszd az {{ui:contextMenu.markCenter}}, az {{ui:contextMenu.markCorners}} vagy az {{ui:contextMenu.markMidpoints}} lehetőséget: a pontok a test felső lapján jelennek meg (a teljes kijelölésén, ha többet jelöltél ki). {{ui:contextMenu.markFaceCenter}} ehelyett annak a sík lapnak a közepére tesz egyet, amelyre jobb gombbal kattintottál, például egy oldalon vagy egy végén. Ha van forgáspont, a {{ui:contextMenu.markPivot}} pontosan rá tesz egy pontot, így egy másik alkatrész közepe arra a pontra ugrik, amely körül a kijelölés forog.
 
 - Húzással mozgatsz egy pontot, vagy rákattintva megnézheted a koordinátáit, és újakat gépelhetsz be; a beállított mértékegységet használják. Minden kártya a címénél fogva elhúzható, ha eltakar valamit, önállóan: a többi a helyén marad, a címre dupla kattintás pedig visszateszi. Az utoljára megérintett kártya áll a többi előtt. Egy kártyán vagy a jobb gombos menüben a **Mind törlése** egyszerre minden pontot töröl. A {{ui:common.delete}} eltávolítja.
-- A mérőszalag is meg tud jelölni egy pontot: az {{ui:camera.tapeMarkMiddle}}, a mérés alatti célkereszt gomb a közepére tesz egyet, például egy kerek lyuk középpontjába. És egy ponttól is mér: a szalag úgy illeszkedik a referenciapontokhoz, mint a sarkokhoz.
+- A mérőszalag is meg tud jelölni egy pontot: az {{ui:camera.tapeMarkMiddle}}, a mérés közepén ülő, félig kitöltött jel a közepére tesz egyet, például egy kerek lyuk középpontjába. És egy ponttól is mér: a szalag úgy illeszkedik a referenciapontokhoz, mint a sarkokhoz.
 - Amikor egy alakzatot húzol, az élei és a közepe úgy illeszkednek egy ponthoz, ahogy más alakzatokhoz ({{ui:workspace.objectSnap}}). A derékszögvonalzó is illeszkedik a pontokhoz.
 - A pontok a tervben mentődnek, egyik exportban sem jelennek meg, és a jegyzetekkel együtt a {{ui:visibility.notes}} ([[Shift]]+[[N]]) kapcsolóval jeleníthetők meg vagy rejthetők el.
 - Egy MI a `layerling_add_reference_points`, a `layerling_list_reference_points` és a `layerling_remove_reference_points` paranccsal jelölheti meg, sorolhatja fel és távolíthatja el őket.
@@ -88,4 +120,4 @@ A mintakép egy kép, amelyhez a részeket igazíthatod: tedd egy áramköri lap
 - A {{ui:referenceImage.calibrate}} a valódi méretére állítja, mint a vázlatban: kattints a képen két pontra, amelyek valódi távolságát ismered - például a lap két rögzítőfuratára -, és írd be ezt a távolságot a {{ui:referenceImage.distance}} mezőbe. A kép megtartja az arányait és a közepét.
 - A beállításai fejlécében lévő lakattal zárold, és a helyén marad: a kattintások átmennek rajta a tárgyasztalra. Feloldáshoz az objektumlistában válaszd ki újra.
 - A kép egyszer kerül a tervfájlba, akárhányszor másolod vagy vonod vissza. Egy nagy kép ennyivel nagyobbá teszi a fájlt; hozzáadáskor az üzenet megmondja a méretét.
-- Egy MI a `layerling_reference_image` segítségével ad hozzá, mozgat, kalibrál, halványít és zárol egyet.
+- Egy MI a `layerling_reference_image` segítségével ad hozzá, mozgat, kalibrál, halványít és zárol egyet. A `trace` a képet egy rajta álló vázlattestté rajzolja körbe, ahogy a vázlatban a {{ui:sketch.traceImage}}.

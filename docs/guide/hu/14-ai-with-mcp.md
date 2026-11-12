@@ -9,6 +9,42 @@ Az MI-kliens és a szerkesztő közötti híd **helyben, a számítógépeden** 
 
 > **Fontos:** Az MCP-híd abban a fejlesztői szerverben létezik, amelyet magad indítasz el a számítógépeden. A layerling.com-on és a statikus tárhelyű telepítésekben ki van kapcsolva. Egy magad üzemeltetett példány, például a NAS-on futó Docker-image, hozzáférési tokennel bekapcsolhatja; lásd lent az „Egy példány NAS-on vagy szerveren” részt.
 
+## Lépésről lépésre kezdőknek
+
+Ehhez semmit nem kell tudnod a programozásról.
+
+**A legrövidebb út:** add meg kedvenc MI-dnek a projekt címét, `https://github.com/henmedia/layerling`, és kérd meg: „Állítsd be a layerlinget a számítógépemen, hogy az MCP-szerverén keresztül 3D-modelleket építhessek veled.” Mindent maga tölt le és telepít, és szól, ha kész. Ez olyan MI-vel működik, amely a számítógépeden tud dolgozni, például a Claude alkalmazás Code lapjával, a Codexszel, az Antigravityvel vagy a Gemini CLI-vel. Egy böngészőbeli chat erre nem képes, mert nem tud semmit telepíteni a számítógépedre.
+
+**Vagy csináld magad, Windowson a Claude alkalmazással, öt lépésben:**
+
+**1. Telepítsd a layerlinget.** Nyisd meg a Start menüt, írd be: `PowerShell`, és nyisd meg a Windows PowerShellt. Másold ki ezt a sort, illeszd be az ablakba jobb kattintással, és nyomj Entert:
+
+```powershell
+irm https://raw.githubusercontent.com/henmedia/layerling/main/scripts/windows-quickstart.ps1 | iex
+```
+
+Telepíti, amire a layerlingnek szüksége van, letölti a layerlinget a felhasználói mappádban lévő `layerling` mappába (`C:\Users\<a neved>\layerling`), és megnyitja a böngésződben. Első alkalommal ez néhány percig tart.
+
+![Windows PowerShell a beillesztett sorral. Nyomj Entert, és indul.](still:ai-quickstart-powershell)
+
+**2. Hagyd futni a layerlinget.** A layerling addig fut, amíg a PowerShell-ablak nyitva van, és az MI csak akkor tud építeni, amikor fut. Legközelebb inkább kattints duplán az asztalon a „Start layerling” ikonra.
+
+**3. Telepítsd a Claude alkalmazást.** Telepítsd a Claude alkalmazást Windowsra, és jelentkezz be. A következő lépés Code lapja a Claude fizetős csomagjainak része.
+
+**4. Nyisd meg a layerling mappát a Code lapon.** A Claude alkalmazásban válts fent a Code lapra, és munkamappaként válaszd a felhasználói mappádban lévő `layerling` mappát. A layerling már mindent hoz, amire a Claude-nak szüksége van az eszközei megtalálásához. Ha a Claude megkérdezi, használhatja-e ennek a mappának a „layerling” MCP-szerverét, engedélyezd.
+
+**5. Mondd meg a Claude-nak, mit építsen.** Például: „Használd a layerling eszközeit, és építs nekem egy kerek dobozt, 60 mm átmérővel és 40 mm magasan, 2,5 mm-es fallal.” Ha nincs nyitva szerkesztő, a Claude megnyit egyet a böngésződben, ott lépésről lépésre megépíti a dobozt, és képeket készít, hogy ellenőrizze a munkáját. Te nézed, és bármikor magad is módosíthatsz bármit.
+
+**Macen** ugyanígy megy, ezekkel a változtatásokkal. Az 1. lépésben nyisd meg a Terminal alkalmazást (nyomd meg a Cmd+szóköz billentyűt, írd be: `Terminal`, majd nyomj Entert), illeszd be ezt a sort, és nyomj Entert:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/henmedia/layerling/main/scripts/mac-quickstart.sh | sh
+```
+
+Ha a Git vagy a Node.js hiányzik, megmondja, mit telepíts (a Gitet a macOS egy ablakban kínálja fel, a Node.js telepítőként érhető el a nodejs.org oldalon); utána futtasd le ugyanazt a sort még egyszer. A 2. lépésben az asztali parancsikon neve itt is „Start layerling“. A 3. lépésben telepítsd a Claude alkalmazást Machez.
+
+> **Tipp:** Ha valami nem működik, mondd el a Claude-nak, mit látsz. El tudja olvasni a hibát, és többnyire maga kijavítja. Ha a szerkesztőben semmi sem történik, először nézd meg, fut-e még a layerling (2. lépés).
+
 ## Beállítás
 
 1. Töltsd le a layerlinget a [GitHubról](https://github.com/henmedia/layerling), és indítsd el a projekt mappájában az `npm run dev` paranccsal. Ehhez telepítve kell lennie a Node.js-nek. Windowson a README gyorsindító sora ezt elintézi.
@@ -42,11 +78,14 @@ Az MI ugyanazokkal a funkciókkal dolgozik, mint te, ugyanazon az úton, mint a 
 | Eszköz | Mit csinál |
 | --- | --- |
 | `layerling_list_editors` | felsorolja a nyitott szerkesztőlapokat |
+| `layerling_rename_project` | nevet ad a projektnek, mint a projekt neve melletti ceruza |
 | `layerling_open_editor` | új szerkesztőlapot nyit az alapértelmezett böngésződben, és megvárja, amíg csatlakozik (csak a saját számítógépeden) |
 | `layerling_read_scene` | beolvassa a jelenetet, a kijelölést, a mértékegységeket és az összes objektum pontos méreteit |
 | `layerling_list_objects` | felsorolja az összes objektumot méretekkel, helyzettel, elforgatással és azonosítóval |
 | `layerling_select_objects` | objektumokat jelöl ki |
+| `layerling_hide_others` | a kijelölésen vagy a megadott objektumokon kívül mindent elrejt, egyetlen visszavonási lépésben |
 | `layerling_delete_objects` | objektumokat töröl |
+| `layerling_move_object` | áthelyez egy objektumot az objektumlista egy másik helyére |
 | `layerling_create_shape` | alakzatot hoz létre: dobozt, hengert, szöveget (íveset is), menetet, fogaskereket, vázlattestet és az összes többit |
 | `layerling_import_file` | fájlt importál, ahogy az importálási ablak: egy színes OBJ-t vagy 3MF-et színenként egy testként, egy több objektumot tartalmazó 3MF-et objektumonként egy testként |
 | `layerling_add_font` | saját betűtípust ad hozzá szöveghez egy TrueType, OpenType vagy WOFF fájlból; a böngészőben marad, egy terv csak az általa használt betűket tartja meg |
@@ -57,53 +96,82 @@ Az MI ugyanazokkal a funkciókkal dolgozik, mint te, ugyanazon az úton, mint a 
 | `layerling_scale_objects` | objektumokat méretez százalékban, együtt vagy mindegyiket a helyén |
 | `layerling_lay_flat` | egy objektumot az egyik lapjával a tárgyasztalra fektet |
 | `layerling_place_on_face` | objektumokat tesz le egy másik objektum lapjára, a ferdékre is, mint a C billentyű |
-| `layerling_perforate_face` | lyukmintát vág egy sík lapba; a lyukak a testtel csoportosított lyukak maradnak |
+| `layerling_perforate_face` | lyukmintát vág egy sík lapba vagy egy henger, cső vagy furat kerek falára körbe; a lyukak a testtel csoportosított lyukak maradnak |
 | `layerling_sweep_sketch` | téglalap vagy kör keresztmetszetet húz végig egy pontokból álló pályán egyetlen pontos testként; zárt pálya gyűrűt ad |
 | `layerling_push_face` | kihúz egy sík lapot, vagy zsebet vág bele, a lap szélétől mért távolsággal és sarokrádiusszal; az új rész a testtel csoportosított vázlattest |
+| `layerling_paint` | többszínű nyomtatáshoz saját színekkel festi egy test részeit (Festés): lap kitöltése az éles élekig, kerek folt vagy sík nézetben rajzolt lasszó; radírozás, mindent levesz; a testtel mentődik, és a 3MF-be festett lapokként kerül |
+| `layerling_support_rib` | vékony támasztóbordát állít egy élére döntve nyomtatott alkatrész alsó lapja alá, egy réteg magas hidakkal (Támasztóborda) |
+| `layerling_stencil_bridges` | az átvágott szövegű lemez kieső részeit a lemezzel csoportosított, megadott szélességű és magasságú hidakkal tartja meg (Sablonhidak) |
 | `layerling_mate_faces` | egy objektum lapját egy másik lapjához illeszti, laptól lapig vagy egy síkba |
 | `layerling_open_group` | megnyit egy csoportot, hogy a részei egyenként módosíthatók legyenek, egy nyitott csoporton belüli csoportot is |
 | `layerling_close_group` | újra bezárja („Kész”) vagy megszakítja |
+| `layerling_add_to_group` | különálló objektumokat tesz egy csoportba annak megnyitása nélkül |
+| `layerling_take_out_of_group` | egy részt kivesz egy csoportból annak megnyitása nélkül |
 | `layerling_group_objects` | objektumokat csoportosít |
 | `layerling_ungroup_objects` | csoportokat bont fel |
 | `layerling_boolean_cut` | tömör testeket vág lyukakkal |
 | `layerling_intersect_objects` | csak azt tartja meg, ami az objektumokban közös (Metszet) |
 | `layerling_hull_objects` | egyetlen domború testbe burkolja az objektumokat, mintha zsugorfóliába csomagolnák (Burok) |
+| `layerling_cookie_cutter` | makes a cookie cutter from the objects: a wall and a rim round the outline (Cookie cutter) |
+| `layerling_flexi_joints` | cuts a flat body into links with joints printed in place that swing to the sides (Flexi joints) |
+| `layerling_make_lid` | makes a lid for a body open at the top: pushed in, over the top or flat, with the fit you choose and magnets if you like (Lid) |
+| `layerling_make_cable_channel` | runs a round channel for a cable through a body from an entry to an exit, finding the way itself with gentle bends (Cable channel) |
+| `layerling_loft_sketches` | joins two sketch bodies into a loft from one outline to the other (Loft sketches) |
 | `layerling_separate_parts` | egy alakzatot a különálló részeire bont, a vázlattestet körvonalanként egy testre |
 | `layerling_split_objects` | tömör testeket vagy lyukakat vág ketté egy síkkal |
 | `layerling_list_edges` | felsorolja egy objektum valódi CAD-éleit |
 | `layerling_apply_edge_treatment` | kiválasztott éleket tör le vagy kerekít le |
 | `layerling_hollow_object` | egyenletes fallal üregel ki egy testet |
 | `layerling_cut_out` | kivág egy testet egy másikból, hogy illeszkedjenek: az alkatrész marad, a hézaggal megnövelt másolatot kivonja a másik testből |
-| `layerling_offset_object` | eltolja a test minden lapját az illesztés játékához: nagyítja vagy kicsinyíti, vagy lyukként adja hozzá a megnagyobbított másolatot |
+| `layerling_punch` | egy test körvonalát x, y vagy z mentén nézve egyenesen átüti egy másikon; a lyukasztó megmarad, és nem kell érintenie |
+| `layerling_offset_object` | eltolja a test minden lapját az illesztés játékához: nagyítja vagy kicsinyíti, vagy lyukként adja hozzá a megnagyobbított másolatot, vagy csak az oldalakat tolja el |
 | `layerling_list_faces` | felsorolja egy pontos test lapjait |
 | `layerling_delete_faces` | lapokat töröl, és bezárja a rést |
-| `layerling_array_objects` | sorban vagy körön sokszoroz |
+| `layerling_array_objects` | sorban, rácsban vagy körön sokszoroz |
 | `layerling_bundle_objects` | objektumokat fog kötegbe, mint a Ctrl+B: együtt mozognak, megtartják a színüket és a fajtájukat, és exportáláskor külön kerülnek ki |
 | `layerling_layer_text` | egy szöveget rétegekből álló kötegbe alakít többszínű nyomtatáshoz (betűk, szélesebb szegélyek, egy lyukak nélküli lap), vagy újraépít egy köteget, kulcstartólyukkal, rétegenkénti sarkokkal és lekerekített vagy letört betűéllel; névlistával nevenként egy címkét készít |
+| `layerling_text_block` | szövegblokkot készít: egy szöveg lesz több sor közül az első, mindegyik önálló szöveg a felette lévő alatt, balra, középre vagy jobbra igazítva, minden sor ugyanakkora vagy kisebb |
 | `layerling_layer_icon` | egy SVG-ikont (a fájl szövegét vagy egy kihúzott vázlattestet) rétegekből álló ikoncímkévé alakít többszínű nyomtatáshoz – az ikon, szélesebb szegélyek, egy lyukak nélküli lap –, vagy új szélességgel vagy rétegekkel újraépít egyet; darabszámmal másolatokkal tölti meg a tárgyasztalt |
 | `layerling_create_qr_code` | szövegből vagy webcímből QR-kódot készít, mint az alakzatkönyvtár {{ui:shape.qrCode}} eleme – csak a kódot, lapon kiemelve vagy gravírozva, hibajavítással, szélességgel, magassággal, csendes zónával és kérésre üregként; figyelmeztet, ha egy modul 0,8 mm alá kerül |
-| `layerling_reference_image` | képből mintaképet ad hozzá, mint a {{ui:import.referenceImage}}, vagy egyet mozgat, forgat, kalibrál (a kép két pontja és valódi távolságuk), halványít vagy zárol - segédlet, amely sosem exportálódik és sosem nyomtatódik |
+| `layerling_create_sbc_board` | valódi méretű SBC lapot tesz le, mint az alakzatkönyvtár {{ui:shape.sbcBoard}} eleme – Raspberry Pi 5, 4, 3 B+, Zero 2 W vagy BIGTREETECH Pi, furatokkal és csatlakozókkal, a szélső csatlakozók holtjátékával, helyzettel, és kivágásként doboz vágásához |
+| `layerling_reference_image` | képből mintaképet ad hozzá, mint a {{ui:import.referenceImage}}, vagy egyet mozgat, forgat, kalibrál (a kép két pontja és valódi távolságuk), halványít vagy zárol - segédlet, amely sosem exportálódik és sosem nyomtatódik; a `trace` a sötét vagy világos részéből rajta álló vázlattestet készít |
 | `layerling_measure_section` | egy vágósíkon két, a körvonalhoz illeszkedő pont között mér – falvastagság, rések, illesztések |
 | `layerling_show_overhangs` | be- vagy kikapcsolja a túlnyúlások sraffozását, beállítja a szöget, és minden testnél megadja azt a területet, amelyhez támasz kellene |
 | `layerling_estimate_print` | megbecsüli a térfogatot, a tömeget és a filamentet a kijelöléshez vagy a teljes tervhez: tömör testre, és durva becslésként falakkal és kitöltéssel, mint az exportálási ablak |
+| `layerling_check_clearance` | nyomtatás előtt ellenőrzi, mely alkatrészek fedik át egymást, érnek össze vagy kerülnek közelebb egy minimális hézagnál, egy objektum különálló részeit is |
+| `layerling_printer_play` | kiolvassa, beállítja vagy törli a nyomtató hézagát ({{ui:workspace.printerPlay}} a beállításokban), és elhelyezi az illesztési próbát, amely ezt méri |
+| `layerling_check_print` | nyomtatás előtt ellenőrzi, mi romlana el: a fúvókához túl vékony falak, lebegő alkatrészek, kevés érintkezés a tálcával, túlnyúlások és nyitott hálók |
 | `layerling_add_reference_points` | referenciapontokat jelöl meg – objektumok középpontján, sarkain vagy élfelezőin, vagy pontos helyeken –, amelyekhez az alakzatok illeszkednek |
 | `layerling_list_reference_points` | felsorolja a referenciapontokat az azonosítójukkal és a helyzetükkel |
 | `layerling_remove_reference_points` | azonosító alapján vagy mindet törli a referenciapontokat |
+| `layerling_list_notes` | kiolvassa a felhasználó jegyzeteit a szövegükkel, azzal a testtel, amelyhez tartoznak, és hogy kérés-e az MI-nek |
+| `layerling_wait_for_notes` | megvárja, amíg egy jegyzeten bejelölöd a(z) {{ui:note.forAi}} lehetőséget, és azonnal továbbadja a kérést |
+| `layerling_add_note` | jegyzetet tesz a modellre, objektumhoz rögzítve vagy szabadon a lapon |
+| `layerling_update_note` | módosít egy jegyzetet vagy válaszol rá; a válasz lezárja a kérést |
+| `layerling_remove_notes` | azonosító alapján töröl jegyzeteket |
 | `layerling_inspect_errors` | megmutatja az utolsó üzenetet és az utolsó hibát, valamint a munkamenet üzeneteit és hibáit |
 | `layerling_wrap_around_cylinder` | egy laposan fekvő testet, például egy SVG-t vagy szöveget egy henger köré teker, kifelé vagy befelé gravírozásként |
+| `layerling_texture_surface` | felületi mintázatot visz fel egy testre: hornyokat, recézést, méhsejtet vagy bütyköket, a jobb fogásért vagy a látványért, és később módosítja vagy eltávolítja |
 | `layerling_simplify_mesh` | csökkenti egy importált háló háromszögeinek számát, százalékos arányra vagy egy háromszögszámra |
+| `layerling_make_exact` | egy importált hálót pontos CAD-testté alakít: a síkok, hengerek, kúpok, gömbök és tóruszok valódi lapokká válnak, így az élek tisztán lekerekíthetők, és a STEP is viszi őket |
 | `layerling_save_custom_shape` | testeket őriz meg saját alakzatként, a szerveren vagy a böngészőben, hogy más tervekbe beilleszthetők legyenek |
 | `layerling_list_custom_shapes` | felsorolja a szerveren és a böngészőben lévő saját alakzatokat |
 | `layerling_insert_custom_shape` | beilleszt egy saját alakzatot a nyitott tervbe, ha kell, egy x/z helyre |
 | `layerling_delete_custom_shape` | eltávolít egy saját alakzatot; a beillesztett testek megmaradnak |
 | `layerling_show_workplane` | elrejti és megmutatja a tárgyasztalt a rácsával, például az alsó oldalról készülő képhez (csak a nézet) |
+| `layerling_focus_mode` | be- és kikapcsolja a fókusz módot: elrejti a címsort és a láblécet, hogy több hely legyen (csak a szerkesztő kerete) |
 | `layerling_set_section_view` | egy sík mentén felnyitja a nézetet, hogy belenézz (csak a nézet, semmi sem vágódik szét) |
-| `layerling_measurements` | megjeleníti vagy elrejti a mérőszalag méréseit, és felsorolja őket a hosszukkal |
+| `layerling_measurements` | megjeleníti vagy elrejti a mérőszalag méréseit, és felsorolja őket a hosszukkal, és elrejti vagy megjeleníti a kijelölés körüli méreteket, mint a [[Q]], és hosszt ír be az egyikhez, ami a végén lévő testet úgy mozdítja el, mint a számra kattintás |
+| `layerling_measure_angle` | szöget mér, mint a szögmérő: három pont csúcsánál vagy két sík lap között, és megmutatja a nézetben |
 | `layerling_saved_view` | elmenti az aktuális nézetet a 7, 8, 9 vagy 0 billentyű alá, és visszaállítja, mint a Shift+billentyű és a billentyű (csak a nézet); az új tervek indulási nézetét is beállítja |
+| `layerling_build_plates` | listázza, hozzáadja, elnevezi, sorba rendezi és eltávolítja a nyomtatótálcákat, objektumokat tesz egy tálcára és elrendezi őket a tálcákon, mint a tálcasáv |
 | `layerling_clear_history` | véglegesen töröl minden visszavonási lépést, ahogy az előzménynézet „Előzmények törlése” gombja; `confirm: true` kell hozzá |
+| `layerling_list_backups` | felsorolja a megnyitott terv automatikus mentéseit (Korábbi változatok), `all: true` esetén a böngésző összes tervéét |
+| `layerling_open_backup` | egy mentést az `id`-ja alapján új tervként nyit meg, sosem kötve az eredeti fájlhoz |
 | `layerling_set_history_view` | visszatekint a projekt egy korábbi állapotára, mint az előzménynézet (a valódi terv érintetlen marad; a módosító eszközök várnak, amíg bezárul) |
 | `layerling_restore_from_history` | objektumokat (csoportokon belüli alkatrészeket is) hoz vissza másolatként egy korábbi állapotból a tervbe, mint az előzménynézet visszahozó gombja - egy lépés, amelyet a visszavonás visszavesz |
 | `layerling_export_section_svg` | 1:1 méretarányú SVG-ként adja vissza egy vágósík körvonalait, ugyanazokból a testekből, mint az export |
+| `layerling_sketch_from_section` | vázlatot készít egy vágósík körvonalaiból, amely a metszeten fekszik: a szerkesztőben megnyitva módosításra, vagy azonnal megadott magasságú testté építve |
 | `layerling_export_drawing` | elkészíti a „2D” export műhelyrajzát: három nézet 1:1 méretarányban ISO lapon, befoglaló méretekkel és a kerek furatok táblázatával, SVG-szövegként vagy PDF-ként |
 | `layerling_export_mesh` | az exportablak fájlját STL, 3MF, OBJ, SVG (felülnézet, felfekvési felület vagy látható élek) vagy lézervágáshoz DXF formában írja ki ugyanazokból a testekből; ezen a számítógépen megadott helyre vagy base64-ként |
 | `layerling_save_project` | elmenti a teljes szerkeszthető tervet .lyl fájlként egy útvonalra azon a gépen, amelyen az MCP-kiszolgáló fut, párbeszédablak nélkül; meglévő fájlt csak az `overwrite` cserél le, ideiglenes fájlon át íródik, és a Ctrl+S célja a szerkesztőben változatlan marad |

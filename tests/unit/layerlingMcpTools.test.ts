@@ -5,6 +5,7 @@ import { toolbarShapeAssets } from "@/lib/shapeCatalog";
 import { MCP_SHAPE_SETTING_KEYS } from "@/lib/mcpShapeSettings";
 import { THREAD_SIZES } from "@/lib/threadGeometry";
 import { THREAD_PROFILES } from "@/lib/threadProfiles";
+import { LID_DEFAULTS, LID_THREAD_STANDARDS, LID_TYPES, lidNeckDiameter } from "@/lib/lidTool";
 
 /*
  * Die Formenliste steht an zwei Stellen: im Katalog, aus dem das Formenmenü und
@@ -104,6 +105,60 @@ describe("the thread sizes and profiles the MCP bridge offers", () => {
       const property = toolByName(name).inputSchema.properties?.threadSize as { enum?: string[]; description?: string };
       expect(property?.enum).toEqual(threadSizeNames);
       expect(property?.description).toMatch(/^Thread only/);
+    }
+  });
+});
+
+describe("tool schemas every MCP client can load (#1285)", () => {
+  // A list of types ("type": ["object", "string"]) is legal JSON Schema, but some clients drop the whole tool for it:
+  // create_shape and update_object went missing that way. anyOf with one type per branch says the same.
+  function typeLists(schema: unknown, path: string, found: string[]) {
+    if (Array.isArray(schema)) {
+      schema.forEach((entry, index) => typeLists(entry, `${path}[${index}]`, found));
+      return;
+    }
+    if (!schema || typeof schema !== "object") return;
+    const record = schema as Record<string, unknown>;
+    if (Array.isArray(record.type)) found.push(path);
+    for (const [key, value] of Object.entries(record)) {
+      if (key !== "description") typeLists(value, `${path}.${key}`, found);
+    }
+  }
+
+  it("gives every property a single type", () => {
+    const found: string[] = [];
+    for (const tool of toolList) typeLists(tool.inputSchema, tool.name, found);
+    expect(found).toEqual([]);
+  });
+
+  it("still takes a vase as settings or as JSON text, and a trace as true or settings", () => {
+    const vase = toolByName("layerling_create_shape").inputSchema.properties?.vase as { anyOf: { type: string }[] };
+    expect(vase.anyOf.map((branch) => branch.type)).toEqual(["object", "string"]);
+    const trace = toolByName("layerling_reference_image").inputSchema.properties?.trace as { anyOf: { type: string; properties?: Record<string, unknown> }[] };
+    expect(trace.anyOf.map((branch) => branch.type)).toEqual(["object", "boolean"]);
+    expect(Object.keys(trace.anyOf[0].properties ?? {})).toEqual(["part", "threshold", "height"]);
+  });
+});
+
+describe("the lid tool the MCP bridge offers", () => {
+  it("takes the lid's kinds and its screw lid's threads, the same lists as the editor's", () => {
+    const properties = toolByName("layerling_make_lid").inputSchema.properties as Record<string, { enum?: string[] }>;
+    expect(properties.type.enum).toEqual([...LID_TYPES]);
+    expect(properties.threadStandard.enum).toEqual([...LID_THREAD_STANDARDS]);
+  });
+
+  it("takes every option the Lid panel has, the tether for a screw or bayonet cap among them", () => {
+    const properties = toolByName("layerling_make_lid").inputSchema.properties ?? {};
+    expect(Object.keys(LID_DEFAULTS).filter((key) => !(key in properties))).toEqual([]);
+    expect(properties.tether).toMatchObject({ type: "boolean" });
+  });
+
+  it("can fit the body to a standard's neck first, as the panel's button does (issue #1482)", () => {
+    const properties = toolByName("layerling_make_lid").inputSchema.properties as Record<string, { type?: string; description?: string }>;
+    expect(properties.fitNeck).toMatchObject({ type: "boolean" });
+    // The sizes it names are the ones the button makes.
+    for (const standard of LID_THREAD_STANDARDS.filter((name) => name !== "own")) {
+      expect(properties.fitNeck.description).toContain(`${standard} ${lidNeckDiameter(standard).toString()}`);
     }
   });
 });

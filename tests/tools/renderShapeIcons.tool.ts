@@ -9,13 +9,19 @@ import { createSpringGeometry } from "@/lib/springGeometry";
 import { createStarGeometry } from "@/lib/starGeometry";
 import { createHeartGeometry } from "@/lib/heartGeometry";
 import { createCrescentGeometry } from "@/lib/crescentGeometry";
+import { createCurvedConeGeometry } from "@/lib/curvedCone";
 import { createParaboloidGeometry } from "@/lib/roundBodyGeometry";
 import { createSlotGeometry } from "@/lib/slotGeometry";
 import { createDovetailGeometry } from "@/lib/dovetailGeometry";
+import { createScrewBossGeometry } from "@/lib/screwBoss";
+import { createSnapFitGeometry } from "@/lib/snapFit";
+import { createRibGeometry } from "@/lib/rib";
 import { createHingeGeometry } from "@/lib/hingeGeometry";
 import { createGridfinityGeometry } from "@/lib/gridfinityGeometry";
 import { createKnurlGeometry } from "@/lib/knurlGeometry";
+import { createVaseGeometry } from "@/lib/vaseShape";
 import { createTeardropGeometry, teardropHeightForTipAngle } from "@/lib/teardropGeometry";
+import { createPortGeometry } from "@/lib/portGeometry";
 import { createLoftGeometry } from "@/lib/loftGeometry";
 import { createScrewHoleGeometry } from "@/lib/screwHoleGeometry";
 import { createHoneycombGeometry } from "@/lib/honeycombGeometry";
@@ -23,6 +29,9 @@ import { createRoundedBoxGeometry } from "@/lib/roundedBoxGeometry";
 import { createThreadGeometry } from "@/lib/threadGeometry";
 import { bentTubeNaturalDimensions, createBentTubeGeometry } from "@/lib/bentTubeGeometry";
 import { createGearGeometry } from "@/lib/gearGeometry";
+import { createHirthGeometry } from "@/lib/hirthGeometry";
+import { createPulleyGeometry } from "@/lib/pulleyGeometry";
+import { createFinishingWasherGeometry } from "@/lib/finishingWasherGeometry";
 import manifoldModule from "manifold-3d";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { rememberManifoldRuntime } from "@/lib/manifoldHandle";
@@ -406,12 +415,39 @@ describe("palette icons", () => {
       }),
     });
     render({
+      // Schraeg von oben, damit die Zaehne um die Bohrung zu sehen sind.
+      name: "apps/web/public/assets/editor/shape-icons-gray/hirth.png",
+      height: 10,
+      lay: false,
+      azimuth: 35,
+      elevation: 42,
+      build: () => createHirthGeometry(30, 10, 30, { teeth: 12, toothSize: 4.5, centerHoleSize: 9 }),
+    });
+    render({
+      // A GT2 pulley (Discussion #1319) with few teeth, so the grooves show at the icon's size; from above, for the hub and bore.
+      name: "apps/web/public/assets/editor/shape-icons-gray/pulley.png",
+      height: 15,
+      lay: false,
+      azimuth: 35,
+      elevation: 32,
+      build: () => createPulleyGeometry({ teeth: 16, pulleyBeltWidth: 7, pulleyFlange: 1.2, pulleyFlangeRise: 2, pulleyHubHeight: 6, pulleyHubDiameter: 9, centerHoleSize: 4 }),
+    });
+    render({
       name: "apps/web/public/assets/editor/shape-icons-gray/paraboloid.png",
       height: 22,
       lay: false,
       azimuth: 35,
       elevation: 28,
       build: () => createParaboloidGeometry(24, 22, 24, 32),
+    });
+    render({
+      // The trumpet it starts as, a little from above so the flat top shows.
+      name: "apps/web/public/assets/editor/shape-icons-gray/curvedCone.png",
+      height: 26,
+      lay: false,
+      azimuth: 35,
+      elevation: 24,
+      build: () => createCurvedConeGeometry(26, 26, 26, 0.25, -0.8, 96),
     });
     render({
       // Steiler von oben, damit das Trapez als Schwalbenschwanz zu lesen ist.
@@ -426,6 +462,33 @@ describe("palette icons", () => {
         height: 8,
         dovetailNeckWidth: 16,
       }),
+    });
+    render({
+      // A post with its hole and four gussets, from above so the hole shows.
+      name: "apps/web/public/assets/editor/shape-icons-gray/screwBoss.png",
+      height: 12,
+      lay: false,
+      azimuth: 35,
+      elevation: 32,
+      build: () => createScrewBossGeometry({ width: 20, depth: 20, height: 14, screwBossDiameter: 9, screwBossGussets: 4, screwBossGussetHeight: 8, screwBossGussetThickness: 2 }, 64),
+    });
+    render({
+      // The hook and its catch from the side, a little turned, so the barb under the ledge reads.
+      name: "apps/web/public/assets/editor/shape-icons-gray/snapFit.png",
+      height: 16,
+      lay: false,
+      azimuth: 70,
+      elevation: 15,
+      build: () => createSnapFitGeometry({ width: 8, depth: 10, height: 16, snapFitUndercut: 1.6, snapFitThickness: 2 }),
+    });
+    render({
+      // The gusset: a triangle against a wall reads as a brace more clearly than a plain strip.
+      name: "apps/web/public/assets/editor/shape-icons-gray/rib.png",
+      height: 14,
+      lay: false,
+      azimuth: 35,
+      elevation: 20,
+      build: () => createRibGeometry({ width: 16, depth: 3, height: 16, ribStyle: "gusset" }),
     });
     render({
       name: "apps/web/public/assets/editor/shape-icons-gray/counterbore.png",
@@ -452,6 +515,15 @@ describe("palette icons", () => {
       build: () => createScrewHoleGeometry({ kind: "doubleCountersink", width: 16, depth: 16, height: 20, screwHoleShaft: 8, screwHoleAngle: 90 }),
     });
     render({
+      // Schraeg von oben, damit Woelbung und Senkung zu sehen sind.
+      name: "apps/web/public/assets/editor/shape-icons-gray/finishingWasher.png",
+      height: 7,
+      lay: false,
+      azimuth: 35,
+      elevation: 38,
+      build: () => createFinishingWasherGeometry({ width: 30, depth: 30, height: 7, screwHoleShaft: 9, screwHoleHeadDepth: 5, screwHoleAngle: 90, sides: 96 }),
+    });
+    render({
       // Schraeg von vorn auf die Stirnseite, damit Rundung und Spitze zu sehen sind.
       name: "apps/web/public/assets/editor/shape-icons-gray/teardrop.png",
       height: teardropHeightForTipAngle(16, 90),
@@ -459,6 +531,15 @@ describe("palette icons", () => {
       azimuth: 35,
       elevation: 18,
       build: () => createTeardropGeometry({ width: 16, depth: 30, height: teardropHeightForTipAngle(16, 90) }),
+    });
+    render({
+      // A USB-C opening, much enlarged: from the front at a slant, so the round ends and the depth show (#1049).
+      name: "apps/web/public/assets/editor/shape-icons-gray/port.png",
+      height: 12.5,
+      lay: false,
+      azimuth: 30,
+      elevation: 18,
+      build: () => createPortGeometry({ width: 31.8, depth: 14, height: 12.5, cornerFillet: 6.25 }),
     });
     render({
       // Von eckig auf rund, mit Wand: von oben schraeg, damit die Oeffnung zeigt, was der Uebergang ist (#188).
@@ -525,6 +606,15 @@ describe("palette icons", () => {
       build: () => createKnurlGeometry({ width: 24, height: 26, knurlPattern: "diamond", knurlCount: 18, knurlDepth: 1.2, knurlAngle: 30, knurlChamfer: 1.5 }),
     });
     render({
+      // The vase tool's bottle with its grooves, as the catalogue puts it down; a little from above.
+      name: "apps/web/public/assets/editor/shape-icons-gray/vase.png",
+      height: 180,
+      lay: false,
+      azimuth: 30,
+      elevation: 20,
+      build: () => createVaseGeometry({ width: 90, depth: 90, height: 180, vase: { ribCount: 24, ribDepth: 2.4, quality: "entwurf" } }),
+    });
+    render({
       name: "apps/web/public/assets/editor/shape-icons-gray/roundedBox.png",
       height: 20,
       lay: false,
@@ -561,7 +651,8 @@ describe("palette icons", () => {
         build: () => createBentTubeGeometry({ ...fields, ...natural }),
       });
     }
-  });
+  // Every icon in one go: well past the default five seconds on a busy machine.
+  }, 60_000);
 });
 
 describe("palette icon of the name tag (#215)", () => {
@@ -639,6 +730,51 @@ describe("palette icon of the torus", () => {
         geometry.translate(0, tube, 0);
         return geometry.toNonIndexed();
       },
+    });
+  });
+});
+
+describe("palette icon of the SBC board (#1098)", () => {
+  it("renders the Raspberry Pi 5 from its own board data", async () => {
+    const { SBC_BOARDS, sbcBoardSolids } = await import("@/lib/sbcBoards");
+    const board = SBC_BOARDS.pi5;
+    // The board twice as thick as it is, so its edge still reads at the size of a tile.
+    const thickness = board.thickness * 2;
+    const plain = (geometry: THREE.BufferGeometry) => {
+      const flat = geometry.index ? geometry.toNonIndexed() : geometry;
+      for (const name of Object.keys(flat.attributes)) if (name !== "position" && name !== "normal") flat.deleteAttribute(name);
+      return flat;
+    };
+    const plate = plain(createRoundedBoxGeometry({ width: board.width, depth: board.depth, height: thickness, cornerFillet: board.cornerRadius, topBottomFillet: 0, roundedBoxQuality: 16 }));
+    const box = plate.boundingBox ?? (plate.computeBoundingBox(), plate.boundingBox!);
+    plate.translate(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+    // The board's frame: x across, its front edge (y = 0) towards the viewer at +z. The parts as the
+    // editor builds them: boxes, and the sockets in their own outline.
+    const solids = sbcBoardSolids(board, 0, 0).map((solid) => ({ ...solid, bottom: solid.bottom - board.thickness + thickness, top: solid.top - board.thickness + thickness }));
+    const parts = solids.map((solid) => {
+      const height = solid.top - solid.bottom;
+      const geometry = solid.profile
+        ? createPortGeometry({
+          width: solid.profile.along === "y" ? solid.x1 - solid.x0 : solid.y1 - solid.y0,
+          depth: solid.profile.along === "y" ? solid.y1 - solid.y0 : solid.x1 - solid.x0,
+          height,
+          cornerFillet: solid.profile.corner,
+          portProfile: solid.profile.portProfile,
+        })
+        : new BoxGeometry(solid.x1 - solid.x0, height, solid.y1 - solid.y0).translate(0, height / 2, 0);
+      if (solid.profile?.along === "x") geometry.rotateY(Math.PI / 2);
+      geometry.translate((solid.x0 + solid.x1) / 2 - board.width / 2, solid.bottom, board.depth / 2 - (solid.y0 + solid.y1) / 2);
+      return plain(geometry);
+    });
+    const merged = mergeGeometries([plate, ...parts], false);
+    const height = Math.max(...solids.map((solid) => solid.top));
+    render({
+      name: "apps/web/public/assets/editor/shape-icons-gray/sbcBoard.png",
+      height,
+      lay: false,
+      azimuth: 30,
+      elevation: 34,
+      build: () => merged,
     });
   });
 });

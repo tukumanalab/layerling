@@ -13,16 +13,19 @@ Nyisd meg a [layerling.com](https://layerling.com/) oldalt. A kezdőlapon kattin
 
 Ha már van egy fájlod, amellyel folytatnád, használd a {{ui:dashboard.importGeometry}} lehetőséget. Ez layerling tervekkel (`.lyl`) és STL, OBJ, 3MF, STEP vagy SVG fájlokkal is működik.
 
-A terveid később előnézeti képpel jelennek meg a kezdőlapon. A böngésződ tárolójában maradnak, és minden változtatás után automatikusan mentődnek, ezért nincs mentés gomb. Hogy hogyan csomagolhatsz terveket fájlba és adhatod tovább őket, azt a [Fájlok és mentés](chapter:files-and-saving) fejezet írja le. Ha emlékeztetőt szeretnél, kapcsold be a beállításokban (a szalagon lévő fogaskerék) a {{ui:workspace.confirmTabClose}} opciót: a böngésző ilyenkor rákérdez, mielőtt egy nyitott tervet tartalmazó lapot bezárnál vagy újratöltenél.
+A terveid később előnézeti képpel jelennek meg a kezdőlapon. A böngésződ tárolójában maradnak, és minden változtatás után automatikusan mentődnek, ezért nincs mentés gomb. **A layerling nem vállal felelősséget a böngészőben tárolt tervekért.** Egy böngésző meghibásodhat, vagy egy böngészőfrissítés gondot okozhat, ezért időnként készíts biztonsági mentést a terveidről a kezdőlapon a(z) {{ui:dashboard.backupAll}} gombbal, vagy mentsd őket fájlként. Egy biztonsági mentést a(z) {{ui:dashboard.restoreBackup}} hoz vissza. Hogy hogyan csomagolhatsz terveket fájlba és adhatod tovább őket, azt a [Fájlok és mentés](chapter:files-and-saving) fejezet írja le. Ha emlékeztetőt szeretnél, kapcsold be a beállításokban (a szalagon lévő fogaskerék) a {{ui:workspace.confirmTabClose}} opciót: a böngésző ilyenkor rákérdez, mielőtt egy nyitott tervet tartalmazó lapot bezárnál vagy újratöltenél.
 
 ## A szerkesztő egy pillantással
 
-![A szerkesztő két alakzattal a munkasíkon. Felül a szalag, balra a kameravezérlők, jobbra a kijelölt alakzat beállításai.](shot:editor-overview)
+![A szerkesztő megnevezett részeivel: felül a szalag, balra a nézetkocka és alatta a nézetsáv, mellettük az állapotüzenet és az objektumlista, jobbra a kijelölt alakzat tulajdonságai.](shot:editor-areas)
 
-- **Felül** van a szalag. Feladatok szerint van rendezve: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.group.modify}}, {{ui:editor.group.arrange}}, {{ui:editor.group.manage}} és {{ui:editor.group.help}}. Ha egy ikon fölé viszed az egeret, látod a nevét. Ahol egy kis kérdőjelet látsz, például egy alakzat beállításainál, az alakzattárban vagy az eszközpaneleken, az egyenesen ennek az útmutatónak a megfelelő fejezetéhez visz.
+- **Felül** van a **szalag**. Feladatok szerint van rendezve: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.section.mirrorPattern}}, {{ui:editor.section.splitShape}}, {{ui:editor.section.edgesWalls}}, {{ui:editor.section.surface}}, {{ui:editor.group.arrange}} és {{ui:editor.group.file}}; a(z) {{ui:editor.group.help}} fölötte, a címsorban van, a fülek melletti házikó pedig visszavisz a kezdőlapra. Ha az ablak túl keskeny az összes csoporthoz, a legritkábban használtak egyetlen gombbá csukódnak össze a nevük alatt, alattuk egy kis, a csoport színében lógó nyíllal: mutass rá vagy koppints rá, és az eszközei alatta nyílnak meg. Az összecsukott {{ui:editor.group.history}} kivétel: a gombja maga a(z) {{ui:editor.tool.undo}}, és csak az alatta lévő nyíl nyitja meg a(z) {{ui:editor.tool.redo}} gombot és a többit. A jobb felső sarokban, a nagyító bal oldalán lévő tű ehelyett minden csoportot nyitva tart. Ha egy ikon fölé viszed az egeret, megjelenik a neve, egy szürkéén is; a(z) {{ui:interactiveHelp.title}} (a kérdőjel a(z) {{ui:editor.group.help}} alatt, vagy Shift+F1) egy kattintással bármelyiket elmagyarázza, és elvisz az útmutató megfelelő részéhez. Ahol egy kis kérdőjelet látsz, például egy alakzat tulajdonságainál, az alakzattárban vagy az eszközablakokban, az egyenesen az útmutató megfelelő fejezetéhez visz. Egy szürke ikon azt is megmondja, mire vár, például {{ui:editor.needs.oneBody}} vagy {{ui:editor.needs.locked}}. Nem találsz egy eszközt? Nyomd meg a [[Ctrl]]+[[K]] billentyűt, és írd be a nevét; egy üres terv a nézet alján emlékeztet erre.
 - **Középen** van a munkasík. Itt helyezed el az alakzatokat, itt alakítod őket, és itt látod az eredményt.
-- **Jobbra** jelennek meg a kijelölt alakzat beállításai: szín, méretek, helyzet és minden, ami még az alakzathoz tartozik. A számok begépelése pontosabb, mint a húzás.
-- **Balra** vannak a kameravezérlők, fölöttük a nézetkocka. Ezekkel mozogsz a jelenetben, bővebben a [Nézet és munkasík](chapter:view-and-workplane) fejezetben.
+- **Jobbra** jelennek meg a kijelölt alakzat **tulajdonságai**: szín, méretek, helyzet és minden, ami még az alakzathoz tartozik. A számok begépelése pontosabb, mint a húzás.
+- **Balra** van a nézetsáv, fölötte a nézetkocka. Ezekkel mozogsz a jelenetben, bővebben a [Nézet és munkasík](chapter:view-and-workplane) fejezetben.
+- **A nézetsáv mellett** nyílik meg az **objektumlista** ([[Ctrl]]+[[U]]) a terv összes alakzatával. Bővebben a [Kijelölés és elrendezés](chapter:select-and-arrange) fejezetben.
+- **A nézetkockától jobbra** jelenik meg az **állapotüzenet**, ha a layerlingnek mondanivalója van, például hogy mit vár tőled egy eszköz. Ha nincs mit mondani, nincs ott.
+- Az **eszközablakok** a munkasík fölött nyílnak meg, amikor elindítasz egy eszközt, például: {{ui:editor.tool.fillet}}, {{ui:editor.tool.array}} vagy {{ui:editor.tool.hollow}}. A címsoruknál fogva félrehúzhatod őket, ha eltakarnak valamit.
 - **Legfelül** váltasz a {{ui:editor.modeGeometry}} és a {{ui:editor.modeSketch}} között, itt nevezed át a tervet, és itt választod ki a nyelvet és a színsémát.
 
 ## A munkaterület körüli gombok
@@ -31,7 +34,7 @@ Vidd az egeret egy gomb fölé, és látod a nevét. Ha nem vagy biztos benne, m
 
 ### Beillesztés
 
-{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) beteszi a tervbe, amit a {{ui:editor.tool.copy}} gombbal másoltál. A {{ui:common.duplicate}} egy lépésben másol és beilleszt.
+{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) beteszi a tervbe, amit a {{ui:editor.tool.copy}} gombbal másoltál. A {{ui:common.duplicate}} egy lépésben másol és beilleszt. A beillesztés minden részt kicsit arrébb tesz attól, ahol volt. Egy másik programból jövő részek messze a tárgyasztaltól is landolhatnak; ezekhez a beállításokban, a(z) {{ui:workspace.appearance}} alatt ott van a(z) {{ui:workspace.pasteCentered}}: a beillesztés ilyenkor a részeket együtt a munkasík közepére teszi, és ráejti őket.
 
 ### Törlés
 
@@ -69,9 +72,9 @@ A terv neve ({{ui:confirm.projectName}}) egészen fent áll. Kattints rá, írj,
 
 {{ui:palette.open}}: írd be, amit keresel, egy eszközt, egy alakzatot vagy egy beállítást, és kattints az eredményre.
 
-### Kameravezérlők elrejtése
+### Nézetsáv elrejtése
 
-{{ui:camera.hide}} összecsukja a bal oldali kameravezérlőt, és több helyet ad a munkaterületnek; a {{ui:camera.show}} visszahozza.
+{{ui:camera.hide}} összecsukja a bal oldali nézetsávot, és több helyet ad a munkaterületnek; a {{ui:camera.show}} visszahozza.
 
 ### Illesztőrács
 
@@ -84,6 +87,10 @@ A {{ui:inspector.snapGrid}} melletti **mm | in** kapcsoló átváltja a mérték
 ### Az oldal alja
 
 Az ablak alján: a {{ui:dashboard.sponsor}} arra az oldalra vezet, ahol támogathatod a projektet; a {{ui:dashboard.userGuide}} megnyitja ezt az útmutatót; a {{ui:dashboard.forum}} a kérdések, ötletek és hibajelentések helyére vezet (a GitHub-beszélgetésekre, németül a drucktipps3d fórumára); a {{ui:editor.bugReport}} ZIP-et készít a hibajelentéshez; a {{ui:dashboard.projectOnGitHub}} a projekthez vezet a GitHubon, a verziószám pedig megnyitja a kiadási jegyzeteket. A impresszumra és az adatvédelemre mutató hivatkozások azé, aki a használt layerling-példányt üzemelteti.
+
+### Fókusz mód
+
+Kis képernyőn a {{ui:focusMode.enter}} átadja a címsort és a láblécet a munkának: a jobb felső sarokban a két kifelé mutató nyíllal jelölt gomb, a [[Ctrl]]+[[Shift]]+[[F]] vagy a parancskereső kapcsolja be. A szalag feljebb kerül, a nézet pedig az ablak széléig ér. A szalag alatti kis sáv megtartja a házat a kezdőlaphoz, a {{ui:editor.modeGeometry}} és {{ui:editor.modeSketch}} fület, a nagyítót, a beállításokat és a két befelé mutató nyíllal jelölt gombot, amely kilép a módból; a sávot a fogantyújánál fogva máshová húzhatod, a fogantyúra kettőt kattintva visszakerül. A layerling ebben a böngészőben megjegyzi a választást, és amíg a böngésző kitölti az egész képernyőt (F11), magától fókusz módba vált.
 
 ## Az első alkatrészed
 
@@ -103,7 +110,7 @@ Példaként egy lyukas kockát építünk.
 
 ## Újdonságok a legutóbbi látogatásod óta
 
-Ha egy frissítés után újra megnyitod a layerlinget, a kezdőlapon egy kártya felsorolja, mi került be azóta, hogy utoljára itt jártál: minden azóta megjelent verziót, a legújabbal kezdve. Hosszabb távollét után a kártyán belül görgethetsz lefelé. Alattuk a {{ui:whatsNew.earlier}} a legutóbbi látogatásod előtti verziókat is hozzáadja. Az {{ui:whatsNew.dismiss}} gombbal bezárod, és a következő frissítésig nem jelenik meg. A kezdőlap láblécében a {{ui:whatsNew.footerLink}} bármikor újra megmutatja a legutóbbi újdonságokat. A böngésző megjegyzi az utoljára látott verziót, és rólad semmi sem hagyja el.
+Ha egy frissítés után újra megnyitod a layerlinget, a kezdőlapon egy kártya felsorolja, mi került be azóta, hogy utoljára itt jártál: minden azóta megjelent verziót, a legújabbal kezdve. Hosszabb távollét után a kártyán belül görgethetsz lefelé. Alattuk a {{ui:whatsNew.earlier}} a legutóbbi látogatásod előtti verziókat is hozzáadja. Az {{ui:whatsNew.dismiss}} gombbal bezárod, és a következő frissítésig nem jelenik meg. A kezdőlap láblécében a {{ui:whatsNew.footerLink}} bármikor újra megmutatja a legutóbbi újdonságokat. A szerkesztőben ugyanezt a listát nyitja meg a jobb felső sarokban, a {{ui:editor.guide}} mellett lévő {{ui:whatsNew.footerLink}} gomb vagy a parancskeresés; nyitva marad a terved mellett, amíg kipróbálod az újdonságokat. A böngésző megjegyzi az utoljára látott verziót, és rólad semmi sem hagyja el.
 
 A layerling saját gépen vagy szerveren futó példányán a „Frissítés érhető el” értesítésben van egy {{ui:update.previewShow}} gomb, amely telepítés előtt felsorolja, mit hoz a frissítés. A listát csak akkor tölti le a GitHubról, amikor megnyomod a gombot.
 

@@ -1,5 +1,14 @@
-import { describe, expect, it } from "vitest";
-import { normalizeSavedCornerRulers, savedCornerRuler, type SavedCornerRuler } from "@/lib/cornerRulerStore";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  normalizeSavedCornerRulers,
+  readCornerRulers,
+  readStartWithCornerRuler,
+  savedCornerRuler,
+  seedStartCornerRuler,
+  writeCornerRulers,
+  writeStartWithCornerRuler,
+  type SavedCornerRuler,
+} from "@/lib/cornerRulerStore";
 import { editorHistoryEntry } from "@/lib/editorHistory";
 import { exportLylProject, importLylProject } from "@/lib/lylProject";
 import { DEFAULT_SNAP_GRID, DEFAULT_WORKPLANE_WORKSPACE } from "@/lib/workplaneSettings";
@@ -17,8 +26,9 @@ const square: SavedCornerRuler = {
   axisModes: { elevation: "endpoint" },
 };
 
-function pack(cornerRulers?: SavedCornerRuler[] | null) {
+function pack(cornerRulers?: SavedCornerRuler[] | null, projectId?: string) {
   return exportLylProject({
+    ...(projectId ? { projectId } : {}),
     projectName: "Squared",
     createdAt: 1_700_000_000_000,
     modifiedAt: 1_700_000_100_000,
@@ -31,8 +41,20 @@ function pack(cornerRulers?: SavedCornerRuler[] | null) {
     placementElevation: 0,
     savedViews: null,
     view: null,
-    cornerRulers,
+    ...(cornerRulers !== undefined ? { cornerRulers } : {}),
   });
+}
+
+function stubStorage() {
+  const entries = new Map<string, string>();
+  vi.stubGlobal("window", {
+    localStorage: {
+      getItem: (key: string) => entries.get(key) ?? null,
+      setItem: (key: string, value: string) => void entries.set(key, String(value)),
+      removeItem: (key: string) => void entries.delete(key),
+    },
+  });
+  return entries;
 }
 
 describe("the framing square a design keeps (#829)", () => {
@@ -46,6 +68,18 @@ describe("the framing square a design keeps (#829)", () => {
     expect(restored.cornerRulers?.[0].selectedOnly).toBe(true);
     expect((await importLylProject(await pack([square]))).cornerRulers?.[0].selectedOnly).toBeUndefined();
     expect(savedCornerRuler({ ...square, selectedOnly: true, id: "x" }).selectedOnly).toBe(true);
+  });
+
+  it("keeps the third arm and the arms switched off, and nothing of them while they are as at the start (Discussion #1649)", async () => {
+    const upright: SavedCornerRuler = { ...square, armLengthElevation: 120, arms: { elevation: true, z: false } };
+    expect((await importLylProject(await pack([upright]))).cornerRulers).toEqual([upright]);
+    expect(savedCornerRuler({ ...upright, id: "corner-ruler-2" })).toEqual(upright);
+    // A square from before has neither field and gets none.
+    expect((await importLylProject(await pack([square]))).cornerRulers).toEqual([square]);
+    expect(savedCornerRuler({ ...square, armLengthElevation: 50, arms: { x: true, z: true, elevation: false } })).toEqual(square);
+    // All three arms off is no square's: it shows its two arms again.
+    expect(normalizeSavedCornerRulers([{ ...square, arms: { x: false, z: false, elevation: false } }])).toEqual([square]);
+    expect(normalizeSavedCornerRulers([{ ...square, armLengthElevation: -4, arms: { x: "no", elevation: true } }])).toEqual([{ ...square, arms: { elevation: true } }]);
   });
 
   it("is simply absent from a file saved without one", async () => {
@@ -63,5 +97,62 @@ describe("the framing square a design keeps (#829)", () => {
     expect(normalizeSavedCornerRulers([{ ...withoutArms, mode: "sideways", axisModes: { x: "nope" } }])).toEqual([
       { corner: square.corner, workplane: square.workplane, frame: square.frame, armLengthX: 100, armLengthZ: 80 },
     ]);
+  });
+});
+
+describe("new designs that start with a framing square at the origin (#1386)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const atOrigin: SavedCornerRuler = {
+    corner: { x: 0, y: 0, z: 0 },
+    workplane: square.workplane,
+    // As a click on the plate places it: the arms along the plate, turned a quarter.
+    frame: square.frame,
+    armLengthX: 100,
+    armLengthZ: 80,
+    mode: "endpoint",
+  };
+
+  it("is off until it is switched on, so a new design starts without one as before", () => {
+    stubStorage();
+    expect(readStartWithCornerRuler()).toBe(false);
+    seedStartCornerRuler("new-1");
+    expect(readCornerRulers("new-1")).toEqual([]);
+  });
+
+  it("switched on, gives a new design a square at the origin of the plate", () => {
+    stubStorage();
+    writeStartWithCornerRuler(true);
+    expect(readStartWithCornerRuler()).toBe(true);
+    seedStartCornerRuler("new-2");
+    expect(readCornerRulers("new-2")).toEqual([atOrigin]);
+  });
+
+  it("leaves a square the design has where it is", () => {
+    stubStorage();
+    writeStartWithCornerRuler(true);
+    writeCornerRulers("kept", [square]);
+    seedStartCornerRuler("kept");
+    expect(readCornerRulers("kept")).toEqual([square]);
+  });
+
+  it("puts the square in the design's file from the start, as for a design made in the server folder", async () => {
+    stubStorage();
+    writeStartWithCornerRuler(true);
+    seedStartCornerRuler("on-server");
+    expect((await importLylProject(await pack(undefined, "on-server"))).cornerRulers).toEqual([atOrigin]);
+  });
+
+  it("switched off again, forgets the setting, and without storage stays off", () => {
+    const entries = stubStorage();
+    writeStartWithCornerRuler(true);
+    writeStartWithCornerRuler(false);
+    expect(entries.size).toBe(0);
+    vi.stubGlobal("window", { localStorage: { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); }, removeItem: () => { throw new Error("blocked"); } } });
+    expect(readStartWithCornerRuler()).toBe(false);
+    expect(() => writeStartWithCornerRuler(true)).not.toThrow();
+    expect(() => seedStartCornerRuler("blocked")).not.toThrow();
   });
 });

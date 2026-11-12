@@ -1,20 +1,40 @@
 import type { CadModifierDeflection } from "@/lib/cadModifierTypes";
-import type { SketchInset, SketchProfile, SketchStroke } from "@/types/layerling";
+import type { SketchLoftSection } from "@/lib/cadSketchLoft";
+import type { SketchInset, SketchProfile, SketchRevolveSmoothness, SketchStroke } from "@/types/layerling";
 
-export type SketchCadBuildRequest = {
+/**
+ * A stored body cut into facets again, at `deflection` (`capped` where the mesh would stray from a torus face, as the
+ * edge tool does): for bodies an old Chamfillet meshed far finer than needed (Discussion #1042, lib/cadMeshRelief.ts).
+ */
+export type SketchCadRemeshRequest = {
+  type: "remesh";
+  requestId: number;
+  brep: string;
+  deflection: CadModifierDeflection;
+  capped: CadModifierDeflection;
+};
+
+export type SketchCadBuildRequest = SketchCadRemeshRequest | {
   type: "build";
   requestId: number;
   profile: SketchProfile;
   height: number;
   /** Set for a revolve: the sketch is turned about the vertical axis instead of pulled up by `height`. */
-  revolve?: { startAngle: number; sweepAngle: number };
+  revolve?: { startAngle: number; sweepAngle: number; smoothness?: SketchRevolveSmoothness };
   /** Set for a sweep (#400): the outlines are the cross-section, the construction line is the path they are pulled along. */
   sweep?: true;
   /** Set for a stroked or widened sketch: the kernel moves the outlines itself (cadSketchStroke.ts). */
   stroke?: SketchStroke;
   /** Set for a sketch built set in from its outlines (the face tool): the kernel moves them itself (cadSketchInset.ts). */
   inset?: SketchInset;
+  /** Set for a stroke with a cutting edge (#982): the top edges get a 45° chamfer reaching this far in, in mm. */
+  topChamfer?: number;
+  /** Set for a loft between two sketches: its two ends, each placed where its body stands; `profile` is the bottom one, for the fineness. */
+  loft?: { bottom: SketchLoftSection; top: SketchLoftSection };
 };
+
+/** The message of the error the worker answers with when the kernel cannot chamfer a cutting edge along the outline. */
+export const SKETCH_EDGE_FAILED = "stroke-edge-failed";
 
 /** The message of the error the worker answers with when a stroke is for the polygon route to build. */
 export const SKETCH_STROKE_UNSUPPORTED = "stroke-unsupported";

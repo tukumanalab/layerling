@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { BOLT_CIRCLE_HOLES, SKETCH_PRIMITIVES, isSketchPrimitive, normalizePolygonSides, normalizeStarInnerPercent, sketchPrimitiveGeometry } from "@/lib/sketchPrimitives";
+import {
+  BOLT_CIRCLE_HOLES,
+  SKETCH_PRIMITIVE_SIZE,
+  SKETCH_PRIMITIVES,
+  isSketchPrimitive,
+  normalizePolygonSides,
+  normalizeStarInnerPercent,
+  sketchPrimitiveGeometry,
+  sketchPrimitiveStartSize,
+} from "@/lib/sketchPrimitives";
 import type { SketchPoint, SketchSegment } from "@/types/layerling";
 
 /*
@@ -238,5 +247,49 @@ describe("fertige Skizzenformen", () => {
   it("skaliert mit der uebergebenen Groesse", () => {
     const { points } = sketchPrimitiveGeometry("rectangle", { x: 0, z: 0 }, makeId, 50);
     expect(Math.max(...points.map((p) => p.x)) - Math.min(...points.map((p) => p.x))).toBeCloseTo(50, 6);
+  });
+});
+
+describe("Startgroesse aus den Formvorgaben (#1048)", () => {
+  const breite = (points: SketchPoint[]) => Math.max(...points.map((p) => p.x)) - Math.min(...points.map((p) => p.x));
+  const tiefe = (points: SketchPoint[]) => Math.max(...points.map((p) => p.z)) - Math.min(...points.map((p) => p.z));
+
+  it("gibt dem Rechteck Breite und Tiefe des Quaders", () => {
+    const start = sketchPrimitiveStartSize("rectangle", { box: { width: 30, depth: 45, height: 30 } });
+    expect(start).toEqual({ size: 30, depth: 45 });
+    const { points, segments } = sketchPrimitiveGeometry("rectangle", { x: 0, z: 0 }, makeId, start.size, { depth: start.depth });
+    expect(breite(points)).toBeCloseTo(30, 6);
+    expect(tiefe(points)).toBeCloseTo(45, 6);
+    expect(istGeschlossen(points, segments)).toBe(true);
+  });
+
+  it("gibt Kreis und Ellipse die Breite des Zylinders als Durchmesser", () => {
+    const defaults = { cylinder: { width: 36, depth: 36 } };
+    expect(sketchPrimitiveStartSize("circle", defaults)).toEqual({ size: 36 });
+    const ellipse = sketchPrimitiveGeometry("ellipse", { x: 0, z: 0 }, makeId, sketchPrimitiveStartSize("ellipse", defaults).size).points;
+    expect(breite(ellipse)).toBeCloseTo(36, 6);
+    expect(tiefe(ellipse)).toBeCloseTo(18, 6);
+  });
+
+  it("bleibt ohne Vorgabe und bei Formen ohne Gegenstueck bei 20 mm", () => {
+    expect(sketchPrimitiveStartSize("rectangle", {})).toEqual({ size: SKETCH_PRIMITIVE_SIZE });
+    expect(sketchPrimitiveStartSize("rectangle", { box: { width: 0, depth: Number.NaN } })).toEqual({ size: SKETCH_PRIMITIVE_SIZE });
+    expect(sketchPrimitiveStartSize("hexagon", { box: { width: 30 }, cylinder: { width: 30 } })).toEqual({ size: SKETCH_PRIMITIVE_SIZE });
+  });
+
+  it("laesst Dreieck und Sechseck gleichmaessig, auch mit einer Tiefe", () => {
+    const dreieck = sketchPrimitiveGeometry("triangle", { x: 0, z: 0 }, makeId, 20, { depth: 50 }).points;
+    expect(tiefe(dreieck)).toBeCloseTo(20 * Math.sqrt(3) / 2, 6);
+  });
+
+  it("baut das Dreieck gleichseitig, mit der Mitte im Ursprung (#1180)", () => {
+    const dreieck = sketchPrimitiveGeometry("triangle", { x: 0, z: 0 }, makeId, 20).points;
+    const seiten = dreieck.map((p, i) => {
+      const q = dreieck[(i + 1) % 3];
+      return Math.hypot(q.x - p.x, q.z - p.z);
+    });
+    for (const seite of seiten) expect(seite).toBeCloseTo(20, 6);
+    expect(breite(dreieck)).toBeCloseTo(20, 6);
+    expect(Math.max(...dreieck.map((p) => p.z)) + Math.min(...dreieck.map((p) => p.z))).toBeCloseTo(0, 6);
   });
 });

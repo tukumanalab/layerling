@@ -17,12 +17,15 @@ Wszystkie Twoje projekty pojawiają się potem na stronie startowej z obrazkiem 
 
 ## Edytor w skrócie
 
-![Edytor z dwoma kształtami na płaszczyźnie roboczej. Na górze wstążka, po lewej sterowanie kamerą, po prawej ustawienia zaznaczonego kształtu.](shot:editor-overview)
+![Edytor z podpisanymi obszarami: na górze wstążka, po lewej kostka widoku, a pod nią pasek widoku, obok komunikat stanu i lista obiektów, po prawej właściwości zaznaczonego kształtu.](shot:editor-areas)
 
-- **Na górze** jest wstążka. Jest podzielona według zadań: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.group.modify}}, {{ui:editor.group.arrange}}, {{ui:editor.group.manage}} i {{ui:editor.group.help}}. Najedź na ikonę, aby zobaczyć jej nazwę. Gdziekolwiek widzisz mały znak zapytania, na przykład w ustawieniach kształtu, w bibliotece kształtów albo w panelach narzędzi, prowadzi on prosto do pasującego rozdziału tej instrukcji.
+- **Na górze** jest **wstążka**. Jest podzielona według zadań: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.section.mirrorPattern}}, {{ui:editor.section.splitShape}}, {{ui:editor.section.edgesWalls}}, {{ui:editor.section.surface}}, {{ui:editor.group.arrange}} i {{ui:editor.group.file}}. {{ui:editor.group.help}} jest nad nią w wierszu tytułu, a domek obok kart prowadzi z powrotem na stronę startową. Gdy okno jest za wąskie na wszystkie grupy, najrzadziej używane zwijają się do jednego przycisku pod swoją nazwą, z małą strzałką w kolorze grupy pod spodem: wskaż go albo stuknij, a jego narzędzia otworzą się pod nim. Wyjątkiem jest zwinięta grupa {{ui:editor.group.history}}: jej przyciskiem jest samo {{ui:editor.tool.undo}}, a dopiero strzałka pod nim otwiera {{ui:editor.tool.redo}} i resztę. Pinezka w prawym górnym rogu, na lewo od lupy, trzyma zamiast tego wszystkie grupy otwarte. Najedź na ikonę, aby zobaczyć jej nazwę, także na wyszarzoną. {{ui:interactiveHelp.title}} (znak zapytania pod {{ui:editor.group.help}} albo Shift+F1) objaśnia każdą z nich jednym kliknięciem i prowadzi do jej części tej instrukcji. Gdziekolwiek widzisz mały znak zapytania, na przykład we właściwościach kształtu, w bibliotece kształtów albo w oknach narzędzi, prowadzi on prosto do pasującego rozdziału tej instrukcji. Szara ikona mówi też, na co czeka, na przykład {{ui:editor.needs.oneBody}} albo {{ui:editor.needs.locked}}. Nie możesz znaleźć narzędzia? Naciśnij [[Ctrl]]+[[K]] i wpisz jego nazwę; pusty projekt przypomina o tym na dole widoku.
 - **Na środku** leży płaszczyzna robocza. Tu umieszczasz kształty, nadajesz im formę i oglądasz wynik.
-- **Po prawej** pojawiają się ustawienia zaznaczonego kształtu: kolor, wymiary, pozycja i wszystko inne, co go tworzy. Wpisywanie liczb jest dokładniejsze niż przeciąganie.
-- **Po lewej** jest sterowanie kamerą, a nad nim kostka widoku. Służą do poruszania się po scenie, więcej w rozdziale [Widok i płaszczyzna robocza](chapter:view-and-workplane).
+- **Po prawej** pojawiają się **właściwości** zaznaczonego kształtu: kolor, wymiary, pozycja i wszystko inne, co go tworzy. Wpisywanie liczb jest dokładniejsze niż przeciąganie.
+- **Po lewej** jest **pasek widoku**, a nad nim **kostka widoku**. Służą do poruszania się po scenie, więcej w rozdziale [Widok i płaszczyzna robocza](chapter:view-and-workplane).
+- **Obok paska widoku** otwiera się **lista obiektów** ([[Ctrl]]+[[U]]) ze wszystkimi kształtami projektu. Więcej w rozdziale [Zaznaczanie i rozmieszczanie](chapter:select-and-arrange).
+- **Na prawo od kostki widoku** pojawia się **komunikat stanu**, gdy layerling ma ci coś do powiedzenia, na przykład czego narzędzie od ciebie oczekuje. Gdy nie ma nic do powiedzenia, nie ma go.
+- **Okna narzędzi** otwierają się nad płaszczyzną roboczą, gdy uruchamiasz narzędzie takie jak {{ui:editor.tool.fillet}}, {{ui:editor.tool.array}} albo {{ui:editor.tool.hollow}}. Gdy coś zasłaniają, odsuń je za pasek tytułu.
 - **Na samej górze** przełączasz między {{ui:editor.modeGeometry}} a {{ui:editor.modeSketch}}, zmieniasz nazwę projektu oraz wybierasz język i motyw kolorów.
 
 ## Przyciski wokół obszaru roboczego
@@ -31,7 +34,7 @@ Najedź na przycisk, aby zobaczyć jego nazwę. Jeśli nie wiesz, co robi dany p
 
 ### Wklej
 
-{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) dodaje do projektu to, co skopiowałeś przyciskiem {{ui:editor.tool.copy}}. {{ui:common.duplicate}} kopiuje i wkleja w jednym kroku.
+{{ui:editor.tool.paste}} ([[Ctrl]]+[[V]]) dodaje do projektu to, co skopiowałeś przyciskiem {{ui:editor.tool.copy}}. {{ui:common.duplicate}} kopiuje i wkleja w jednym kroku. Wklejenie stawia każdą część trochę obok miejsca, w którym była. Części pochodzące z innego programu mogą wylądować daleko od płyty i dla nich jest w ustawieniach, w sekcji {{ui:workspace.appearance}}, opcja {{ui:workspace.pasteCentered}}: wklejenie stawia wtedy części razem na środku płaszczyzny roboczej i opuszcza je na nią.
 
 ### Usuń
 
@@ -69,9 +72,9 @@ Nazwa projektu ({{ui:confirm.projectName}}) stoi na samej górze. Kliknij ją, w
 
 {{ui:palette.open}}: wpisz, czego szukasz, narzędzie, kształt albo ustawienie, i kliknij wynik.
 
-### Ukryj sterowanie kamerą
+### Ukryj pasek widoku
 
-{{ui:camera.hide}} chowa sterowanie kamerą po lewej i daje obszarowi roboczemu więcej miejsca. {{ui:camera.show}} przywraca je z powrotem.
+{{ui:camera.hide}} chowa pasek widoku po lewej i daje obszarowi roboczemu więcej miejsca. {{ui:camera.show}} przywraca je z powrotem.
 
 ### Siatka przyciągania
 
@@ -84,6 +87,10 @@ Przełącznik **mm | in** obok {{ui:inspector.snapGrid}} zmienia dla tego projek
 ### Stopka
 
 Na dole okna: {{ui:dashboard.sponsor}} prowadzi do strony, na której możesz wesprzeć projekt; {{ui:dashboard.userGuide}} otwiera tę instrukcję; {{ui:dashboard.forum}} prowadzi do miejsca na pytania, pomysły i zgłoszenia błędów (dyskusje na GitHubie, a po niemiecku forum drucktipps3d); {{ui:editor.bugReport}} tworzy plik ZIP do zgłoszenia błędu; {{ui:dashboard.projectOnGitHub}} prowadzi do projektu na GitHubie, a numer wersji otwiera listę zmian. Odnośniki do noty prawnej i polityki prywatności należą do tego, kto prowadzi używaną przez Ciebie kopię layerling.
+
+### Tryb skupienia
+
+Na małym ekranie {{ui:focusMode.enter}} oddaje pracy wiersz tytułu i stopkę: włącza go przycisk z dwiema strzałkami skierowanymi na zewnątrz w prawym górnym rogu, [[Ctrl]]+[[Shift]]+[[F]] lub wyszukiwanie poleceń. Wstążka przesuwa się w górę, a widok sięga do krawędzi okna. Mały pasek pod wstążką zachowuje domek do strony startowej, karty {{ui:editor.modeGeometry}} i {{ui:editor.modeSketch}}, lupę, ustawienia i przycisk z dwiema strzałkami skierowanymi do środka, który kończy tryb; pasek można przeciągnąć za uchwyt w inne miejsce, a dwuklik na uchwycie przywraca go. layerling zapamiętuje wybór w tej przeglądarce, a gdy przeglądarka wypełnia cały ekran (F11), sam przechodzi w tryb skupienia.
 
 ## Twoja pierwsza część
 
@@ -103,7 +110,7 @@ Tak powstają otwory, rowki i kieszenie. Szczegółowo wyjaśnia to rozdział [B
 
 ## Nowości od ostatniej wizyty
 
-Gdy po aktualizacji znów otworzysz layerling, karta na stronie startowej pokaże, co dodano od Twojej ostatniej wizyty: każdą wersję od tamtego czasu, od najnowszej. Po długiej przerwie przewiniesz listę wewnątrz karty. Pod nimi {{ui:whatsNew.earlier}} dokłada też wersje sprzed Twojej ostatniej wizyty. Zamknij kartę przyciskiem {{ui:whatsNew.dismiss}}, a nie pojawi się do następnej aktualizacji. {{ui:whatsNew.footerLink}} w stopce strony startowej w każdej chwili znów pokaże najnowsze zmiany. Przeglądarka zapamiętuje ostatnią wersję, którą widziałeś, i nic o Tobie jej nie opuszcza.
+Gdy po aktualizacji znów otworzysz layerling, karta na stronie startowej pokaże, co dodano od Twojej ostatniej wizyty: każdą wersję od tamtego czasu, od najnowszej. Po długiej przerwie przewiniesz listę wewnątrz karty. Pod nimi {{ui:whatsNew.earlier}} dokłada też wersje sprzed Twojej ostatniej wizyty. Zamknij kartę przyciskiem {{ui:whatsNew.dismiss}}, a nie pojawi się do następnej aktualizacji. {{ui:whatsNew.footerLink}} w stopce strony startowej w każdej chwili znów pokaże najnowsze zmiany. W edytorze tę samą listę otwiera przycisk {{ui:whatsNew.footerLink}} obok {{ui:editor.guide}} w prawym górnym rogu albo wyszukiwarka poleceń; zostaje otwarta obok projektu, gdy wypróbowujesz nowości. Przeglądarka zapamiętuje ostatnią wersję, którą widziałeś, i nic o Tobie jej nie opuszcza.
 
 W kopii layerling na Twoim własnym komputerze lub serwerze komunikat „Dostępna aktualizacja” ma przycisk {{ui:update.previewShow}}, który przed instalacją pokazuje, co aktualizacja przynosi. Lista jest pobierana z GitHuba dopiero po naciśnięciu przycisku.
 

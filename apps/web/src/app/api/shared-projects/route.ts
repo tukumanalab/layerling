@@ -1,15 +1,18 @@
 import { randomUUID } from "crypto";
-import { constants as fsConstants, promises as fs } from "fs";
+import { constants as fsConstants, promises as fs, createReadStream } from "fs";
+import { Readable } from "stream";
 import path from "path";
 import { NextResponse } from "next/server";
 import { inspectLylProjectPackage, LYL_LIMITS, LYL_MEDIA_TYPE } from "@/lib/lylProject";
 import { originMatchesRequest } from "@/lib/sameOrigin";
+import { CUSTOM_SHAPES_FOLDER } from "@/lib/customShapesServer";
 import { storeFolderNameProblem } from "@/lib/storeFolderName";
 
 export const runtime = "nodejs";
 export const revalidate = false;
 
 const SHARED_PROJECTS_ENV = "LAYERLING_SHARED_PROJECTS_DIR";
+const USER_HEADER_ENV = "LAYERLING_USER_HEADER";
 const SHARED_THUMBNAILS_DIR = ".thumbnails";
 const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
 const MAX_MULTIPART_OVERHEAD_BYTES = 1024 * 1024;
@@ -45,9 +48,39 @@ function failureResponse(error: unknown, fallback: string, fallbackStatus = 500)
   return NextResponse.json({ error: error instanceof Error ? error.message : fallback }, { status: fallbackStatus });
 }
 
-function sharedProjectsDirectory() {
+/**
+ * Detects the authenticated user when configured with LAYERLING_USER_HEADER.
+ * If the setting is unset or empty, header-based user isolation is disabled.
+ *
+ * Returns a sanitized folder name if authenticated, or null if disabled / unauthenticated.
+ */
+function authenticatedUserFolder(request: Request): string | null {
+  const headerName = process.env[USER_HEADER_ENV]?.trim();
+  if (!headerName) {
+    return null;
+  }
+
+  const identity = request.headers.get(headerName);
+  if (typeof identity === "string" && identity.trim() !== "") {
+    let safe = identity.trim().toLowerCase().replace(/@/g, "_at_");
+    safe = safe.replace(/[^a-z0-9_.-]/g, "_");
+    safe = safe.replace(/^[._-]+|[._-]+$/g, "");
+    return safe !== "" ? safe : null;
+  }
+
+  return null;
+}
+
+function sharedProjectsDirectory(request?: Request) {
   const configured = (process.env[SHARED_PROJECTS_ENV])?.trim();
-  return configured ? path.resolve(configured) : null;
+  if (!configured) return null;
+  const base = path.resolve(configured);
+  if (!request) return base;
+  const userFolder = authenticatedUserFolder(request);
+  if (userFolder) {
+    return path.join(base, ".users", userFolder);
+  }
+  return base;
 }
 
 /**
@@ -223,15 +256,38 @@ async function removeFolderTree(folder: string) {
   await fs.rmdir(folder);
 }
 
+/** A lock older than this is a leftover of a request that died (a crash, a server stopped mid-save), as store.php has it. */
+const STALE_LOCK_MS = 60_000;
+
 async function acquireLock(filePath: string) {
   const lockPath = `${filePath}.lock`;
+  const open = async () => ({ handle: await fs.open(lockPath, "wx"), lockPath });
   try {
-    return { handle: await fs.open(lockPath, "wx"), lockPath };
+    return await open();
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
-      throw new RequestFailure("This shared project is currently being changed by someone else", 409);
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+  // Without this a project whose save was cut off stayed "being changed by someone else" for good.
+  const lockStat = await fs.stat(lockPath).catch(() => null);
+  if (lockStat && Date.now() - lockStat.mtimeMs > STALE_LOCK_MS) {
+    await fs.unlink(lockPath).catch(() => undefined);
+    try {
+      return await open();
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     }
-    throw error;
+  }
+  throw new RequestFailure("This shared project is currently being changed by someone else", 409);
+}
+
+type HeldLock = Awaited<ReturnType<typeof acquireLock>>;
+
+/** Lets the locks go, the last taken first. */
+async function releaseLocks(...locks: Array<HeldLock | null>) {
+  for (const lock of locks.reverse()) {
+    if (!lock) continue;
+    await lock.handle.close().catch(() => undefined);
+    await fs.unlink(lock.lockPath).catch(() => undefined);
   }
 }
 
@@ -243,7 +299,7 @@ function disabledResponse() {
 }
 
 export async function GET(request: Request) {
-  const root = sharedProjectsDirectory();
+  const root = sharedProjectsDirectory(request);
   if (!root) return disabledResponse();
   try {
     await ensureSharedRoot(root);
@@ -254,6 +310,9 @@ export async function GET(request: Request) {
     // `path` spielt dabei keine Rolle.
     const searchTerm = requestUrl.searchParams.get("search")?.trim();
     if (searchTerm) return await searchStore(root, searchTerm);
+    const settings = requestUrl.searchParams.get("settings");
+    if (settings) return await readSettings(root, settings);
+    if (requestUrl.searchParams.get("all") === "1") return await allDesigns(root);
     const requestedFile = requestUrl.searchParams.get("fileName");
     if (requestedFile) {
       const fileName = existingProjectFileName(requestedFile);
@@ -270,22 +329,22 @@ export async function GET(request: Request) {
         const imagePath = sharedThumbnailPath(folder, fileName, revision);
         const imageStat = await regularFileStat(imagePath);
         if (!imageStat) return new NextResponse("Shared project thumbnail was not found", { status: 404 });
-        const image = await fs.readFile(imagePath);
-        return new NextResponse(image, {
+        const imageStream = Readable.toWeb(createReadStream(imagePath));
+        return new Response(imageStream as BodyInit, {
           headers: {
             "Cache-Control": "public, max-age=31536000, immutable",
-            "Content-Length": String(image.byteLength),
+            "Content-Length": String(imageStat.size),
             "Content-Type": "image/png",
             ETag: `"${revision}"`,
           },
         });
       }
-      const bytes = await fs.readFile(filePath);
-      return new Response(bytes, {
+      const fileStream = Readable.toWeb(createReadStream(filePath));
+      return new Response(fileStream as BodyInit, {
         headers: {
           "Cache-Control": "no-store",
           "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`,
-          "Content-Length": String(bytes.byteLength),
+          "Content-Length": String(stat.size),
           "Content-Type": LYL_MEDIA_TYPE,
           ETag: `"${revisionForStat(stat)}"`,
         },
@@ -309,6 +368,8 @@ export async function GET(request: Request) {
       {
         enabled: true,
         path: folderPath,
+        // Every design in the store, not only this folder's: the number on the start page's tab.
+        total: (await storeDesigns(root)).designs.length,
         folders: folders.sort((a, b) => a.name.localeCompare(b.name)),
         projects: projects.filter((entry): entry is SharedProjectFile => Boolean(entry)).sort((a, b) => b.updatedAt - a.updatedAt),
       },
@@ -385,6 +446,49 @@ async function searchStore(root: string, term: string) {
   );
 }
 
+/**
+ * Every design in the store, from the top: the number on the start page's tab and what
+ * "Download all" packs. The same bounds as the search, so a stray tree cannot hold the
+ * answer up, and links are not followed as folders.
+ */
+async function storeDesigns(root: string) {
+  const designs: Array<{ folder: string; fileName: string }> = [];
+  const emptyFolders: string[] = [];
+  let truncated = false;
+  let visited = 0;
+  const walk = async (folder: string, depth: number): Promise<void> => {
+    if (depth > SEARCH_DEPTH_LIMIT || visited >= SEARCH_FOLDER_LIMIT) {
+      truncated = true;
+      return;
+    }
+    visited += 1;
+    const entries = (await fs.readdir(folder, { withFileTypes: true }).catch(() => [])).filter((entry) => !entry.name.startsWith("."));
+    if (depth > 0 && entries.length === 0) emptyFolders.push(folderKey(root, folder));
+    for (const entry of entries) {
+      // The custom shapes keep their own folder in the store; they are shapes, not designs.
+      if (entry.isDirectory() && depth === 0 && entry.name === CUSTOM_SHAPES_FOLDER) continue;
+      if (entry.isDirectory()) await walk(path.join(folder, entry.name), depth + 1);
+      else if (entry.isFile() && /\.(lyl|skf)$/i.test(entry.name)) designs.push({ folder, fileName: entry.name });
+    }
+  };
+  await walk(root, 0);
+  return { designs, emptyFolders, truncated };
+}
+
+/** Every design with the folder it is in, and the folders with nothing in them, for "Download all". */
+async function allDesigns(root: string) {
+  const { designs, emptyFolders, truncated } = await storeDesigns(root);
+  const projects = await Promise.all(designs.map(async ({ folder, fileName }) => {
+    const stat = await regularFileStat(path.join(folder, fileName));
+    if (!stat) return null;
+    const thumbnail = await regularFileStat(sharedThumbnailPath(folder, fileName, revisionForStat(stat)));
+    return projectRecord(fileName, stat, Boolean(thumbnail), folderKey(root, folder));
+  }));
+  return NextResponse.json(
+    { enabled: true, truncated, emptyFolders, projects: projects.filter((entry): entry is SharedProjectFile => Boolean(entry)) },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}
 
 /** Creating a folder is the one write that touches no project at all. */
 async function createFolder(root: string, folder: string, name: string) {
@@ -398,12 +502,18 @@ async function createFolder(root: string, folder: string, name: string) {
   return NextResponse.json({ created: true, path: folderKey(root, target) }, { status: 201, headers: { "Cache-Control": "no-store" } });
 }
 
+/** The store's own folder for custom shapes, at its top level: the shapes are found by that name. */
+function isCustomShapesFolder(root: string, folder: string) {
+  return path.dirname(folder) === root && path.basename(folder) === CUSTOM_SHAPES_FOLDER;
+}
+
 /**
  * Renaming a folder. The projects inside travel with it, and so do their
  * pictures - they live in the folder, not in a register somewhere else.
  */
 async function renameFolder(root: string, folder: string, name: string) {
   if (folder === root) throw new RequestFailure("The store folder itself cannot be renamed", 400);
+  if (isCustomShapesFolder(root, folder)) throw new RequestFailure("The custom shapes folder cannot be renamed", 400);
   const wanted = name.trim();
   if (storeFolderNameProblem(wanted, []) !== null) throw new RequestFailure("That folder name is not allowed", 400);
   const current = path.basename(folder);
@@ -441,6 +551,7 @@ async function moveProject(root: string, folder: string, requestedTarget: string
 
   const filePath = path.join(folder, fileName);
   const sourceLock = await acquireLock(filePath);
+  let targetLock: HeldLock | null = null;
   try {
     const currentStat = await regularFileStat(filePath);
     if (!currentStat) throw new RequestFailure("Shared project was not found", 404);
@@ -454,6 +565,9 @@ async function moveProject(root: string, folder: string, requestedTarget: string
     }
 
     const targetPath = path.join(target, fileName);
+    // The target name is locked too, as store.php and copying do: a save under that name in the target folder
+    // could otherwise land between the question below and the rename, and be overwritten by it.
+    targetLock = await acquireLock(targetPath);
     if (await fs.stat(targetPath).then(() => true, () => false)) {
       throw new RequestFailure("A project of that name is already in that folder", 409);
     }
@@ -473,8 +587,7 @@ async function moveProject(root: string, folder: string, requestedTarget: string
       { headers: { "Cache-Control": "no-store", ETag: `"${record.revision}"` } },
     );
   } finally {
-    await sourceLock.handle.close().catch(() => undefined);
-    await fs.unlink(sourceLock.lockPath).catch(() => undefined);
+    await releaseLocks(sourceLock, targetLock);
   }
 }
 
@@ -495,6 +608,7 @@ async function renameProjectFile(root: string, folder: string, requestedName: st
   const filePath = path.join(folder, fileName);
   const newPath = path.join(folder, newFileName);
   const sourceLock = await acquireLock(filePath);
+  let newLock: HeldLock | null = null;
   try {
     const currentStat = await regularFileStat(filePath);
     if (!currentStat) throw new RequestFailure("Shared project was not found", 404);
@@ -506,6 +620,7 @@ async function renameProjectFile(root: string, folder: string, requestedName: st
     if (expectedRevision !== currentRevision) {
       throw new RequestFailure("The shared project changed after you loaded it. Refresh the shared projects list and try again.", 409, { currentRevision });
     }
+    newLock = await acquireLock(newPath);
     if (await fs.stat(newPath).then(() => true, () => false)) {
       throw new RequestFailure("A project of that name is already in this folder", 409);
     }
@@ -524,8 +639,7 @@ async function renameProjectFile(root: string, folder: string, requestedName: st
       { headers: { "Cache-Control": "no-store", ETag: `"${record.revision}"` } },
     );
   } finally {
-    await sourceLock.handle.close().catch(() => undefined);
-    await fs.unlink(sourceLock.lockPath).catch(() => undefined);
+    await releaseLocks(sourceLock, newLock);
   }
 }
 
@@ -550,7 +664,7 @@ async function copyProject(root: string, folder: string, requestedName: string, 
 
   const filePath = path.join(folder, fileName);
   const sourceLock = await acquireLock(filePath);
-  let copyLock: Awaited<ReturnType<typeof acquireLock>> | null = null;
+  let copyLock: HeldLock | null = null;
   try {
     const currentStat = await regularFileStat(filePath);
     if (!currentStat) throw new RequestFailure("Shared project was not found", 404);
@@ -588,11 +702,7 @@ async function copyProject(root: string, folder: string, requestedName: string, 
       { status: 201, headers: { "Cache-Control": "no-store", ETag: `"${record.revision}"` } },
     );
   } finally {
-    for (const lock of [sourceLock, copyLock]) {
-      if (!lock) continue;
-      await lock.handle.close().catch(() => undefined);
-      await fs.unlink(lock.lockPath).catch(() => undefined);
-    }
+    await releaseLocks(sourceLock, copyLock);
   }
 }
 
@@ -603,6 +713,7 @@ async function copyProject(root: string, folder: string, requestedName: string, 
  */
 async function deleteFolder(root: string, folder: string, recursive: boolean) {
   if (folder === root) throw new RequestFailure("The store folder itself cannot be removed", 400);
+  if (isCustomShapesFolder(root, folder)) throw new RequestFailure("The custom shapes folder cannot be removed", 400);
   const counts = await folderContentsCount(folder);
   if (!recursive && (counts.projects > 0 || counts.folders > 0 || counts.files > 0)) {
     throw new RequestFailure("That folder is not empty", 409, counts);
@@ -625,7 +736,43 @@ function exportFileName(requestedName: string) {
 }
 
 /**
- * An export file - STL, 3MF, OBJ, STEP, SVG, PNG or PDF - written into a folder of the store (#779), so a
+ * Whether an export file is what its name says and nothing a browser could run, the same check store.php makes
+ * (GHSA-wj5x-5r5v-89r3). Here the store lies outside the web root, so this keeps the two servers alike rather
+ * than closing a hole: an SVG may hold only plain drawing elements and no event handler, link, script URL or
+ * DOCTYPE; the binary formats start with their signature, STEP with its header; STL, OBJ and DXF may not start
+ * with a tag.
+ */
+function exportBytesAcceptable(extension: string, bytes: Uint8Array): boolean {
+  const startsWith = (signature: number[]) => signature.every((byte, index) => bytes[index] === byte);
+  // The bytes as they are (latin1), as PHP reads them; a BOM, blanks and NULs in front are skipped.
+  const head = Buffer.from(bytes.subarray(0, 4096)).toString("latin1").replace(/^[\xEF\xBB\xBF \t\r\n\0]+/, "");
+  switch (extension) {
+    case "png":
+      return startsWith([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    case "pdf":
+      return startsWith([0x25, 0x50, 0x44, 0x46, 0x2d]);
+    case "3mf":
+      return startsWith([0x50, 0x4b, 0x03, 0x04]);
+    case "step":
+    case "stp":
+      return head.startsWith("ISO-10303-21");
+    case "svg":
+      return svgIsPlainDrawing(Buffer.from(bytes).toString("latin1"));
+    default:
+      return head !== "" && head[0] !== "<";
+  }
+}
+
+/** An SVG made only of shapes, text and their descriptions, with nothing in it that runs or loads. */
+function svgIsPlainDrawing(svg: string) {
+  if (/<!DOCTYPE|<!ENTITY|<\?xml-stylesheet|javascript\s*:|\son[a-z]+\s*=|href\s*=|url\s*\(/i.test(svg)) return false;
+  const allowed = new Set(["svg", "g", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon", "text", "tspan", "title", "desc", "metadata"]);
+  const tags = Array.from(svg.matchAll(/<\s*([A-Za-z_][\w:.\-]*)/g), (match) => match[1].toLowerCase());
+  return tags.every((tag) => allowed.has(tag)) && tags.includes("svg");
+}
+
+/**
+ * An export file - STL, 3MF, OBJ, STEP, SVG, DXF, PNG or PDF - written into a folder of the store (#779), so a
  * slicer that shares the folder can open it. It is no project: the list does not show it. A file of that
  * name is replaced only when the request says so (`overwrite=1`); otherwise the answer is 409 with `exists`.
  */
@@ -639,6 +786,10 @@ async function saveExportFile(root: string, folder: string, requestedName: strin
   const bytes = new Uint8Array(await request.arrayBuffer());
   if (bytes.byteLength === 0) throw new RequestFailure("The file was empty", 400);
   if (bytes.byteLength > LYL_LIMITS.archiveBytes) throw new RequestFailure("The file exceeds the shared storage size limit", 413);
+  const extension = path.extname(fileName).slice(1).toLowerCase();
+  if (!exportBytesAcceptable(extension, bytes)) {
+    throw new RequestFailure(`That is not a ${extension.toUpperCase()} file layerling would write`, 400);
+  }
 
   const filePath = path.join(folder, fileName);
   const temporaryPath = path.join(folder, `.${fileName}.${randomUUID()}.tmp`);
@@ -668,8 +819,65 @@ async function saveExportFile(root: string, folder: string, requestedName: strin
   }
 }
 
+/**
+ * The settings kept for every browser that uses this store: what "Make default" saved, so a new design starts with it even after the browser forgot it. One JSON file in
+ * a hidden folder - a listing skips names that begin with a dot - under a name the request picks from a
+ * fixed list, never from what it sent. The server only checks that it is a JSON object; the app makes
+ * sense of the values when it reads them, as it does with its own browser copy.
+ */
+const SETTINGS_DIR = ".settings";
+const SETTINGS_NAMES = ["default"];
+const MAX_SETTINGS_BYTES = 256 * 1024;
+
+function settingsPath(root: string, requested: string) {
+  if (!SETTINGS_NAMES.includes(requested)) throw new RequestFailure("Unknown settings", 400);
+  return path.join(root, SETTINGS_DIR, `${requested}.json`);
+}
+
+async function readSettings(root: string, requested: string) {
+  const filePath = settingsPath(root, requested);
+  const stat = await regularFileStat(filePath);
+  let settings: unknown = null;
+  if (stat) {
+    try {
+      settings = JSON.parse(await fs.readFile(filePath, "utf8"));
+    } catch {
+      settings = null;
+    }
+  }
+  return NextResponse.json(
+    { enabled: true, settings: settings && typeof settings === "object" && !Array.isArray(settings) ? settings : null },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}
+
+async function saveSettings(root: string, requested: string, request: Request) {
+  const filePath = settingsPath(root, requested);
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_SETTINGS_BYTES) throw new RequestFailure("The settings are too large", 413);
+  const text = await request.text();
+  if (text.length > MAX_SETTINGS_BYTES) throw new RequestFailure("The settings are too large", 413);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new RequestFailure("The settings are not JSON", 400);
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new RequestFailure("The settings are not JSON", 400);
+  const folder = path.dirname(filePath);
+  await fs.mkdir(folder, { recursive: true });
+  const temporaryPath = path.join(folder, `.${requested}.${randomUUID()}.tmp`);
+  try {
+    await fs.writeFile(temporaryPath, JSON.stringify(parsed), { flag: "wx" });
+    await fs.rename(temporaryPath, filePath);
+  } finally {
+    await fs.unlink(temporaryPath).catch(() => undefined);
+  }
+  return NextResponse.json({ saved: true }, { headers: { "Cache-Control": "no-store" } });
+}
+
 export async function DELETE(request: Request) {
-  const root = sharedProjectsDirectory();
+  const root = sharedProjectsDirectory(request);
   if (!root) return NextResponse.json({ error: "Shared project storage is disabled" }, { status: 404 });
   if (!sameOriginRequest(request)) return NextResponse.json({ error: "Shared projects only accept same-origin deletes" }, { status: 403 });
 
@@ -729,7 +937,7 @@ export async function DELETE(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const root = sharedProjectsDirectory();
+  const root = sharedProjectsDirectory(request);
   if (!root) return NextResponse.json({ error: "Shared project storage is disabled" }, { status: 404 });
   if (!sameOriginRequest(request)) return NextResponse.json({ error: "Shared projects only accept same-origin saves" }, { status: 403 });
 
@@ -758,6 +966,8 @@ export async function POST(request: Request) {
     if (renameFileTo) return await renameProjectFile(root, folder, renameFileTo, request);
     const exportFile = requestUrl.searchParams.get("exportFile");
     if (exportFile) return await saveExportFile(root, folder, exportFile, request);
+    const settings = requestUrl.searchParams.get("settings");
+    if (settings) return await saveSettings(root, settings, request);
 
     const declaredLength = Number(request.headers.get("content-length") ?? 0);
     const multipartRequest = request.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data") ?? false;

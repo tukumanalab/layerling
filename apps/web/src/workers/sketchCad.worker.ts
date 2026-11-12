@@ -2,15 +2,18 @@
 
 import { OcctKernel, type OcctModuleFactory, type ShapeHandle } from "occt-wasm";
 import { CAD_MODIFIER_RUNTIME_BASE } from "@/lib/cadModifierRuntime";
-import { sketchCadDeflection } from "@/lib/sketchCadDeflection";
+import { announceKernel } from "@/lib/cadKernelGate";
+import { sketchCadDeflection, sketchRevolveCadDeflection } from "@/lib/sketchCadDeflection";
 import { cadSketchRegions } from "@/lib/sketchCadProfile";
 import { buildRevolvedSketchSolid } from "@/lib/cadSketchRevolve";
-import { buildStrokedSketchSolid } from "@/lib/cadSketchStroke";
+import { buildStrokedSketchSolid, chamferTopEdges } from "@/lib/cadSketchStroke";
 import { buildSweptSketchSolid } from "@/lib/cadSketchSweep";
+import { buildSketchLoftSolid } from "@/lib/cadSketchLoft";
 import { buildInsetSketchSolid } from "@/lib/cadSketchInset";
 import { pathWire } from "@/lib/sketchCadWire";
 import { buildMessage } from "@/lib/buildStamp";
-import { SKETCH_INSET_UNSUPPORTED, SKETCH_STROKE_UNSUPPORTED, type SketchCadBuildRequest, type SketchCadBuildResponse } from "@/lib/sketchCadTypes";
+import { meshTreatedBody } from "@/lib/cadMeshAccuracy";
+import { SKETCH_EDGE_FAILED, SKETCH_INSET_UNSUPPORTED, SKETCH_STROKE_UNSUPPORTED, type SketchCadBuildRequest, type SketchCadBuildResponse } from "@/lib/sketchCadTypes";
 
 /** Past this many edges in a sketch's outlines the kernel's validity check is skipped (it takes seconds to minutes there). */
 const LARGE_SKETCH_EDGES = 1500;
@@ -23,7 +26,8 @@ function kernel() {
   // fetching the 22 MB wasm) can be retried on the next call instead of
   // poisoning sketch-to-3D for the rest of the session - same fix as
   // brepKernel.ts's loadBrepWithOcct.
-  kernelPromise ??= import(/* webpackIgnore: true */ moduleUrl)
+  // The page starts the clock for its requests only once this says the kernel is loaded (#1612).
+  kernelPromise ??= announceKernel(import(/* webpackIgnore: true */ moduleUrl)
     .then((imported: { default: OcctModuleFactory }) => OcctKernel.init({
       createModule: imported.default,
       wasm: `${CAD_MODIFIER_RUNTIME_BASE}/occt-wasm.wasm`,
@@ -31,7 +35,7 @@ function kernel() {
     .catch((error) => {
       kernelPromise = null;
       throw error;
-    });
+    }), (message) => self.postMessage(message));
   return kernelPromise;
 }
 
@@ -48,8 +52,19 @@ self.onmessage = async (event: MessageEvent<SketchCadBuildRequest>) => {
   try {
     cad = await kernel();
     cad.releaseAll();
+    if (request.type === "remesh") {
+      const solid = cad.fromBREP(request.brep);
+      const meshed = meshTreatedBody(cad, [solid], solid, request.deflection, request.capped);
+      const positions = new Float32Array(meshed.mesh.positions);
+      const normals = new Float32Array(meshed.mesh.normals);
+      const indices = new Uint32Array(meshed.mesh.indices);
+      post({ type: "built", requestId: request.requestId, positions, normals, indices, triangleCount: meshed.mesh.triangleCount, brep: request.brep, deflection: meshed.deflection }, [positions.buffer, normals.buffer, indices.buffer]);
+      return;
+    }
     let result: ShapeHandle;
-    if (request.revolve) {
+    if (request.loft) {
+      result = buildSketchLoftSolid(cad, request.loft.bottom, request.loft.top);
+    } else if (request.revolve) {
       result = buildRevolvedSketchSolid(cad, request.profile, request.revolve.startAngle, request.revolve.sweepAngle);
     } else if (request.sweep) {
       result = buildSweptSketchSolid(cad, request.profile);
@@ -76,7 +91,12 @@ self.onmessage = async (event: MessageEvent<SketchCadBuildRequest>) => {
       const sound = edgeCount > LARGE_SKETCH_EDGES ? cad.getVolume(result) > 1e-9 : cad.isValid(result);
       if (!sound) throw new Error("OpenCascade produced invalid sketch topology");
     }
-    const deflection = sketchCadDeflection(request.profile);
+    if (request.topChamfer && !request.revolve && !request.sweep && !request.loft) {
+      const chamfered = chamferTopEdges(cad, result, request.height, request.topChamfer);
+      if (!chamfered) throw new Error(SKETCH_EDGE_FAILED);
+      result = chamfered;
+    }
+    const deflection = request.revolve ? sketchRevolveCadDeflection(request.profile, request.revolve.smoothness) : sketchCadDeflection(request.profile);
     const mesh = cad.tessellate(result, { linearDeflection: deflection.linear, angularDeflection: deflection.angular });
     const positions = new Float32Array(mesh.positions);
     const normals = new Float32Array(mesh.normals);

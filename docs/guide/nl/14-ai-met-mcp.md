@@ -9,6 +9,42 @@ De brug tussen AI-client en editor draait **lokaal op je computer**. Houd er wel
 
 > **Belangrijk:** De MCP-brug zit in de ontwikkelserver die je zelf op je computer start. Op layerling.com en in installaties met statische hosting staat hij uit. Een kopie die je zelf host, zoals de Docker-image op een NAS, kan hem aanzetten met een toegangstoken; zie "Een kopie op een NAS of server" hieronder.
 
+## Stap voor stap voor beginners
+
+Je hoeft hiervoor niets van programmeren te weten.
+
+**De kortste weg:** geef je favoriete AI het adres van het project, `https://github.com/henmedia/layerling`, en vraag: "Zet layerling op mijn computer op, zodat ik met jou via de MCP-server 3D-modellen kan bouwen." De AI downloadt en installeert alles zelf en zegt het als hij klaar is. Dat werkt met een AI die op je computer kan werken, zoals het tabblad Code van de Claude-app, Codex, Antigravity of Gemini CLI. Een chat in de browser kan het niet, want die kan niets op je computer installeren.
+
+**Of doe het zelf, op Windows met de Claude-app, in vijf stappen:**
+
+**1. layerling installeren.** Open het Startmenu, typ `PowerShell` en open Windows PowerShell. Kopieer deze regel, plak hem met een rechtermuisklik in het venster en druk op Enter:
+
+```powershell
+irm https://raw.githubusercontent.com/henmedia/layerling/main/scripts/windows-quickstart.ps1 | iex
+```
+
+De regel installeert wat layerling nodig heeft, downloadt layerling naar de map `layerling` in je gebruikersmap (`C:\Users\<je naam>\layerling`) en opent het in je browser. De eerste keer duurt dat een paar minuten.
+
+![Windows PowerShell met de geplakte regel. Druk op Enter en het begint.](still:ai-quickstart-powershell)
+
+**2. layerling laten draaien.** layerling draait zolang het PowerShell-venster open blijft, en de AI kan alleen bouwen terwijl het draait. De volgende keer dubbelklik je in plaats daarvan op "Start layerling" op je bureaublad.
+
+**3. De Claude-app installeren.** Installeer de Claude-app voor Windows en meld je aan. Het tabblad Code uit de volgende stap hoort bij de betaalde Claude-abonnementen.
+
+**4. De map layerling openen in het tabblad Code.** Ga in de Claude-app bovenaan naar Code en kies de map `layerling` in je gebruikersmap als werkmap. layerling brengt al alles mee wat Claude nodig heeft om zijn gereedschappen te vinden. Vraagt Claude of hij de MCP-server "layerling" van deze map mag gebruiken, sta het dan toe.
+
+**5. Claude zeggen wat hij moet bouwen.** Bijvoorbeeld: "Gebruik de layerling-gereedschappen en bouw een ronde doos, 60 mm doorsnede en 40 mm hoog, met een wand van 2,5 mm." Is er geen editor open, dan opent Claude er een in je browser, bouwt de doos daar stap voor stap en maakt afbeeldingen om zijn werk te controleren. Jij kijkt mee en kunt op elk moment zelf iets veranderen.
+
+**Op een Mac** gaat het net zo, met deze wijzigingen. Open in stap 1 de app Terminal (druk op Cmd+spatie, typ `Terminal` en druk op Enter), plak deze regel en druk op Enter:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/henmedia/layerling/main/scripts/mac-quickstart.sh | sh
+```
+
+Ontbreekt Git of Node.js, dan zegt het script wat je moet installeren (macOS biedt Git aan in een venster, Node.js is een installatieprogramma op nodejs.org); voer daarna dezelfde regel nog een keer uit. In stap 2 heet de snelkoppeling op je bureaublad ook "Start layerling". Installeer in stap 3 de Claude-app voor Mac.
+
+> **Tip:** Werkt iets niet, vertel Claude dan wat je ziet. Hij kan de fout lezen en lost hem meestal zelf op. Gebeurt er niets in de editor, controleer dan eerst of layerling nog draait (stap 2).
+
 ## Instellen
 
 1. Haal layerling op van [GitHub](https://github.com/henmedia/layerling) en start het in de projectmap met `npm run dev`. Node.js moet geïnstalleerd zijn. Op Windows regelt de snelstartregel in de README dat.
@@ -42,11 +78,14 @@ De AI werkt met dezelfde functies als jij, via dezelfde weg als jouw bediening i
 | Gereedschap | Wat het doet |
 | --- | --- |
 | `layerling_list_editors` | somt de geopende editortabbladen op |
+| `layerling_rename_project` | geeft het project een naam, zoals het potlood naast de projectnaam |
 | `layerling_open_editor` | opent een nieuw editortabblad in je standaardbrowser en wacht tot het verbonden is (alleen op je eigen computer) |
 | `layerling_read_scene` | leest scène, selectie, eenheden en de exacte maten van alle objecten |
 | `layerling_list_objects` | somt alle objecten op met maten, positie, rotatie en id |
 | `layerling_select_objects` | selecteert objecten |
+| `layerling_hide_others` | verbergt alles behalve de selectie of de opgegeven objecten, in één ongedaan-stap |
 | `layerling_delete_objects` | verwijdert objecten |
+| `layerling_move_object` | verplaatst een object naar een andere plek in de objectenlijst |
 | `layerling_create_shape` | maakt een vorm: blok, cilinder, tekst (ook gebogen), schroefdraad, tandwiel, schetslichaam en alle andere |
 | `layerling_import_file` | importeert een bestand zoals het importvenster dat doet, een gekleurde OBJ of 3MF als één lichaam per kleur, een 3MF met meerdere objecten als één lichaam per object |
 | `layerling_add_font` | voegt een eigen lettertype voor tekst toe uit een TrueType-, OpenType- of WOFF-bestand; het blijft in de browser, een ontwerp bewaart alleen de letters die het gebruikt |
@@ -57,53 +96,82 @@ De AI werkt met dezelfde functies als jij, via dezelfde weg als jouw bediening i
 | `layerling_scale_objects` | schaalt objecten met een percentage, samen of elk op zijn plek |
 | `layerling_lay_flat` | legt een object met één vlak op de plaat |
 | `layerling_place_on_face` | zet objecten neer op een vlak van een ander, ook op schuine, zoals de C-toets |
-| `layerling_perforate_face` | snijdt een gatenpatroon in een plat vlak; de gaten blijven gaten, gegroepeerd met het lichaam |
+| `layerling_perforate_face` | snijdt een gatenpatroon in een plat vlak of rond de wand van een cilinder, buis of boring; de gaten blijven gaten, gegroepeerd met het lichaam |
 | `layerling_sweep_sketch` | trekt een rechthoekige of ronde dwarsdoorsnede langs een pad van punten als één exact lichaam; een gesloten pad geeft een ring |
 | `layerling_push_face` | trekt een plat vlak naar buiten of snijdt er een kamer in, met inspringing vanaf de rand en hoekradius; het nieuwe deel is een schetslichaam, gegroepeerd met het lichaam |
+| `layerling_paint` | beschildert delen van een lichaam in eigen kleuren om in meerdere kleuren te printen (Beschilderen): een vlak vullen tot aan de scherpe randen, een ronde vlek of een lasso in een vlakke weergave; gummen, alles verwijderen; met het lichaam opgeslagen en in een 3MF als beschilderde vlakken geschreven |
+| `layerling_support_rib` | zet een dunne steunrib onder het onderste vlak van een onderdeel dat schuin op een rand wordt geprint, met bruggen van één laag hoog (Steunrib) |
+| `layerling_stencil_bridges` | houdt de delen van een plaat met tekst erdoor die eruit zouden vallen vast met bruggen, gegroepeerd met de plaat, zo breed en hoog als opgegeven (Stencilbruggen) |
 | `layerling_mate_faces` | brengt een vlak van het ene object tegen een vlak van een ander, vlak tegen vlak of gelijk |
 | `layerling_open_group` | opent een groep zodat de onderdelen een voor een kunnen worden gewijzigd, ook een groep binnen een geopende groep |
 | `layerling_close_group` | sluit hem weer ("Klaar") of annuleert |
+| `layerling_add_to_group` | legt losse objecten in een groep zonder die te openen |
+| `layerling_take_out_of_group` | haalt één deel uit een groep zonder die te openen |
 | `layerling_group_objects` | groepeert objecten |
 | `layerling_ungroup_objects` | heft groepen op |
 | `layerling_boolean_cut` | snijdt lichamen met gaten |
 | `layerling_intersect_objects` | houdt alleen over wat de objecten gemeen hebben (doorsnijding) |
 | `layerling_hull_objects` | verpakt de objecten in één bol lichaam, alsof ze gekrompen zijn in folie (omhulsel) |
+| `layerling_cookie_cutter` | makes a cookie cutter from the objects: a wall and a rim round the outline (Cookie cutter) |
+| `layerling_flexi_joints` | cuts a flat body into links with joints printed in place that swing to the sides (Flexi joints) |
+| `layerling_make_lid` | makes a lid for a body open at the top: pushed in, over the top or flat, with the fit you choose and magnets if you like (Lid) |
+| `layerling_make_cable_channel` | runs a round channel for a cable through a body from an entry to an exit, finding the way itself with gentle bends (Cable channel) |
+| `layerling_loft_sketches` | joins two sketch bodies into a loft from one outline to the other (Loft sketches) |
 | `layerling_separate_parts` | splitst een vorm in zijn losse delen, een schetslichaam in één lichaam per omtrek |
 | `layerling_split_objects` | snijdt lichamen of gaten met een vlak in tweeën |
 | `layerling_list_edges` | somt de echte CAD-randen van een object op |
 | `layerling_apply_edge_treatment` | schuint gekozen randen af of rondt ze af |
 | `layerling_hollow_object` | holt een lichaam uit met een gelijkmatige wand |
 | `layerling_cut_out` | snijdt het ene lichaam uit het andere zodat ze passen: het onderdeel blijft, een met de speling vergrote kopie wordt van het andere lichaam afgetrokken |
-| `layerling_offset_object` | verschuift alle vlakken van een lichaam voor de speling van een pasvorm: vergroot of verkleint het, of voegt de vergrote kopie als gat toe |
+| `layerling_punch` | ponst de omtrek van een lichaam, gezien langs x, y of z, recht door een ander; de stempel blijft en hoeft het niet te raken |
+| `layerling_offset_object` | verschuift alle vlakken van een lichaam voor de speling van een pasvorm: vergroot of verkleint het, of voegt de vergrote kopie als gat toe, of verschuift alleen de zijkanten |
 | `layerling_list_faces` | somt de vlakken van een exact lichaam op |
 | `layerling_delete_faces` | verwijdert vlakken en sluit de opening |
-| `layerling_array_objects` | vermenigvuldigt in een rij of op een cirkel |
+| `layerling_array_objects` | vermenigvuldigt in een rij, een raster of op een cirkel |
 | `layerling_bundle_objects` | bundelt objecten zoals Ctrl+B: ze bewegen samen, houden hun kleur en soort en gaan bij een export apart mee |
 | `layerling_layer_text` | maakt van een tekst een stapel lagen voor een meerkleurenprint (letters, bredere randen, een plaat zonder gaten) of bouwt een stapel opnieuw op, met een sleutelringgat, de hoeken per laag en een afgeronde of afgeschuinde letterrand; met een namenlijst één label per naam |
+| `layerling_text_block` | maakt een tekstblok: een tekst wordt de eerste van meerdere regels, elk een eigen tekst onder de vorige, links, gecentreerd of rechts uitgelijnd, elke regel even groot of kleiner |
 | `layerling_layer_icon` | maakt van een SVG-pictogram (de tekst van het bestand, of een geëxtrudeerd schetslichaam) een gelaagd pictogramlabel voor een meerkleurenprint - het pictogram, bredere randen, een plaat zonder gaten - of bouwt er een opnieuw op met een nieuwe breedte of nieuwe lagen; met een aantal vult het de plaat met kopieën |
 | `layerling_create_qr_code` | maakt van een tekst of webadres een QR-code, zoals {{ui:shape.qrCode}} in de vormenbibliotheek - alleen de code, verhoogd op een plaat of gegraveerd, met foutcorrectie, breedte, hoogte, stille zone en desgewenst als gat; waarschuwt als een module kleiner wordt dan 0,8 mm |
-| `layerling_reference_image` | voegt een referentieafbeelding toe uit een afbeelding, zoals {{ui:import.referenceImage}}, of verplaatst, draait, kalibreert (twee punten van de afbeelding en hun werkelijke afstand), vervaagt of vergrendelt er een - een hulpmiddel dat nooit wordt geëxporteerd of geprint |
+| `layerling_create_sbc_board` | plaatst een SBC-bord op ware grootte, zoals {{ui:shape.sbcBoard}} in de vormenbibliotheek - Raspberry Pi 5, 4, 3 B+, Zero 2 W of BIGTREETECH Pi, met gaten en aansluitingen, de speling rond de randaansluitingen, de positie en als gat voor een behuizing |
+| `layerling_reference_image` | voegt een referentieafbeelding toe uit een afbeelding, zoals {{ui:import.referenceImage}}, of verplaatst, draait, kalibreert (twee punten van de afbeelding en hun werkelijke afstand), vervaagt of vergrendelt er een - een hulpmiddel dat nooit wordt geëxporteerd of geprint; `trace` maakt van het donkere of lichte deel een schetslichaam dat erop staat |
 | `layerling_measure_section` | meet op een doorsnedevlak tussen twee punten die op de contour snappen - wanddikte, spleten, passingen |
 | `layerling_show_overhangs` | zet de overhangarcering aan of uit, stelt de hoek in en meldt per lichaam het oppervlak dat support nodig zou hebben |
 | `layerling_estimate_print` | schat volume, gewicht en filament voor de selectie of het hele ontwerp: voor een massief lichaam en als grove schatting met wanden en infill zoals in het exportvenster |
+| `layerling_check_clearance` | controleert vóór het printen welke onderdelen overlappen, elkaar raken of dichter bij elkaar komen dan een minimale speling (Speling controleren), ook de losse delen van één object |
+| `layerling_printer_play` | leest, zet of wist de speling van de printer ({{ui:workspace.printerPlay}} in de instellingen) en legt de pastest neer die hem meet |
+| `layerling_check_print` | controleert vóór het printen wat er mis zou gaan: te dunne wanden voor de nozzle, zwevende delen, weinig houvast op de plaat, overhangen en open meshes (Print controleren) |
 | `layerling_add_reference_points` | markeert referentiepunten - op het midden, de hoeken of de randmiddens van objecten, of op exacte posities - waarop vormen snappen |
 | `layerling_list_reference_points` | somt de referentiepunten op met hun id's en posities |
 | `layerling_remove_reference_points` | verwijdert referentiepunten op id, of allemaal |
+| `layerling_list_notes` | leest de notities van de gebruiker met hun tekst, het lichaam waaraan elke vastzit en of het een verzoek aan de AI is |
+| `layerling_wait_for_notes` | wacht tot je bij een notitie {{ui:note.forAi}} aanvinkt en geeft het verzoek meteen door |
+| `layerling_add_note` | zet een notitie op het model, vast aan een object of los op het bouwplaat |
+| `layerling_update_note` | wijzigt een notitie of beantwoordt haar; een antwoord sluit het verzoek |
+| `layerling_remove_notes` | verwijdert notities op id |
 | `layerling_inspect_errors` | toont de laatste melding en de laatste fout, plus de meldingen en fouten van de sessie |
 | `layerling_wrap_around_cylinder` | wikkelt een plat liggend lichaam, bijvoorbeeld een SVG of tekst, om een cilinder, naar buiten of naar binnen als gravure |
+| `layerling_texture_surface` | brengt een oppervlaktestructuur aan op een lichaam: groeven, kartel, honingraat of noppen, voor grip of voor het oog, en wijzigt of verwijdert die later |
 | `layerling_simplify_mesh` | verlaagt het aantal driehoeken van een geïmporteerde mesh, tot een deel in procenten of tot een aantal driehoeken |
+| `layerling_make_exact` | maakt van een geïmporteerde mesh een exact CAD-lichaam: vlakken, cilinders, kegels, bollen en tori worden echte vlakken, zodat randen netjes afronden en STEP ze draagt |
 | `layerling_save_custom_shape` | bewaart lichamen als eigen vorm, op de server of in de browser, om ze in andere ontwerpen in te voegen |
 | `layerling_list_custom_shapes` | somt de eigen vormen op de server en in de browser op |
 | `layerling_insert_custom_shape` | voegt een eigen vorm in het geopende ontwerp in, desgewenst op een plek x/z |
 | `layerling_delete_custom_shape` | verwijdert een eigen vorm; ingevoegde lichamen blijven staan |
 | `layerling_show_workplane` | verbergt en toont de plaat met zijn raster, bijvoorbeeld voor een afbeelding van de onderkant (alleen de weergave) |
+| `layerling_focus_mode` | zet de focusmodus aan en uit: verbergt de titelregel en de voettekst voor meer ruimte (alleen het kader van de editor) |
 | `layerling_set_section_view` | snijdt de weergave open langs een vlak om naar binnen te kijken (alleen de weergave, er wordt niets doorgesneden) |
-| `layerling_measurements` | toont of verbergt de metingen van het meetlint en somt ze op met hun lengtes |
+| `layerling_measurements` | toont of verbergt de metingen van het meetlint en somt ze op met hun lengtes, en verbergt of toont de maten rond de selectie zoals [[Q]], en typt een lengte voor een ervan, die het lichaam aan het uiteinde verschuift zoals een klik op het getal |
+| `layerling_measure_angle` | meet een hoek zoals de gradenboog: in het hoekpunt van drie punten of tussen twee platte vlakken, en toont hem in de weergave |
 | `layerling_saved_view` | slaat de huidige weergave op onder de toets 7, 8, 9 of 0 en gaat ernaar terug, zoals Shift+toets en de toets (alleen de weergave); stelt ook de startweergave van nieuwe ontwerpen in |
+| `layerling_build_plates` | toont, voegt toe, benoemt, ordent en verwijdert de bouwplaten, zet objecten op een plaat en verdeelt ze over de platen, zoals de platenbalk |
 | `layerling_clear_history` | verwijdert definitief elke stap voor ongedaan maken, zoals de knop "Geschiedenis verwijderen" van de geschiedenisweergave; vereist `confirm: true` |
+| `layerling_list_backups` | toont de automatische back-ups (Eerdere versies) van het geopende ontwerp, of met `all: true` van alle ontwerpen in deze browser |
+| `layerling_open_backup` | opent een back-up via zijn `id` als nieuw ontwerp, nooit gekoppeld aan het oorspronkelijke bestand |
 | `layerling_set_history_view` | kijkt terug naar een eerdere toestand van het project, zoals de geschiedenisweergave (het echte ontwerp blijft onaangeroerd; gereedschappen die iets wijzigen wachten tot hij gesloten is) |
 | `layerling_restore_from_history` | haalt objecten (ook onderdelen in groepen) uit een eerdere toestand als kopieën terug in het ontwerp, zoals „In het ontwerp halen” in de geschiedenisweergave - één stap die ongedaan maken terugneemt |
 | `layerling_export_section_svg` | geeft de contouren op een doorsnedevlak terug als SVG op 1:1, van dezelfde lichamen als de export |
+| `layerling_sketch_from_section` | maakt van de omtrekken op een doorsnedevlak een schets die op de doorsnede ligt: geopend in de editor om aan te passen, of meteen gebouwd als lichaam met een opgegeven hoogte |
 | `layerling_export_drawing` | maakt de werkplaatstekening van de "2D"-export: drie aanzichten op 1:1 op een ISO-blad met buitenmaten en een tabel van de ronde boringen, als SVG-tekst of PDF |
 | `layerling_export_mesh` | schrijft het bestand van het exportvenster als STL, 3MF, OBJ, SVG (bovenaanzicht, voetafdruk of zichtbare randen) of DXF voor lasersnijden, uit dezelfde lichamen; naar een pad op deze computer of als base64 |
 | `layerling_save_project` | slaat het hele bewerkbare ontwerp op als .lyl-bestand op een pad op de computer waarop de MCP-server draait, zonder dialoog; een bestaand bestand wordt alleen met `overwrite` vervangen, het wordt via een tijdelijk bestand geschreven, en het doel van Ctrl+S in de editor blijft zoals het was |

@@ -52,13 +52,14 @@ describe("shape catalog", () => {
     expect(rulerIndex).toBe(kinds.length - 1);
   });
 
-  it("puts the screw holes and the teardrop after the bent tube, and text right behind them", () => {
+  it("puts the screw holes, the teardrop and the port opening after the bent tube, and text right behind them", () => {
     const kinds = toolbarShapeAssets.map((asset) => asset.kind);
     expect(kinds.indexOf("counterbore")).toBe(kinds.indexOf("bentTube") + 1);
     expect(kinds.indexOf("countersink")).toBe(kinds.indexOf("counterbore") + 1);
     expect(kinds.indexOf("doubleCountersink")).toBe(kinds.indexOf("countersink") + 1);
     expect(kinds.indexOf("teardrop")).toBe(kinds.indexOf("doubleCountersink") + 1);
-    expect(kinds.indexOf("text")).toBe(kinds.indexOf("teardrop") + 1);
+    expect(kinds.indexOf("port")).toBe(kinds.indexOf("teardrop") + 1);
+    expect(kinds.indexOf("text")).toBe(kinds.indexOf("port") + 1);
   });
 
   it("puts Gridfinity right after the spring", () => {
@@ -66,15 +67,19 @@ describe("shape catalog", () => {
     expect(kinds.indexOf("gridfinity")).toBe(kinds.indexOf("spring") + 1);
   });
 
-  it("exposes knurl, hinge and dovetail between gear and the decorative shapes in the toolbar catalog", () => {
+  it("exposes the Hirth joint, GT2 pulley, knurl, hinge, dovetail and the enclosure parts between gear and the decorative shapes in the toolbar catalog", () => {
     const kinds = toolbarShapeAssets.map((asset) => asset.kind);
 
     const gearIndex = kinds.indexOf("gear");
     const dovetailIndex = kinds.indexOf("dovetail");
-    expect(kinds.indexOf("knurl")).toBe(gearIndex + 1);
-    expect(kinds.indexOf("hinge")).toBe(gearIndex + 2);
-    expect(dovetailIndex).toBe(gearIndex + 3);
-    expect(kinds.indexOf("star")).toBe(dovetailIndex + 1);
+    expect(kinds.indexOf("hirth")).toBe(gearIndex + 1);
+    expect(kinds.indexOf("pulley")).toBe(gearIndex + 2);
+    expect(kinds.indexOf("knurl")).toBe(gearIndex + 3);
+    expect(kinds.indexOf("hinge")).toBe(gearIndex + 4);
+    expect(dovetailIndex).toBe(gearIndex + 5);
+    // The enclosure parts come next, then the decorative shapes.
+    expect(kinds.slice(dovetailIndex + 1, dovetailIndex + 4)).toEqual(["screwBoss", "snapFit", "rib"]);
+    expect(kinds.indexOf("star")).toBe(dovetailIndex + 4);
   });
 
   it("no longer offers the honeycomb: the hole pattern tool replaced it (#223)", () => {
@@ -342,5 +347,18 @@ describe("the colour the library shows", () => {
   it("is the same colour the shape is added in", () => {
     expect(makeShapeFromAsset(box).color).toBe(box.color);
     expect(makeShapeFromAsset(box, undefined, { color: "#123456" }).color).toBe("#123456");
+  });
+
+  it("keeps a rounded box's bottom edge on its own only when one is given, and fits the two in the height", () => {
+    const asset: ShapeAsset = { id: "roundedBox", name: "Rounded Box", src: "roundedBox.png", kind: "roundedBox", color: "#e74c3c" };
+    const shared = makeShapeFromAsset(asset, undefined, { topBottomFillet: 4 });
+    expect(shared.topBottomFillet).toBe(4);
+    expect(shared.bottomFillet).toBeUndefined();
+    const apart = makeShapeFromAsset(asset, undefined, { height: 20, topBottomFillet: 15, bottomFillet: 9 });
+    expect([apart.topBottomFillet, apart.bottomFillet]).toEqual([11, 9]);
+    const flatTop = makeShapeFromAsset(asset, undefined, { topBottomFillet: 0, bottomFillet: 3 });
+    expect([flatTop.topBottomFillet, flatTop.bottomFillet]).toEqual([0, 3]);
+    // other shapes have neither
+    expect(makeShapeFromAsset({ ...asset, id: "box", kind: "box" }, undefined, { bottomFillet: 3 }).bottomFillet).toBeUndefined();
   });
 });

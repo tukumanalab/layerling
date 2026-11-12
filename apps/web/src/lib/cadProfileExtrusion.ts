@@ -2,11 +2,13 @@ import * as THREE from "three";
 import { taperedSlotOutline } from "@/lib/slotGeometry";
 import { weldOnGrid } from "@/lib/gridWeld";
 import type { WorkplaneShape } from "@/types/layerling";
-import type { CadModifierProfileLoop, CadModifierProfilePart, CadModifierProfileSegment, CadModifierGridfinityPart, CadModifierHelicalGearPart, CadModifierSpringPart, CadModifierSweepPiece, CadModifierThreadPart } from "@/lib/cadModifierTypes";
+import type { CadModifierProfileLoop, CadModifierProfilePart, CadModifierProfileSegment, CadModifierEnclosurePart, CadModifierGridfinityPart, CadModifierHelicalGearPart, CadModifierHirthPart, CadModifierSpringPart, CadModifierSweepPiece, CadModifierThreadPart } from "@/lib/cadModifierTypes";
+import { hirthMeasures } from "@/lib/hirthGeometry";
 import { profileArcPoint, profileLoopBounds, TWIST_SECTION_STEP, validateCadProfile } from "@/lib/cadProfileSolid";
 import { cadTransformFromMatrix } from "@/lib/cadBakeMetadata";
 import { CAD_MODIFIER_EXACT_SEGMENT_LIMIT } from "@/lib/cadModifierRuntime";
-import { deformsAboutOrigin, meshYawDegrees, mirrorSign, shapeDepth, shapeHasShapeDeform, shapeTaperDimensions, shapeWidth } from "@/lib/workplaneShapes";
+import { deformsAboutOrigin, extrudeTwistPivot, meshYawDegrees, mirrorSign, shapeDepth, shapeHasExtrudeDeform, shapeHasShapeDeform, shapeHasTaper, shapeTaperDimensions, shapeWidth } from "@/lib/workplaneShapes";
+import { alongLevels, LYING_ALONG_KINDS, narrowCurveForShape, narrowHalfWidthAt, normalizeSlopeSide, shapeHasAlongDeform, shapeHasNarrow, shapeHasSymmetricDeform, shapeHasSlope, slopeAlongWidth, slopeCurveForShape, slopeScaleAt, slopeSectionCount } from "@/lib/slopeAlong";
 import { regularPolygonFootprintScale } from "@/lib/regularPolygonFootprint";
 import { roundSideCount } from "@/lib/roundSideCount";
 import { drawnRound, ROUND_FROM_BENT_TUBE_QUALITY, ROUND_FROM_HALF_SPHERE_STEPS, ROUND_FROM_ROOF_SIDES, ROUND_FROM_SIDES, ROUND_FROM_SPHERE_STEPS } from "@/lib/roundness";
@@ -19,8 +21,13 @@ import { buildHoneycombHoles, normalizeHoneycombCellSize, normalizeHoneycombFram
 import { dovetailOutlineForShape } from "@/lib/dovetailGeometry";
 import { loftProfileLoops } from "@/lib/loftGeometry";
 import { teardropExactSection } from "@/lib/teardropGeometry";
-import { screwHoleProfile } from "@/lib/screwHoleGeometry";
-import { DEFAULT_ROUNDED_BOX_CORNER_FILLET, DEFAULT_ROUNDED_BOX_TOP_BOTTOM_FILLET, normalizeCornerFillet, normalizeRoundedBoxQuality, normalizeTopBottomFillet } from "@/lib/roundedBoxGeometry";
+import { isPolygonPortProfile, normalizePortCorner, portChamfer, portPolygonCorners } from "@/lib/portGeometry";
+import { normalizePyramidTop, pyramidOutline } from "@/lib/pyramidGeometry";
+import { screwHoleProfile, screwHoleSlotMeasures } from "@/lib/screwHoleGeometry";
+import { shapeDrillPointAngle, shapeDrillPointLength } from "@/lib/drillPoint";
+import { curvedConeSection } from "@/lib/curvedCone";
+import { finishingWasherMeasures } from "@/lib/finishingWasherGeometry";
+import { DEFAULT_ROUNDED_BOX_CORNER_FILLET, DEFAULT_ROUNDED_BOX_TOP_BOTTOM_FILLET, normalizeCornerFillet, normalizeCornerFillets, normalizeEndFillets, normalizeRoundedBoxQuality } from "@/lib/roundedBoxGeometry";
 import { textGlyphShapes, textKeyringOf } from "@/lib/textGeometry";
 import { normalizeSketchStroke } from "@/lib/sketchStroke";
 import { textHasEdge } from "@/lib/textEdge";
@@ -28,9 +35,12 @@ import { textFillComponents, textFillPieceGeometry, textHasFill } from "@/lib/te
 import { loadedManifoldRuntime } from "@/lib/manifoldHandle";
 import { threadBuildPlan, WHITWORTH_PROFILE_CONSTANTS } from "@/lib/threadGeometry";
 import { springBuildPlan, springRingSectionShare } from "@/lib/springGeometry";
+import { flatSpringProfileLoops } from "@/lib/flatSpringGeometry";
 import { gridfinityHasPieces, gridfinityPlan } from "@/lib/gridfinityGeometry";
+import { gridfinityLabelGlyphs } from "@/lib/gridfinityLabelText";
 import { knurlCorners, knurlSettings, roundKnurlWave } from "@/lib/knurlGeometry";
-import { BEVEL_GEAR_TOP_SCALE, gearHelixTwist, gearOutlineCorners, internalGearMeasures, internalGearOutline, involuteFlankPoint, involuteGearMeasures, involuteOutlineStretch, involuteToothCentre, normalizeGearCenterHoleSize, normalizeGearProfile, normalizeGearToothSize, normalizeGearType, rackMeasures, rackOutlinePoints, rackToothArcs, roundGearMeasures, roundInternalMeasures, roundToothArcs, type GearOutlineOptions, type InternalGearOptions, type InvoluteGearMeasures, type RackOptions, type RoundWave } from "@/lib/gearGeometry";
+import { pulleyArcPoint, pulleyMeasures, pulleyToothArcs } from "@/lib/pulleyGeometry";
+import { BEVEL_GEAR_TOP_SCALE, bevelGearIsSpiral, extendedRackMeasures, gearHelixTwist, gearOutlineCorners, gearTypeHasHelix, internalGearMeasures, internalGearOutline, involuteFlankPoint, involuteGearMeasures, involuteOutlineStretch, involuteToothCentre, normalizeGearCenterHoleSize, normalizeGearProfile, normalizeGearToothSize, normalizeGearTeeth, normalizeGearType, rackExtraTeeth, rackHelixTravel, rackMeasures, rackOutlinePoints, rackToothArcs, ringGearHelixTwist, ringRackIsHelical, roundGearMeasures, roundInternalMeasures, roundToothArcs, type GearOutlineOptions, type InternalGearOptions, type InvoluteGearMeasures, type RackOptions, type RoundWave } from "@/lib/gearGeometry";
 
 /*
  * The outlines below follow the display geometry of each shape
@@ -44,7 +54,7 @@ type Point = { x: number; z: number };
 type Arc = { cx: number; cz: number; rx: number; rz: number; start: number; end: number };
 type Corner = { start: Point; end: Point; arc?: Arc };
 
-export const CAD_PROFILE_SHAPE_KINDS = new Set<WorkplaneShape["kind"]>(["polygon", "star", "heart", "crescent", "slot", "honeycomb", "gear", "knurl", "dovetail", "teardrop", "counterbore", "countersink", "doubleCountersink", "ellipse", "cylinder", "tube", "ring", "halfSphere", "sphere", "cone", "roundRoof", "roundedBox", "text", "bentTube", "loft"]);
+export const CAD_PROFILE_SHAPE_KINDS = new Set<WorkplaneShape["kind"]>(["polygon", "star", "heart", "crescent", "slot", "honeycomb", "gear", "pulley", "knurl", "dovetail", "teardrop", "port", "counterbore", "countersink", "doubleCountersink", "finishingWasher", "ellipse", "cylinder", "tube", "ring", "halfSphere", "paraboloid", "curvedCone", "sphere", "cone", "pyramid", "wedge", "roundRoof", "roundedBox", "text", "bentTube", "loft", "spring"]);
 
 function shortestAngleDelta(from: number, to: number) {
   let delta = to - from;
@@ -669,6 +679,27 @@ function bevelGearProfile(shape: WorkplaneShape, width: number, depth: number): 
   return part;
 }
 
+/**
+ * A pyramid (createPyramidGeometry): its base, the regular polygon filling the footprint, lofted to its tip on the
+ * axis, or to its top, the same polygon filling the top's measures. To the tip every side is a flat triangle; a top
+ * that narrows by different factors across and along leaves some sides out of plane, and those are the ruled surface
+ * between their edges, as on a tapered prism. The corners are rounded to the display mesh's 32-bit floats and run the
+ * way round a box's outline does: the kernel's fillet on the base edges fails less often so.
+ */
+function pyramidProfile(shape: WorkplaneShape, width: number, depth: number): CadModifierProfilePart {
+  const ring = (across: number, along: number) => {
+    const corners = pyramidOutline(shape.sides ?? 4, across, along).map(([x, z]) => ({ x: Math.fround(x), z: Math.fround(z) }));
+    return polygonLoop(ringArea(corners) > 0 ? corners : corners.reverse());
+  };
+  const topWidth = normalizePyramidTop(shape.topWidth, width);
+  const topDepth = normalizePyramidTop(shape.topDepth, depth);
+  const part: CadModifierProfilePart = { kind: "loft", loops: [ring(Math.max(0.01, width), Math.max(0.01, depth))], height: shape.height, transform: profileTransformForShape(shape) };
+  if (topWidth <= 0 || topDepth <= 0) part.apex = { x: 0, z: 0 };
+  else part.topLoops = [ring(topWidth, topDepth)];
+  validateCadProfile(part);
+  return part;
+}
+
 /** Straight text is laid out at this size and then scaled into its frame (createTextGeometry). */
 /**
  * The transition (#188): its bottom and top outline, cut into partner pieces, joined by a
@@ -870,7 +901,7 @@ export function textGlyphProfiles(shape: WorkplaneShape) {
  * `local` maps the solid the profile builds (extruded along +y from y = 0, or
  * turned around the Z axis) into the shape's local frame.
  */
-type ProfileFrame = { kind: "extrusion" | "revolution" | "sweep"; height: number; local: THREE.Matrix4; path?: CadModifierSweepPiece[] };
+type ProfileFrame = { kind: "extrusion" | "revolution" | "sweep"; height: number; local: THREE.Matrix4; path?: CadModifierSweepPiece[]; slot?: CadModifierProfilePart["slot"] };
 
 /**
  * The bent tube: its cross-section swept along straight runs and true
@@ -930,20 +961,77 @@ function upright(stretch = 1) {
 }
 
 /** A rectangle with all four corners rounded by `radius`, counter-clockwise from the lower right. */
-function roundedRectLoop(width: number, depth: number, radius: number): CadModifierProfileLoop {
+function roundedRectLoop(width: number, depth: number, radius: number, own?: readonly number[]): CadModifierProfileLoop {
   const hw = width / 2;
   const hd = depth / 2;
-  if (radius <= 1e-4) return polygonLoop([{ x: hw, z: -hd }, { x: hw, z: hd }, { x: -hw, z: hd }, { x: -hw, z: -hd }]);
-  const corner = (cx: number, cz: number, start: number): Corner => {
-    const arc: Arc = { cx, cz, rx: radius, rz: radius, start, end: start + Math.PI / 2 };
+  // Own radii come back left, back right, front right, front left; the loop runs back right, front right, front left, back left.
+  const radii = own ? [own[1], own[2], own[3], own[0]] : [radius, radius, radius, radius];
+  if (radii.every((value) => value <= 1e-4)) return polygonLoop([{ x: hw, z: -hd }, { x: hw, z: hd }, { x: -hw, z: hd }, { x: -hw, z: -hd }]);
+  const corner = (sx: number, sz: number, start: number, value: number): Corner => {
+    // A corner of no radius is a plain point.
+    if (value <= 1e-4) return { start: { x: sx * hw, z: sz * hd }, end: { x: sx * hw, z: sz * hd } };
+    const arc: Arc = { cx: sx * (hw - value), cz: sz * (hd - value), rx: value, rz: value, start, end: start + Math.PI / 2 };
     return { start: profileArcPoint(arc, arc.start), end: profileArcPoint(arc, arc.end), arc };
   };
   return loopFromCorners([
-    corner(hw - radius, -(hd - radius), -Math.PI / 2),
-    corner(hw - radius, hd - radius, 0),
-    corner(-(hw - radius), hd - radius, Math.PI / 2),
-    corner(-(hw - radius), -(hd - radius), Math.PI),
+    corner(1, -1, -Math.PI / 2, radii[0]),
+    corner(1, 1, 0, radii[1]),
+    corner(-1, 1, Math.PI / 2, radii[2]),
+    corner(-1, -1, Math.PI, radii[3]),
   ]);
+}
+
+/**
+ * A port opening drawn as a rounded polygon (XT60, XT30, MT60, D-Sub): each corner one arc of the
+ * corner radius around its point, the sides straight between them (portContourPoints).
+ */
+function portPolygonLoop(profile: unknown, width: number, height: number, corner: number): CadModifierProfileLoop {
+  return loopFromCorners(portPolygonCorners(profile, width, height, corner).map((point): Corner => {
+    if (corner <= 1e-4) return { start: { x: point.x, z: point.y }, end: { x: point.x, z: point.y } };
+    const arc: Arc = { cx: point.x, cz: point.y, rx: corner, rz: corner, start: point.start, end: point.end };
+    return { start: profileArcPoint(arc, arc.start), end: profileArcPoint(arc, arc.end), arc };
+  }));
+}
+
+/**
+ * The port opening's outline in its front view, standing on z = 0. Fully round
+ * ends (a USB-C socket) are one half circle each, not two quarters, so each end
+ * is one face; a round opening is one circle.
+ */
+function portProfileLoop(width: number, height: number, corner: number, chamfer: ReturnType<typeof portChamfer>): CadModifierProfileLoop {
+  const half = height / 2;
+  if (chamfer) {
+    // HDMI and DisplayPort: the lower corners cut off straight, the others rounded by a quarter circle (portContourPoints).
+    const hw = width / 2;
+    const quarter = (x: number, z: number, cx: number, cz: number, start: number): Corner => {
+      if (corner <= 1e-4) return { start: { x, z }, end: { x, z } };
+      const arc: Arc = { cx, cz, rx: corner, rz: corner, start, end: start + Math.PI / 2 };
+      return { start: profileArcPoint(arc, arc.start), end: profileArcPoint(arc, arc.end), arc };
+    };
+    const point = (x: number, z: number): Corner => ({ start: { x, z }, end: { x, z } });
+    return loopFromCorners([
+      ...(chamfer.right ? [point(hw - chamfer.x, 0), point(hw, chamfer.y)] : [quarter(hw, 0, hw - corner, corner, -Math.PI / 2)]),
+      quarter(hw, height, hw - corner, height - corner, 0),
+      quarter(-hw, height, -(hw - corner), height - corner, Math.PI / 2),
+      ...(chamfer.left ? [point(-hw, chamfer.y), point(-(hw - chamfer.x), 0)] : [quarter(-hw, 0, -(hw - corner), corner, Math.PI)]),
+    ]);
+  }
+  const roundAcrossHeight = corner >= half - 1e-6;
+  const roundAcrossWidth = corner >= width / 2 - 1e-6;
+  if (roundAcrossHeight && roundAcrossWidth) return mapLoop(ellipseLoop(width / 2, half), 1, 0, 1, half);
+  const end = (cx: number, cz: number, start: number): Corner => {
+    const arc: Arc = { cx, cz, rx: corner, rz: corner, start, end: start + Math.PI };
+    return { start: profileArcPoint(arc, arc.start), end: profileArcPoint(arc, arc.end), arc };
+  };
+  if (roundAcrossHeight) {
+    const hx = width / 2 - corner;
+    return loopFromCorners([end(hx, half, -Math.PI / 2), end(-hx, half, Math.PI / 2)]);
+  }
+  if (roundAcrossWidth) {
+    const hz = half - corner;
+    return loopFromCorners([end(0, half + hz, 0), end(0, half - hz, Math.PI)]);
+  }
+  return mapLoop(roundedRectLoop(width, height, corner), 1, 0, 1, half);
 }
 
 /** Frame that lays an outline built in the profile's x/z plane along the shape's depth: solid (x, e, z) -> local (x, z, depth / 2 - e). */
@@ -951,7 +1039,7 @@ function alongDepthFrame(depth: number): ProfileFrame {
   return { kind: "extrusion", height: depth, local: new THREE.Matrix4().set(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, depth / 2, 0, 0, 0, 1) };
 }
 
-export function cadProfileForShapeKind(shape: WorkplaneShape, designedRound = false): { loops: CadModifierProfileLoop[]; frame?: ProfileFrame; capFillet?: number; capChamfer?: { radius: number; size: number }; grow?: CadModifierProfilePart["grow"] } | null {
+export function cadProfileForShapeKind(shape: WorkplaneShape, designedRound = false): { loops: CadModifierProfileLoop[]; frame?: ProfileFrame; capFillet?: number; capFilletBottom?: number; capChamfer?: { radius: number; size: number }; grow?: CadModifierProfilePart["grow"] } | null {
   const width = shapeWidth(shape);
   const depth = shapeDepth(shape);
   switch (shape.kind) {
@@ -969,6 +1057,9 @@ export function cadProfileForShapeKind(shape: WorkplaneShape, designedRound = fa
       return { loops: slotProfileLoops(width, depth, shape.slotEndRatio) };
     case "honeycomb":
       return { loops: honeycombProfileLoops(width, depth, shape) };
+    case "spring":
+      // The flat spring (#1076) is an outline pushed up; the coil is built by springSolid.ts.
+      return shape.springForm === "flat" ? { loops: flatSpringProfileLoops({ ...shape, width, depth }) } : null;
     case "dovetail":
       return { loops: [polygonLoop(dovetailOutlineForShape(shape).map((point) => ({ x: point.x, z: point.y })))] };
     case "teardrop": {
@@ -985,6 +1076,17 @@ export function cadProfileForShapeKind(shape: WorkplaneShape, designedRound = fa
         frame: alongDepthFrame(depth),
       };
     }
+    case "port": {
+      // A rounded rectangle in the front view (createPortGeometry), lifted to stand on z = 0 and pushed along the depth like the teardrop.
+      const corner = normalizePortCorner(shape.cornerFillet, width, shape.height, shape.portProfile);
+      if (isPolygonPortProfile(shape.portProfile)) return { loops: [portPolygonLoop(shape.portProfile, width, shape.height, corner)], frame: alongDepthFrame(depth) };
+      return { loops: [portProfileLoop(width, shape.height, corner, portChamfer(shape.portProfile, width, shape.height))], frame: alongDepthFrame(depth) };
+    }
+    case "wedge": {
+      // A right triangle in the front view, its right angle at the bottom of +x (createBooleanWedgeGeometry), pushed along the depth.
+      const half = width / 2;
+      return { loops: [polygonLoop([{ x: -half, z: 0 }, { x: half, z: 0 }, { x: half, z: shape.height }])], frame: alongDepthFrame(depth) };
+    }
     case "ellipse":
     case "cylinder": {
       // createPrismGeometry. Drawn with few sides (see drawnRound) it is the
@@ -992,6 +1094,16 @@ export function cadProfileForShapeKind(shape: WorkplaneShape, designedRound = fa
       // stays one. Otherwise a round cylinder is an analytic primitive, and
       // only an oval one, or the ellipse, comes here.
       const count = Math.max(3, Math.round(roundSideCount(shape.sides, width, depth)));
+      // A drilled hole (Discussion #621): the wall and the cone of its drill point below it, turned around the axis
+      // as the screw holes are. Drawn with few sides it is a prism on a pyramid and keeps its display mesh.
+      const drillPoint = shape.kind === "cylinder" ? shapeDrillPointLength(shape) : 0;
+      if (drillPoint > 0) {
+        if (!drawnRound(shape.sides, ROUND_FROM_SIDES, count, width, depth) || Math.abs(width - depth) > 1e-4) return null;
+        const radius = width / 2;
+        const section = polygonLoop([{ x: 0, z: -drillPoint }, { x: radius, z: 0 }, { x: radius, z: shape.height }, { x: 0, z: shape.height }]);
+        // solid (x, y, z) -> local (x, z, -y): the turned body stands along z, the shape's height runs along y
+        return { loops: [section], frame: { kind: "revolution", height: shape.height, local: new THREE.Matrix4().makeRotationX(-Math.PI / 2) } };
+      }
       if (!drawnRound(shape.sides, ROUND_FROM_SIDES, count, width, depth)) return { loops: polygonProfileLoops(width, depth, count) };
       if (shape.kind === "cylinder" && Math.abs(width - depth) <= 1e-4) return null;
       return { loops: [ellipseLoop(width / 2, depth / 2)] };
@@ -1022,6 +1134,27 @@ export function cadProfileForShapeKind(shape: WorkplaneShape, designedRound = fa
       const ry = shape.height;
       const loop: CadModifierProfileLoop = { x: 0, z: 0, segments: [{ kind: "line", x: rx, z: 0 }, arcSegment({ cx: 0, cz: 0, rx, rz: ry, start: 0, end: Math.PI / 2 }), { kind: "line", x: 0, z: 0 }] };
       return { loops: [loop], frame: { kind: "revolution", height: ry, local: upright(depth / width) } };
+    }
+    case "paraboloid": {
+      // A dome whose height falls with the square of the distance from the axis (createParaboloidGeometry),
+      // stretched to the depth when the footprint is oval. Its section is exactly the quadratic Bezier curve
+      // from the rim to the tip with its control point half way in at the full height. Drawn with few steps it
+      // is faceted and stays on its display mesh, as the half sphere.
+      const corners = Math.max(8, Math.round(shape.steps ?? ROUND_FROM_HALF_SPHERE_STEPS) * 2);
+      if (!drawnRound(shape.steps, ROUND_FROM_HALF_SPHERE_STEPS, corners, Math.max(width, shape.height * 2), Math.max(depth, shape.height * 2))) return null;
+      const radius = width / 2;
+      const loop: CadModifierProfileLoop = { x: 0, z: 0, segments: [{ kind: "line", x: radius, z: 0 }, { kind: "bezier", x: 0, z: shape.height, controls: [{ x: radius / 2, z: shape.height }] }, { kind: "line", x: 0, z: 0 }] };
+      return { loops: [loop], frame: { kind: "revolution", height: shape.height, local: upright(depth / width) } };
+    }
+    case "curvedCone": {
+      // The side's section is the quadratic Bezier curve of createCurvedConeGeometry, turned around the axis and
+      // stretched to the depth when the footprint is oval. Drawn with few sides it is faceted and stays on its display mesh.
+      if (!drawnRound(shape.sides, ROUND_FROM_SIDES, Math.floor(roundSideCount(shape.sides, width, depth)), width, depth)) return null;
+      const section = curvedConeSection(width, shape.height, shape.curvedConeTop, shape.curvedConeBend);
+      const segments: CadModifierProfileSegment[] = [{ kind: "line", x: section.base, z: 0 }, { kind: "bezier", x: section.top, z: shape.height, controls: [section.control] }];
+      if (section.top > 1e-9) segments.push({ kind: "line", x: 0, z: shape.height });
+      segments.push({ kind: "line", x: 0, z: 0 });
+      return { loops: [{ x: 0, z: 0, segments }], frame: { kind: "revolution", height: shape.height, local: upright(depth / width) } };
     }
     case "sphere": {
       // SphereGeometry scaled to width, height and depth, standing on y = 0: a
@@ -1073,24 +1206,50 @@ export function cadProfileForShapeKind(shape: WorkplaneShape, designedRound = fa
     }
     case "roundedBox": {
       const corner = normalizeCornerFillet(shape.cornerFillet ?? DEFAULT_ROUNDED_BOX_CORNER_FILLET, Math.min(width, depth) / 2);
-      const ends = normalizeTopBottomFillet(shape.topBottomFillet ?? DEFAULT_ROUNDED_BOX_TOP_BOTTOM_FILLET, shape.height / 2);
+      const [top, bottom] = normalizeEndFillets(shape.topBottomFillet ?? DEFAULT_ROUNDED_BOX_TOP_BOTTOM_FILLET, shape.bottomFillet, shape.height);
+      const anyEnd = top > 1e-4 || bottom > 1e-4;
+      // Own radii for each corner count only with flat ends, as in the display.
+      const own = anyEnd ? undefined : normalizeCornerFillets(shape.cornerFillets, Math.min(width, depth) / 2);
       // Quality 1 is drawn as a flat chamfer (#239); the exact round would contradict what the view shows.
-      if (normalizeRoundedBoxQuality(shape.roundedBoxQuality) === 1 && (corner > 1e-4 || ends > 1e-4)) return null;
-      return { loops: [roundedRectLoop(width, depth, corner)], capFillet: ends > 1e-4 ? ends : undefined };
+      if (normalizeRoundedBoxQuality(shape.roundedBoxQuality) === 1 && (corner > 1e-4 || anyEnd || own?.some((value) => value > 1e-4))) return null;
+      const loops = [roundedRectLoop(width, depth, corner, own)];
+      // Top and bottom on their own: the top radius is `capFillet` (0 when flat) and the bottom one `capFilletBottom`.
+      if (shape.bottomFillet !== undefined && shape.bottomFillet !== null) return { loops, ...(anyEnd ? { capFillet: top, capFilletBottom: bottom } : {}) };
+      return { loops, capFillet: top > 1e-4 ? top : undefined };
     }
     case "counterbore":
     case "countersink":
     case "doubleCountersink": {
+      // A slotted hole (Discussion #1531) is the round one as wide as its head, turned at both ends of the slot and
+      // pushed along it in between (screwHoleSlotMeasures); it has no drill point.
+      const slot = shape.screwHoleSlot ? screwHoleSlotMeasures(width, depth) : null;
       // Only a round hole is a body of revolution; stretched along z it stays a mesh.
-      if (Math.abs(width - depth) > 1e-6) return null;
-      const points = screwHoleProfile({ kind: shape.kind, width, height: shape.height, screwHoleShaft: shape.screwHoleShaft, screwHoleHeadDepth: shape.screwHoleHeadDepth, screwHoleAngle: shape.screwHoleAngle })
+      if (!slot && Math.abs(width - depth) > 1e-6) return null;
+      const points = screwHoleProfile({ kind: shape.kind, width: slot ? slot.head : width, height: shape.height, screwHoleShaft: shape.screwHoleShaft, screwHoleHeadDepth: shape.screwHoleHeadDepth, screwHoleAngle: shape.screwHoleAngle, screwHoleRecess: shape.screwHoleRecess, screwHoleChamfer: shape.screwHoleChamfer, drillPointAngle: shapeDrillPointAngle(shape) })
         .map(({ r, y }) => ({ x: r, z: y }));
+      // A drill point's tip (Discussion #621) lies on the axis already; the loop leaves out the edge of no length to it.
       const section = [{ x: 0, z: points[0].z }, ...points, { x: 0, z: points[points.length - 1].z }];
-      // solid (x, y, z) -> local (x, z, -y): the turned body stands along z, the shape's height runs along y
-      return { loops: [polygonLoop(section)], frame: { kind: "revolution", height: shape.height, local: new THREE.Matrix4().makeRotationX(-Math.PI / 2) } };
+      // solid (x, y, z) -> local (x, z, -y): the turned body stands along z, the shape's height runs along y, and a
+      // slot along the solid's y runs along the shape's depth, one along its x along the width.
+      const along = slot && slot.length > 1e-6 ? { slot: { length: slot.length, alongX: slot.alongX } } : {};
+      return { loops: [polygonLoop(section)], frame: { kind: "revolution", height: shape.height, local: new THREE.Matrix4().makeRotationX(-Math.PI / 2), ...along } };
+    }
+    case "finishingWasher": {
+      // createFinishingWasherGeometry: the bottom, the rim, the dome as its true quarter ellipse, the seat and the
+      // bore, turned around the axis. It is kept round; an oval one (only from outside the editor) stays a mesh.
+      if (Math.abs(width - depth) > 1e-6) return null;
+      const { outer, height, shaft, seatDepth, seat, rim } = finishingWasherMeasures({ width, height: shape.height, screwHoleShaft: shape.screwHoleShaft, screwHoleHeadDepth: shape.screwHoleHeadDepth, screwHoleAngle: shape.screwHoleAngle });
+      const segments: CadModifierProfileSegment[] = [{ kind: "line", x: outer, z: 0 }];
+      if (rim > 1e-6) segments.push({ kind: "line", x: outer, z: rim });
+      segments.push(arcSegment({ cx: seat, cz: rim, rx: outer - seat, rz: height - rim, start: 0, end: Math.PI / 2 }));
+      if (seatDepth > 1e-6) segments.push({ kind: "line", x: shaft, z: height - seatDepth });
+      segments.push({ kind: "line", x: shaft, z: 0 });
+      return { loops: [{ x: shaft, z: 0, segments }], frame: { kind: "revolution", height, local: upright() } };
     }
     case "gear": {
       const gearType = normalizeGearType(shape.gearType);
+      // Slanted teeth (Discussion #1627) are no straight extrusion: cadModifierHelicalGearForShape builds them.
+      if (ringRackIsHelical(shape)) return null;
       if (gearType === "internal") return { loops: internalGearLoops(width, depth, shape) };
       if (gearType === "rack") return { loops: [rackLoop(width, depth, shape)] };
       return gearType === "spur" ? { loops: gearProfileLoops(width, depth, shape) } : null;
@@ -1150,7 +1309,7 @@ function profileTransformForShape(shape: WorkplaneShape, local?: THREE.Matrix4) 
  * of the exact-body plan), an imported or grouped body, or a body that already
  * carries its own BREP.
  */
-const SIDED_ROUND_KINDS = new Set<WorkplaneShape["kind"]>(["cylinder", "ellipse", "cone", "tube", "ring", "roundRoof", "sphere", "halfSphere"]);
+const SIDED_ROUND_KINDS = new Set<WorkplaneShape["kind"]>(["cylinder", "ellipse", "cone", "tube", "ring", "roundRoof", "sphere", "halfSphere", "paraboloid", "curvedCone"]);
 
 /**
  * The shape as designed round: a round kind's side or step count left unset,
@@ -1193,7 +1352,7 @@ function deformedLoftProfile(shape: WorkplaneShape, width: number, depth: number
     // A round cylinder has no outline of its own (it is an analytic
     // primitive); as an ellipse it gets the same circle, or its drawn polygon.
     const base = cadProfileForShapeKind(shape.kind === "cylinder" ? { ...shape, kind: "ellipse" } : shape);
-    if (!base || base.frame || base.capFillet) return null;
+    if (!base || base.frame || base.capFillet || base.capFilletBottom !== undefined) return null;
     loops = base.loops;
     capChamfer = base.capChamfer;
   }
@@ -1223,11 +1382,13 @@ function deformedLoftProfile(shape: WorkplaneShape, width: number, depth: number
     if (Math.abs(bottom - taper.bottomDepth / depth) > 1e-6 || Math.abs(top - taper.topDepth / depth) > 1e-6) return null;
     part.capChamfer = { ...capChamfer, bottomScale: bottom, topScale: top, lean: { x: offsetX, z: offsetZ } };
   }
-  // A twist turns each section around the middle of the outline as it rises, as the display does.
+  // A twist turns each section around the middle of the outline as it rises, as the display does; a body with a
+  // rotation pivot of its own turns about the vertical through that instead (extrudeTwistPivot).
   const twist = shape.extrudeTwist ?? 0;
   if (Math.abs(twist) > 1e-6) {
     part.twist = twist;
-    part.twistCenter = { x: centerX, z: centerZ };
+    const pivot = extrudeTwistPivot(shape, width, depth);
+    part.twistCenter = pivot ?? { x: centerX, z: centerZ };
     part.twistLean = { x: offsetX, z: offsetZ };
     // Fine grooves need sections closer than the standard step, or the smooth loft swings out between them.
     if (shape.kind === "knurl") part.twistStep = Math.min(TWIST_SECTION_STEP, 90 / Math.max(1, knurlSettings({ ...shape, width }).count));
@@ -1236,12 +1397,218 @@ function deformedLoftProfile(shape: WorkplaneShape, width: number, depth: number
   return part;
 }
 
+
+/** Frame that lays an outline built in the profile's x/z plane along the shape's width: solid (x, e, z) -> local (e - width / 2, z, x). */
+function alongWidthFrame(width: number): ProfileFrame {
+  return { kind: "extrusion", height: width, local: new THREE.Matrix4().set(0, 1, 0, -width / 2, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1) };
+}
+
+/**
+ * A box or round roof with a slope along (slopeAlong.ts). The box is its side
+ * outline - the bottom, the two ends and the top line, straight or the Bezier the
+ * display follows - pushed across: flat faces and one ruled or Bezier top, exact.
+ * The round roof is a loft of its half-ellipse along its length, the height of
+ * each section the top's height there: a straight slope is the ruled loft between
+ * the two end sections, exactly; a curved one is lofted smoothly through sections
+ * close enough that the top stays within a hundredth of a millimetre.
+ */
+function slopedProfile(shape: WorkplaneShape, width: number, depth: number, designedRound?: boolean): CadModifierProfilePart | null {
+  const slope = shapeHasSlope(shape);
+  const narrow = shapeHasNarrow(shape);
+  if (shape.kind === "box") {
+    // A box both sloping and narrowing stays on the display mesh for now.
+    if (slope && narrow) return null;
+    return slope ? slopedBoxProfile(shape, width, depth) : narrowedBoxProfile(shape, width, depth);
+  }
+  if (LYING_ALONG_KINDS.has(shape.kind)) return alongRoofProfile(shape, depth, designedRound);
+  // An upright prism narrowing has no exact body yet; it keeps its display mesh.
+  if (narrow) return null;
+  return trimmedUprightProfile(shape, width, depth, designedRound);
+}
+
+/**
+ * An upright prism (cylinder, ellipse, polygon, tube, ring, rounded box without rounded
+ * ends) whose top slopes along its length: its plain extrusion, trimmed by its side
+ * outline - the top line straight or the display's Bezier - pushed across. The display
+ * scales every height by the top's height there, which keeps the sides upright and puts
+ * the top exactly on that line: the same body.
+ */
+function trimmedUprightProfile(shape: WorkplaneShape, width: number, depth: number, designedRound?: boolean): CadModifierProfilePart | null {
+  // A round cylinder is an analytic primitive without an outline of its own: as an ellipse it gets the circle.
+  const base = cadProfileForShapeKind(shape.kind === "cylinder" ? { ...shape, kind: "ellipse" } : shape, designedRound);
+  if (!base || base.frame || base.capChamfer || base.grow) return null;
+  const side = normalizeSlopeSide(shape.kind, shape.slopeSide);
+  const curve = slopeCurveForShape(shape);
+  // A rounded box keeps its rounded top and bottom edges (Discussion #1544): rounded after the top is cut, so the
+  // round runs along the sloping top. Where the low end is too short for both rounds the display mesh stays.
+  const topRound = base.capFillet ?? 0;
+  const bottomRound = base.capFilletBottom ?? topRound;
+  if (topRound + bottomRound > Math.min(curve.end, curve.control.y) - 1e-3) {
+    if (topRound > 1e-4 || bottomRound > 1e-4) return null;
+  }
+  const alongWidth = slopeAlongWidth(side);
+  const half = (alongWidth ? width : depth) / 2;
+  const keepAt = keptEndAt(side, half);
+  const farAt = -keepAt;
+  const outward = Math.sign(farAt - keepAt);
+  // The outline reaches past both ends, level, so no face of it lies on one of the body's.
+  const margin = Math.max(1, half);
+  const at = alongAt(keepAt, curve.length);
+  const straight = slopeSectionCount(curve) === 1;
+  const start = { x: keepAt - outward * margin, z: -1 };
+  const segments: CadModifierProfileSegment[] = [
+    { kind: "line", x: farAt + outward * margin, z: -1 },
+    { kind: "line", x: farAt + outward * margin, z: curve.end },
+    { kind: "line", x: farAt, z: curve.end },
+    straight
+      ? { kind: "line", x: keepAt, z: curve.keep }
+      : { kind: "bezier", x: keepAt, z: curve.keep, controls: [{ x: at(curve.control.s), z: curve.control.y }] },
+    { kind: "line", x: start.x, z: curve.keep },
+    { kind: "line", ...start },
+  ];
+  const across = (alongWidth ? depth : width) + 2 * margin;
+  const frame = alongWidth ? alongDepthFrame(across) : alongWidthFrame(across);
+  const part: CadModifierProfilePart = {
+    kind: "extrusion",
+    loops: base.loops,
+    height: shape.height,
+    transform: profileTransformForShape(shape),
+    trim: { loops: [{ ...start, segments }], height: across, frame: cadTransformFromMatrix(frame.local) },
+    ...(base.capFillet !== undefined ? { capFillet: base.capFillet } : {}),
+    ...(base.capFilletBottom !== undefined ? { capFilletBottom: base.capFilletBottom } : {}),
+  };
+  validateCadProfile(part);
+  return part;
+}
+
+/** Where along an axis a distance s (mm) from the kept end lies: the kept end at keepAt, the far end at -keepAt. */
+function alongAt(keepAt: number, length: number) {
+  return (s: number) => keepAt + ((-keepAt - keepAt) * s) / Math.max(1e-9, length);
+}
+
+/** The kept end's coordinate along the outline's axis for a side (back is the small z, left the small x). */
+function keptEndAt(side: ReturnType<typeof normalizeSlopeSide>, half: number) {
+  return side === "back" || side === "right" ? (side === "back" ? half : -half) : (side === "front" ? -half : half);
+}
+
+function slopedBoxProfile(shape: WorkplaneShape, width: number, depth: number): CadModifierProfilePart {
+  const side = normalizeSlopeSide(shape.kind, shape.slopeSide);
+  const curve = slopeCurveForShape(shape);
+  const alongWidth = slopeAlongWidth(side);
+  const half = (alongWidth ? width : depth) / 2;
+  // Along the width the outline's x is the shape's x; along the depth it is the shape's z (towards the viewer).
+  const keepAt = keptEndAt(side, half);
+  const farAt = -keepAt;
+  const at = alongAt(keepAt, curve.length);
+  const straight = slopeSectionCount(curve) === 1;
+  const segments: CadModifierProfileSegment[] = [
+    { kind: "line", x: farAt, z: 0 },
+    { kind: "line", x: farAt, z: curve.end },
+    straight
+      ? { kind: "line", x: keepAt, z: curve.keep }
+      : { kind: "bezier", x: keepAt, z: curve.keep, controls: [{ x: at(curve.control.s), z: curve.control.y }] },
+    { kind: "line", x: keepAt, z: 0 },
+  ];
+  const frame = alongWidth ? alongDepthFrame(depth) : alongWidthFrame(width);
+  const part: CadModifierProfilePart = {
+    kind: "extrusion",
+    loops: [{ x: keepAt, z: 0, segments }],
+    height: frame.height,
+    transform: profileTransformForShape(shape, frame.local),
+  };
+  validateCadProfile(part);
+  return part;
+}
+
+/**
+ * A box narrowing along its length: its outline seen from above - the wide part,
+ * then both sides running in (straight or the display's Bezier) to the narrow end -
+ * pushed straight up. Flat faces, two ruled or Bezier sides: exact.
+ */
+function narrowedBoxProfile(shape: WorkplaneShape, width: number, depth: number): CadModifierProfilePart {
+  const side = normalizeSlopeSide(shape.kind, shape.narrowSide);
+  const curve = narrowCurveForShape(shape);
+  const alongWidth = slopeAlongWidth(side);
+  const keepAt = keptEndAt(side, (alongWidth ? width : depth) / 2);
+  const at = alongAt(keepAt, curve.total);
+  // (along, across) -> the outline's (x, z): along the depth, across is x; along the width, across is z.
+  const point = (along: number, across: number) => (alongWidth ? { x: along, z: across } : { x: across, z: along });
+  const straight = Math.abs(curve.control.s - curve.length / 2) < 1e-9 && Math.abs(curve.control.y - (curve.keep + curve.end) / 2) < 1e-9;
+  const side1: CadModifierProfileSegment[] = [];
+  const side2: CadModifierProfileSegment[] = [];
+  const startAt = at(curve.start);
+  const farAt = at(curve.total);
+  const control = at(curve.start + curve.control.s);
+  // One side from the kept end to the far end, the other back; each a line to where the narrowing starts, then the curve.
+  if (curve.start > 1e-9) side1.push({ kind: "line", ...point(startAt, curve.keep) });
+  side1.push(straight ? { kind: "line", ...point(farAt, curve.end) } : { kind: "bezier", ...point(farAt, curve.end), controls: [point(control, curve.control.y)] });
+  side1.push({ kind: "line", ...point(farAt, -curve.end) });
+  side2.push(straight ? { kind: "line", ...point(startAt, -curve.keep) } : { kind: "bezier", ...point(startAt, -curve.keep), controls: [point(control, -curve.control.y)] });
+  if (curve.start > 1e-9) side2.push({ kind: "line", ...point(keepAt, -curve.keep) });
+  const start = point(keepAt, curve.keep);
+  const segments = [...side1, ...side2, { kind: "line", ...start } as CadModifierProfileSegment];
+  const part: CadModifierProfilePart = { kind: "extrusion", loops: [{ ...start, segments }], height: shape.height, transform: profileTransformForShape(shape) };
+  validateCadProfile(part);
+  return part;
+}
+
+/**
+ * A round roof sloping, narrowing or both (front to back only): its half-ellipse
+ * lofted along the length, each section as high as the top and as wide as the
+ * narrowing there. Where both lines run straight the loft is ruled between two
+ * sections - exact; where one curves it goes smoothly through sections close
+ * enough to stay within a hundredth of a millimetre; where the narrowing starts
+ * the loft breaks, so that corner stays sharp.
+ */
+function alongRoofProfile(shape: WorkplaneShape, depth: number, designedRound?: boolean): CadModifierProfilePart | null {
+  const base = cadProfileForShapeKind(shape, designedRound);
+  if (!base?.frame || base.frame.kind !== "extrusion") return null;
+  const slope = shapeHasSlope(shape) ? { side: normalizeSlopeSide(shape.kind, shape.slopeSide), curve: slopeCurveForShape(shape) } : null;
+  const narrow = shapeHasNarrow(shape) ? { side: normalizeSlopeSide(shape.kind, shape.narrowSide), curve: narrowCurveForShape(shape) } : null;
+  // alongDepthFrame: the loft runs from the front (e = 0) to the back (e = depth); a back side keeps the front.
+  const fromKept = (side: string, e: number) => (side === "back" ? e : depth - e);
+  const toE = (side: string, s: number) => (side === "back" ? s : depth - s);
+  const sz = (e: number) => (slope ? slopeScaleAt(slope.curve, fromKept(slope.side, e)) : 1);
+  const sx = (e: number) => (narrow ? narrowHalfWidthAt(narrow.curve, fromKept(narrow.side, e)) / Math.max(1e-9, narrow.curve.keep) : 1);
+  const stops = new Set<number>([0, depth]);
+  const corners = new Set<number>();
+  if (slope) alongLevels(slope.curve.length, 0, slope.curve, false).forEach((s) => stops.add(toE(slope.side, s)));
+  if (narrow) {
+    alongLevels(narrow.curve.total, narrow.curve.start, narrow.curve, false).forEach((s) => stops.add(toE(narrow.side, s)));
+    if (narrow.curve.start > 1e-9) corners.add(toE(narrow.side, narrow.curve.start));
+  }
+  const es = [...stops].sort((a, b) => a - b);
+  const sections = es.map((e) => ({ t: e / depth, sx: sx(e), sz: sz(e), corner: [...corners].some((c) => Math.abs(c - e) < 1e-9) }));
+  const scaled = (index: number) => base.loops.map((loop) => mapLoop(loop, sections[index].sx, 0, sections[index].sz, 0));
+  const part: CadModifierProfilePart = {
+    kind: "loft",
+    loops: scaled(0),
+    topLoops: scaled(sections.length - 1),
+    height: depth,
+    transform: profileTransformForShape(shape, base.frame.local),
+  };
+  if (sections.length > 2) part.sections = sections;
+  validateCadProfile(part);
+  return part;
+}
+
 export function cadModifierProfileForShape(shape: WorkplaneShape, options: { designedRound?: boolean } = {}): CadModifierProfilePart | null {
-  if (!CAD_PROFILE_SHAPE_KINDS.has(shape.kind) && !LOFTABLE_KINDS.has(shape.kind)) return null;
+  if (!CAD_PROFILE_SHAPE_KINDS.has(shape.kind) && !LOFTABLE_KINDS.has(shape.kind) && !shapeHasAlongDeform(shape)) return null;
   if (shape.importedMesh || shape.groupedShapes?.length || shape.cadBrep || shape.imagePlate) return null;
   const width = shapeWidth(shape);
   const depth = shapeDepth(shape);
   if (![width, depth, shape.height].every((value) => Number.isFinite(value) && value > 0)) return null;
+  if (shapeHasAlongDeform(shape)) {
+    // A slope or a narrowing together with a taper, a twist or a lean stays on the display mesh.
+    if (shapeHasTaper(shape) || shapeHasExtrudeDeform(shape)) return null;
+    // A slope from the middle has no exact body yet: it stays its display mesh.
+    if (shapeHasSymmetricDeform(shape)) return null;
+    try {
+      return slopedProfile(shape, width, depth, options.designedRound);
+    } catch {
+      return null;
+    }
+  }
   if (shapeHasShapeDeform(shape)) {
     try {
       return deformedLoftProfile(shape, width, depth);
@@ -1251,8 +1618,11 @@ export function cadModifierProfileForShape(shape: WorkplaneShape, options: { des
   }
   if (!CAD_PROFILE_SHAPE_KINDS.has(shape.kind)) return null;
   try {
-    if (shape.kind === "gear" && normalizeGearType(shape.gearType) === "bevel") return bevelGearProfile(shape, width, depth);
+    // A spiral bevel gear (Discussion #1299) has twisted flanks the loft cannot build: it stays its mesh.
+    if (shape.kind === "gear" && normalizeGearType(shape.gearType) === "bevel") return bevelGearIsSpiral(shape.bevelHelixAngle) ? null : bevelGearProfile(shape, width, depth);
     if (shape.kind === "loft") return loftShapeProfile(shape);
+    if (shape.kind === "pyramid") return pyramidProfile(shape, width, depth);
+    if (shape.kind === "pulley") return pulleyProfile(shape);
     const profile = cadProfileForShapeKind(shape, options.designedRound);
     if (!profile) return null;
     const part: CadModifierProfilePart = {
@@ -1262,7 +1632,9 @@ export function cadModifierProfileForShape(shape: WorkplaneShape, options: { des
       transform: profileTransformForShape(shape, profile.frame?.local),
     };
     if (profile.frame?.path) part.path = profile.frame.path;
+    if (profile.frame?.slot) part.slot = profile.frame.slot;
     if (profile.capFillet) part.capFillet = profile.capFillet;
+    if (profile.capFilletBottom !== undefined) part.capFilletBottom = profile.capFilletBottom;
     if (profile.capChamfer) part.capChamfer = profile.capChamfer;
     if (profile.grow) part.grow = profile.grow;
     validateCadProfile(part);
@@ -1292,11 +1664,13 @@ export function cadModifierThreadForShape(shape: WorkplaneShape): CadModifierThr
     threadHead: shape.threadHead,
     threadHand: shape.threadHand,
     threadProfile: shape.threadProfile,
+    threadTaper: shape.threadTaper,
     threadDiameter: shape.threadDiameter,
     threadPitch: shape.threadPitch,
     threadClearance: shape.threadClearance,
     threadBoltClearance: shape.threadBoltClearance,
     threadAxialClearance: shape.threadAxialClearance,
+    threadStarts: shape.threadStarts,
     threadDepth: shape.threadDepth,
     threadFlankAngle: shape.threadFlankAngle,
     threadQuality: shape.threadQuality,
@@ -1304,20 +1678,29 @@ export function cadModifierThreadForShape(shape: WorkplaneShape): CadModifierThr
     threadChamfer: shape.threadChamfer,
     threadChamferBottom: shape.threadChamferBottom,
     threadHeadChamfer: shape.threadHeadChamfer,
+    threadHeadDiameter: shape.threadHeadDiameter,
+    threadDrive: shape.threadDrive,
+    threadDriveSize: shape.threadDriveSize,
+    threadDriveDepth: shape.threadDriveDepth,
+    threadCollarHeight: shape.threadCollarHeight,
+    threadCollarDiameter: shape.threadCollarDiameter,
   });
   const { settings, spec } = plan;
+  const tapered = plan.taperSlope !== 0;
   const part: CadModifierThreadPart = {
     role: settings.role,
     profile: plan.profile.points.map((point) => ({ u: point.u, level: point.level })),
     major: plan.major,
     minor: plan.minor,
     pitch: settings.pitch,
+    ...(settings.starts > 1 ? { starts: settings.starts } : {}),
     hand: plan.handSign === -1 ? -1 : 1,
     height: plan.height,
     shaftBottom: plan.shaftBottom,
     chamfer: plan.chamfer > 0 ? plan.chamfer : 0,
     chamferLow: plan.chamferLow > 0 ? plan.chamferLow : 0,
     chamferBottom: plan.chamferBottom,
+    ...(tapered ? { taper: { slope: plan.taperSlope, at: plan.taperAt } } : {}),
     // The mesh is drawn at its natural footprint and stretched to the shape's
     // width and depth; the body takes the same stretch.
     transform: profileTransformForShape(shape, new THREE.Matrix4().makeScale(plan.scaleX, 1, plan.scaleZ)),
@@ -1325,23 +1708,32 @@ export function cadModifierThreadForShape(shape: WorkplaneShape): CadModifierThr
   // The Whitworth points sample arcs; the body takes the arcs themselves, five
   // faces per turn instead of one per chord. They are circles only at the
   // profile's full depth, which a very coarse pitch on a thin rod can cut
-  // short - then the points stay the profile.
-  if (settings.profile === "whitworth" && !plan.axialPlay && Math.abs(plan.major - plan.minor - settings.pitch * plan.profile.depthPerPitch) < 1e-9) {
+  // short - then the points stay the profile. A tapered thread takes the
+  // points too: its faces are ruled between the points' tapered helices.
+  if (settings.profile === "whitworth" && !tapered && !plan.axialPlay && Math.abs(plan.major - plan.minor - settings.pitch * plan.profile.depthPerPitch) < 1e-9) {
     part.curve = { kind: "whitworth", radius: WHITWORTH_PROFILE_CONSTANTS.radiusPerPitch, halfAngle: (WHITWORTH_PROFILE_CONSTANTS.flankAngleDegrees / 2) * (Math.PI / 180) };
   }
   if (settings.role === "screw") {
     part.head = {
       kind: settings.head,
       height: plan.headHeight,
-      radius: settings.head === "countersunk" ? plan.headCrown : spec.headDiameter / 2,
-      acrossFlats: spec.acrossFlats,
+      radius: settings.head === "countersunk" ? plan.headCrown : settings.headDiameter / 2,
+      acrossFlats: settings.headDiameter,
       neckRadius: settings.diameter / 2,
       chamferFaceRadius: plan.headBroken ? plan.headFaceRadius : 0,
-      socketAcrossFlats: spec.socket,
-      socketDepth: plan.hasSocket ? plan.socketDepth : 0,
+      ...(plan.driveOutline ? { driveOutline: plan.driveOutline } : {}),
+      socketDepth: plan.driveOutline ? plan.socketDepth : 0,
+      ...(plan.collarHeight > 0 && !plan.tiers ? { collar: { radius: plan.collarRadius, height: plan.collarHeight } } : {}),
     };
   }
-  if (settings.role === "nut") part.nut = { acrossFlats: spec.acrossFlats, chamferFaceRadius: plan.rimBroken ? plan.rimFaceRadius : 0 };
+  if (settings.role === "nut") {
+    part.nut = {
+      acrossFlats: spec.acrossFlats,
+      chamferFaceRadius: plan.rimBroken ? plan.rimFaceRadius : 0,
+      ...(plan.collarHeight > 0 ? { collar: { radius: plan.collarRadius, height: plan.collarHeight } } : {}),
+    };
+  }
+  if (plan.tiers) part.tiers = plan.tiers;
   return part;
 }
 
@@ -1351,7 +1743,7 @@ export function cadModifierThreadForShape(shape: WorkplaneShape): CadModifierThr
  * `springSolid.ts` builds the body from them.
  */
 export function cadModifierSpringForShape(shape: WorkplaneShape): CadModifierSpringPart | null {
-  if (shape.kind !== "spring") return null;
+  if (shape.kind !== "spring" || shape.springForm === "flat") return null;
   if (shape.importedMesh || shape.groupedShapes?.length || shape.cadBrep || shape.imagePlate || shapeHasShapeDeform(shape)) return null;
   const width = shapeWidth(shape);
   const depth = shapeDepth(shape);
@@ -1390,9 +1782,21 @@ export function cadModifierGridfinityForShape(shape: WorkplaneShape): CadModifie
   const width = shapeWidth(shape);
   const depth = shapeDepth(shape);
   if (![width, depth, shape.height].every((value) => Number.isFinite(value) && value > 0)) return null;
-  const plan = gridfinityPlan({ width, depth, height: shape.height, gridfinityType: shape.gridfinityType, gridfinityLip: shape.gridfinityLip, gridfinityMagnets: shape.gridfinityMagnets, gridfinityHalfGrid: shape.gridfinityHalfGrid, gridfinityPaddingBack: shape.gridfinityPaddingBack, gridfinityPaddingFront: shape.gridfinityPaddingFront, gridfinityPaddingLeft: shape.gridfinityPaddingLeft, gridfinityPaddingRight: shape.gridfinityPaddingRight });
-  // Label shelves, finger scoops and dividers are in the display mesh only once Manifold has loaded; until then the body would not match it (#455, #554).
+  const plan = gridfinityPlan({ width, depth, height: shape.height, gridfinityType: shape.gridfinityType, gridfinityLip: shape.gridfinityLip, gridfinityMagnets: shape.gridfinityMagnets, gridfinityHalfGrid: shape.gridfinityHalfGrid, gridfinityLargePlate: shape.gridfinityLargePlate, gridfinitySwallowtail: shape.gridfinitySwallowtail, gridfinityPaddingBack: shape.gridfinityPaddingBack, gridfinityPaddingFront: shape.gridfinityPaddingFront, gridfinityPaddingLeft: shape.gridfinityPaddingLeft, gridfinityPaddingRight: shape.gridfinityPaddingRight, gridfinityOutline: shape.gridfinityOutline });
+  // Label shelves, finger scoops and dividers, an outline plate's sockets and a Swallowtail plate's pockets, are in the display mesh only once Manifold has loaded; until then the body would not match it (#455, #554, #1061).
   if (!loadedManifoldRuntime() && gridfinityHasPieces({ ...shape, width, depth })) return null;
+  // The letters on the shelves (#1308) with the font's own curves, laid out where the display mesh has them.
+  const letters = gridfinityLabelGlyphs({ ...shape, width, depth }).map(({ place, layout, map }) => ({
+    top: place.top,
+    glyphs: layout.glyphs.flatMap((glyph) => {
+      const loop = (path: GlyphPath) => glyphLoop(path, (point) => map(point.x, point.y), layout.segments === 1);
+      const outer = loop(glyph);
+      const holes = glyph.holes.map(loop);
+      // A text whose glyph cannot be read goes as its mesh; here the glyph is left out, and the missing-letters check in
+      // gridfinitySolid.ts notices a real loss.
+      return outer && holes.every((hole) => hole !== null) ? [[outer, ...(holes as CadModifierProfileLoop[])]] : [];
+    }),
+  }));
   return {
     width: plan.size.width,
     depth: plan.size.depth,
@@ -1401,6 +1805,8 @@ export function cadModifierGridfinityForShape(shape: WorkplaneShape): CadModifie
     gridfinityLip: plan.lip,
     gridfinityMagnets: plan.magnets,
     gridfinityHalfGrid: plan.halfGrid,
+    gridfinityLargePlate: plan.largePlate,
+    gridfinitySwallowtail: plan.swallowtail,
     gridfinityLabelBack: shape.gridfinityLabelBack,
     gridfinityLabelFront: shape.gridfinityLabelFront,
     gridfinityLabelLeft: shape.gridfinityLabelLeft,
@@ -1436,6 +1842,7 @@ export function cadModifierGridfinityForShape(shape: WorkplaneShape): CadModifie
     gridfinityPaddingLeft: shape.gridfinityPaddingLeft,
     gridfinityPaddingRight: shape.gridfinityPaddingRight,
     gridfinityCornerRadius: shape.gridfinityCornerRadius,
+    gridfinityBinCornerRadius: shape.gridfinityBinCornerRadius,
     gridfinityCompartmentsX: shape.gridfinityCompartmentsX,
     gridfinityCompartmentsZ: shape.gridfinityCompartmentsZ,
     gridfinityDividerThickness: shape.gridfinityDividerThickness,
@@ -1445,6 +1852,8 @@ export function cadModifierGridfinityForShape(shape: WorkplaneShape): CadModifie
     gridfinityOpenings: shape.gridfinityOpenings,
     gridfinityOpeningCorner: shape.gridfinityOpeningCorner,
     gridfinityOpeningCornerSize: shape.gridfinityOpeningCornerSize,
+    gridfinityOutline: shape.gridfinityOutline,
+    ...(letters.length > 0 ? { gridfinityLetters: letters } : {}),
     // Mesh and body are built at the size of the grid units, which canonicalizeShape
     // keeps the shape's box at; a box that differs anyway stretches the body to it.
     transform: profileTransformForShape(shape, new THREE.Matrix4().makeScale(width / plan.size.width, shape.height / plan.size.height, depth / plan.size.depth)),
@@ -1468,20 +1877,26 @@ function turningReach(radius: number, angle: number, twist: number) {
  * turns the tooth ring by the helix angle from foot to top in `helixQuality`
  * steps and stretches all of it to width x depth; the body turns it evenly,
  * and stretches it by what the turning ring spans - the limit the steps
- * approach, so it is the same body at any quality. On an oval footprint the
- * mesh moves each corner along its own ellipse, which is no turn of the ring:
- * that gear stays a mesh.
+ * approach, so it is the same body at any quality. A herringbone gear turns
+ * its ring half as far, up to the middle and back, and is stretched by what
+ * that spans. On an oval footprint the mesh moves each corner along its own
+ * ellipse, which is no turn of the ring: that gear stays a mesh.
  */
 /**
  * Every corner of a helical ring becomes a twisted face of its own, so an involute ring -
- * about fifteen corners a tooth - is built exactly only up to this many; a bigger one stays
- * the display mesh.
+ * about fifteen corners a tooth - is built exactly for the edge tool only up to this many,
+ * so its preview stays inside the timeout; a bigger one stays the display mesh there.
+ * The STEP export takes any size (`anySize`, #1321): it runs in the geometry worker, and
+ * measured with the kernel in Node a herringbone gear of 96 involute teeth builds in 3.7 s
+ * and writes in 0.9 s, one of 500 teeth (the most a gear can have) in 36 s and 11 s.
  */
 const HELICAL_GEAR_CORNER_LIMIT = 480;
 
-export function cadModifierHelicalGearForShape(shape: WorkplaneShape): CadModifierHelicalGearPart | null {
-  if (shape.kind !== "gear" || normalizeGearType(shape.gearType) !== "helical") return null;
+export function cadModifierHelicalGearForShape(shape: WorkplaneShape, options: { anySize?: boolean } = {}): CadModifierHelicalGearPart | null {
+  if (shape.kind !== "gear") return null;
   if (shape.importedMesh || shape.groupedShapes?.length || shape.cadBrep || shape.imagePlate || shapeHasShapeDeform(shape)) return null;
+  if (ringRackIsHelical(shape)) return slantedRingRackPart(shape, options);
+  if (!gearTypeHasHelix(shape.gearType)) return null;
   const width = shapeWidth(shape);
   const depth = shapeDepth(shape);
   if (![width, depth, shape.height].every((value) => Number.isFinite(value) && value > 0)) return null;
@@ -1490,14 +1905,16 @@ export function cadModifierHelicalGearForShape(shape: WorkplaneShape): CadModifi
   const corners = gearOutlineCorners(width, depth, shape).map((corner) => ({ angle: corner.angle, radius: corner.radiusX }));
   // Involute teeth keep their tip circle on width x depth instead of what the turn spans (#201).
   const involute = involuteOutlineStretch(width, depth, shape);
-  if (involute && corners.length > HELICAL_GEAR_CORNER_LIMIT) return null;
+  if (involute && !options.anySize && corners.length > HELICAL_GEAR_CORNER_LIMIT) return null;
+  const herringbone = normalizeGearType(shape.gearType) === "herringbone";
+  const turn = herringbone ? twist / 2 : twist;
   let minX = Infinity;
   let maxX = -Infinity;
   let minZ = Infinity;
   let maxZ = -Infinity;
   for (const { angle, radius } of corners) {
-    const x = turningReach(radius, angle, twist);
-    const z = turningReach(radius, angle - Math.PI / 2, twist);
+    const x = turningReach(radius, angle, turn);
+    const z = turningReach(radius, angle - Math.PI / 2, turn);
     minX = Math.min(minX, x.min);
     maxX = Math.max(maxX, x.max);
     minZ = Math.min(minZ, z.min);
@@ -1512,13 +1929,152 @@ export function cadModifierHelicalGearForShape(shape: WorkplaneShape): CadModifi
     const ring = corners.map(({ angle, radius }) => ({ x: Math.cos(angle) * radius, z: Math.sin(angle) * radius }));
     if (!(boreRadius < outlineClearance(ring) * Math.min(stretch.x, stretch.z) * 0.999)) return null;
   }
-  return { corners, twist, height: shape.height, stretch, boreRadius, transform: profileTransformForShape(shape) };
+  return { corners, twist, ...(herringbone ? { herringbone } : {}), height: shape.height, stretch, boreRadius, transform: profileTransformForShape(shape) };
+}
+
+/**
+ * A ring gear or a rack with slanted teeth (Discussion #1627) as the exact body its display mesh draws. The ring
+ * gear's teeth turn inside the round rim as the helical gear's ring does - on an oval footprint, or past the corner
+ * limit outside the STEP export, it stays a mesh like the helical gear; the rack is the outline of a longer straight
+ * rack drawn out at the slant and cut off square at its ends.
+ */
+function slantedRingRackPart(shape: WorkplaneShape, options: { anySize?: boolean }): CadModifierHelicalGearPart | null {
+  const width = shapeWidth(shape);
+  const depth = shapeDepth(shape);
+  if (![width, depth, shape.height].every((value) => Number.isFinite(value) && value > 0)) return null;
+  const herringbone = shape.ringRackHerringbone === true;
+  const transform = profileTransformForShape(shape);
+  if (normalizeGearType(shape.gearType) === "rack") {
+    const measures = rackMeasures(width, depth, shape);
+    const travel = rackHelixTravel(shape.height, shape.ringRackHelixAngle);
+    const outline = rackOutlinePoints(extendedRackMeasures(measures, rackExtraTeeth(measures, travel)));
+    return {
+      corners: [], twist: 0, ...(herringbone ? { herringbone } : {}), height: shape.height, stretch: { x: 1, z: 1 }, boreRadius: 0,
+      rack: { outline, length: measures.length, backZ: measures.backZ, tipZ: measures.tipZ, travel }, transform,
+    };
+  }
+  if (Math.abs(width - depth) > 1e-6) return null;
+  const outlineOfRing = internalGearOutline(width, depth, shape);
+  const corners = outlineOfRing.corners.map((corner) => ({ angle: corner.angle, radius: corner.radiusX }));
+  if (!options.anySize && corners.length > HELICAL_GEAR_CORNER_LIMIT) return null;
+  return {
+    corners, twist: ringGearHelixTwist(outlineOfRing.module, normalizeGearTeeth(shape.teeth), shape.height, shape.ringRackHelixAngle), ...(herringbone ? { herringbone } : {}),
+    height: shape.height, stretch: outlineOfRing.stretch, boreRadius: 0, ringRadius: outlineOfRing.rimRadius, transform,
+  };
+}
+
+/**
+ * A GT2 pulley (Discussion #1319) as the kernel builds it: the toothed band's true arcs
+ * (pulleyToothArcs, which the display mesh samples) pushed up between the flanges, the
+ * flanges and the hub as discs, the bore through all of it.
+ */
+function pulleyProfile(shape: WorkplaneShape): CadModifierProfilePart {
+  const measures = pulleyMeasures(shape);
+  const { flange, beltWidth, hubHeight, flangeRadius, hubRadius, boreRadius, height } = measures;
+  const arcs = pulleyToothArcs(measures);
+  const segments = arcs.map((arc) => arcSegment({ cx: arc.cx, cz: arc.cz, rx: arc.radius, rz: arc.radius, start: arc.start, end: arc.end }));
+  const loop: CadModifierProfileLoop = { ...pulleyArcPoint(arcs[0], arcs[0].start), segments };
+  const discs: Array<{ bottom: number; top: number; radius: number }> = [];
+  if (flange > 0) discs.push({ bottom: 0, top: flange, radius: flangeRadius }, { bottom: flange + beltWidth, top: 2 * flange + beltWidth, radius: flangeRadius });
+  if (hubHeight > 0) discs.push({ bottom: 2 * flange + beltWidth, top: height, radius: hubRadius });
+  const part: CadModifierProfilePart = {
+    kind: "extrusion",
+    loops: [loop],
+    height,
+    transform: profileTransformForShape(shape),
+    pulley: { teethBottom: flange, teethTop: flange + beltWidth, discs, boreRadius },
+  };
+  validateCadProfile(part);
+  return part;
+}
+
+/** A Hirth joint (#1016) as the exact body its display mesh draws, or null for one that has to stay its mesh. */
+export function cadModifierHirthForShape(shape: WorkplaneShape): CadModifierHirthPart | null {
+  if (shape.kind !== "hirth") return null;
+  if (shape.importedMesh || shape.groupedShapes?.length || shape.cadBrep || shape.imagePlate || shapeHasShapeDeform(shape)) return null;
+  const width = shapeWidth(shape);
+  const depth = shapeDepth(shape);
+  if (![width, depth, shape.height].every((value) => Number.isFinite(value) && value > 0)) return null;
+  const { rx, rz, height, teeth, toothHeight, boreRadius, split } = hirthMeasures(shape, width, depth);
+  return { rx, rz, height, teeth, toothHeight, boreRadius, ...(split !== 0.5 ? { split } : {}), transform: profileTransformForShape(shape) };
+}
+
+/**
+ * A screw boss, snap-fit or rib (#1246) as the exact body its display mesh draws, or null for one that has to stay its
+ * mesh. The shape's fields go to `enclosureSolid.ts`, which builds the body from the same plan as the mesh; a screw
+ * boss set as a hole takes that along, so its body is its pocket alone (#1288). They take no taper or extrude deform.
+ */
+export function cadModifierEnclosureForShape(shape: WorkplaneShape): CadModifierEnclosurePart | null {
+  if (shape.kind !== "screwBoss" && shape.kind !== "snapFit" && shape.kind !== "rib") return null;
+  if (shape.importedMesh || shape.groupedShapes?.length || shape.cadBrep || shape.imagePlate || shapeHasShapeDeform(shape)) return null;
+  const width = shapeWidth(shape);
+  const depth = shapeDepth(shape);
+  const height = shape.height;
+  if (![width, depth, height].every((value) => Number.isFinite(value) && value > 0)) return null;
+  // The mesh is built at the shape's size in its own frame, unstretched; the body is placed the same way.
+  const transform = profileTransformForShape(shape);
+  if (shape.kind === "screwBoss") {
+    return {
+      kind: "screwBoss",
+      fields: {
+        hole: Boolean(shape.hole),
+        width,
+        depth,
+        height,
+        screwBossFastener: shape.screwBossFastener,
+        screwBossSize: shape.screwBossSize,
+        screwBossHole: shape.screwBossHole,
+        screwBossHoleDepth: shape.screwBossHoleDepth,
+        screwBossDiameter: shape.screwBossDiameter,
+        screwBossGussets: shape.screwBossGussets,
+        screwBossGussetHeight: shape.screwBossGussetHeight,
+        screwBossGussetThickness: shape.screwBossGussetThickness,
+      },
+      transform,
+    };
+  }
+  if (shape.kind === "snapFit") {
+    return {
+      kind: "snapFit",
+      fields: {
+        width,
+        depth,
+        height,
+        snapFitPart: shape.snapFitPart,
+        snapFitThickness: shape.snapFitThickness,
+        snapFitUndercut: shape.snapFitUndercut,
+        snapFitLeadAngle: shape.snapFitLeadAngle,
+        snapFitRetainAngle: shape.snapFitRetainAngle,
+        snapFitClearance: shape.snapFitClearance,
+        snapFitFoot: shape.snapFitFoot,
+      },
+      transform,
+    };
+  }
+  return {
+    kind: "rib",
+    fields: { width, depth, height, ribStyle: shape.ribStyle, ribTop: shape.ribTop, ribFoot: shape.ribFoot, ribThickness: shape.ribThickness, ribFootThickness: shape.ribFootThickness, ribFootShape: shape.ribFootShape },
+    transform,
+  };
 }
 
 /** Outline pieces of a profile, the measure its kernel cost grows with. */
 export function cadProfileSegmentCount(profile: CadModifierProfilePart) {
   // A sweep builds its section once per piece of the centre line.
   return profile.loops.reduce((total, loop) => total + loop.segments.length, 0) * Math.max(1, profile.path?.length ?? 1);
+}
+
+/** The outline pieces of the letters on a Gridfinity bin's shelves (#1308), which the exact body builds one glyph at a time. */
+export function cadGridfinityLetterSegmentCount(part: CadModifierGridfinityPart) {
+  return (part.gridfinityLetters ?? []).reduce((total, label) => total + label.glyphs.flat().reduce((sum, loop) => sum + loop.segments.length, 0), 0);
+}
+
+/**
+ * What a Gridfinity part adds to a request's outline pieces, for its time budget: an outline plate's slab has a side face
+ * for each edge of its outline (#1061), as a profile has for each segment, and its letters their pieces (#1308).
+ */
+export function cadGridfinitySegmentCount(part: CadModifierGridfinityPart | undefined) {
+  return part ? (part.gridfinityOutline?.length ?? 0) + cadGridfinityLetterSegmentCount(part) : 0;
 }
 
 /**
@@ -1528,22 +2084,25 @@ export function cadProfileSegmentCount(profile: CadModifierProfilePart) {
  * until the rest fits: first those whose mesh is cheapest for the pieces it
  * saves, so a gear (few triangles per piece) goes before a glyph (many), and
  * one big honeycomb does not send every other shape of the group back too.
+ * The letters on a Gridfinity bin's shelves (#1308) count in the same budget,
+ * and a bin with too many of them goes back to its mesh the same way.
  */
-export function withinExactProfileLimit<M extends { faces: { length: number } }, T extends { profile?: CadModifierProfilePart; profileMesh?: M; mesh?: M }>(parts: T[], limit = CAD_MODIFIER_EXACT_SEGMENT_LIMIT): T[] {
-  let segments = parts.reduce((total, part) => total + (part.profile ? cadProfileSegmentCount(part.profile) : 0), 0);
+export function withinExactProfileLimit<M extends { faces: { length: number } }, T extends { profile?: CadModifierProfilePart; gridfinity?: CadModifierGridfinityPart; profileMesh?: M; mesh?: M }>(parts: T[], limit = CAD_MODIFIER_EXACT_SEGMENT_LIMIT): T[] {
+  const pieces = (part: T) => (part.profile ? cadProfileSegmentCount(part.profile) : part.gridfinity ? cadGridfinityLetterSegmentCount(part.gridfinity) : 0);
+  let segments = parts.reduce((total, part) => total + pieces(part), 0);
   if (segments <= limit) return parts;
-  const cost = (part: T) => (part.profileMesh?.faces.length ?? 0) / Math.max(1, cadProfileSegmentCount(part.profile as CadModifierProfilePart));
+  const cost = (part: T) => (part.profileMesh?.faces.length ?? 0) / Math.max(1, pieces(part));
   const order = parts
     .map((part, index) => ({ part, index }))
-    .filter(({ part }) => part.profile)
-    .sort((a, b) => cost(a.part) - cost(b.part) || cadProfileSegmentCount(b.part.profile as CadModifierProfilePart) - cadProfileSegmentCount(a.part.profile as CadModifierProfilePart));
+    .filter(({ part }) => pieces(part) > 0)
+    .sort((a, b) => cost(a.part) - cost(b.part) || pieces(b.part) - pieces(a.part));
   const toMesh = new Set<number>();
   for (const { part, index } of order) {
     if (segments <= limit) break;
-    segments -= cadProfileSegmentCount(part.profile as CadModifierProfilePart);
+    segments -= pieces(part);
     toMesh.add(index);
   }
-  return parts.map((part, index) => (toMesh.has(index) ? { ...part, profile: undefined, profileMesh: undefined, mesh: part.profileMesh } : part));
+  return parts.map((part, index) => (toMesh.has(index) ? { ...part, profile: undefined, gridfinity: undefined, profileMesh: undefined, mesh: part.profileMesh } : part));
 }
 
 /**

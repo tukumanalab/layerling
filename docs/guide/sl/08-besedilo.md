@@ -12,10 +12,16 @@ V knjižnici oblik izberi {{ui:shape.text}} in ga odloži. V polje {{ui:prop.tex
 - **{{ui:prop.height}}:** Kako visoko pisava štrli iz ploskve.
 - **{{ui:prop.bevel}}:** Zaobli robove črk, da delujejo mehkeje. Z {{ui:prop.segments}} določiš, v koliko stopnjah.
 - **{{ui:nameTag.letterEdge}}:** zaobli ali posname zgornji rob črk, kakor pri imenski tablici: {{ui:nameTag.edge.none}}, {{ui:nameTag.edge.round}} ali {{ui:nameTag.edge.chamfer}}, z velikostjo {{ui:nameTag.letterEdgeSize}} (na začetku 0,4 mm, največ tako visoka kot besedilo). Gre dlje kot {{ui:prop.bevel}}, a le toliko, kolikor so črte široke: kjer je črta tanjša od dvakratne velikosti, se rob konča z ožjo zgornjo ploskvijo. Spodnja stran ostane ravna, zato lahko posamezne črke pozneje prilepiš. Dokler je rob izbran, nadomesti {{ui:prop.bevel}}.
+- **Dolžina:** Besedilo ima lahko do 250 znakov. Črke ohranijo velikost, vrstica pa postane tako dolga, kot je treba; krajšo naredite z manjšimi črkami. {{ui:nameTag.letterEdge}} deluje pri besedilu do 40 znakov, ker bi se pri daljšem računal več minut.
+- **{{ui:prop.textSpacing}}:** Prostor med črkami poleg tistega, ki ga ima pisava, v odstotkih velikosti črk: 0 ga pusti, kot ga je naredila pisava, nad tem stojijo črke bolj narazen, pod tem (do -50) tesneje, kar lastna pisava pogosto potrebuje. Črke obdržijo velikost in okvir sledi vrstici, pri ravnem in ukrivljenem besedilu. Razmik se ne uporabi za arabščino in hebrejščino, katerih črke se povezujejo.
 - **Velikost:** Dolžino in širino vrstice nastaviš kot pri vsaki obliki. Povleci ročice ali vpiši mere.
 - **{{ui:prop.textStretch}}:** Na začetku izklopljeno: črke obdržijo razmerja in stojijo na sredini okvirja, zato okvir, ki je razvlečen širše ali globlje, kot besedilo potrebuje, ostane večji od črk. Če vklopiš, se črke raztegnejo v obe smeri čez ves okvir: veliko črko lahko narediš nižjo ali ožjo, kot v Tinkercadu. Velja za ravno besedilo; ukrivljeno besedilo ima svojo velikost črk.
+- **{{ui:prop.textKerning}}:** Približa pare črk, med katerimi ostane preveč prostora, na primer AY, AV, LT ali To, izmerjeno po oblikah samih črk, v vsaki pisavi, tudi v lastnih. Nova besedila ga imajo vklopljenega; besedila, narejena prej, izklopljenega, da se v shranjenem načrtu nič ne premakne. Črke ohranijo velikost, okvir se prilagodi. Deluje pri ravnem in ukrivljenem besedilu, ne pri navpičnem besedilu, arabščini, hebrejščini ali japonščini.
+- **{{ui:prop.textVertical}}:** Zloži črke od zgoraj navzdol, vsako na sredino ene pokončne vrstice, za napis na podboju vrat ali ime vzdolž pisala. Okvir se postavi pokonci in črke obdržijo velikost; {{ui:prop.textSpacing}} nastavi razmik med njimi. Pri ukrivljenem besedilu črke tvorijo stolpec ob levi strani kroga, vsaka stoji pokonci; {{ui:prop.textInwardColumn}} postavi stolpec na desno stran.
 
 Besedilo je sprva eno samo telo. Če želiš črke obravnavati posamezno, klikni {{ui:inspector.separateParts}}. Potem je vsaka črka lastna oblika.
+
+**Več vrstic:** Besedilo ima eno vrstico. Za tablo ali ploščo z več vrsticami pod nastavitvami odpri kartico {{ui:textBlock.title}}: vnesi vrstice v {{ui:textBlock.lines}}, izberi {{ui:textBlock.align}} ({{ui:textBlock.align.left}}, {{ui:textBlock.align.center}} ali {{ui:textBlock.align.right}}), {{ui:textBlock.gap}} in {{ui:textBlock.step}} - pri 80 % je vsaka vrstica za petino manjša od zgornje. Gumb naredi iz vsake vrstice samostojno besedilo pod zgornjo, v pisavi, višini in polnilu tega besedila; prva zasede mesto tega besedila. Nato lahko vsaka vrstica dobi svojo velikost, pisavo ali barvo.
 
 Tudi robove pisave lahko posnameš ali zaobliš, ravno ali ukrivljeno, glej [Posnetje robov in izdolbljenje teles](chapter:robovi-in-izdolbljenje). Vzemi majhne mere, kot 0,2 do 0,5 mm, saj so poteze črk ozke.
 
@@ -72,6 +78,17 @@ Iz tega sledi:
 
 Za napise na stranski ploskvi najprej položi delovno ravnino na to ploskev, glej [Pogled in delovna ravnina](chapter:pogled-in-delovna-ravnina).
 
+## Šablone: mostički za sredino črk
+
+Ko besedilo izrežeš skozi ploščo, črke, kot so O, A in B, izgubijo sredino: ohlapno leži v črki in izpade. {{ui:stencilBridges.title}} jo z majhnimi mostički drži na plošči, kot pri šabloni.
+
+1. Besedilo preklopi na {{ui:inspector.hole}}, naj gre skozi ploščo, in izberi oboje, združeno ali ne.
+2. Klikni {{ui:stencilBridges.title}} v skupini {{ui:editor.section.splitShape}} na traku, desno klikni izbor ali ga poišči z [[Ctrl]]+[[K]]. Mostički se oranžno pokažejo tam, kamor pridejo.
+3. Nastavi {{ui:stencilBridges.width}} in {{ui:stencilBridges.count}}. {{ui:stencilBridges.height}} se začne pri debelini plošče; nižji mostički so poravnani s spodnjo stranjo, na sredini ali poravnani z zgornjo stranjo plošče, kot pove {{ui:stencilBridges.position}}. Pri šabloni za razpršilno barvo mostički zgoraj pod seboj pustijo prostor za barvo.
+4. {{ui:stencilBridges.apply}} združi mostičke s ploščo.
+
+Vsak mostiček je navaden kvader: odpri skupino, da enega premakneš, izbrišeš ali dodaš svojega. Če besedilo pozneje spremeniš, izberi skupino in znova klikni {{ui:stencilBridges.title}}; novi mostički nadomestijo stare. Besedilo, ki je le vgravirano in ne gre skozi, ne dobi mostičkov, saj tam nič ne izpade. Za laser ali risalnik izvoz DXF in SVG doda enake mostičke, glej [Datoteke, shranjevanje in deljenje](chapter:datoteke-in-shranjevanje).
+
 ## Kontura, silhueta in širše
 
 Besedila ni treba zgraditi kot napolnjene črke. {{ui:prop.textFill}} v lastnostih ponuja isto izbiro kot Tinkercad:
@@ -96,8 +113,9 @@ Vse nastavitve napisa so v kartici {{ui:nameTag.title}}, čisto na vrhu nastavit
 
 - **{{ui:prop.text}}** in **{{ui:prop.font}}**, tudi lastne pisave. Napis raste z besedami.
 - **{{ui:nameTag.letterSize}}:** kako visoke so velike črke, v mm. Vse plasti gredo zraven in ostanejo prekrite.
+- **{{ui:prop.textVertical}}:** postavi ploščico pokonci s črkami druga pod drugo, z vsemi plastmi.
 - **{{ui:nameTag.layers}}:** ena vrstica na plast, od zgoraj navzdol. Vsaka vrstica ima barvo (klikni na barvno polje), za koliko je plast širša od črk, svojo višino in {{ui:nameTag.noHoles}}, ki zapolni luknje v črkah, kot sta O in A. {{ui:nameTag.corners}} določa, kako širša plast teče okoli vogalov črk: {{ui:nameTag.corner.round}}, {{ui:nameTag.corner.bevel}} ali {{ui:nameTag.corner.miter}}. Zgornja vrstica so same črke. **+** doda plast spodaj, **–** odvzame zadnjo. Napis ima od dveh do šest plasti.
-- **{{ui:nameTag.keyring}}:** da najnižji plasti raven jeziček z okroglim koncem in luknjo za obesek za ključe; jeziček raste z luknjo. Luknja 3 mm, privzeta vrednost, da 6,5 mm širok jeziček, ki sega 6,75 mm čez; rob luknje leži 2 mm od roba najnižje plasti. Izberi {{ui:nameTag.keyringDiameter}} in {{ui:nameTag.keyringSide}}: {{ui:nameTag.side.left}}, {{ui:nameTag.side.right}} ali {{ui:nameTag.side.top}}. Luknja gre skozi vsako plast, ki se je dotika, jeziček pa se premika zraven, če spremeniš besede, velikost črk ali pisavo. {{ui:nameTag.keyringAlong}} premakne jeziček ob njegovi strani navzgor ali navzdol (zgoraj: levo ali desno), do mesta, kjer bi zapustil stran; 0 je sredina. Pomaga, ko sredina strani naleti na vrzel, na primer ob črki J: premakni jeziček tja, kjer črka sega ven.
+- **{{ui:nameTag.keyring}}:** da najnižji plasti raven jeziček z okroglim koncem in luknjo za obesek za ključe; jeziček raste z luknjo. Luknja 3 mm, privzeta vrednost, da 6,5 mm širok jeziček, ki sega 6,75 mm čez; rob luknje leži 2 mm od roba najnižje plasti. Izberi {{ui:nameTag.keyringDiameter}} in {{ui:nameTag.keyringSide}}: {{ui:nameTag.side.left}}, {{ui:nameTag.side.right}} ali {{ui:nameTag.side.top}}. {{ui:nameTag.side.free}} sname luknjo z napisne ploščice in ob njej postavi lasten {{ui:nameTag.keyringTab}} v barvi in višini najnižje plasti: navadno obliko, ki jo z njenimi ročicami premakneš in zavrtiš, kamor jo ploščica potrebuje. Ko je na mestu, ga {{ui:nameTag.keyringTabFix}} v njegovih lastnostih naredi del najbližje ploščice, natanko tam, kjer stoji: luknja gre skozi vsako plast, ki jo doseže, uho se poveže z najnižjo plastjo, oboje pa ostane ob tem vogalu črk, ko se spremenijo besede ali velikost. {{ui:nameTag.side.free}} jeziček znova postavi ven, kjer je bil, da ga lahko še enkrat premakneš. Luknja gre skozi vsako plast, ki se je dotika, jeziček pa se premika zraven, če spremeniš besede, velikost črk ali pisavo. {{ui:nameTag.keyringAlong}} premakne jeziček ob njegovi strani navzgor ali navzdol (zgoraj: levo ali desno), do mesta, kjer bi zapustil stran; 0 je sredina. Pomaga, ko sredina strani naleti na vrzel, na primer ob črki J: premakni jeziček tja, kjer črka sega ven.
 - **{{ui:nameTag.letterEdge}}:** zaobli ali poševno odreže zgornji rob črk na vrhnji plasti, tako kot se natisnjen napis dokonča: {{ui:nameTag.edge.none}}, {{ui:nameTag.edge.round}} ali {{ui:nameTag.edge.chamfer}}, z {{ui:nameTag.letterEdgeSize}} (sprva 0,4 mm, največ tako visoko kot plast). To gre za vsako pisavo in vsako besedo. Rob spada k mreži črk; robno orodje zato tako besedilo vzame kot mrežo, kar je pri tako fini pisavi težko - rob raje izberi tu.
 
 Vsako spremembo vidiš takoj. Napis je sveženj: premika se kot celota, vsaka plast pa ostane svoje telo v svoji barvi, tako kot jo rezalnik potrebuje za večbarvni tisk. Da robove plasti zaobliš ali poševno odrežeš, klikni {{ui:group.editBundle}} in izberi plast, glej [Posnetje robov in izdolbljenje teles](chapter:robovi-in-izdolbljenje).
@@ -118,6 +136,7 @@ Kartica {{ui:iconTag.title}} na vrhu nastavitev vsebuje:
 - **{{ui:iconTag.replace}}:** na oznako postavi simbol druge datoteke (SVG, PNG ali JPG); plasti in širina ostanejo, kot so.
 - **{{ui:iconTag.iconWidth}}:** kako širok je simbol zgoraj, v mm. Vse plasti sledijo in ostanejo poravnane.
 - **{{ui:nameTag.layers}}:** vrstice kot pri napisu z imenom – barva, za koliko širše, {{ui:nameTag.corners}}, višina in {{ui:nameTag.noHoles}}, **+** in **–**, od dve do šest plasti. Zgornja vrstica je simbol sam.
+- **{{ui:nameTag.keyring}}:** kot pri napisni ploščici: luknja za obesek za ključe skozi vsako plast, z jezičkom z okroglim koncem na najnižji plasti, zunaj ikone. {{ui:nameTag.keyringDiameter}} in {{ui:nameTag.keyringSide}} izbereta njegovo velikost in mesto; {{ui:nameTag.side.free}} da lasten jeziček, kot pri napisni ploščici. Jeziček je narejen za obris ikone, zato pri zelo razčlenjeni ikoni preveri, kje se je dotika. {{ui:nameTag.keyringAlong}} premakne jeziček vzdolž njegove strani, kot pri napisni ploščici.
 - **{{ui:iconTag.count}}:** koliko oznak želiš, od 1 do 100. {{ui:iconTag.fill}} izračuna število iz plošče tiskalnika, izbranega v nastavitvah; pri majhnih logotipih polna plošča. Gumb spodaj jih naredi, 5 mm narazen, razporejene na sredini plošče; prva je oznaka sama.
 
 SVG potrebuje sklenjene obrise; risba samo iz odprtih črt ne more postati oznaka. Telo skice, katerega polnilo je črta, jo obdrži: ploščina te črte je simbol.
@@ -151,9 +170,10 @@ Naj napis ne teče naravnost, ampak sledi robu kovanca, pokrova ali obroča? Za 
 
 ![Besedilo sledi krogu. Vse črke stojijo na skupni črti.](shot:curved-text)
 
-Takoj ko jo vklopiš, besedilo teče vzdolž kroga. Vse črke stojijo na isti osnovni črti, tako enakomerno kot pri običajnem besedilu. Poleg so štiri nastavitve:
+Takoj ko jo vklopiš, besedilo teče vzdolž kroga. Vse črke stojijo na isti osnovni črti, tako enakomerno kot pri običajnem besedilu. Poleg je pet nastavitev:
 
-- **{{ui:prop.textRadius}}** (5 do 500 mm): Polmer kroga, na katerem teče osnovna črta črk.
+- **{{ui:prop.textRadius}}** (5 do 500 mm): Polmer kroga, na katerem teče osnovna črta črk. Črke ostanejo na svojem mestu, spremeni se le njihova ukrivljenost.
+- **{{ui:prop.textLetterWidth}}** (25 do 400 %): Kako široko je narisana vsaka črka, v odstotkih njene lastne širine. Pod 100 so črke ožje, nad 100 širše; njihova višina ostane, lok, ki ga zasedajo, pa se z njimi podaljša ali skrajša. Na primer za visok, ozek napis na kovancu. Pri ravnem besedilu to naredi {{ui:prop.textStretch}} z okvirjem.
 - **{{ui:nameTag.letterSize}}:** Kako visoke so črke. Ne visi več na širini oblike.
 - **{{ui:prop.textInward}}:** Preklopi besedilo z zgornje strani kroga na spodnjo. Črke potem kažejo z glavo proti središču.
 - **{{ui:prop.textFlipped}}:** Obrne samo črke, da jih lahko bereš z druge strani. Besedilo pri tem ostane na svojem mestu na krogu.

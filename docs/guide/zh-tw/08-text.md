@@ -12,11 +12,16 @@ summary: 以八種字型或自訂字型製作凸起或凹刻的文字，還可�
 - **{{ui:prop.height}}：** 文字高出表面的距離。
 - **{{ui:prop.bevel}}：** 把字母邊緣做成圓角，看起來更柔和。以 {{ui:prop.segments}} 決定分成幾段。
 - **{{ui:nameTag.letterEdge}}：** 對字母頂邊做圓角或倒角，就像名牌那樣：{{ui:nameTag.edge.none}}、{{ui:nameTag.edge.round}} 或 {{ui:nameTag.edge.chamfer}}，並設定 {{ui:nameTag.letterEdgeSize}}（初始 0.4 mm，最大不超過文字高度）。它的作用範圍比 {{ui:prop.bevel}} 更廣，但只到筆畫寬度允許的地方：筆畫若比該尺寸的兩倍還窄，邊緣會收成較窄的頂面。底面保持平整，因此單一字母之後還能黏上去。選擇邊緣處理後，它會取代 {{ui:prop.bevel}}。
+- **長度：** 一段文字最多可有 250 個字元。字母保持大小，行會依需要變長；要縮短它，就把字母調小。{{ui:nameTag.letterEdge}} 僅適用於不超過 40 個字元的文字，因為更長的文字需要幾分鐘才能算出。
 - **尺寸：** 與其他形狀一樣設定這一行的長度與寬度。拖曳控制點或輸入尺寸。
 - **{{ui:prop.textSpacing}}：** 在字型原有間距之上再加的字母間距，以字母大小的百分比表示：0 表示維持字型的原始間距，大於 0 時字母分得更開，小於 0 時（最低 -50）更緊密，自訂字型經常需要這樣。字母大小不變，外框會跟著這一行調整，直線文字與弧形文字都一樣。阿拉伯文與希伯來文的字母會相連，不套用此間距。
 - **{{ui:prop.textStretch}}：** 初始為關閉：字母維持原有比例並置於外框中央，因此外框拉得比文字所需更寬或更深時，外框仍會大於字母。開啟後，字母會在兩個方向拉伸以填滿整個外框：大寫字母可以變矮或變窄，與 Tinkercad 相同。這適用於直線文字；弧形文字有自己的字母大小。
+- **{{ui:prop.textKerning}}：** 根據字母本身的形狀，把彼此間留有過多空隙的字母對（如 AY、AV、LT 或 To）靠得更近，適用於所有字型，包括你自己的字型。新文字預設開啟；在此功能出現之前建立的文字預設關閉，因此已儲存設計中的內容不會移動。字母保持大小，框隨之調整。適用於直排和彎曲文字，不適用於直書文字、阿拉伯文、希伯來文或日文。
+- **{{ui:prop.textVertical}}：** 把字母從上到下堆疊，每個字母位於一條直線的中間，用於門框上的標牌或沿筆桿寫的名字。外框變為直立，字母保持大小；{{ui:prop.textSpacing}} 設定它們之間的間距。在弧形文字上，字母沿圓的左側排成一列，每個都直立；{{ui:prop.textInwardColumn}} 把這一列放到右側。
 
 文字一開始是單一實體。若想個別處理每個字母，點擊 {{ui:inspector.separateParts}}。之後每個字母都會成為獨立形狀。
+
+**多行文字：** 一段文字只有一行。要做多行的招牌或銘牌，請打開設定下方的 {{ui:textBlock.title}} 卡片：在 {{ui:textBlock.lines}} 中輸入各行，選擇 {{ui:textBlock.align}}（{{ui:textBlock.align.left}}、{{ui:textBlock.align.center}} 或 {{ui:textBlock.align.right}}）、{{ui:textBlock.gap}} 和 {{ui:textBlock.step}}——設為 80 % 時每行比上一行小五分之一。按鈕會把每行做成上一行下方的獨立文字，使用此文字的字型、高度和填充；第一行佔據此文字的位置。之後每行都可以有自己的大小、字型或顏色。
 
 文字的邊也能倒角或加圓角，直線或弧形文字皆可，見[邊緣倒角與抽殼實體](chapter:edges-and-hollowing)。請使用 0.2 至 0.5 mm 這類小尺寸，因為字母的筆畫很窄。
 
@@ -73,6 +78,17 @@ layerling 無法讀取 WOFF2 檔案（幾乎總是有 TTF 或 OTF 版本）、�
 
 要在側面加上文字，先把工作平面放到該面上，見[檢視與工作平面](chapter:view-and-workplane)。
 
+## 鏤空模板：字母中間部分的連接橋
+
+文字穿透板時，O、A、B 等字母會失去中間部分：它鬆散地留在字母裡並掉出。{{ui:stencilBridges.title}} 用小連接橋把它固定在板上，就像鏤空模板一樣。
+
+1. 把文字切換為{{ui:inspector.hole}}，讓它穿透板，然後選取兩者，組合與否皆可。
+2. 點擊功能區 {{ui:editor.section.splitShape}} 群組中的 {{ui:stencilBridges.title}}，或在選取範圍上按右鍵，或用 [[Ctrl]]+[[K]] 搜尋。連接橋會以橘色顯示在將要放置的位置。
+3. 設定 {{ui:stencilBridges.width}} 和 {{ui:stencilBridges.count}}。{{ui:stencilBridges.height}} 從板的厚度開始；較矮的連接橋依 {{ui:stencilBridges.position}} 與板底齊平、位於中間或與板頂齊平。用於噴漆的模板，頂部的連接橋下方會給油漆留出空間。
+4. {{ui:stencilBridges.apply}} 把連接橋與板組合在一起。
+
+每個連接橋都是普通的長方體：打開組合即可移動、刪除或自行加入。之後修改文字時，選取組合並再次點擊 {{ui:stencilBridges.title}}；新的連接橋會取代舊的。只是凹刻、沒有穿透的文字不會得到連接橋，因為那裡沒有東西會掉出。對於雷射切割機或繪圖機，DXF 和 SVG 匯出會加入同樣的連接橋，參見[檔案、儲存與分享](chapter:files-and-saving)。
+
 ## 輪廓、剪影與加寬
 
 文字不一定要做成實心字母。屬性中的 {{ui:prop.textFill}} 提供與 Tinkercad 相同的選項：
@@ -97,8 +113,9 @@ layerling 無法讀取 WOFF2 檔案（幾乎總是有 TTF 或 OTF 版本）、�
 
 - **{{ui:prop.text}}** 與 **{{ui:prop.font}}**，也包含自訂字型。名牌會隨文字增長。
 - **{{ui:nameTag.letterSize}}：** 大寫字母的高度，單位為 mm。所有分層都會跟著調整並保持對齊。
+- **{{ui:prop.textVertical}}：** 把名牌立起來，字母上下排列，所有層一起跟隨。
 - **{{ui:nameTag.layers}}：** 每個分層一列，由上往下排列。每列包含顏色（點擊色塊）、該層比字母寬出多少、高度，以及 {{ui:nameTag.noHoles}}，用來填平 O、A 等字母中的孔。{{ui:nameTag.corners}} 設定加寬的分層如何繞過字母轉角：{{ui:nameTag.corner.round}}、{{ui:nameTag.corner.bevel}} 或 {{ui:nameTag.corner.miter}}。最上面一列就是字母本身。**+** 會在底部新增一層，**–** 會移除最底層。名牌可有二到六層。
-- **{{ui:nameTag.keyring}}：** 在底層加上一個末端為圓形的直舌片，並開一個鑰匙圈孔；舌片會隨孔一起變大。預設的 3 mm 孔會做出寬 6.5 mm、外伸 6.75 mm 的舌片，孔緣距底層邊緣 2 mm。選擇 {{ui:nameTag.keyringDiameter}} 與 {{ui:nameTag.keyringSide}}：{{ui:nameTag.side.left}}、{{ui:nameTag.side.right}} 或 {{ui:nameTag.side.top}}。{{ui:nameTag.side.free}} 會把孔從名牌上拿開，並在旁邊放一個獨立的 {{ui:nameTag.keyringTab}}，顏色和高度都與底層相同：這是一般形狀，你可以用控制點把它移到名牌需要的任何位置並旋轉。放好後，其面板中的 {{ui:nameTag.keyringTabFix}} 會把它併入最近的名牌，就固定在目前位置：孔會穿過它到達的每一層，耳片併入底層，而文字或尺寸改變時，兩者都會留在字母的該轉角處。{{ui:nameTag.side.free}} 會把舌片放回原位，讓你再次移動它。孔會穿過它接觸的每一層；改變文字、字母大小或字型時，舌片也會跟著移動。{{ui:nameTag.keyringAlong}} 會讓舌片沿所在邊上下移動（在頂邊上則是左右移動），直到即將離開該邊為止；0 表示中央。當邊的中央正好遇到空隙時（例如 J 旁邊），可以用它把舌片移到字母伸出的部位。
+- **{{ui:nameTag.keyring}}：** 在底層加上一個末端為圓形的直舌片，並開一個鑰匙圈孔；舌片會隨孔一起變大。預設的 3 mm 孔會做出寬 6.5 mm、外伸 6.75 mm 的舌片，孔緣距底層邊緣 2 mm。選擇 {{ui:nameTag.keyringDiameter}} 與 {{ui:nameTag.keyringSide}}：{{ui:nameTag.side.left}}、{{ui:nameTag.side.right}} 或 {{ui:nameTag.side.top}}。{{ui:nameTag.side.free}} 會把孔從名牌上拿開，並在旁邊放一個獨立的 {{ui:nameTag.keyringTab}}，顏色和高度都與底層相同：這是一般形狀，你可以用控制點把它移到名牌需要的任何位置並旋轉。放好後，其屬性中的 {{ui:nameTag.keyringTabFix}} 會把它併入最近的名牌，就固定在目前位置：孔會穿過它到達的每一層，耳片併入底層，而文字或尺寸改變時，兩者都會留在字母的該轉角處。{{ui:nameTag.side.free}} 會把舌片放回原位，讓你再次移動它。孔會穿過它接觸的每一層；改變文字、字母大小或字型時，舌片也會跟著移動。{{ui:nameTag.keyringAlong}} 會讓舌片沿所在邊上下移動（在頂邊上則是左右移動），直到即將離開該邊為止；0 表示中央。當邊的中央正好遇到空隙時（例如 J 旁邊），可以用它把舌片移到字母伸出的部位。
 - **{{ui:nameTag.letterEdge}}：** 對頂層字母的頂邊做圓角或倒角，就像列印出的名牌那樣收邊：{{ui:nameTag.edge.none}}、{{ui:nameTag.edge.round}} 或 {{ui:nameTag.edge.chamfer}}，並設定 {{ui:nameTag.letterEdgeSize}}（初始 0.4 mm，最大不超過層高）。它適用於所有字型與文字。這個邊是字母網格的一部分，因此邊工具會把這類文字當作網格處理，對如此精細的文字負擔很重；請改在這裡選擇邊緣處理。
 
 每次變更都會立即顯示。名牌是一個綁定：它會整體移動，而每一層仍是各自獨立、各有顏色的實體，切片軟體進行多色列印正需要如此。要對某一層的邊做圓角或倒角，點擊 {{ui:group.editBundle}} 並選擇該層，見[邊緣倒角與抽殼實體](chapter:edges-and-hollowing)。
@@ -153,9 +170,10 @@ QR Code 與其他實體一樣：可以移動、旋轉、縮放（保持寬度與
 
 ![文字沿圓周排列。所有字母都立在同一條基線上。](shot:curved-text)
 
-開啟後，文字會沿圓周排列。所有字母都立在同一條基線上，與一般文字一樣均勻。共有四項設定：
+開啟後，文字會沿圓周排列。所有字母都立在同一條基線上，與一般文字一樣均勻。共有五項設定：
 
-- **{{ui:prop.textRadius}}**（5 至 500 mm）：字母基線所在圓的半徑。
+- **{{ui:prop.textRadius}}**（5 至 500 mm）：字母基線所在圓的半徑。字母保持原位，只改變彎曲程度。
+- **{{ui:prop.textLetterWidth}}**（25 至 400 %）：每個字母繪製的寬度，以其本身寬度的百分比表示。小於 100 字母變窄，大於 100 變寬；高度不變，所佔的弧長隨之變長或變短。例如在硬幣上做高而窄的文字。直排文字則用 {{ui:prop.textStretch}} 配合外框達成。
 - **{{ui:nameTag.letterSize}}：** 字母的高度。不再取決於形狀的寬度。
 - **{{ui:prop.textInward}}：** 把文字從圓的頂部移到圓的底部。字母的頭部便朝向圓心。
 - **{{ui:prop.textFlipped}}：** 只把字母翻面，讓你能從另一側閱讀。文字在圓上的位置不變。

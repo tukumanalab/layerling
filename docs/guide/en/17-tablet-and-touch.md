@@ -28,13 +28,15 @@ The same menu has {{ui:contextMenu.carry}}, the key [[C]] for a touch screen. Th
 
 ## Turning and zooming the view
 
-One finger on empty space turns the view, two fingers zoom and move it. A finger that starts on a body works on the body, not on the view. If you would rather have it turn the view, switch on {{ui:camera.touchRotate}} in the camera bar: one finger then turns the view instead of selecting, wherever it starts. That switch only shows on a device with a touch screen.
+One finger on empty space turns the view, two fingers zoom and move it. A finger that starts on a body works on the body, not on the view. If you would rather have it turn the view, switch on {{ui:camera.touchRotate}} in the view bar: one finger then turns the view instead of selecting, wherever it starts. That switch only shows on a device with a touch screen.
 
 The view cube in the top left turns the view when you drag it, and a tap on one of its sides, corners or edges jumps to that view. See [View and workplane](chapter:view-and-workplane).
 
 ## Handles, small points and a stylus
 
 A fingertip covers what it aims at. layerling lets a finger reach a little further to handles, points, lines and edges than a mouse pointer does, but a stylus is finer. This holds for a pen the tablet knows as a pen, such as an Apple Pencil or an S Pen. A plain stylus with a rubber tip counts as a finger for the screen and is not finer than one, so work with it as with a finger. An Apple Pencil that hovers above the screen on an iPad also shows the name of a control after a moment, in a small bubble, as the mouse pointer does with a tooltip.
+
+In sketch mode, {{ui:sketch.freehand}} draws with the pen or a finger as on paper; when you lift it, the line becomes sketch points you can edit, see [Sketches](chapter:sketches).
 
 If bodies slip when children or hurried hands touch them, switch on {{ui:workspace.selectBeforeMoving}} in the settings: a body then has to be selected first, and only the next drag moves it.
 

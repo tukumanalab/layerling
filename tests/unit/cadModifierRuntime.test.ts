@@ -18,6 +18,7 @@ import {
   edgeModifierSelectionStatus,
   isCadModifierKernelExhausted,
   rescueSharpAngleForEdges,
+  cadModifierPresetValues,
   isCadModifierWasmMemoryFault,
   selectableCadModifierEdge,
   CAD_MODIFIER_KERNEL_RESTART_MESSAGE,
@@ -25,7 +26,7 @@ import {
   cadModifierUserErrorMessage,
   VARIABLE_FILLET_ONE_EDGE_MESSAGE,
 } from "@/lib/cadModifierRuntime";
-import { setLanguage } from "@/lib/i18n";
+import { setLanguage, t } from "@/lib/i18n";
 
 describe("CAD modifier runtime state", () => {
   it("uses the build-managed OCCT runtime", () => {
@@ -226,6 +227,7 @@ describe("cadModifierUserErrorMessage", () => {
     expect(cadModifierUserErrorMessage("The edge preview timed out. Cancel the tool and try again.")).toContain("Vorschau-Berechnung");
     expect(cadModifierUserErrorMessage("Edge preparation timed out. This mesh needs more CAD processing than the interactive limit allows. Try a repaired or lower-detail STL.")).toContain("Vorbereitung der Kanten");
     expect(cadModifierUserErrorMessage("The group has no solid body to modify")).toContain("keinen festen Körper");
+    expect(cadModifierUserErrorMessage("Select at least one highlighted edge")).toBe(t("edge.selectAtLeastOne"));
     expect(cadModifierUserErrorMessage("The CAD worker could not start. Update to Firefox 121+, Chrome/Brave 114+, or Safari 17.2+, then try again.")).toContain("CAD-Rechenkern");
   });
 
@@ -414,5 +416,25 @@ describe("Rettungsschwelle fuer flache Kanten", () => {
   it("rettet nichts, wo nur tangentiale Uebergaenge sind", () => {
     expect(rescueSharpAngleForEdges([kante(0.2), kante(0)], 25)).toBeNull();
     expect(rescueSharpAngleForEdges([], 25)).toBeNull();
+  });
+});
+
+describe("Vorgabe beim Wiederoeffnen des Kantenwerkzeugs (#1115)", () => {
+  const preset = { kind: "fillet" as string, amount: 3, chamferAngle: 45, endAmount: null, concave: false, edgeIds: [] as number[] };
+
+  it("keeps the size after Apply although no edge comes along", () => {
+    expect(cadModifierPresetValues(preset, "fillet", new Set([1, 2]))).toEqual({
+      edgeIds: [],
+      values: { amount: 3, chamferAngle: 45, endAmount: null, concave: false },
+    });
+  });
+
+  it("brings the edges of an Edit that still exist", () => {
+    expect(cadModifierPresetValues({ ...preset, edgeIds: [1, 7] }, "fillet", new Set([1, 2])).edgeIds).toEqual([1]);
+  });
+
+  it("takes nothing over for another kind or without a preset", () => {
+    expect(cadModifierPresetValues(preset, "chamfer", new Set([1]))).toEqual({ edgeIds: [], values: null });
+    expect(cadModifierPresetValues(null, "fillet", new Set([1]))).toEqual({ edgeIds: [], values: null });
   });
 });

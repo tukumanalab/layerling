@@ -99,12 +99,15 @@ export function AppFooter({
   version,
   updateInfo,
   onBugReport,
+  onShowWelcome,
 }: {
   variant?: "dashboard" | "editor";
   version: string;
   updateInfo?: AppUpdateInfo | null;
   /** Im Editor: den Entwurf als Fehlerbericht speichern. */
   onBugReport?: () => void;
+  /** On the start page once the welcome guide was closed: the way to bring it back. */
+  onShowWelcome?: () => void;
 }) {
   const language = useLanguage();
   const simpleMode = useSimpleMode();
@@ -141,6 +144,18 @@ export function AppFooter({
             >
               <Heart size={13} aria-hidden="true" />
               {sponsor.label || t("dashboard.sponsor")}
+            </a>
+          ) : null,
+          onShowWelcome ? (
+            <a
+              href="#welcome"
+              key="welcome"
+              onClick={(event) => {
+                event.preventDefault();
+                onShowWelcome();
+              }}
+            >
+              {t("welcome.teaserTitle")}
             </a>
           ) : null,
           <a href={withBasePath(t("welcome.guideUrl"))} target="_blank" rel="noreferrer" key="guide">

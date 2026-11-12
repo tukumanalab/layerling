@@ -1,17 +1,22 @@
 import type { OcctKernel, ShapeHandle } from "occt-wasm";
-import type { CadModifierGridfinityPart } from "@/lib/cadModifierTypes";
+import type { CadModifierGridfinityPart, CadModifierProfilePart } from "@/lib/cadModifierTypes";
+import { profileArea, profileExtrusionSolid } from "@/lib/cadProfileSolid";
 import {
   GRIDFINITY_BASEPLATE_HEIGHT,
   GRIDFINITY_BASEPLATE_RADIUS,
+  GRIDFINITY_BIN_CORNER_BAND,
   GRIDFINITY_BIN_RADIUS,
   GRIDFINITY_CLEARANCE,
   GRIDFINITY_DIVIDER_CUTTER_OVERLAP,
   GRIDFINITY_FOOT,
   GRIDFINITY_GRID,
+  GRIDFINITY_LABEL_TEXT_HEIGHT,
+  GRIDFINITY_LABEL_TEXT_SINK,
   GRIDFINITY_LEDGE_INSET,
   GRIDFINITY_MAGNET_DEPTH,
   GRIDFINITY_MAGNET_DIAMETER,
   GRIDFINITY_SOCKET,
+  GRIDFINITY_SWALLOWTAIL_FLOOR,
   type GridfinityCompartmentPieces,
   type GridfinityLabelCornerShape,
   type GridfinityLabelPieces,
@@ -39,6 +44,7 @@ import {
   gridfinityScoopPieces,
   gridfinityScoopPoint,
   gridfinityScoopSection,
+  gridfinitySwallowtailCuts,
   gridfinityWallProfile,
 } from "@/lib/gridfinityGeometry";
 
@@ -79,6 +85,10 @@ import {
  * A tray (#837) is a bin with no feet under it: the block stands on y = 0 and
  * is cut the same way. Its dividers run up to its top, and the box above their
  * cutter is what joins the compartments to a notch cut into the wall.
+ *
+ * The letters on the shelves (#1308) come made on the page, each glyph with the
+ * font's own curves: each is pushed up from 0.05 mm inside its shelf to 0.4 mm
+ * over its top and fused with the finished bin, last, so no cut takes them.
  */
 
 /** z up to y up: (x, y, z) -> (x, z, -y). */
@@ -157,7 +167,11 @@ function binSolid(cad: OcctKernel, plan: GridfinityPlan, scoops: GridfinityScoop
   // The corners touching an open side are square from the feet up, so the floor runs flat out to the edge there too.
   const square = gridfinityOpenCorners(open);
   const opened = Object.values(square).some(Boolean);
-  const walls = prism(cad, hx, hz, GRIDFINITY_BIN_RADIUS, plan.base, wallTop, 0, 0, square);
+  // Corners rounded less (#856) start 0.5 mm over the feet, on the feet's rounding; joined into one face along the sides.
+  const bandTop = plan.base + GRIDFINITY_BIN_CORNER_BAND;
+  const walls = plan.wallRadius !== GRIDFINITY_BIN_RADIUS
+    ? cad.unifySameDomain(oneSolid(cad, cad.fuse(prism(cad, hx, hz, GRIDFINITY_BIN_RADIUS, plan.base, bandTop, 0, 0, square), prism(cad, hx, hz, plan.wallRadius, bandTop, wallTop, 0, 0, square)), "bin"))
+    : prism(cad, hx, hz, GRIDFINITY_BIN_RADIUS, plan.base, wallTop, 0, 0, square);
   let body = feet.length > 0 ? oneSolid(cad, cad.fuseAll([...feet, walls]), "bin") : walls;
   // The inside, from the floor up: the wall's inner steps in rising order, then out past the top.
   const inside: GridfinityStep[] = wall.slice(2).reverse();
@@ -200,7 +214,7 @@ function binSolid(cad: OcctKernel, plan: GridfinityPlan, scoops: GridfinityScoop
   // The whole inside without the compartments, the floor's rounding or the scoops, for the dividers' check.
   const loft = upper ? oneSolid(cad, cad.fuse(below, upper), "bin's inside") : below;
   const block = body;
-  // A bin without the lip whose floor is raised to the top is one solid block, with no inside to cut.
+  // A bin whose floor is raised to the top (with the lip, the lip's top; #1126) is one solid block, with no inside to cut.
   if (plan.floor < wallTop) body = oneSolid(cad, apart.length > 0 ? cad.cutAll(cad.cut(body, cutter), apart) : cad.cut(body, cutter), "bin");
   // Checked before the magnet holes, which take volume the bound does not count; the loft's PAST over the top cuts nothing.
   if (compartments) {
@@ -245,7 +259,10 @@ function lipChamferKeeper(cad: OcctKernel, plan: GridfinityPlan, hx: number, hz:
   const out = 1;
   const steps: GridfinityStep[] = [[-out, -PAST], [-out, wallTop - size - out / run], [size * run, wallTop], [size * run, wallTop + PAST]];
   const grown = gridfinityOpenGrown(hx, hz, plan.open, plan.reach);
-  return steppedSolid(cad, grown.x, grown.z, grown.hx, grown.hz, GRIDFINITY_BIN_RADIUS, steps);
+  const keeper = steppedSolid(cad, grown.x, grown.z, grown.hx, grown.hz, GRIDFINITY_BIN_RADIUS, steps);
+  // Corners rounded less (#856) reach past the loft: everything under the chamfer's foot on the outer wall stays.
+  if (plan.wallRadius === GRIDFINITY_BIN_RADIUS) return keeper;
+  return oneSolid(cad, cad.fuse(keeper, cad.makeBoxFromCorners({ x: -hx - 1, y: -hz - 1, z: -PAST }, { x: hx + 1, y: hz + 1, z: wallTop - size })), "chamfer keeper");
 }
 
 /**
@@ -281,11 +298,19 @@ function compartmentCutter(cad: OcctKernel, loft: ShapeHandle, pieces: Gridfinit
 
 function baseplateSolid(cad: OcctKernel, plan: GridfinityPlan) {
   const half = GRIDFINITY_GRID / 2;
-  const slab = prism(cad, plan.size.width / 2, plan.size.depth / 2, plan.cornerRadius, 0, GRIDFINITY_BASEPLATE_HEIGHT);
+  // A plate fitted into an outline (#1061) is that outline's slab; the shape's depth (z) is the kernel's -y, as in roundedWire.
+  const slab = plan.outline
+    ? cad.extrude(polygonFace(cad, plan.outline.map((p) => ({ x: p.x, y: -p.z, z: 0 }))), 0, 0, GRIDFINITY_BASEPLATE_HEIGHT)
+    : prism(cad, plan.size.width / 2, plan.size.depth / 2, plan.cornerRadius, 0, plan.size.height);
+  // A Swallowtail plate (#1061) stands on its floor: its sockets end on it, and its pockets are cut up into it from below.
+  const floor = plan.swallowtail ? GRIDFINITY_SWALLOWTAIL_FLOOR : 0;
   const last = GRIDFINITY_SOCKET[GRIDFINITY_SOCKET.length - 1];
-  const steps: GridfinityStep[] = [[GRIDFINITY_SOCKET[0][0], -PAST], ...GRIDFINITY_SOCKET, [last[0], last[1] + PAST]];
+  const socket = GRIDFINITY_SOCKET.map(([inset, y]): GridfinityStep => [inset, y + floor]);
+  const top: GridfinityStep = [last[0], last[1] + floor + PAST];
+  const steps: GridfinityStep[] = floor > 0 ? [...socket, top] : [[GRIDFINITY_SOCKET[0][0], -PAST], ...socket, top];
   const sockets = plan.cells.map((cell) => steppedSolid(cad, cell.x, cell.z, half, half, GRIDFINITY_BASEPLATE_RADIUS, steps));
-  return oneSolid(cad, cad.cutAll(slab, sockets), "baseplate");
+  const pockets = gridfinitySwallowtailCuts(plan, PAST).map(({ outline, y0, y1 }) => cad.extrude(polygonFace(cad, outline.map((p) => ({ x: p.x, y: -p.z, z: y0 }))), 0, 0, y1 - y0));
+  return oneSolid(cad, cad.cutAll(slab, [...sockets, ...pockets]), "baseplate");
 }
 
 /** A closed polygon of points (x, y, z) as a face. */
@@ -362,6 +387,25 @@ function labelledCompartments(cad: OcctKernel, standing: ShapeHandle, pieces: Gr
   return labelled;
 }
 
+/** The bin with the letters on its shelves (#1308) fused on; a fuse that loses some of them throws. */
+function letteredSolid(cad: OcctKernel, body: ShapeHandle, part: CadModifierGridfinityPart) {
+  const letters = part.gridfinityLetters ?? [];
+  if (letters.length === 0) return body;
+  const height = GRIDFINITY_LABEL_TEXT_HEIGHT + GRIDFINITY_LABEL_TEXT_SINK;
+  let area = 0;
+  const glyphs = letters.flatMap(({ top, glyphs: outlines }) => outlines.map((loops) => {
+    const profile: CadModifierProfilePart = { kind: "extrusion", loops, height };
+    area += profileArea(profile);
+    return cad.translate(profileExtrusionSolid(cad, profile), 0, top - GRIDFINITY_LABEL_TEXT_SINK, 0);
+  }));
+  const joined = oneSolid(cad, cad.fuseAll([body, ...glyphs]), "bin with letters");
+  // A fuse that lost a tenth of the letters or more, which the STEP export would leave out without a word: letters running
+  // into one another share far less of their area than that.
+  if (cad.getVolume(joined) - cad.getVolume(body) < 0.9 * area * GRIDFINITY_LABEL_TEXT_HEIGHT) throw new Error("The Gridfinity bin's letters could not be joined");
+  if (!cad.isValid(joined)) throw new Error("The Gridfinity body is not a valid solid");
+  return joined;
+}
+
 /** The Gridfinity part's exact solid in the shape's own frame, y up. Throws when the kernel cannot build it. */
 export function gridfinityPartSolid(cad: OcctKernel, part: CadModifierGridfinityPart): ShapeHandle {
   const plan = gridfinityPlan(part);
@@ -372,10 +416,10 @@ export function gridfinityPartSolid(cad: OcctKernel, part: CadModifierGridfinity
   const solid = plan.type === "baseplate" ? baseplateSolid(cad, plan) : binSolid(cad, plan, compartments ? null : scoopPieces, compartments);
   if (!cad.isValid(solid) || !(cad.getVolume(solid) > 0)) throw new Error("The Gridfinity body is not a valid solid");
   const standing = cad.transform(solid, Z_TO_Y_UP);
-  if (compartments) return labelledCompartments(cad, standing, compartments);
+  if (compartments) return letteredSolid(cad, labelledCompartments(cad, standing, compartments), part);
   const pieces = gridfinityLabelPieces(part);
   if (!pieces) return standing;
   const labelled = oneSolid(cad, cad.fuseAll([standing, ...labelSolids(cad, pieces)]), "bin with label shelves");
   if (!cad.isValid(labelled)) throw new Error("The Gridfinity body is not a valid solid");
-  return labelled;
+  return letteredSolid(cad, labelled, part);
 }

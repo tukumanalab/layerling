@@ -1,5 +1,6 @@
 import { unzipSync } from "fflate";
 import { t } from "@/lib/i18n";
+import { localizedError } from "@/lib/userErrors";
 import { importExtensionSupported } from "@/lib/importExtensions";
 import { attachProjectAsset, projectAssetFromBytes, sourceFormatForFileName } from "@/lib/projectAssets";
 import { readKeepSvgPage } from "@/lib/importPreferences";
@@ -198,8 +199,17 @@ export async function importModelFiles(
         }
         shape = colored.shapes[0];
       } else if (isStep) {
-        const { importedShapeFromStep } = await import("@/lib/stepImport");
-        shape = await importedShapeFromStep(file.name, buffer);
+        // Read off the page: several solids come in as one body each (#830), anything else as one body.
+        const step = await (await import("@/lib/geometryWorker")).importedShapesFromStepOffThread(file.name, buffer);
+        if (step.assembly) {
+          // The file's assemblies become bundles, one inside the other, so a whole one hides or moves at once (#830).
+          const placed = step.tree ? await (await import("@/lib/stepAssemblyBundles")).bundledStepAssembly(step.shapes, step.tree) : step.shapes;
+          result.shapes.push(...placed);
+          result.importedFileNames.push(file.name);
+          result.notes.push(t("status.importStepParts", { name: file.name, count: step.shapes.length }));
+          continue;
+        }
+        shape = step.shapes[0];
       } else if (isSvg) {
         let text = isPicture ? await importedPictureSvg(file) : decodeSvgBytes(bytes);
         const embedded = isPicture ? null : svgEmbeddedPicture(text);
@@ -277,9 +287,17 @@ export async function importModelFiles(
 }
 
 /** Die Fehlerzeile unter einer Importmeldung, oder nichts. */
+/**
+ * Why a file did not come in, as a person reads it: the readers throw English, which came on screen as it was ("SVG
+ * entities are not supported" in the Facebook group). The MCP answer keeps the raw reason.
+ */
+export function importFailureReason(failure: ImportFailure) {
+  return localizedError(failure.reason);
+}
+
 export function importFailureSummary(failures: readonly ImportFailure[]) {
   if (!failures.length) return "";
-  const details = failures.slice(0, 3).map((failure) => `${failure.fileName}: ${failure.reason}`).join("; ");
+  const details = failures.slice(0, 3).map((failure) => `${failure.fileName}: ${importFailureReason(failure)}`).join("; ");
   const more = failures.length > 3 ? t("status.importFailedMore", { count: failures.length - 3 }) : "";
   return " " + t("status.importFailedList", { details, more });
 }

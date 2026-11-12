@@ -4,6 +4,8 @@
 // current language, ctx.mcp(action, params) drives the editor, ctx.shot(name)
 // writes docs/guide/images/<language>/<name>.webp.
 
+import { readFileSync } from "node:fs";
+
 const BLUE = "#3f8fd2";
 const ORANGE = "#e0793a";
 const GREEN = "#5aa469";
@@ -31,6 +33,43 @@ async function select(ctx, ids) {
   await ctx.wait(500);
 }
 
+/**
+ * Frames areas of the editor and names them with the interface's own words, for the labelled overview.
+ * `top` cuts the frame off above (the ribbon without the title row); `place` puts the name below, left or right of it.
+ */
+async function labelAreas(ctx, areas) {
+  const named = areas.map((area) => ({ ...area, text: ctx.t(area.key) }));
+  const missing = await ctx.evaluate(`(() => {
+    const areas = ${JSON.stringify(named)};
+    const layer = document.createElement("div");
+    layer.style.cssText = "position:fixed;inset:0;z-index:100000;pointer-events:none;font:600 13px system-ui,sans-serif";
+    document.body.append(layer);
+    const missing = [];
+    for (const area of areas) {
+      const element = document.querySelector(area.selector);
+      const box = element?.getBoundingClientRect();
+      if (!box || box.width === 0) { missing.push(area.selector); continue; }
+      const top = Math.max(box.top, area.top ?? 0);
+      const frame = document.createElement("div");
+      frame.style.cssText = "position:absolute;border:2px solid #d9480f;border-radius:8px;box-sizing:border-box;"
+        + "left:" + (box.left + 1) + "px;top:" + (top + 1) + "px;width:" + (box.width - 2) + "px;height:" + (box.bottom - top - 2) + "px";
+      const label = document.createElement("div");
+      label.textContent = area.text;
+      label.style.cssText = "position:absolute;background:#d9480f;color:#fff;padding:2px 8px;border-radius:6px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.25)";
+      layer.append(frame, label);
+      const size = label.getBoundingClientRect();
+      const middle = (box.left + box.right) / 2;
+      const position = area.place === "right" ? [box.right + 8, (top + box.bottom - size.height) / 2]
+        : area.place === "left" ? [box.left - size.width - 8, top + 12]
+        : [Math.max(4, Math.min(innerWidth - size.width - 4, area.selector === ".view-cube" || area.selector === ".camera-controls" ? box.left : middle - size.width / 2)), box.bottom + 3];
+      label.style.left = position[0] + "px";
+      label.style.top = position[1] + "px";
+    }
+    return missing;
+  })()`);
+  if (missing.length) throw new Error(`Not on screen: ${missing.join(", ")}`);
+}
+
 /** A small, good-looking starting point: a plate with a few bodies. */
 async function sampleParts(ctx) {
   const box = await create(ctx, { kind: "box", x: -20, z: 0, width: 30, depth: 30, height: 20, color: BLUE });
@@ -50,6 +89,27 @@ export const scenes = {
     await select(ctx, [box]);
     await quiet(ctx);
     await ctx.shot("editor-overview");
+  },
+
+  async "editor-areas"(ctx) {
+    await freshEditor(ctx);
+    const { box } = await sampleParts(ctx);
+    await ctx.wait(2500);
+    await ctx.click(ctx.t("editor.tool.showOutliner"));
+    await select(ctx, [box]);
+    await quiet(ctx);
+    // The status pill is hidden for every other picture; here it is one of the areas, so a copy puts a message in it.
+    await ctx.evaluate(`[...document.querySelectorAll("style")].filter((style) => style.textContent.includes(".editor-status{display:none")).forEach((style) => style.remove()); true`);
+    await ctx.key("c", 2);
+    await labelAreas(ctx, [
+      { selector: ".secondary-toolbar", key: "area.ribbon", top: 46, place: "below" },
+      { selector: ".view-cube", key: "view.cube", place: "below" },
+      { selector: ".camera-controls", key: "camera.controls", place: "below" },
+      { selector: ".editor-status", key: "area.statusMessage", place: "right" },
+      { selector: ".outliner-panel", key: "area.objectList", place: "below" },
+      { selector: ".shape-inspector", key: "inspector.properties", place: "left" },
+    ]);
+    await ctx.shot("editor-areas");
   },
 
   async "shape-menu"(ctx) {
@@ -135,6 +195,27 @@ export const scenes = {
     await ctx.shot("group-multicolor");
   },
 
+  // A plate made 40 mm longer whose group keeps its holes and small parts (Discussion #526): the corner holes
+  // stay round, 5 mm from the corners, the slot stays in the middle, and the setting shows in the group's card.
+  async "group-keep-parts"(ctx) {
+    await freshEditor(ctx);
+    const plate = await create(ctx, { kind: "box", x: 0, z: 0, width: 100, depth: 60, height: 4, color: BLUE });
+    const holes = [];
+    for (const [x, z] of [[-42, -22], [42, -22], [-42, 22], [42, 22]]) holes.push(await create(ctx, { kind: "cylinder", x, z, width: 6, depth: 6, height: 4, color: GREEN }));
+    holes.push(await create(ctx, { kind: "box", x: 0, z: 0, width: 24, depth: 6, height: 4, color: GREEN }));
+    for (const hole of holes) await ctx.mcp("update_object", { id: hole, hole: true });
+    const group = await ctx.mcp("group_objects", { ids: [plate, ...holes] });
+    const id = group.object?.id ?? group.id;
+    await ctx.mcp("update_object", { id, groupResize: "keepParts", width: 140 });
+    await ctx.wait(2500);
+    await select(ctx, [id]);
+    await ctx.click(ctx.t("view.top"));
+    await ctx.wait(1500);
+    await ctx.click(ctx.t("camera.focusSelection")).catch(() => {});
+    await quiet(ctx, 3000);
+    await ctx.shot("group-keep-parts");
+  },
+
   // Align faces: the part that moves is selected and the tool is open.
   async "mate-faces"(ctx) {
     await freshEditor(ctx);
@@ -177,7 +258,7 @@ export const scenes = {
     const box = await create(ctx, { kind: "box", x: 0, z: 0, width: 40, depth: 40, height: 20, name: ctx.language === "de" ? "Grundplatte" : "Base plate", color: BLUE });
     const hole = await create(ctx, { kind: "cylinder", x: 0, z: 0, width: 14, depth: 14, height: 30, name: ctx.language === "de" ? "Bohrung" : "Bore", color: ORANGE });
     await ctx.mcp("update_object", { id: hole, hole: true });
-    await create(ctx, { kind: "sphere", x: 45, z: 5, width: 20, depth: 20, height: 20, name: "Kugel", color: GREEN });
+    await create(ctx, { kind: "sphere", x: 45, z: 5, width: 20, depth: 20, height: 20, color: GREEN });
     await ctx.mcp("group_objects", { ids: [box, hole] });
     await ctx.wait(2500);
     await ctx.click(ctx.t("editor.tool.showOutliner"));
@@ -267,6 +348,79 @@ scenes["sketch"] = async (ctx) => {
   await ctx.shot("sketch-result");
 };
 
+// Trace on a drawn house with a tree behind it (scripts/guide-assets/trace-house.webp, free to use): traced as the
+// object with the threshold lowered for its light wall, the tree cut away with the magnetic lasso, the eight window
+// panes picked as holes; then the house as a body. Points are given in the picture's 1254-pixel original.
+const TRACE_HOUSE = readFileSync(new URL("./guide-assets/trace-house.webp", import.meta.url)).toString("base64");
+const TRACE_HOUSE_LASSO = [
+  [441, 414], [446, 340], [432, 262], [395, 190], [330, 140], [255, 130], [180, 152], [112, 222], [54, 330], [31, 450],
+  [38, 580], [78, 690], [128, 768], [188, 812], [200, 818], [196, 866], [193, 930], [194, 998], [226, 998], [229, 950],
+  [236, 922], [270, 920], [274, 800], [274, 684], [222, 680], [172, 676], [166, 660], [250, 586], [340, 503], [441, 414],
+];
+const TRACE_HOUSE_PANES = [[355, 733], [455, 733], [355, 830], [455, 830], [810, 733], [910, 733], [810, 830], [910, 830]];
+
+scenes["trace-house"] = async (ctx) => {
+  await ctx.goto("/?editor=1");
+  await ctx.click(ctx.t("editor.modeSketch"));
+  await ctx.wait(1500);
+  await ctx.click(ctx.t("sketch.extrude"), undefined, true);
+  await ctx.wait(2500);
+  await ctx.click(ctx.t("sketch.select"));
+  // The picture as if chosen with Add image.
+  await ctx.evaluate(`(() => {
+    const bytes = Uint8Array.from(atob(${JSON.stringify(TRACE_HOUSE)}), (character) => character.charCodeAt(0));
+    const input = document.querySelector('input.hidden-file-input[accept^="image/png"]');
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([bytes], "house.webp", { type: "image/webp" }));
+    input.files = transfer.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  })()`);
+  await ctx.wait(2500);
+  await ctx.key("f");
+  await ctx.wait(1200);
+  await ctx.click(ctx.t("sketch.traceImage"));
+  await ctx.wait(3500);
+  await ctx.click(ctx.t("sketch.traceObject"));
+  await ctx.wait(2000);
+  await ctx.setField(ctx.t("sketch.traceThreshold"), 4);
+  await ctx.wait(2500);
+  const box = JSON.parse(await ctx.evaluate(`JSON.stringify(document.querySelector(".sketch-reference-images image").getBoundingClientRect())`));
+  const at = ([x, y]) => [box.x + (box.width * x) / 1254, box.y + (box.height * y) / 1254];
+  await ctx.click(ctx.t("sketch.traceLasso"));
+  await ctx.wait(1200);
+  for (const point of TRACE_HOUSE_LASSO) await ctx.mouse(...at(point));
+  await ctx.wait(2500);
+  await ctx.chooseOption(ctx.t("sketch.traceTrim"));
+  await ctx.wait(2000);
+  await ctx.click(ctx.t("sketch.tracePickAreas"));
+  for (const point of TRACE_HOUSE_PANES) {
+    await ctx.mouse(...at(point));
+    await ctx.wait(700);
+  }
+  await ctx.click(ctx.t("sketch.tracePickAreas"));
+  await ctx.wait(1500);
+  await ctx.mouse(box.x + box.width + 40, box.y + box.height + 40, "move");
+  await ctx.shot("trace-house");
+  await ctx.click(ctx.t("sketch.traceApply"));
+  await ctx.wait(3000);
+  // Off the picture, so the new points are no longer selected and Finish sketch builds the body.
+  await ctx.mouse(box.x + box.width + 60, box.y + box.height / 2);
+  await ctx.wait(800);
+  await ctx.click(ctx.t("sketch.finishSketch"));
+  // Building the exact body from the traced curves takes a while: wait until the sketch ribbon has gone.
+  for (let tries = 0; tries < 60; tries += 1) {
+    await ctx.wait(1000);
+    if (!(await ctx.evaluate(`Boolean(document.querySelector(".sketch-edit-section"))`))) break;
+  }
+  await ctx.wait(1500);
+  await ctx.click(ctx.t("camera.focusSelection")).catch(() => {});
+  await ctx.wait(1500);
+  await ctx.mcp("select_objects", { ids: [] }).catch(() => {});
+  await quiet(ctx, 2000);
+  await ctx.shot("trace-house-body");
+};
+
 // A straight side bent into a curve, with its two handles.
 scenes["sketch-curve"] = async (ctx) => {
   await drawOutline(ctx);
@@ -316,7 +470,8 @@ scenes["printer-overhang"] = async (ctx) => {
   await ctx.evaluate(`window.dispatchEvent(new Event("layerling:open-workspace-settings")); true`);
   await ctx.wait(1000);
   await ctx.click(ctx.t("workspace.workplane"), "button, [role=tab]");
-  await ctx.chooseOption("Bambu Lab A1");
+  // The A1 mini, as the guide says: its plate is narrower than the box, the A1's is not.
+  await ctx.chooseOption("Bambu Lab A1 mini");
   await ctx.click(ctx.t("workspace.close"));
   await ctx.wait(1500);
   await ctx.click(ctx.t("view.top"));
@@ -328,6 +483,44 @@ scenes["printer-overhang"] = async (ctx) => {
   await ctx.wait(1500);
   await ctx.mcp("select_objects", { ids: [] });
   await ctx.shot("printer-overhang");
+};
+
+scenes["print-check"] = async (ctx) => {
+  await freshEditor(ctx);
+  // A tray open at the top: walls of 2 mm, the one on the right only 0.6 mm - too thin for a 0.4 mm nozzle.
+  const tray = await create(ctx, { kind: "box", x: 0, z: 0, width: 30, depth: 20, height: 20, color: "#c9ced6" });
+  const hollow = await create(ctx, { kind: "box", x: 0.7, z: 0, elevation: 2, width: 27.4, depth: 16, height: 20, hole: true });
+  const group = await ctx.mcp("group_objects", { ids: [tray, hollow] });
+  await ctx.mcp("update_object", { id: group.object?.id ?? group.id, name: ctx.t("shape.box") });
+  await ctx.mcp("select_objects", { ids: [] });
+  await ctx.evaluate(`localStorage.setItem("layerling.printCheck", JSON.stringify({ nozzle: 0.4 })); true`);
+  await ctx.click(ctx.t("editor.tool.printCheck"));
+  await ctx.wait(6000);
+  await ctx.click(`${ctx.t("printCheck.show")}: ${ctx.t("printCheck.thin.title")}`);
+  await quiet(ctx, 3000);
+  await ctx.shot("print-check");
+  await ctx.key("Escape");
+};
+
+scenes.paint = async (ctx) => {
+  await freshEditor(ctx);
+  // A box painted with the three tools: its top filled, a round patch on the front, a star drawn round on the side.
+  const box = await create(ctx, { kind: "box", x: 0, z: 0, width: 40, depth: 40, height: 30, color: "#1c7ed6" });
+  const star = Array.from({ length: 24 }, (_, index) => {
+    const angle = (index / 24) * Math.PI * 2;
+    const reach = index % 2 ? 4 : 10;
+    return [Math.cos(angle) * reach, 15 + Math.sin(angle) * reach];
+  });
+  await ctx.mcp("paint_object", { id: box, strokes: [
+    { mode: "fill", color: "#f2cf10", point: [0, 30, 0] },
+    { mode: "circle", color: "#ffffff", point: [0, 15, 20], diameter: 14 },
+    { mode: "lasso", color: "#2f9e44", view: "right", outline: star },
+  ] });
+  await select(ctx, [box]);
+  await ctx.click(ctx.t("paint.title"));
+  await quiet(ctx, 4500);
+  await ctx.shot("paint");
+  await ctx.key("Escape");
 };
 
 scenes["editor-dark"] = async (ctx) => {

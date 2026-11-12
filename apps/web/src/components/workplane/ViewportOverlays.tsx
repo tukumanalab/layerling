@@ -1,5 +1,5 @@
 
-import { Crosshair, Eye, EyeOff, MousePointer2, Plus, Rows3, X } from "lucide-react";
+import { Axis3d, Crosshair, Eye, EyeOff, Maximize2, MousePointer2, Plus, Rows3, X } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type Dispatch, type MutableRefObject, type PointerEvent as ReactPointerEvent, type SetStateAction } from "react";
 import type { CameraTurn } from "@/lib/viewCubeTransition";
 import * as THREE from "three";
@@ -9,24 +9,33 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { type AppThemePalette, type ResolvedAppTheme } from "@/lib/appTheme";
-import { t } from "@/lib/i18n";
-import { displayToMillimeters, formatLengthMm, formatMeasurementNumber, lengthDisplayUnit, millimetersToDisplay, parseMeasurementInput } from "@/lib/measurementUnits";
-import { computeCornerRulerRelativeCoordinates, cornerRulerAxisModes, cornerRulerDimensionMatchesFromCorner, cornerRulerFlatRotation, cornerRulerTicks, pointAlongRuler, rulerDimensionMatch, rulerLiesFlat, spreadCornerRulerFields, worldAxisNameOfDirection, type CornerRulerAxis, type CornerRulerAxisModes, type CornerRulerFrame, type CornerRulerMode, type RulerDimensionField, type RulerDimensionMatch, type RulerPose } from "@/lib/rulerDimensions";
+import { t, type MessageKey } from "@/lib/i18n";
+import { currentLengthUnitLabel, displayToMillimeters, formatLengthMm, formatMeasurementNumber, lengthDisplayUnit, millimetersToDisplay, parseMeasurementInput } from "@/lib/measurementUnits";
+import { CORNER_RULER_DEFAULT_ARM_ELEVATION, computeCornerRulerRelativeCoordinates, cornerRulerArmsShown, cornerRulerAxisModes, cornerRulerElevationFieldBesideBody, cornerRulerDimensionMatchesFromCorner, cornerRulerFlatRotation, cornerRulerTicks, pointAlongRuler, rulerDimensionMatch, rulerLiesFlat, spreadCornerRulerFields, worldAxisNameOfDirection, type CornerRulerAxis, type CornerRulerAxisModes, type CornerRulerFrame, type CornerRulerMode, type RulerDimensionField, type RulerDimensionMatch, type RulerPose } from "@/lib/rulerDimensions";
 import { type PlacementPoint, type PlacementWorkplane } from "@/lib/placementWorkplane";
 import { capturePointer } from "@/lib/pointerCapture";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
 import { displayY, insideZ } from "@/lib/displayAxes";
-import { isNonSolidShape, preservesEdgeTreatmentSize, resizedImportedMeshPositions, shapeDepth, shapeExtrudeDeformAt, shapeHasExtrudeDeform, shapeHasTaper, shapeOverallFootprintDimensions, shapeTaperScaleAt, shapeWidth } from "@/lib/workplaneShapes";
+import { extrudeTwistPivot, isNonSolidShape, preservesEdgeTreatmentSize, resizedImportedMeshPositions, shapeDepth, shapeExtrudeDeformAt, shapeHasExtrudeDeform, shapeHasTaper, shapeOverallFootprintDimensions, shapeTaperScaleAt, shapeWidth } from "@/lib/workplaneShapes";
 import { type RotationAxis } from "@/components/workplane/TransformOverlay";
 import { type AlignAxes, type FrameCuboid } from "@/lib/alignFrame";
-import type { MeasurementAccuracy, WorkplaneNote, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
+import type { MeasurementAccuracy, MouseScheme, WorkplaneNote, WorkplaneShape, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { NOTE_TEXT_LIMIT } from "@/lib/workplaneNotes";
+import { measurementMiddle } from "@/lib/referencePoints";
+import type { MoveDimensionLift } from "@/lib/moveDimensionLines";
+import { placeTapeLabel, screenPolylineMiddle, tapeAxisSpans, tapeAxisTag, tapeDeltaAxes, tapeLabelSize } from "@/lib/tapeLabels";
+import { roundEdgeMeasure } from "@/lib/tapeCircle";
+import { tapeLengthMover, type TapeLengthMover, type TapeLengthRefusal } from "@/lib/tapeLengthEdit";
+import { displayShapeName } from "@/lib/shapeCatalog";
+import { setPickRayFromCamera } from "@/lib/cameraRay";
 
 /** Light-blue chrome for origin-distance lines, matching `.origin-dimension-value`. */
 const ORIGIN_DIMENSION_LINE_COLOR = { light: "#6ec4e8", dark: "#8fd4f0" } as const;
 
 /** Kreuzbreite und Vorgabe-Armlaengen des Winkellineal-Werkzeugs - kein Formen-Katalog-Eintrag mehr, siehe layerling-lineal.md. */
 const CORNER_RULER_ARM_WIDTH = 12;
+/** An arm's end this close to the corner on the screen gets no grip of its own: it would lie on the corner's handle. */
+const CORNER_RULER_END_CLEARANCE_PX = 12;
 
 export const RENDER_LAYER_HELPERS = 2;
 const RENDER_LAYER_SHAPES = 1;
@@ -92,6 +101,10 @@ export type ThreeState = {
   animationId: number;
   needsRender: boolean;
   wasCameraMoving: boolean;
+  /** Which mouse buttons steer the view, from the settings (#1013). */
+  mouseScheme?: MouseScheme;
+  /** Starts turning the view with the left button held, for a press on empty space in the slicer scheme (#1013). */
+  turnWithLeftButton?: (event: PointerEvent) => void;
   /** The view cube turn under way: the camera eases to the clicked face instead of jumping. */
   cameraTurn?: CameraTurn | null;
   lastOverlaySync: number;
@@ -121,6 +134,12 @@ export type MoveDimensionSession = {
   deltaX: number;
   deltaZ: number;
   items: Array<Pick<DragItem, "id" | "startX" | "startZ">>;
+  /** Built by the arrow keys (Discussion #1289): the next key step adds to it instead of starting afresh. */
+  keyboard?: boolean;
+  /** Set while lifting with the arrow (#979): the way up or down, and where each body's centre started. */
+  lift?: MoveDimensionLift & {
+    items: Array<{ id: string; centerX: number; centerY: number; centerZ: number; height: number }>;
+  };
 };
 
 /** Breite einer offenen Notizkarte samt Nadel und Abstand, in Bildpunkten. */
@@ -137,6 +156,9 @@ type NoteOverlayItem = {
   attached: boolean;
   /** A reference point, not a note: shown as a mark with its coordinates. */
   point: boolean;
+  /** A request for the AI agent (#1191), and the answer it left. */
+  forAi?: boolean;
+  reply?: string;
   x: number;
   y: number;
   z: number;
@@ -194,11 +216,40 @@ export type TapeModel = {
 };
 
 export type TapeOverlayState = {
-  points: Array<TapePoint & { screenX: number; screenY: number }>;
-  /** `editable`: a straight measurement with a body at one end at least, so typing a length can move that body (#823). */
-  segments: Array<TapeSegment & { x1: number; y1: number; x2: number; y2: number; screenPoints?: string; labelX: number; labelY: number; label: string; editable: boolean }>;
-  hover: { screenX: number; screenY: number; edgeScreenPoints?: string } | null;
+  /** `coordinates`: where the point is, as X, Y and Z read in the editor, for its hover tip. */
+  points: Array<TapePoint & { screenX: number; screenY: number; coordinates: string }>;
+  /**
+   * `editable`: a straight measurement with a body at one end at least that typing a length can move (#823).
+   * `lengthHint`: what pointing at the label says about that: which body a typed length moves, or why none does (Discussion #610).
+   * `axes`: the axes it runs along ("X", "XZ", "3D"); `deltas`: its reach along each of them, when there are two or more.
+   * `midX`/`midY`: where a reference point in its middle would go. `occluded`: mostly behind a body, so its label fades.
+   */
+  segments: Array<TapeSegment & {
+    x1: number; y1: number; x2: number; y2: number; screenPoints?: string; labelX: number; labelY: number; label: string; editable: boolean;
+    lengthHint: string; axes: string; deltas: string; midX: number; midY: number; occluded: boolean;
+  }>;
+  /**
+   * `preview`: what the measurement would read while its second point is placed. `centre`: what the point sits in the
+   * middle of (Discussion #610); `centres`: the other middles of a face or a round edge on offer near the pointer.
+   */
+  hover: {
+    screenX: number;
+    screenY: number;
+    edgeScreenPoints?: string;
+    preview?: string;
+    centre?: TapeCentreKind;
+    centres?: Array<{ screenX: number; screenY: number }>;
+  } | null;
 };
+
+/**
+ * What a centre the tape measure snaps to is the middle of (Discussion #610): a flat face, a round hole, or a round
+ * edge whose middle is filled, such as the rim of a cylinder or the foot of a boss.
+ */
+export type TapeCentreKind = "face" | "hole" | "circle";
+
+/** A centre on offer near the pointer, in the room. */
+export type TapeCentre = { x: number; y: number; z: number; kind: TapeCentreKind };
 
 export type TapeCandidate = {
   x: number;
@@ -210,8 +261,15 @@ export type TapeCandidate = {
   edge?: TapeEdgeAttachment;
   /** The edge the point lies on, whether or not a click measures all of it. */
   circleEdge?: TapeEdgeAttachment;
-  /** Unit normal of the surface face under the point, so the second point can snap perpendicular to it (#589). */
+  /**
+   * Unit normal of the surface face under the point, so the second point can snap perpendicular to it (#589); for the
+   * centre of a round edge, the normal of the circle's plane, along the axis of the hole.
+   */
   surfaceNormal?: [number, number, number];
+  /** Set when the point sits on the centre of a face or a round edge (Discussion #610). */
+  centre?: TapeCentreKind;
+  /** The centres on offer near the pointer, the one the point sits on included, each shown with a mark. */
+  centres?: TapeCentre[];
 };
 
 export type RotationHandleSide = "near" | "right" | "far" | "left";
@@ -287,15 +345,17 @@ export function syncMoveDimensionWorldLines(
   theme: ResolvedAppTheme,
 ) {
   const layer = state.moveDimensionLayer;
+  const lift = session?.lift;
   const signature = session
-    ? [session.originX, session.originZ, session.planeY, session.deltaX, session.deltaZ, theme].join(":")
+    ? [session.originX, session.originZ, session.planeY, session.deltaX, session.deltaZ, theme,
+        lift ? [lift.start.x, lift.start.y, lift.start.z, lift.axis.x, lift.axis.y, lift.axis.z, lift.delta].join(",") : ""].join(":")
     : "";
   if (layer.userData.moveDimensionSignature === signature) {
     return;
   }
   layer.userData.moveDimensionSignature = signature;
   disposeChildren(layer);
-  if (!session || (Math.abs(session.deltaX) < 1e-9 && Math.abs(session.deltaZ) < 1e-9)) {
+  if (!session || (Math.abs(session.deltaX) < 1e-9 && Math.abs(session.deltaZ) < 1e-9 && Math.abs(lift?.delta ?? 0) < 1e-9)) {
     state.needsRender = true;
     return;
   }
@@ -326,19 +386,22 @@ export function syncMoveDimensionWorldLines(
     setObjectRenderLayer(lines, RENDER_LAYER_HELPERS);
     layer.add(lines);
   };
-  const addArrow = (endpoint: THREE.Vector3, axisX: number, axisZ: number, movement: number) => {
-    const direction = new THREE.Vector3(axisX * Math.sign(movement), 0, axisZ * Math.sign(movement));
+  const addArrow = (endpoint: THREE.Vector3, axisX: number, axisZ: number, movement: number, axisY = 0) => {
+    const direction = new THREE.Vector3(axisX, axisY, axisZ).multiplyScalar(Math.sign(movement));
     const arrowLength = Math.min(1.1, Math.max(0.26, Math.abs(movement) * 0.5));
     const arrowWidth = arrowLength * 0.72;
     const base = endpoint.clone().addScaledVector(direction, -arrowLength);
-    const perpendicular = new THREE.Vector3(-direction.z, 0, direction.x).multiplyScalar(arrowWidth / 2);
+    // Flat on the workplane, or for the lift facing the camera, so the head is seen full.
+    const perpendicular = (axisY !== 0
+      ? direction.clone().cross(state.camera.getWorldDirection(new THREE.Vector3())).normalize()
+      : new THREE.Vector3(-direction.z, 0, direction.x)).multiplyScalar(arrowWidth / 2);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
       "position",
       new THREE.Float32BufferAttribute([
         endpoint.x, endpoint.y, endpoint.z,
-        base.x + perpendicular.x, base.y, base.z + perpendicular.z,
-        base.x - perpendicular.x, base.y, base.z - perpendicular.z,
+        base.x + perpendicular.x, base.y + perpendicular.y, base.z + perpendicular.z,
+        base.x - perpendicular.x, base.y - perpendicular.y, base.z - perpendicular.z,
       ], 3),
     );
     const arrow = new THREE.Mesh(geometry, sharedOverlayArrowMaterial(solidColor));
@@ -361,6 +424,14 @@ export function syncMoveDimensionWorldLines(
     addSegment(solidPoints, start, zEnd);
     addSegment(guidePoints, zEnd, current);
     addArrow(zEnd, 0, 1, session.deltaZ);
+  }
+  if (lift && Math.abs(lift.delta) >= 1e-9) {
+    const axis = new THREE.Vector3(lift.axis.x, lift.axis.y, lift.axis.z);
+    const liftStart = new THREE.Vector3(lift.start.x, lift.start.y, lift.start.z);
+    const liftEnd = liftStart.clone().addScaledVector(axis, lift.delta);
+    const overrun = Math.min(2, Math.max(0.5, Math.abs(lift.delta) * 0.15));
+    addSegment(solidPoints, liftStart.clone().addScaledVector(axis, -Math.sign(lift.delta) * overrun), liftEnd);
+    addArrow(liftEnd, axis.x, axis.z, lift.delta, axis.y);
   }
 
   addWideSegments(solidPoints, solidColor, 1.45, 1, 1001);
@@ -504,36 +575,48 @@ export function tapeSegmentWorldPoints(state: ThreeState, model: TapeModel, segm
   return start && end ? [tapePointWorld(state, start), tapePointWorld(state, end)] : [];
 }
 
+/** The bodies on the workplane and the selection, which decide what a typed length moves (#823). */
+export type TapeLengthBodies = { shapes: readonly WorkplaneShape[]; selectedIds: readonly string[] };
+
 /**
  * The body a typed length moves: the one at the second point, as in Tinkercad, unless only the
- * body at the first point is selected. A whole edge, or both ends on the same body, moves nothing (#823).
+ * body at the first point is selected. A whole edge, both ends on the same body or on none, or a
+ * locked body moves nothing, and the answer says which (#823, Discussion #610). Null without the measurement.
  */
-export function tapeMovableShapeId(model: TapeModel, segmentId: string, selectedIds: readonly string[]) {
+export function tapeLengthMoverOf(model: TapeModel, segmentId: string, bodies: TapeLengthBodies): TapeLengthMover | null {
   const segment = model.segments.find((candidate) => candidate.id === segmentId);
-  if (!segment || segment.edge) return null;
-  const startShapeId = model.points.find((point) => point.id === segment.startId)?.attachment?.shapeId ?? null;
-  const endShapeId = model.points.find((point) => point.id === segment.endId)?.attachment?.shapeId ?? null;
-  if (startShapeId === endShapeId) return null;
-  if (startShapeId && selectedIds.includes(startShapeId) && !(endShapeId && selectedIds.includes(endShapeId))) return startShapeId;
-  return endShapeId ?? startShapeId;
+  if (!segment) return null;
+  return tapeLengthMover(
+    {
+      startShapeId: model.points.find((point) => point.id === segment.startId)?.attachment?.shapeId ?? null,
+      endShapeId: model.points.find((point) => point.id === segment.endId)?.attachment?.shapeId ?? null,
+      wholeEdge: Boolean(segment.edge),
+    },
+    (id) => bodies.shapes.find((shape) => shape.id === id),
+    bodies.selectedIds,
+  );
+}
+
+/** Why a typed length moves nothing, as the label says it when pointed at and the notice when a typed one is refused. */
+export function tapeLengthRefusalText(refusal: TapeLengthRefusal, name: string) {
+  if (refusal === "locked") return t("camera.tapeLengthLocked", { name });
+  if (refusal === "sameBody") return t("camera.tapeLengthSameBody");
+  if (refusal === "noBody") return t("camera.tapeLengthNoBody");
+  return t("camera.tapeLengthEdge");
+}
+
+/** What pointing at a measurement's label says: the body a typed length moves, or why it cannot be typed. */
+function tapeLengthHint(mover: TapeLengthMover | null, bodies: TapeLengthBodies) {
+  if (!mover) return "";
+  const shape = mover.shapeId ? bodies.shapes.find((entry) => entry.id === mover.shapeId) : undefined;
+  const name = shape ? displayShapeName(shape) : "";
+  return "refusal" in mover ? tapeLengthRefusalText(mover.refusal, name) : t("camera.tapeLengthMoves", { name });
 }
 
 function tapePolylineLength(points: THREE.Vector3[]) {
   let length = 0;
   for (let index = 0; index + 1 < points.length; index += 1) length += points[index].distanceTo(points[index + 1]);
   return length;
-}
-
-function tapePolylineMidpoint(points: THREE.Vector3[]) {
-  if (points.length === 0) return new THREE.Vector3();
-  const half = tapePolylineLength(points) / 2;
-  let traversed = 0;
-  for (let index = 0; index + 1 < points.length; index += 1) {
-    const length = points[index].distanceTo(points[index + 1]);
-    if (traversed + length >= half && length > 1e-9) return points[index].clone().lerp(points[index + 1], (half - traversed) / length);
-    traversed += length;
-  }
-  return points[points.length - 1].clone();
 }
 
 function tapeScreenPointList(points: THREE.Vector3[], state: ThreeState) {
@@ -543,15 +626,54 @@ function tapeScreenPointList(points: THREE.Vector3[], state: ThreeState) {
   }).join(" ");
 }
 
-/** The length of every measurement in millimetres, for MCP: a measured edge counts along the edge. */
-export function tapeSegmentLengths(state: ThreeState, model: TapeModel): Array<{ id: string; length: number }> {
+/** The axes a measurement runs along and, when there are two or more, its reach along each; one axis needs no breakdown. */
+function tapeAxesText(points: THREE.Vector3[], accuracy: MeasurementAccuracy) {
+  const spans = tapeAxisSpans(points);
+  const axes = tapeAxisTag(spans, accuracy);
+  const deltas = tapeDeltaAxes(spans, accuracy).map((axis) => `Δ${axis} ${formatMeasure(spans[axis], accuracy)}`).join("   ");
+  return { axes, deltas };
+}
+
+/** Whether most of a measurement lies behind a body: three of five places along it. `ownShapeId`: the body both ends sit on, which never hides it. */
+function tapeMostlyHidden(points: THREE.Vector3[], state: ThreeState, ownShapeId?: string) {
+  // shortcut: 5 raycasts per measurement on every sync, like the corner ruler's labels; cache by camera if many measurements get slow.
+  const total = tapePolylineLength(points);
+  if (total < 1e-9) return false;
+  const at = (fraction: number) => {
+    let left = total * fraction;
+    for (let index = 0; index + 1 < points.length; index += 1) {
+      const piece = points[index].distanceTo(points[index + 1]);
+      if (piece >= left && piece > 1e-9) return points[index].clone().lerp(points[index + 1], left / piece);
+      left -= piece;
+    }
+    return points[points.length - 1];
+  };
+  return [0.1, 0.3, 0.5, 0.7, 0.9].filter((fraction) => worldPointHidden(at(fraction), state, ownShapeId)).length >= 3;
+}
+
+function tapeCoordinates(world: THREE.Vector3, accuracy: MeasurementAccuracy) {
+  return `X ${formatMeasure(world.x, accuracy)}   Y ${formatMeasure(displayY(world.z), accuracy)}   Z ${formatMeasure(world.y, accuracy)}`;
+}
+
+/**
+ * The length of every measurement in millimetres, for MCP: a measured edge counts along the edge.
+ * `moves`: the body a typed length would move, when there is one (Discussion #610). `moved`: a body
+ * MCP has just moved by a typed length, by `shift`; the scene shows it there only once it is drawn
+ * again, so the points on it are counted where they are going.
+ */
+export function tapeSegmentLengths(state: ThreeState, model: TapeModel, bodies?: TapeLengthBodies, moved?: { shapeId: string; shift: THREE.Vector3 }): Array<{ id: string; length: number; moves?: string }> {
+  const world = (point: TapePoint) => {
+    const position = tapePointWorld(state, point);
+    return moved && point.attachment?.shapeId === moved.shapeId ? position.add(moved.shift) : position;
+  };
   return model.segments.flatMap((segment) => {
     const start = model.points.find((point) => point.id === segment.startId);
     const end = model.points.find((point) => point.id === segment.endId);
     if (!start || !end) return [];
     const edgePoints = segment.edge ? tapeEdgeWorldPoints(state, segment.edge) : [];
-    const worldPoints = edgePoints.length >= 2 ? edgePoints : [tapePointWorld(state, start), tapePointWorld(state, end)];
-    return [{ id: segment.id, length: Math.round(tapePolylineLength(worldPoints) * 1000) / 1000 }];
+    const worldPoints = edgePoints.length >= 2 ? edgePoints : [world(start), world(end)];
+    const mover = bodies ? tapeLengthMoverOf(model, segment.id, bodies) : null;
+    return [{ id: segment.id, length: Math.round(tapePolylineLength(worldPoints) * 1000) / 1000, ...(mover && !("refusal" in mover) ? { moves: mover.shapeId } : {}) }];
   });
 }
 
@@ -561,16 +683,18 @@ export function syncTapeOverlay(
   overlayRef: MutableRefObject<TapeOverlayState | null>,
   setOverlay: Dispatch<SetStateAction<TapeOverlayState | null>>,
   accuracy: MeasurementAccuracy,
+  bodies: TapeLengthBodies,
 ) {
   const projectedPoints = new Map<string, { screenX: number; screenY: number }>();
   // Hidden measurements stay in the model; nothing of them is drawn or can be hit.
   const points = (model.hidden ? [] : model.points).map((point) => {
-    const screen = projectToScreen(tapePointWorld(state, point), state);
+    const world = tapePointWorld(state, point);
+    const screen = projectToScreen(world, state);
     const projected = { screenX: screen.x, screenY: screen.y };
     projectedPoints.set(point.id, projected);
-    return { ...point, ...projected };
+    return { ...point, ...projected, coordinates: tapeCoordinates(world, accuracy) };
   });
-  const segments = (model.hidden ? [] : model.segments).flatMap((segment) => {
+  const measured = (model.hidden ? [] : model.segments).flatMap((segment) => {
     const start = model.points.find((point) => point.id === segment.startId);
     const end = model.points.find((point) => point.id === segment.endId);
     const startScreen = projectedPoints.get(segment.startId);
@@ -582,25 +706,71 @@ export function syncTapeOverlay(
     const endWorld = tapePointWorld(state, end);
     const attachedEdgePoints = segment.edge ? tapeEdgeWorldPoints(state, segment.edge) : [];
     const worldPoints = attachedEdgePoints.length >= 2 ? attachedEdgePoints : [startWorld, endWorld];
-    const labelScreen = projectToScreen(tapePolylineMidpoint(worldPoints), state);
-    return [
-      {
-        ...segment,
-        x1: startScreen.screenX,
-        y1: startScreen.screenY,
-        x2: endScreen.screenX,
-        y2: endScreen.screenY,
-        screenPoints: segment.edge && worldPoints.length >= 2 ? tapeScreenPointList(worldPoints, state) : undefined,
-        labelX: labelScreen.x,
-        labelY: labelScreen.y - 18,
-        label: formatMeasure(tapePolylineLength(worldPoints), accuracy),
-        editable: tapeMovableShapeId(model, segment.id, []) !== null,
-      },
-    ];
+    const screenLine = worldPoints.map((point) => projectToScreen(point, state));
+    const middle = measurementMiddle(worldPoints);
+    const midScreen = middle ? projectToScreen(new THREE.Vector3(middle.x, middle.y, middle.z), state) : screenPolylineMiddle(screenLine).point;
+    // A measurement across one body (its thickness, one of its edges) runs inside or along it and is not hidden by it.
+    const ownShapeId = segment.edge?.shapeId ?? (start.attachment && start.attachment.shapeId === end.attachment?.shapeId ? start.attachment.shapeId : undefined);
+    // A whole round edge says its diameter, an arc its radius; the length along it shows over the label.
+    const round = attachedEdgePoints.length >= 4 ? roundEdgeMeasure(attachedEdgePoints) : null;
+    if (round) {
+      const label = round.full ? `Ø ${formatMeasure(round.diameter, accuracy)}` : `R ${formatMeasure(round.radius, accuracy)}`;
+      const deltas = `${round.full ? `${t("edge.radius")} ${formatMeasure(round.radius, accuracy)}   ` : ""}${t("prop.length")} ${formatMeasure(round.length, accuracy)}`;
+      return [{ segment, startScreen, endScreen, worldPoints, screenLine, midScreen, ownShapeId, label, axes: "", deltas }];
+    }
+    return [{ segment, startScreen, endScreen, worldPoints, screenLine, midScreen, ownShapeId, label: formatMeasure(tapePolylineLength(worldPoints), accuracy), ...tapeAxesText(worldPoints, accuracy) }];
+  });
+  // Labels go beside their line, clear of the other lines, the points, the middle marks and the labels placed before.
+  const lines = measured.map((entry) => entry.screenLine);
+  const taken = [
+    ...points.map((point) => ({ x: point.screenX, y: point.screenY, w: 12, h: 12 })),
+    ...measured.map((entry) => ({ x: entry.midScreen.x, y: entry.midScreen.y, w: 12, h: 12 })),
+  ];
+  const segments = measured.map(({ segment, startScreen, endScreen, worldPoints, screenLine, axes, deltas, midScreen, ownShapeId, label }) => {
+    const { point, direction } = screenPolylineMiddle(screenLine);
+    const size = tapeLabelSize(label, axes);
+    const labelScreen = placeTapeLabel(point, direction, size, lines, taken);
+    taken.push({ ...labelScreen, ...size });
+    const mover = tapeLengthMoverOf(model, segment.id, bodies);
+    return {
+      ...segment,
+      x1: startScreen.screenX,
+      y1: startScreen.screenY,
+      x2: endScreen.screenX,
+      y2: endScreen.screenY,
+      screenPoints: segment.edge && worldPoints.length >= 2 ? screenLine.map((screen) => `${screen.x},${screen.y}`).join(" ") : undefined,
+      labelX: labelScreen.x,
+      labelY: labelScreen.y,
+      label,
+      editable: Boolean(mover && !("refusal" in mover)),
+      lengthHint: tapeLengthHint(mover, bodies),
+      axes,
+      deltas,
+      midX: midScreen.x,
+      midY: midScreen.y,
+      occluded: tapeMostlyHidden(worldPoints, state, ownShapeId),
+    };
   });
   const hoverWorld = model.hover && !model.hidden ? tapePointWorld(state, model.hover) : null;
   const hoverScreen = hoverWorld ? projectToScreen(hoverWorld, state) : null;
   const hoverEdgePoints = model.hover?.edge && !model.hidden ? tapeEdgeWorldPoints(state, model.hover.edge) : [];
+  // While the second point is being placed: what the measurement would read, axes and reach along each included.
+  const startPoint = model.startPointId ? model.points.find((point) => point.id === model.startPointId) : undefined;
+  const startWorld = startPoint && hoverWorld ? tapePointWorld(state, startPoint) : null;
+  let preview: string | undefined;
+  if (startWorld && hoverWorld && startWorld.distanceTo(hoverWorld) > 1e-6) {
+    const { axes, deltas } = tapeAxesText([startWorld, hoverWorld], accuracy);
+    preview = `${axes} ${formatMeasure(startWorld.distanceTo(hoverWorld), accuracy)}${deltas ? `\n${deltas}` : ""}`;
+  }
+  // The centres on offer near the pointer besides the one the point sits on, each with its mark.
+  const centres = hoverWorld && model.hover?.centres?.length
+    ? model.hover.centres.flatMap((centre) => {
+        const world = new THREE.Vector3(centre.x, centre.y, centre.z);
+        if (model.hover?.centre && world.distanceTo(hoverWorld) < 1e-3) return [];
+        const screen = projectToScreen(world, state);
+        return [{ screenX: screen.x, screenY: screen.y }];
+      })
+    : [];
   const next: TapeOverlayState = {
     points,
     segments,
@@ -608,6 +778,9 @@ export function syncTapeOverlay(
       screenX: hoverScreen.x,
       screenY: hoverScreen.y,
       edgeScreenPoints: hoverEdgePoints.length >= 2 ? tapeScreenPointList(hoverEdgePoints, state) : undefined,
+      preview,
+      ...(model.hover?.centre ? { centre: model.hover.centre } : {}),
+      ...(centres.length ? { centres } : {}),
     } : null,
   };
   const previous = overlayRef.current;
@@ -617,12 +790,19 @@ export function syncTapeOverlay(
     previous.segments.length === next.segments.length &&
     previous.points.every((point, index) => {
       const candidate = next.points[index];
-      return point.id === candidate.id && Math.abs(point.screenX - candidate.screenX) < 0.2 && Math.abs(point.screenY - candidate.screenY) < 0.2;
+      return point.id === candidate.id && point.coordinates === candidate.coordinates && Math.abs(point.screenX - candidate.screenX) < 0.2 && Math.abs(point.screenY - candidate.screenY) < 0.2;
     }) &&
     previous.segments.every((segment, index) => {
       const candidate = next.segments[index];
       return segment.id === candidate.id
         && segment.label === candidate.label
+        && segment.deltas === candidate.deltas
+        && segment.axes === candidate.axes
+        && segment.editable === candidate.editable
+        && segment.lengthHint === candidate.lengthHint
+        && segment.occluded === candidate.occluded
+        && Math.abs(segment.midX - candidate.midX) < 0.2
+        && Math.abs(segment.midY - candidate.midY) < 0.2
         && segment.screenPoints === candidate.screenPoints
         && Math.abs(segment.x1 - candidate.x1) < 0.2
         && Math.abs(segment.y1 - candidate.y1) < 0.2
@@ -634,6 +814,13 @@ export function syncTapeOverlay(
     ((!previous.hover && !next.hover) ||
       (previous.hover && next.hover
         && previous.hover.edgeScreenPoints === next.hover.edgeScreenPoints
+        && previous.hover.preview === next.hover.preview
+        && previous.hover.centre === next.hover.centre
+        && (previous.hover.centres?.length ?? 0) === (next.hover.centres?.length ?? 0)
+        && (previous.hover.centres ?? []).every((centre, index) => {
+          const candidate = (next.hover?.centres ?? [])[index];
+          return Math.abs(centre.screenX - candidate.screenX) < 0.2 && Math.abs(centre.screenY - candidate.screenY) < 0.2;
+        })
         && Math.abs(previous.hover.screenX - next.hover.screenX) < 0.2
         && Math.abs(previous.hover.screenY - next.hover.screenY) < 0.2));
   if (!unchanged) {
@@ -689,6 +876,8 @@ export function syncNoteOverlay(
         collapsed: Boolean(note.collapsed),
         attached: Boolean(note.anchor),
         point: note.kind === "point",
+        forAi: Boolean(note.forAi),
+        reply: note.reply ?? "",
         x: note.x,
         y: note.y,
         z: note.z,
@@ -710,6 +899,8 @@ export function syncNoteOverlay(
         && note.collapsed === candidate.collapsed
         && note.attached === candidate.attached
         && note.point === candidate.point
+        && note.forAi === candidate.forAi
+        && note.reply === candidate.reply
         && note.x === candidate.x
         && note.y === candidate.y
         && note.z === candidate.z
@@ -871,6 +1062,7 @@ export function NoteOverlay({
   onTextChange,
   onTextCommit,
   onDetach,
+  onForAiChange,
   onRemove,
   onEditingIdChange,
   workspace,
@@ -898,6 +1090,8 @@ export function NoteOverlay({
   onTextCommit: (noteId: string) => void;
   /** Left out where a note cannot be released from a body: in a sketch, every note is the sketch body's. */
   onDetach?: (noteId: string) => void;
+  /** Left out where the AI agent has no notes to read: in a sketch. */
+  onForAiChange?: (noteId: string, forAi: boolean) => void;
   onRemove: (noteId: string) => void;
   onEditingIdChange: (noteId: string | null) => void;
 }) {
@@ -987,6 +1181,18 @@ export function NoteOverlay({
                   }}
                   onChange={(text) => onTextChange(note.id, text)}
                 />
+                {note.reply ? (
+                  <div className="note-reply">
+                    <span className="note-reply-label">{t("note.reply")}</span>
+                    {note.reply}
+                  </div>
+                ) : null}
+                {onForAiChange ? (
+                  <label className="note-for-ai" title={t("note.forAiHint")}>
+                    <input type="checkbox" checked={Boolean(note.forAi)} onChange={(event) => onForAiChange(note.id, event.target.checked)} />
+                    {t("note.forAi")}
+                  </label>
+                ) : null}
                 <div className="note-card-actions">
                   {!onDetach ? <span /> : note.attached ? (
                     <button type="button" className="note-action" onClick={() => onDetach(note.id)}>{t("note.detach")}</button>
@@ -1005,6 +1211,22 @@ export function NoteOverlay({
   );
 }
 
+function TapeCentreMark({ x, y, snapped = false }: { x: number; y: number; snapped?: boolean }) {
+  return (
+    <g className={`tape-centre ${snapped ? "snapped" : ""}`}>
+      <circle cx={x} cy={y} r="7" />
+      <path d={`M${x - 4.5},${y} h9 M${x},${y - 4.5} v9`} />
+    </g>
+  );
+}
+
+/** What the hint beside a snapped centre says it is the middle of. */
+const TAPE_CENTRE_HINTS: Record<TapeCentreKind, MessageKey> = {
+  face: "camera.tapeCentreFace",
+  hole: "camera.tapeCentreHole",
+  circle: "camera.tapeCentreCircle",
+};
+
 export function TapeOverlay({
   overlay,
   startPointId,
@@ -1018,6 +1240,7 @@ export function TapeOverlay({
   onSegmentPointerDown,
   onMarkMiddle,
   onEditLength,
+  editingLengthId = null,
 }: {
   overlay: TapeOverlayState;
   startPointId: string | null;
@@ -1028,24 +1251,41 @@ export function TapeOverlay({
   onPointPointerDown: (event: ReactPointerEvent<SVGCircleElement>, pointId: string) => void;
   onPointPointerMove: (event: ReactPointerEvent<SVGCircleElement>, pointId: string) => void;
   onPointPointerUp: (event: ReactPointerEvent<SVGCircleElement>, pointId: string) => void;
-  onSegmentPointerDown: (event: ReactPointerEvent<SVGElement>, segmentId: string) => void;
+  /** The line, and while deleting the label too: on a hole the line is its small, often hidden rim (#1613). */
+  onSegmentPointerDown: (event: ReactPointerEvent<Element>, segmentId: string) => void;
   /** Puts a reference point in the middle of a measurement (#323). */
   onMarkMiddle?: (segmentId: string) => void;
   /** Opens the field to type a length, which moves the body at one end (#823). */
   onEditLength?: (segmentId: string) => void;
+  /** The measurement whose field is open: the field stands where its number was, so the number goes meanwhile. */
+  editingLengthId?: string | null;
 }) {
+  // The line or the label under the pointer: either brings a faded measurement back; only the label shows the deltas.
+  const [hovered, setHovered] = useState<{ segmentId: string; onLabel: boolean } | null>(null);
+  const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
+  const hoveredSegmentId = hovered?.segmentId ?? null;
+  const hoverSegment = (segmentId: string, onLabel: boolean) => ({
+    onPointerEnter: () => setHovered({ segmentId, onLabel }),
+    onPointerLeave: () => setHovered((current) => (current?.segmentId === segmentId && current.onLabel === onLabel ? null : current)),
+  });
+  // The field that stands in for a label shows the reach along each axis itself.
+  const hoveredSegment = hovered?.onLabel ? overlay.segments.find((segment) => segment.id === hovered.segmentId && segment.id !== editingLengthId && segment.deltas) : undefined;
+  const hoverClass = (segment: { id: string; occluded: boolean }) => `${segment.id === hoveredSegmentId ? "hovered" : ""} ${segment.occluded ? "occluded" : ""}`;
+  const hoveredPoint = overlay.points.find((point) => point.id === hoveredPointId);
   return (
     <div className={`tape-overlay ${active ? "active" : ""} ${deleteMode ? "delete-mode" : ""} ${quickDelete ? "quick-delete" : ""} ${moveMode ? "move-mode" : ""}`} aria-label={t("aria.tapeMeasurements")}>
       <svg className="tape-guides" width="100%" height="100%" aria-hidden="true">
         {overlay.segments.map((segment) => (
-          <g key={segment.id} className="tape-segment-group">
+          <g key={segment.id} className={`tape-segment-group ${hoverClass(segment)}`}>
             {segment.screenPoints ? (
               <>
+                <polyline className="tape-segment-casing" points={segment.screenPoints} fill="none" />
                 <polyline className="tape-segment" points={segment.screenPoints} fill="none" />
-                <polyline className="tape-segment-hit" points={segment.screenPoints} fill="none" onPointerDown={(event) => onSegmentPointerDown(event, segment.id)} />
+                <polyline className="tape-segment-hit" points={segment.screenPoints} fill="none" onPointerDown={(event) => onSegmentPointerDown(event, segment.id)} {...hoverSegment(segment.id, false)} />
               </>
             ) : (
               <>
+                <line className="tape-segment-casing" x1={segment.x1} y1={segment.y1} x2={segment.x2} y2={segment.y2} />
                 <line className="tape-segment" x1={segment.x1} y1={segment.y1} x2={segment.x2} y2={segment.y2} />
                 <line
                   className="tape-segment-hit"
@@ -1054,6 +1294,7 @@ export function TapeOverlay({
                   x2={segment.x2}
                   y2={segment.y2}
                   onPointerDown={(event) => onSegmentPointerDown(event, segment.id)}
+                  {...hoverSegment(segment.id, false)}
                 />
               </>
             )}
@@ -1070,41 +1311,104 @@ export function TapeOverlay({
             onPointerMove={(event) => onPointPointerMove(event, point.id)}
             onPointerUp={(event) => onPointPointerUp(event, point.id)}
             onPointerCancel={(event) => onPointPointerUp(event, point.id)}
+            onPointerEnter={() => setHoveredPointId(point.id)}
+            onPointerLeave={() => setHoveredPointId((current) => (current === point.id ? null : current))}
           />
         ))}
         {active && overlay.hover?.edgeScreenPoints ? <polyline className="tape-hover-edge" points={overlay.hover.edgeScreenPoints} fill="none" /> : null}
-        {active && overlay.hover ? <circle className="tape-hover-point" cx={overlay.hover.screenX} cy={overlay.hover.screenY} r="5" /> : null}
+        {/* A centre on offer is a cross in a circle, unlike a corner; the one the point sits on is drawn in full (Discussion #610). */}
+        {active ? overlay.hover?.centres?.map((centre, index) => <TapeCentreMark key={`centre-${index}`} x={centre.screenX} y={centre.screenY} />) : null}
+        {active && overlay.hover ? (
+          overlay.hover.centre
+            ? <TapeCentreMark x={overlay.hover.screenX} y={overlay.hover.screenY} snapped />
+            : <circle className="tape-hover-point" cx={overlay.hover.screenX} cy={overlay.hover.screenY} r="5" />
+        ) : null}
       </svg>
-      {overlay.segments.map((segment) => segment.editable && onEditLength && !deleteMode ? (
-        <button
-          key={`${segment.id}-label`}
-          type="button"
-          className="tape-label editable"
-          style={{ left: segment.labelX, top: segment.labelY }}
-          title={t("camera.tapeTypeLength")}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => onEditLength(segment.id)}
+      {overlay.segments.map((segment) => {
+        if (segment.id === editingLengthId) return null;
+        const content = (
+          <>
+            {segment.axes ? <span className="tape-label-axes">{segment.axes}</span> : null}
+            {segment.label}
+          </>
+        );
+        // What pointing at the label says: the body a typed length moves, or why it cannot be typed (Discussion #610).
+        const hint = onEditLength && !deleteMode ? segment.lengthHint : "";
+        // A button, so the keyboard reaches it too: Enter or Space opens the field. Its name is the distance with its
+        // unit, the hint its description.
+        return segment.editable && onEditLength && !deleteMode ? (
+          <button
+            key={`${segment.id}-label`}
+            type="button"
+            className={`tape-label editable ${hoverClass(segment)}`}
+            style={{ left: segment.labelX, top: segment.labelY }}
+            title={hint}
+            aria-label={t("camera.tapeDistance", { length: `${segment.label} ${currentLengthUnitLabel()}` })}
+            onPointerDown={(event) => {
+              // Shift or Ctrl/Cmd held in Add measurement deletes the measurement here as on its line (#1613).
+              if (quickDelete) {
+                onSegmentPointerDown(event, segment.id);
+                return;
+              }
+              event.stopPropagation();
+            }}
+            onClick={() => onEditLength(segment.id)}
+            {...hoverSegment(segment.id, true)}
+          >
+            {content}
+          </button>
+        ) : (
+          // A label that cannot be typed says why when it is pointed at, so it catches the pointer like one with a tip.
+          // While deleting, the label takes the click as its line does: on a hole the line is the rim, small and often
+          // hidden in the hole, and the number is what one clicks (#1613).
+          <span
+            key={`${segment.id}-label`}
+            className={`tape-label ${hoverClass(segment)} ${segment.deltas ? "has-deltas" : ""} ${hint ? "has-hint" : ""} ${deleteMode || quickDelete ? "deletable" : ""}`}
+            style={{ left: segment.labelX, top: segment.labelY }}
+            title={hint || undefined}
+            onPointerDown={deleteMode || quickDelete ? (event) => onSegmentPointerDown(event, segment.id) : undefined}
+            {...hoverSegment(segment.id, true)}
+          >
+            {content}
+          </span>
+        );
+      })}
+      {hoveredSegment ? (
+        // On the far side of the label from its line, so the tip covers neither.
+        <span
+          className={`tape-tip ${hoveredSegment.labelY <= hoveredSegment.midY ? "above" : "below"}`}
+          style={{ left: hoveredSegment.labelX, top: hoveredSegment.labelY + (hoveredSegment.labelY <= hoveredSegment.midY ? -16 : 16) }}
         >
-          {segment.label}
-        </button>
-      ) : (
-        <span key={`${segment.id}-label`} className="tape-label" style={{ left: segment.labelX, top: segment.labelY }}>
-          {segment.label}
+          {hoveredSegment.deltas}
         </span>
-      ))}
-      {onMarkMiddle && !deleteMode ? overlay.segments.map((segment) => (
+      ) : null}
+      {active && overlay.hover?.centre ? (
+        <span className="tape-tip above tape-centre-hint" style={{ left: overlay.hover.screenX, top: overlay.hover.screenY - 12 }}>
+          {t(TAPE_CENTRE_HINTS[overlay.hover.centre])}
+        </span>
+      ) : null}
+      {active && overlay.hover?.preview ? (
+        <span className="tape-tip" style={{ left: overlay.hover.screenX, top: overlay.hover.screenY + 16 }}>
+          {overlay.hover.preview}
+        </span>
+      ) : null}
+      {hoveredPoint ? (
+        <span className="tape-tip above" style={{ left: hoveredPoint.screenX, top: hoveredPoint.screenY - 10 }}>
+          {hoveredPoint.coordinates}
+        </span>
+      ) : null}
+      {onMarkMiddle && !deleteMode && !quickDelete ? overlay.segments.map((segment) => (
         <button
           key={`${segment.id}-mark`}
           type="button"
-          className="tape-mark"
-          style={{ left: segment.labelX, top: segment.labelY + 24 }}
+          className={`tape-mark ${hoverClass(segment)}`}
+          style={{ left: segment.midX, top: segment.midY }}
           title={t("camera.tapeMarkMiddle")}
           aria-label={t("camera.tapeMarkMiddle")}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onMarkMiddle(segment.id)}
-        >
-          <Crosshair size={13} aria-hidden="true" />
-        </button>
+          {...hoverSegment(segment.id, false)}
+        />
       )) : null}
     </div>
   );
@@ -1288,6 +1592,10 @@ export type CornerRulerInstance = {
   occlude?: boolean;
   /** The measures of the bodies at the arms are shown only for the selected bodies (false when left out, #831). */
   selectedOnly?: boolean;
+  /** How long the third arm, standing up from the corner along the normal, is (CORNER_RULER_DEFAULT_ARM_ELEVATION when left out, Discussion #1649). */
+  armLengthElevation?: number;
+  /** The arms switched away from the start: the two in the plane on, the third off (Discussion #1649). */
+  arms?: Partial<Record<CornerRulerAxis, boolean>>;
 };
 
 /** A tick number or a neighbour's measure on the screen; `hidden` when a body stands in front of the place it belongs to. */
@@ -1301,6 +1609,14 @@ type CornerRulerOverlayItem = {
   modes: Record<CornerRulerAxis, CornerRulerMode>;
   handleX: number;
   handleY: number;
+  /**
+   * Where the arms end on the screen, and how long they are: their ends are dragged to make them longer or shorter
+   * (Discussion #1469). `grip` is false for an arm switched off, and for the third arm while it points almost at the
+   * eye, where its end would lie on the corner's handle (Discussion #1649).
+   */
+  ends: Record<CornerRulerAxis, { x: number; y: number; text: string; grip: boolean }>;
+  /** Which of the three arms are shown (Discussion #1649). */
+  arms: Record<CornerRulerAxis, boolean>;
   /** The axis of the position fields (X, Y, Z) that each green number counts along: by where its arm points (#597). */
   axisNames: Record<CornerRulerAxis, "X" | "Y" | "Z">;
   /** True when a body in front hides the ruler's lines; false when they stay in view. */
@@ -1386,20 +1702,32 @@ export function syncCornerRulerToolOverlay(
       const pushSegment = (target: number[], a: THREE.Vector3, b: THREE.Vector3) => {
         target.push(a.x, a.y, a.z, b.x, b.y, b.z);
       };
-      pushSegment(lines.arms, corner, corner.clone().addScaledVector(xAxis, ruler.armLengthX));
-      pushSegment(lines.arms, corner, corner.clone().addScaledVector(zAxis, ruler.armLengthZ));
+      // The third arm stands up from the corner along the normal, switched on by hand; any arm can be switched off,
+      // one stays (Discussion #1649).
+      const shown = cornerRulerArmsShown(ruler.arms);
+      const armLengthElevation = ruler.armLengthElevation ?? CORNER_RULER_DEFAULT_ARM_ELEVATION;
+      const xArmEnd = corner.clone().addScaledVector(xAxis, ruler.armLengthX);
+      const zArmEnd = corner.clone().addScaledVector(zAxis, ruler.armLengthZ);
+      const elevationArmEnd = corner.clone().addScaledVector(yAxis, armLengthElevation);
+      if (shown.x) pushSegment(lines.arms, corner, xArmEnd);
+      if (shown.z) pushSegment(lines.arms, corner, zArmEnd);
+      if (shown.elevation) pushSegment(lines.arms, corner, elevationArmEnd);
+      const xEndHandle = projectToScreen(xArmEnd, state);
+      const zEndHandle = projectToScreen(zArmEnd, state);
+      const elevationEndHandle = projectToScreen(elevationArmEnd, state);
+      // Looking along the third arm its end lies on the corner's handle and would take its clicks.
+      const elevationEndClear = Math.hypot(elevationEndHandle.x - handleScreen.x, elevationEndHandle.y - handleScreen.y) > CORNER_RULER_END_CLEARANCE_PX;
 
       const labels: CornerRulerLabelScreen[] = [];
       const buildTicks = (axisDir: THREE.Vector3, acrossDir: THREE.Vector3, length: number) => {
-        cornerRulerTicks(length).forEach((tick) => {
+        cornerRulerTicks(length, currentLengthUnitLabel()).forEach((tick) => {
           const base = corner.clone().addScaledVector(axisDir, tick.offset);
-          const tickHeight = armWidth * (tick.isTen ? 0.62 : tick.isFive ? 0.42 : 0.26);
-          pushSegment(lines.ticks, base, base.clone().addScaledVector(acrossDir, tickHeight));
-          if (tick.isTen && tick.offset > 0) {
+          pushSegment(lines.ticks, base, base.clone().addScaledVector(acrossDir, armWidth * tick.height));
+          if (tick.label) {
             const labelWorld = base.clone().addScaledVector(acrossDir, armWidth * 0.95);
             if (depthInFrontOfCamera(labelWorld, state) > 0) {
               const labelScreen = projectToScreen(labelWorld, state);
-              labels.push({ x: labelScreen.x, y: labelScreen.y, text: String(tick.offset), hidden: occlude && worldPointHidden(labelWorld, state) });
+              labels.push({ x: labelScreen.x, y: labelScreen.y, text: tick.label, hidden: occlude && worldPointHidden(labelWorld, state) });
             }
           }
         });
@@ -1407,8 +1735,10 @@ export function syncCornerRulerToolOverlay(
       // Die Teilstriche zeigen nach aussen (weg vom jeweils anderen Arm),
       // wie bei vergleichbaren Programmen - nicht in die Ecke hinein, wo sonst platzierte
       // Formen sitzen wuerden.
-      buildTicks(xAxis, zAxis.clone().negate(), ruler.armLengthX);
-      buildTicks(zAxis, xAxis.clone().negate(), ruler.armLengthZ);
+      if (shown.x) buildTicks(xAxis, zAxis.clone().negate(), ruler.armLengthX);
+      if (shown.z) buildTicks(zAxis, xAxis.clone().negate(), ruler.armLengthZ);
+      // The third arm's ticks point away from the arm along x, out of the corner where bodies stand.
+      if (shown.elevation) buildTicks(yAxis, xAxis.clone().negate(), armLengthElevation);
 
       let selectedCoordinate: CornerRulerOverlayItem["selectedCoordinate"] = null;
       if (selectedShapes.length) {
@@ -1452,16 +1782,24 @@ export function syncCornerRulerToolOverlay(
           y: (handleScreen.y + zEndScreen.y) / 2 + normZ.y * 22 * sideZ,
         };
 
-        const elevationLabelPos = {
+        let elevationLabelPos = {
           x: (elevBaseScreen.x + elevTargetScreen.x) / 2 + 28,
           y: (elevBaseScreen.y + elevTargetScreen.y) / 2,
         };
+        // At height 0 the middle of the height arrow is the body's corner, so the number lay on the body
+        // (#1279). The body's outline on the screen moves it out beside the body and keeps it clear there.
+        const bodyScreen = cornerRulerBodyScreenBox(bounds, corner, xAxis, yAxis, zAxis, state);
+        if (bodyScreen) {
+          elevationLabelPos = cornerRulerElevationFieldBesideBody(elevationLabelPos, (elevBaseScreen.x + elevTargetScreen.x) / 2, bodyScreen);
+        }
 
         // A body at the corner leaves no distance: the three fields would sit on each other and on the ruler's
         // buttons (#777), so they step aside. Where there is room they stay at the middle of their arrows.
         const [xFieldPos, zFieldPos, elevationFieldPos] = spreadCornerRulerFields(
           [xLabelPos, zLabelPos, elevationLabelPos],
           [{ x: handleScreen.x, y: handleScreen.y + 2, halfWidth: 34, halfHeight: 30 }],
+          undefined,
+          [undefined, undefined, bodyScreen ? [bodyScreen] : undefined],
         );
         selectedCoordinate = {
           shapeIds: selectedShapes.map((shape) => shape.id),
@@ -1505,14 +1843,14 @@ export function syncCornerRulerToolOverlay(
             depth: shapeDepth(candidate),
           },
         );
-        if (armX) {
+        if (armX && shown.x) {
           neighborLabels.push(cornerRulerNeighborLabel(
             `${ruler.id}:${candidate.id}:x`,
             { x: ruler.corner.x, z: ruler.corner.z, rotation: flatRotation, length: ruler.armLengthX, crossWidth: armWidth },
             zAxis, armX, topY, state, accuracy, occlude,
           ));
         }
-        if (armZ) {
+        if (armZ && shown.z) {
           neighborLabels.push(cornerRulerNeighborLabel(
             `${ruler.id}:${candidate.id}:z`,
             { x: ruler.corner.x, z: ruler.corner.z, rotation: flatRotation + 90, length: ruler.armLengthZ, crossWidth: armWidth },
@@ -1527,6 +1865,12 @@ export function syncCornerRulerToolOverlay(
         modes,
         handleX: handleScreen.x,
         handleY: handleScreen.y,
+        ends: {
+          x: { x: xEndHandle.x, y: xEndHandle.y, text: `${formatMeasure(ruler.armLengthX, accuracy)} ${currentLengthUnitLabel()}`, grip: shown.x },
+          z: { x: zEndHandle.x, y: zEndHandle.y, text: `${formatMeasure(ruler.armLengthZ, accuracy)} ${currentLengthUnitLabel()}`, grip: shown.z },
+          elevation: { x: elevationEndHandle.x, y: elevationEndHandle.y, text: `${formatMeasure(armLengthElevation, accuracy)} ${currentLengthUnitLabel()}`, grip: shown.elevation && elevationEndClear },
+        },
+        arms: shown,
         axisNames: { x: worldAxisNameOfDirection(xAxis), z: worldAxisNameOfDirection(zAxis), elevation: worldAxisNameOfDirection(yAxis) },
         occlude,
         selectedOnly: ruler.selectedOnly === true,
@@ -1565,18 +1909,26 @@ const CORNER_RULER_LINE_LIFT = 0.05;
  * Whether a body stands between the camera and a point of the room: a ray through the point's place on the
  * screen, against the bodies, stopping a little short of the point itself.
  */
-function worldPointHidden(point: THREE.Vector3, state: ThreeState) {
+/**
+ * Whether a body stands between the camera and the point. What the section view cuts away, see-through bodies
+ * and holes hide nothing; neither does `ignoredShapeId`, the body a measurement runs across.
+ */
+export function worldPointHidden(point: THREE.Vector3, state: ThreeState, ignoredShapeId?: string) {
   state.camera.updateMatrixWorld();
   const ndc = point.clone().project(state.camera);
   if (!Number.isFinite(ndc.x) || !Number.isFinite(ndc.y) || Math.abs(ndc.x) > 1.2 || Math.abs(ndc.y) > 1.2) return false;
   const raycaster = state.raycaster;
   const previousLayers = raycaster.layers.mask;
-  raycaster.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), state.camera);
+  setPickRayFromCamera(raycaster, new THREE.Vector2(ndc.x, ndc.y), state.camera);
   raycaster.layers.set(RENDER_LAYER_SHAPES);
   const along = point.clone().sub(raycaster.ray.origin).dot(raycaster.ray.direction);
   const savedFar = raycaster.far;
   raycaster.far = Math.max(0, along - 0.5);
-  const hit = raycaster.intersectObjects(state.shapeLayer.children, true).some((entry) => entry.object instanceof THREE.Mesh && entry.object.visible);
+  const hit = raycaster.intersectObjects(state.shapeLayer.children, true).some((entry) => entry.object instanceof THREE.Mesh
+    && entry.object.visible
+    && !(entry.object.material as THREE.Material).transparent
+    && (!state.sectionPlane || state.sectionPlane.distanceToPoint(entry.point) >= -0.001)
+    && (!ignoredShapeId || entry.object.userData.shapeId !== ignoredShapeId));
   raycaster.far = savedFar;
   raycaster.layers.mask = previousLayers;
   return hit;
@@ -1651,6 +2003,11 @@ export function CornerRulerToolOverlay({
   onToggleAxisMode,
   onToggleOcclude,
   onToggleSelectedOnly,
+  onArmEndPointerDown,
+  onArmEndPointerMove,
+  onArmEndPointerUp,
+  onArmsToPlate,
+  onToggleArm,
   onCoordinateClick,
 }: {
   overlay: CornerRulerOverlayState;
@@ -1664,8 +2021,18 @@ export function CornerRulerToolOverlay({
   onToggleOcclude: (id: string) => void;
   /** Switches whether the bodies at the arms show their measures without being selected (#831). */
   onToggleSelectedOnly: (id: string) => void;
+  /** Dragging an arm's end makes that arm longer or shorter (Discussion #1469), the third one too (Discussion #1649). */
+  onArmEndPointerDown: (event: ReactPointerEvent<SVGCircleElement>, id: string, arm: CornerRulerAxis) => void;
+  onArmEndPointerMove: (event: ReactPointerEvent<SVGCircleElement>, id: string, arm: CornerRulerAxis) => void;
+  onArmEndPointerUp: (event: ReactPointerEvent<SVGCircleElement>, id: string, arm: CornerRulerAxis) => void;
+  /** Makes both arms as long as the build plate is wide and deep (Discussion #1469). */
+  onArmsToPlate: (id: string) => void;
+  /** Shows or hides one of the three arms; the last one shown stays (Discussion #1649). */
+  onToggleArm: (id: string, arm: CornerRulerAxis) => void;
   onCoordinateClick: (rulerId: string, shapeIds: string[], axis: "x" | "z" | "elevation", value: number, x: number, y: number) => void;
 }) {
+  // The square whose three arm switches are open beside its arms button.
+  const [armsOpenFor, setArmsOpenFor] = useState<string | null>(null);
   if (overlay.items.length === 0) {
     return null;
   }
@@ -1684,6 +2051,22 @@ export function CornerRulerToolOverlay({
               onPointerUp={(event) => onHandlePointerUp(event, item.id)}
               onPointerCancel={(event) => onHandlePointerUp(event, item.id)}
             />
+            {(["x", "z", "elevation"] as const).filter((arm) => item.ends[arm].grip).map((arm) => (
+              <circle
+                key={arm}
+                className="corner-ruler-end-handle"
+                cx={item.ends[arm].x}
+                cy={item.ends[arm].y}
+                r="5"
+                data-arm={arm}
+                onPointerDown={(event) => onArmEndPointerDown(event, item.id, arm)}
+                onPointerMove={(event) => onArmEndPointerMove(event, item.id, arm)}
+                onPointerUp={(event) => onArmEndPointerUp(event, item.id, arm)}
+                onPointerCancel={(event) => onArmEndPointerUp(event, item.id, arm)}
+              >
+                <title>{t("ruler.armEnd", { length: item.ends[arm].text })}</title>
+              </circle>
+            ))}
           </g>
         ))}
       </svg>
@@ -1775,6 +2158,52 @@ export function CornerRulerToolOverlay({
           >
             <MousePointer2 size={11} strokeWidth={2.5} aria-hidden="true" />
           </button>
+          <button
+            type="button"
+            className="corner-ruler-mode-toggle corner-ruler-plate-toggle"
+            style={{ left: item.handleX, top: item.handleY + 72 }}
+            aria-label={t("aria.cornerRulerArmsToPlate")}
+            title={t("ruler.armsToPlate")}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => onArmsToPlate(item.id)}
+          >
+            <Maximize2 size={11} strokeWidth={2.5} aria-hidden="true" />
+          </button>
+          {/* The arms: the two in the plane and the third standing up, each shown or hidden (Discussion #1649). Above
+              the plate button, which stays the lowest. */}
+          <button
+            type="button"
+            className={`corner-ruler-mode-toggle corner-ruler-arms-toggle${armsOpenFor === item.id ? " active" : ""}`}
+            style={{ left: item.handleX, top: item.handleY + 54 }}
+            aria-label={t("aria.cornerRulerArms")}
+            aria-expanded={armsOpenFor === item.id}
+            title={t("ruler.arms")}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setArmsOpenFor((open) => open === item.id ? null : item.id)}
+          >
+            <Axis3d size={11} strokeWidth={2.5} aria-hidden="true" />
+          </button>
+          {armsOpenFor === item.id ? (["x", "z", "elevation"] as const).map((arm, index) => {
+            const axisName = item.axisNames[arm];
+            const on = item.arms[arm];
+            const last = on && (["x", "z", "elevation"] as const).filter((entry) => item.arms[entry]).length === 1;
+            return (
+              <button
+                key={arm}
+                type="button"
+                className={`corner-ruler-mode-toggle corner-ruler-arm-toggle axis-${axisName.toLowerCase()}${on ? " active" : ""}`}
+                style={{ left: item.handleX + 20 + index * 19, top: item.handleY + 54 }}
+                aria-label={t("aria.cornerRulerArm", { axis: axisName })}
+                aria-pressed={on}
+                disabled={last}
+                title={last ? t("ruler.arm.last", { axis: axisName }) : on ? t("ruler.arm.hide", { axis: axisName }) : t("ruler.arm.show", { axis: axisName })}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => onToggleArm(item.id, arm)}
+              >
+                {axisName}
+              </button>
+            );
+          }) : null}
           <button
             type="button"
             className="corner-ruler-delete"
@@ -1912,7 +2341,10 @@ function importedShapeProjectionBounds(
   yAxis: THREE.Vector3,
   zAxis: THREE.Vector3,
 ) {
-  if (!shape.importedMesh?.positions.length) {
+  // A body wrapped round a cylinder keeps the cylinder as its box, the same one the properties show and the
+  // alignment centres; its points cover only an arc and an engraving reaches a hair past it, so measuring
+  // them showed 92.30 by 91.72 for a 92.2 mm wrap, and typing 92.2 changed nothing (#987).
+  if (!shape.importedMesh?.positions.length || shape.cylinderWrap) {
     return null;
   }
 
@@ -1951,6 +2383,10 @@ function importedShapeProjectionBounds(
   const projected = new THREE.Vector3();
   const tapered = shapeHasTaper(shape);
   const deformed = shapeHasExtrudeDeform(shape);
+  // A body with a rotation pivot of its own twists about the vertical through it, not about its origin.
+  const twistPivot = deformed ? extrudeTwistPivot(shape) : undefined;
+  const pivotX = twistPivot?.x ?? 0;
+  const pivotZ = twistPivot?.z ?? 0;
   let taperMinY = Number.POSITIVE_INFINITY;
   let taperMaxY = Number.NEGATIVE_INFINITY;
   if (tapered || deformed) {
@@ -1973,8 +2409,10 @@ function importedShapeProjectionBounds(
       const deform = shapeExtrudeDeformAt(shape, normalizedHeight);
       const cos = Math.cos(deform.twistRadians);
       const sin = Math.sin(deform.twistRadians);
-      const twistedX = localX * cos - localZ * sin;
-      const twistedZ = localX * sin + localZ * cos;
+      const aboutX = localX - pivotX;
+      const aboutZ = localZ - pivotZ;
+      const twistedX = pivotX + aboutX * cos - aboutZ * sin;
+      const twistedZ = pivotZ + aboutX * sin + aboutZ * cos;
       localX = twistedX + deform.offsetX;
       localZ = twistedZ + deform.offsetZ;
     }
@@ -2026,6 +2464,38 @@ export function projectShapeExtent(
 }
 
 /** Gemeinsame Umrissbox mehrerer Formen in denselben Achsen - mehrere markierte Koerper zaehlen am Lineal wie einer. */
+/**
+ * The frame round the measured bodies on the screen: the eight corners of their box in the ruler's
+ * frame, projected. Null when a corner is behind the camera, where the projection means nothing.
+ */
+function cornerRulerBodyScreenBox(
+  bounds: { min: THREE.Vector3; max: THREE.Vector3 },
+  corner: THREE.Vector3,
+  xAxis: THREE.Vector3,
+  yAxis: THREE.Vector3,
+  zAxis: THREE.Vector3,
+  state: ThreeState,
+) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const u of [bounds.min.x, bounds.max.x]) {
+    for (const v of [bounds.min.y, bounds.max.y]) {
+      for (const w of [bounds.min.z, bounds.max.z]) {
+        const point = corner.clone().addScaledVector(xAxis, u).addScaledVector(yAxis, v).addScaledVector(zAxis, w);
+        if (!Number.isFinite(point.x + point.y + point.z) || depthInFrontOfCamera(point, state) <= 0) return null;
+        const screen = projectToScreen(point, state);
+        minX = Math.min(minX, screen.x);
+        maxX = Math.max(maxX, screen.x);
+        minY = Math.min(minY, screen.y);
+        maxY = Math.max(maxY, screen.y);
+      }
+    }
+  }
+  return { x: (minX + maxX) / 2, y: (minY + maxY) / 2, halfWidth: (maxX - minX) / 2, halfHeight: (maxY - minY) / 2 };
+}
+
 export function projectShapesExtent(
   shapes: WorkplaneShape[],
   xAxis: THREE.Vector3,

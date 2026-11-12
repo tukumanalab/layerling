@@ -9,6 +9,42 @@ AI 客户端与编辑器之间的桥梁**在你的电脑上本地运行**。但�
 
 > **重要：** MCP 桥梁只存在于你在自己电脑上启动的开发服务器中。在 layerling.com 以及使用静态托管的安装中，它是关闭的。你自己托管的副本（例如 NAS 上的 Docker 镜像）可以用访问令牌开启它；参见下文“NAS 或服务器上的副本”。
 
+## 新手分步指南
+
+你不需要懂任何编程知识。
+
+**最简单的方法：**把项目地址 `https://github.com/henmedia/layerling` 发给你喜欢的 AI，并请它：“在我的电脑上设置好 layerling，让我能通过它的 MCP 服务器和你一起搭建 3D 模型。”它会自己下载并安装所有内容，完成后告诉你。这需要一个能在你电脑上工作的 AI，例如 Claude 应用的 Code 标签页、Codex、Antigravity 或 Gemini CLI。浏览器里的聊天做不到，因为它无法在你的电脑上安装任何东西。
+
+**或者自己动手，在 Windows 上用 Claude 应用，分五步：**
+
+**1. 安装 layerling。**打开开始菜单，输入 `PowerShell`，然后打开 Windows PowerShell。复制下面这一行，在窗口中单击右键粘贴，然后按 Enter：
+
+```powershell
+irm https://raw.githubusercontent.com/henmedia/layerling/main/scripts/windows-quickstart.ps1 | iex
+```
+
+它会安装 layerling 所需的一切，把 layerling 下载到你用户文件夹中的 `layerling` 文件夹（`C:\Users\<你的用户名>\layerling`），并在浏览器中打开。第一次需要几分钟。
+
+![已粘贴这一行的 Windows PowerShell。按 Enter 就开始了。](still:ai-quickstart-powershell)
+
+**2. 让 layerling 保持运行。**只要 PowerShell 窗口开着，layerling 就在运行，而 AI 只能在它运行时搭建。下次改为双击桌面上的“Start layerling”。
+
+**3. 安装 Claude 应用。**安装 Windows 版 Claude 应用并登录。下一步用到的 Code 标签页属于 Claude 的付费套餐。
+
+**4. 在 Code 标签页中打开 layerling 文件夹。**在 Claude 应用顶部切换到 Code，选择你用户文件夹中的 `layerling` 文件夹作为工作文件夹。layerling 已自带 Claude 找到其工具所需的一切。如果 Claude 询问是否可以使用此文件夹的 MCP 服务器“layerling”，请允许。
+
+**5. 告诉 Claude 要搭建什么。**例如：“使用 layerling 工具，给我搭建一个直径 60 mm、高 40 mm、壁厚 2.5 mm 的圆盒。”如果没有打开编辑器，Claude 会在你的浏览器中打开一个，在其中一步步搭建盒子，并拍图检查自己的工作。你在一旁观看，随时可以自己修改任何内容。
+
+**在 Mac 上**步骤相同，只有以下不同。第 1 步：打开“终端”应用（按 Cmd+空格，输入 `Terminal`，按回车），粘贴下面这一行并按回车：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/henmedia/layerling/main/scripts/mac-quickstart.sh | sh
+```
+
+如果缺少 Git 或 Node.js，它会告诉你需要安装什么（macOS 会在弹窗中提供 Git，Node.js 可从 nodejs.org 下载安装程序）；装好后再运行同一行。第 2 步：桌面上的快捷方式同样叫“Start layerling”。第 3 步：安装适用于 Mac 的 Claude 应用。
+
+> **提示：**如果有什么不正常，把你看到的情况告诉 Claude。它能读取错误，通常会自己修复。如果编辑器里没有任何动静，先检查 layerling 是否仍在运行（第 2 步）。
+
 ## 设置
 
 1. 从 [GitHub](https://github.com/henmedia/layerling) 获取 layerling，并在项目文件夹中用 `npm run dev` 启动。必须安装 Node.js。在 Windows 上，README 里的快速开始命令会帮你装好。
@@ -46,11 +82,14 @@ AI 使用与你相同的功能，走的是与你在编辑器中的操作相同�
 | 工具 | 作用 |
 | --- | --- |
 | `layerling_list_editors` | 列出已打开的编辑器标签页 |
+| `layerling_rename_project` | 给项目命名，和项目名称旁边的铅笔一样 |
 | `layerling_open_editor` | 在你的默认浏览器中打开新的编辑器标签页，并等待它连接（仅限你自己的电脑） |
 | `layerling_read_scene` | 读取场景、选择、单位以及所有对象的精确尺寸 |
 | `layerling_list_objects` | 列出所有对象及其尺寸、位置、旋转和 id |
 | `layerling_select_objects` | 选择对象 |
+| `layerling_hide_others` | 隐藏除选择或指定对象之外的所有内容，只占一步撤销 |
 | `layerling_delete_objects` | 删除对象 |
+| `layerling_move_object` | 把对象移到对象列表中的另一个位置 |
 | `layerling_create_shape` | 创建形状：长方体、圆柱体、文字（也支持弯曲）、螺纹、齿轮、草图实体以及其他所有形状 |
 | `layerling_import_file` | 像导入窗口一样导入文件：彩色 OBJ 或 3MF 按颜色各成一个实体，含多个对象的 3MF 按对象各成一个实体 |
 | `layerling_add_font` | 为文字添加自己的字体，支持 TrueType、OpenType 或 WOFF 文件；字体保存在浏览器中，设计只保留用到的字母 |
@@ -61,53 +100,82 @@ AI 使用与你相同的功能，走的是与你在编辑器中的操作相同�
 | `layerling_scale_objects` | 按百分比缩放对象，可整体缩放或各自在原位缩放 |
 | `layerling_lay_flat` | 让对象的一个面贴在平台上 |
 | `layerling_place_on_face` | 把对象放到另一个对象的某个面上，斜面也可以，如同 C 键 |
-| `layerling_perforate_face` | 在平面上切出孔阵列；孔仍作为孔与实体分组在一起 |
+| `layerling_perforate_face` | 在平面上或绕圆柱、圆管、孔的侧壁切出孔阵列；孔仍作为孔与实体分组在一起 |
 | `layerling_sweep_sketch` | 沿一条由点构成的路径拉出矩形或圆形截面，成为一个精确实体；闭合路径会形成圆环 |
 | `layerling_push_face` | 把平面推出，或在其中挖出凹槽，可设置距边缘的内缩和圆角半径；新部分是一个与实体分组的草图实体 |
+| `layerling_paint` | 为多色打印给实体的部分表面上自己的颜色（上色）：把面填充到锐利边缘、圆斑，或在平面视图中画的套索；橡皮擦、全部清除；随实体保存，并在 3MF 中写成已上色的面 |
+| `layerling_support_rib` | 在以一条棱边倾斜打印的零件下表面下方立一条薄支撑肋，带一层高的连接桥（支撑肋） |
+| `layerling_stencil_bridges` | 用与板组合在一起、宽度和高度可设的连接桥固定文字穿透的板中会掉出的部分（模板连接桥） |
 | `layerling_mate_faces` | 把一个对象的面贴到另一个对象的面，可面对面或齐平 |
 | `layerling_open_group` | 打开分组，以便逐个修改其部件，打开的分组内也可再打开分组 |
 | `layerling_close_group` | 再次关闭分组（“完成”）或取消 |
+| `layerling_add_to_group` | 不打开组就把单独的对象放进组里 |
+| `layerling_take_out_of_group` | 不打开组就从组中取出一个部件 |
 | `layerling_group_objects` | 对对象分组 |
 | `layerling_ungroup_objects` | 解散分组 |
 | `layerling_boolean_cut` | 用孔切割实体 |
 | `layerling_intersect_objects` | 只保留对象共有的部分（交集） |
 | `layerling_hull_objects` | 把对象包成一个凸体，就像用收缩膜包住一样（凸包） |
+| `layerling_cookie_cutter` | makes a cookie cutter from the objects: a wall and a rim round the outline (Cookie cutter) |
+| `layerling_flexi_joints` | cuts a flat body into links with joints printed in place that swing to the sides (Flexi joints) |
+| `layerling_make_lid` | makes a lid for a body open at the top: pushed in, over the top or flat, with the fit you choose and magnets if you like (Lid) |
+| `layerling_make_cable_channel` | runs a round channel for a cable through a body from an entry to an exit, finding the way itself with gentle bends (Cable channel) |
+| `layerling_loft_sketches` | joins two sketch bodies into a loft from one outline to the other (Loft sketches) |
 | `layerling_separate_parts` | 把形状分离成松散的部件，把草图实体按轮廓分离为每个轮廓一个实体 |
 | `layerling_split_objects` | 用一个平面把实体或孔切成两半 |
 | `layerling_list_edges` | 列出一个对象真实的 CAD 边 |
 | `layerling_apply_edge_treatment` | 对选定的边做倒角或圆角 |
 | `layerling_hollow_object` | 用均匀的壁抽壳实体 |
 | `layerling_cut_out` | 从一个实体中挖出另一个实体使两者配合：零件保留，按间隙放大的副本从另一个实体中减去 |
-| `layerling_offset_object` | 移动实体的所有面以得到配合间隙：放大或缩小实体，或把放大的副本作为孔添加 |
+| `layerling_punch` | 沿 x、y 或 z 把一个实体的轮廓笔直冲穿另一个实体；冲头保留，且不必接触它 |
+| `layerling_offset_object` | 移动实体的所有面以得到配合间隙：放大或缩小实体，或把放大的副本作为孔添加，或只移动侧面 |
 | `layerling_list_faces` | 列出精确实体的面 |
 | `layerling_delete_faces` | 删除面并闭合缺口 |
-| `layerling_array_objects` | 按行或沿圆周复制 |
+| `layerling_array_objects` | 按行、按网格或沿圆周复制 |
 | `layerling_bundle_objects` | 像 Ctrl+B 一样捆绑对象：它们一起移动，保留各自颜色和类型，导出时分开输出 |
 | `layerling_layer_text` | 把文字变成用于多色打印的分层堆叠（字母、更宽的边沿、无孔底板），或重新构建堆叠，可加钥匙孔、设置每层圆角和圆角或倒角的字母边缘；给出名称列表时，每个名称生成一个名牌 |
+| `layerling_text_block` | 生成文本块：一段文字成为多行中的第一行，每行都是上一行下方的独立文字，左对齐、居中或右对齐，每行大小相同或更小 |
 | `layerling_layer_icon` | 把 SVG 图标（文件文本或拉伸的草图实体）变成用于多色打印的分层图标牌——图标、更宽的边沿、无孔底板——或用新的宽度或层数重新构建；给出数量时用副本铺满底板 |
 | `layerling_create_qr_code` | 从文字或网址生成二维码，如同形状库中的 {{ui:shape.qrCode}}——可仅二维码、在底板上凸起或雕刻，可设置纠错级别、宽度、高度、静区，也可按需作为孔；模块小于 0.8 mm 时会发出警告 |
-| `layerling_reference_image` | 像 {{ui:import.referenceImage}} 一样从图片添加参考图片，或移动、旋转、校准（图片上的两个点及其实际距离）、淡化或锁定参考图片——这是一种永远不会被导出或打印的辅助参考 |
+| `layerling_create_sbc_board` | 放置按实际尺寸的 SBC 主板，如同形状库中的 {{ui:shape.sbcBoard}}——Raspberry Pi 5、4、3 B+、Zero 2 W 或 BIGTREETECH Pi，带孔和接口，可设置边缘接口的间隙和位置，也可作为孔来切割外壳 |
+| `layerling_reference_image` | 像 {{ui:import.referenceImage}} 一样从图片添加参考图片，或移动、旋转、校准（图片上的两个点及其实际距离）、淡化或锁定参考图片——这是一种永远不会被导出或打印的辅助参考；`trace` 将其暗部或亮部变为立在其上的草图实体 |
 | `layerling_measure_section` | 在吸附到轮廓的两点之间的剖切平面上测量——壁厚、间隙、配合 |
 | `layerling_show_overhangs` | 开启或关闭悬垂剖面线，设置角度，并报告每个实体需要支撑的面积 |
 | `layerling_estimate_print` | 估算选中项或整个设计的体积、重量和耗材：既给出实体件的数值，也按与导出窗口相同的壁和填充给出粗略估计 |
+| `layerling_check_clearance` | 打印前检查哪些部件重叠、接触或间距小于最小间隙，也检查同一对象中彼此分离的部件 |
+| `layerling_printer_play` | 读取、设置或清除打印机间隙（设置中的{{ui:workspace.printerPlay}}），并放置用来测量它的配合测试件 |
+| `layerling_check_print` | 打印前检查会出什么问题：对喷嘴来说过薄的壁、悬空的零件、与平台接触过少、悬垂和开放网格 |
 | `layerling_add_reference_points` | 标记参考点——可位于对象的中心、角或边中点，也可位于精确位置——形状会吸附到这些点 |
 | `layerling_list_reference_points` | 列出参考点及其 id 和位置 |
 | `layerling_remove_reference_points` | 按 id 删除参考点，或删除全部 |
+| `layerling_list_notes` | 读取用户的备注，包括文字、每条所附着的实体，以及它是否是给 AI 的请求 |
+| `layerling_wait_for_notes` | 等待你在注释上勾选 {{ui:note.forAi}}，并立即转交该请求 |
+| `layerling_add_note` | 在模型上放一条备注，附着在对象上或自由放在工作板上 |
+| `layerling_update_note` | 修改一条备注或回复它；回复会关闭请求 |
+| `layerling_remove_notes` | 按 id 删除备注 |
 | `layerling_inspect_errors` | 显示最后一条消息和最后一个错误，以及本次会话的消息和错误 |
 | `layerling_wrap_around_cylinder` | 把平躺的实体（例如 SVG 或文字）包裹到圆柱上，可向外，也可向内作为雕刻 |
+| `layerling_texture_surface` | 给实体加上表面纹理：凹槽、滚花、蜂窝或凸点，用于防滑或美观，之后还可以修改或去除 |
 | `layerling_simplify_mesh` | 减少导入网格的三角面数，可缩减到百分比比例或指定三角面数量 |
+| `layerling_make_exact` | 将导入网格转为精确的 CAD 实体：平面、圆柱面、圆锥面、球面和圆环面成为真正的面，边能干净地倒圆角，STEP 也会带上它们 |
 | `layerling_save_custom_shape` | 把实体保存为自定义形状，可存到服务器或浏览器，以便插入其他设计 |
 | `layerling_list_custom_shapes` | 列出服务器和浏览器中的自定义形状 |
 | `layerling_insert_custom_shape` | 把自定义形状插入当前设计，可指定 x/z 位置 |
 | `layerling_delete_custom_shape` | 移除自定义形状；已插入的实体保留 |
 | `layerling_show_workplane` | 隐藏和显示带网格的平台，例如为了拍摄底部图片（仅改变视图） |
+| `layerling_focus_mode` | 开启或关闭专注模式：隐藏标题栏和页脚以留出更多空间（只影响编辑器框架） |
 | `layerling_set_section_view` | 沿一个平面把视图剖开以便查看内部（仅改变视图，不会真正切开任何东西） |
-| `layerling_measurements` | 显示或隐藏卷尺的测量，并列出它们及其长度 |
+| `layerling_measurements` | 显示或隐藏卷尺的测量，并列出它们及其长度，并像 [[Q]] 一样隐藏或显示所选对象周围的尺寸，并可为其中一个测量输入长度，像点击其数字一样移动其一端的物体 |
+| `layerling_measure_angle` | 像量角器一样测量角度：三点的顶点处或两个平面之间，并在视图中显示 |
 | `layerling_saved_view` | 把当前视图保存在按键 7、8、9 或 0 下，并可回到该视图，如同 Shift+按键和单独按该键（仅改变视图）；也可设置新设计的起始视图 |
+| `layerling_build_plates` | 列出、添加、命名、排序和删除打印板，把对象移到某个打印板并分布到各打印板上，如同打印板栏 |
 | `layerling_clear_history` | 永久删除所有撤销步骤，如同历史记录视图的“删除历史记录”按钮；需要 `confirm: true` |
+| `layerling_list_backups` | 列出当前设计的自动备份（早期版本），使用 `all: true` 时列出此浏览器中所有设计的备份 |
+| `layerling_open_backup` | 按 `id` 将备份作为新设计打开，绝不与原文件关联 |
 | `layerling_set_history_view` | 回看项目更早的状态，如同历史记录视图（实际设计不受影响；会改动设计的工具会等到它关闭） |
 | `layerling_restore_from_history` | 把对象（也包括分组内的部件）从更早的状态作为副本带回设计，如同历史记录视图的“带入设计”——撤销会一次性撤回这一步 |
 | `layerling_export_section_svg` | 以 1:1 的 SVG 返回剖切平面上的轮廓，所用实体与导出相同 |
+| `layerling_sketch_from_section` | 用剖切平面上的轮廓创建一个位于切口上的草图：在编辑器中打开以便修改，或立即构建为给定高度的实体 |
 | `layerling_export_drawing` | 制作“2D”导出的工作图：在 ISO 图纸上以 1:1 绘制三个视图，标注总体尺寸并列出圆孔表格，可输出 SVG 文本或 PDF |
 | `layerling_export_mesh` | 按导出窗口写出 STL、3MF、OBJ、SVG（顶视图、轮廓或可见边）或用于激光切割的 DXF文件，所用实体相同；可写到这台电脑上的路径，或写成 base64 |
 | `layerling_save_project` | 把整个可编辑设计保存为 .lyl 文件，写到运行 MCP 服务器的电脑上的路径，不弹出对话框；只有给出 `overwrite` 才会替换已有文件，写入会经过临时文件，编辑器中 Ctrl+S 的目标保持不变 |

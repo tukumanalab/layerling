@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { groupedShape, restoreGroupedChildren } from "@/lib/editorBooleans";
 import { editorHistoryEntry } from "@/lib/editorHistory";
 import { describeHistoryStep, historyStepsAround } from "@/lib/historyStepDescription";
+import { historyStepTextIn } from "@/lib/historyStepText";
 import type { WorkplaneNote, WorkplaneShape } from "@/types/layerling";
 
 function box(overrides: Partial<WorkplaneShape> = {}): WorkplaneShape {
@@ -45,6 +46,10 @@ describe("history step descriptions", () => {
     // A handle keeps the opposite side in place, so the centre moves with the size.
     expect(step([box()], [box({ width: 30, x: 5 })]).key).toBe("historyStep.resizedOne");
     expect(step([box()], [box({ color: "#00ff00" })]).key).toBe("historyStep.colorOne");
+    // A stroke of paint, or all of it taken off, colours the body too.
+    const paint = [{ mode: "fill" as const, color: "#00ff00", size: [10, 10, 10] as [number, number, number], point: [0, 10, 0] as [number, number, number], normal: [0, 1, 0] as [number, number, number], angle: 30 }];
+    expect(step([box()], [box({ paint })]).key).toBe("historyStep.colorOne");
+    expect(step([box({ paint })], [box()]).key).toBe("historyStep.colorOne");
     expect(step([box()], [box({ hole: true })]).key).toBe("historyStep.holeOne");
     expect(step([box({ hole: true })], [box({ hole: false })]).key).toBe("historyStep.solidOne");
     expect(step([box()], [box({ hidden: true })]).key).toBe("historyStep.hiddenOne");
@@ -54,7 +59,7 @@ describe("history step descriptions", () => {
   it("counts several objects with the same change and falls back when they differ", () => {
     const a = box({ id: "a" });
     const b = box({ id: "b" });
-    expect(step([a, b], [{ ...a, x: 4 }, { ...b, x: 4 }])).toEqual({ key: "historyStep.movedMany", values: { count: 2 } });
+    expect(step([a, b], [{ ...a, x: 4 }, { ...b, x: 4 }])).toEqual({ key: "historyStep.movedMany", values: { count: 2 }, detail: { kind: "length", mm: 4 } });
     expect(step([a, b], [{ ...a, x: 4 }, { ...b, color: "#000000" }])).toEqual({ key: "historyStep.editedMany", values: { count: 2 } });
   });
 
@@ -64,6 +69,22 @@ describe("history step descriptions", () => {
     const group = box({ id: "g", name: "Group", kind: "group" as WorkplaneShape["kind"], groupedShapes: [a, b] });
     expect(step([a, b], [group])).toEqual({ key: "historyStep.grouped", values: { count: 2, name: "Group" } });
     expect(step([group], [a, b])).toEqual({ key: "historyStep.ungrouped", values: { name: "Group" } });
+  });
+
+  it("names what a tool laid beside a body it grouped with its cuts, not a split (a lid with magnets)", () => {
+    const body = box({ id: "box-1", name: "Box" });
+    const pocket = box({ id: "box-1-magnet-a", name: "Magnet pocket 1", kind: "cylinder", hole: true });
+    const grouped = box({ id: "g", name: "Box", kind: "group" as WorkplaneShape["kind"], groupedShapes: [body, pocket] });
+    const lid = box({ id: "box-1-lid", name: "Box lid", kind: "mesh" as WorkplaneShape["kind"] });
+    expect(step([body], [grouped, lid])).toEqual({ key: "historyStep.addedOne", values: { name: "Box lid" } });
+    // A box of a solid and a hole is grouped on its own first, a group deeper.
+    const opening = box({ id: "box-hole", name: "Opening", hole: true });
+    const inner = box({ id: "g-inner", name: "Box", kind: "group" as WorkplaneShape["kind"], groupedShapes: [body, opening] });
+    const outer = box({ id: "g-outer", name: "Box", kind: "group" as WorkplaneShape["kind"], groupedShapes: [inner, pocket] });
+    expect(step([body, opening], [outer, lid])).toEqual({ key: "historyStep.addedOne", values: { name: "Box lid" } });
+    // A body cut in two is still a split: neither half holds the body.
+    const half = (id: string) => box({ id, name: "Box half", kind: "mesh" as WorkplaneShape["kind"] });
+    expect(step([body], [half("h1"), half("h2")])).toEqual({ key: "historyStep.splitOne", values: { name: "Box", count: 2 } });
   });
 
   it("names a change to the notes or reference points when no object changed", () => {
@@ -121,5 +142,68 @@ describe("history step descriptions of the editor's own steps", () => {
     expect(step([source, other], [source, other, copy("c1", 30), { ...other, id: "c2", x: 50 }])).toEqual({ key: "historyStep.duplicatedMany", values: { count: 2 } });
     // A copy that differs in more than its place is a new object, as one brought back from the history with its time in the name.
     expect(step([source], [source, box({ id: "c1", name: "Peg (12:32)" })])).toEqual({ key: "historyStep.addedOne", values: { name: "Peg (12:32)" } });
+  });
+});
+
+describe("history step measures (#1023)", () => {
+  const treated = (kind: "fillet" | "chamfer" | "shell" | "offset", amount: number) =>
+    box({ edgeTreatments: [{ kind, amount, edgeCount: 4 }], cadBrep: "brep", kind: "imported" as WorkplaneShape["kind"] });
+
+  it("gives a treatment the size it was made with", () => {
+    expect(step([box()], [treated("fillet", 5)])).toMatchObject({ key: "historyStep.roundedOne", detail: { kind: "length", mm: 5 } });
+    expect(step([box()], [treated("chamfer", 1.5)]).detail).toEqual({ kind: "length", mm: 1.5 });
+    expect(step([box()], [treated("shell", 2)]).detail).toEqual({ kind: "length", mm: 2 });
+  });
+
+  it("gives a move its distance, a turn about one axis its angle and a resize the new size", () => {
+    expect(step([box()], [box({ x: 3, z: 4 })]).detail).toEqual({ kind: "length", mm: 5 });
+    expect(step([box()], [box({ rotation: 90 })]).detail).toEqual({ kind: "angle", degrees: 90 });
+    expect(step([box({ rotation: 350 })], [box({ rotation: 10 })]).detail).toEqual({ kind: "angle", degrees: 20 });
+    expect(step([box()], [box({ rotation: 30, rotationX: 45 })]).detail).toBeUndefined();
+    expect(step([box()], [box({ width: 30, x: 5 })]).detail).toEqual({ kind: "size", mm: [30, 20, 20] });
+  });
+
+  it("shares a measure between objects only when they changed alike", () => {
+    const a = box({ id: "a", name: "A" });
+    const b = box({ id: "b", name: "B", x: 40 });
+    expect(step([a, b], [{ ...a, x: 10 }, { ...b, x: 50 }]).detail).toEqual({ kind: "length", mm: 10 });
+    expect(step([a, b], [{ ...a, x: 10 }, { ...b, x: 45 }]).detail).toBeUndefined();
+  });
+
+  it("leaves steps without one number as they were", () => {
+    expect(step([box()], [box({ color: "#00ff00" })]).detail).toBeUndefined();
+    expect(step([box()], [box({ name: "Lid" })]).detail).toBeUndefined();
+  });
+
+  it("prints the measure after the sentence, in millimetres for the AI tools", () => {
+    expect(historyStepTextIn("en", { key: "historyStep.roundedOne", values: { name: "Box" }, detail: { kind: "length", mm: 5 } })).toBe("Rounded the edges of Box (5 mm)");
+    expect(historyStepTextIn("en", { key: "historyStep.resizedOne", values: { name: "Box" }, detail: { kind: "size", mm: [30, 20, 12.5] } })).toBe("Resized Box (30 × 20 × 12.5 mm)");
+    expect(historyStepTextIn("en", { key: "historyStep.rotatedOne", values: { name: "Box" }, detail: { kind: "angle", degrees: -45 } })).toBe("Rotated Box (-45°)");
+    expect(historyStepTextIn("en", { key: "historyStep.colorOne", values: { name: "Box" } })).toBe("Changed the colour of Box");
+  });
+
+  // Discussion #1637: the fields used to be compared as JSON text, which took seconds for a group with
+  // its parts' CAD data. The comparison by structure must tell the same changes apart.
+  it("reads a step of a group carrying large data by what changed, not by the data it carries", () => {
+    const part = (id: string, brep: string) => box({ id, cadBrep: brep });
+    const parts = [part("a", "B".repeat(200_000)), part("b", "C".repeat(200_000))];
+    const group = (name: string, x: number, brep: string) => box({ id: "grp", name, kind: "group", x, groupedShapes: parts.map((p) => ({ ...p, cadBrep: p.id === "a" ? brep : p.cadBrep })) } as Partial<WorkplaneShape>);
+    const same = "B".repeat(200_000);
+    expect(step([group("Group", 0, same)], [group("Lid", 0, same)])).toEqual({ key: "historyStep.renamedOne", values: { name: "Group", newName: "Lid" } });
+    expect(step([group("Group", 0, same)], [group("Group", 5, same)])?.key).toBe("historyStep.movedOne");
+    expect(step([group("Group", 0, same)], [group("Group", 0, `${same}x`)])?.key).toBe("historyStep.editedOne");
+  });
+
+  it("treats a missing key and one set to undefined alike, and the order of keys as no change", () => {
+    expect(describeHistoryStep(entry([box({ formulas: undefined } as Partial<WorkplaneShape>)]), entry([box()])).key).toBe("historyStep.changed");
+    const ordered = { a: 1, b: [1, 2] };
+    const reversed = { b: [1, 2], a: 1 };
+    expect(step([box({ paint: ordered } as unknown as Partial<WorkplaneShape>)], [box({ paint: reversed } as unknown as Partial<WorkplaneShape>)])).toEqual({ key: "historyStep.changed" });
+  });
+
+  it("reads the same step only once", () => {
+    const before = entry([box()]);
+    const after = entry([box({ name: "Lid" })]);
+    expect(describeHistoryStep(before, after)).toBe(describeHistoryStep(before, after));
   });
 });

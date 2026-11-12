@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { WorkplaneShape } from "@/types/layerling";
+import { curvedConeSection } from "@/lib/curvedCone";
 
 // Drive the REAL exporter/importer against the REAL OpenCascade kernel, loaded
 // from node_modules instead of the browser-only /occt/ URL. Everything else in
@@ -83,6 +84,103 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
     }
   });
 
+  it("exports a hinge with screw holes and rounded corners, the holes cut, with the display mesh's volume", async () => {
+    const { hingeTriangles } = await import("@/lib/hingeGeometry");
+    const volume = (fields: Parameters<typeof hingeTriangles>[0]) => hingeTriangles(fields).reduce(
+      (sum, [a, b, c]) => sum + (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6,
+      0,
+    );
+    for (const [hingeScrewCountersink, hingeAngle, mirrorY] of [[true, 0, false], [false, 0, false], [true, 120, false], [true, 60, true]] as const) {
+      const fields = { width: 40, depth: 40, height: 8, sides: 96, hingeScrewHoles: 2, hingeScrewCountersink, hingeCornerRadius: 5, hingeAngle };
+      const hinge = shape({ kind: "hinge", name: "Hinge", size: 40, rotation: 30, x: 12, z: -7, elevation: 3, mirrorY, ...fields });
+      const { blob, exportedCount, skipped } = await exportShapesToStep([hinge]);
+      expect(skipped).toEqual([]);
+      expect(exportedCount).toBe(1);
+      // Less than the hinge without holes, and within a percent of the display mesh (polygons against true circles).
+      const exported = await reimportVolume(blob);
+      expect(exported).toBeLessThan(volume({ width: 40, depth: 40, height: 8, sides: 96, hingeAngle }) - 30);
+      expect(near(exported, volume(fields), 0.01)).toBe(true);
+    }
+  });
+
+  it("exports a hinge with fingers instead of leaves, with the display mesh's volume", async () => {
+    const { hingeTriangles } = await import("@/lib/hingeGeometry");
+    for (const [hingeStyle, hingeCornerRadius, hingeAngle] of [["pin", 0, 0], ["pin", 2, 135], ["pinless", 3, 270]] as const) {
+      const fields = { width: 40, depth: 40, height: 8, sides: 96, hingeLeafStyle: "fingers" as const, hingeStyle, hingeCornerRadius, hingeAngle };
+      const hinge = shape({ kind: "hinge", name: "Hinge", size: 40, rotation: 30, x: 12, z: -7, elevation: 3, ...fields });
+      const { blob, exportedCount, skipped } = await exportShapesToStep([hinge]);
+      expect(skipped).toEqual([]);
+      expect(exportedCount).toBe(1);
+      const meshVolume = hingeTriangles(fields).reduce(
+        (sum, [a, b, c]) => sum + (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6,
+        0,
+      );
+      expect(near(await reimportVolume(blob), meshVolume, 0.01)).toBe(true);
+    }
+  });
+
+  it("exports a raised leaf, folded up and down, with the display mesh's volume (#1259)", async () => {
+    const { hingeTriangles } = await import("@/lib/hingeGeometry");
+    for (const [hingeStyle, hingeAngle, extra] of [["pin", 0, {}], ["pin", 180, {}], ["pin", -120, { hingeScrewHoles: 2, hingeCornerRadius: 3 }], ["liftOff", 90, { hingeScrewHoles: 2, hingeScrewHead: "countersunkNut" }], ["pinless", -60, {}], ["cone", 0, {}], ["pin", 0, { height: 8, hingePinDiameter: 6.4, hingeLeafThickness: 2 }], ["liftOff", 45, { hingePinDiameter: 4.4 }], ["pinless", 0, { height: 8, hingePinDiameter: 5.2, hingeLeafThickness: 0.4, hingeClearance: 1 }]] as const) {
+      // The last three with a pin near its largest, where the bore reaches above the raised leaf's lowest level.
+      const fields = { width: 40, depth: 40, height: 6, sides: 96, hingePinDiameter: 3, hingeLeafThickness: 1.1, hingeLeafStyle: "raised" as const, hingeStyle, hingeAngle, ...extra };
+      const hinge = shape({ kind: "hinge", name: "Hinge", size: 40, rotation: 30, x: 12, z: -7, elevation: 3, ...fields });
+      const { blob, exportedCount, skipped } = await exportShapesToStep([hinge]);
+      expect(skipped).toEqual([]);
+      expect(exportedCount).toBe(1);
+      const meshVolume = hingeTriangles(fields).reduce(
+        (sum, [a, b, c]) => sum + (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6,
+        0,
+      );
+      expect(near(await reimportVolume(blob), meshVolume, 0.01), `${hingeStyle} ${hingeAngle}`).toBe(true);
+    }
+  });
+
+  it("exports a lift-off hinge and nut pockets, turned, folded and mirrored, with the display mesh's volume", async () => {
+    const { hingeTriangles } = await import("@/lib/hingeGeometry");
+    const volume = (fields: Parameters<typeof hingeTriangles>[0]) => hingeTriangles(fields).reduce(
+      (sum, [a, b, c]) => sum + (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6,
+      0,
+    );
+    for (const [hingeStyle, hingeScrewHead, hingeAngle, mirrorY] of [["liftOff", "countersunk", 0, false], ["liftOff", "countersunkNut", 120, false], ["pin", "nut", 60, true], ["pinless", "nut", 0, false]] as const) {
+      const fields = { width: 50, depth: 44, height: 10, sides: 96, hingeStyle, hingeLeafThickness: 2.5, hingeScrewHoles: 2, hingeScrewHead, hingeCornerRadius: 4, hingeAngle };
+      const hinge = shape({ kind: "hinge", name: "Hinge", size: 50, rotation: 30, x: 12, z: -7, elevation: 3, mirrorY, ...fields });
+      const { blob, exportedCount, skipped } = await exportShapesToStep([hinge]);
+      expect(skipped).toEqual([]);
+      expect(exportedCount).toBe(1);
+      expect(near(await reimportVolume(blob), volume(fields), 0.01)).toBe(true);
+    }
+  });
+
+  it("exports a hinge with cones as its exact parts, each recess cut, with the display mesh's volume (#1007)", async () => {
+    const { hingePlan, hingeTriangles } = await import("@/lib/hingeGeometry");
+    const volume = (fields: Parameters<typeof hingeTriangles>[0]) => hingeTriangles(fields).reduce(
+      (sum, [a, b, c]) => sum + (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6,
+      0,
+    );
+    const cases = [
+      { width: 40, depth: 40, height: 8 },
+      { width: 40, depth: 40, height: 8, hingeAngle: 90, hingeScrewHoles: 2, hingeCornerRadius: 3 },
+      { width: 40, depth: 40, height: 6, hingeLeafThickness: 6, hingeLeafStyle: "fingers" as const, hingeAngle: 135 },
+      { width: 60, depth: 50, height: 10, hingeKnuckles: 7, hingeClearance: 0.3, hingeConeSize: 3, mirrorY: true },
+      { width: 50, depth: 44, height: 8, hingeLeafStyle: "fingers" as const, hingeCornerRadius: 2, hingeAngle: 45, mirrorZ: true },
+      { width: 50, depth: 44, height: 8, hingeScrewHoles: 3, hingeScrewCountersink: false, hingeAngle: 45, mirrorZ: true },
+    ];
+    for (const fields of cases) {
+      // Drawn with 384 sides the display mesh's knuckles and cones are within two tenths of a cubic millimetre of the true
+      // circles; its screw holes and rounded corners have sides of their own, a few tenths off.
+      const drawn = { ...fields, hingeStyle: "cone", sides: 384 };
+      const hinge = shape({ kind: "hinge", name: "Hinge", size: fields.width, rotation: 30, x: 12, z: -7, elevation: 3, ...drawn });
+      const { blob, exportedCount, skipped } = await exportShapesToStep([hinge]);
+      expect(skipped).toEqual([]);
+      expect(exportedCount).toBe(1);
+      // Close enough that a single recess left uncut, or a cone left off, would show.
+      const plan = hingePlan(drawn);
+      const recess = (PI * plan.recessRadius ** 2 * plan.recessDepth) / 3;
+      expect(Math.abs(await reimportVolume(blob) - volume(drawn))).toBeLessThan(recess / 4);
+    }
+  });
+
   it("exports box + cylinder + sphere as exact B-Rep with conserved volume", async () => {
     const box = shape({ kind: "box", name: "Box", x: -30, width: 10, depth: 6, height: 4 });
     const cyl = shape({ kind: "cylinder", name: "Cyl", x: 0, width: 8, depth: 8, height: 12 });
@@ -140,13 +238,13 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
 
   it("skips non-exact shapes with descriptive reasons but still exports the rest", async () => {
     const box = shape({ kind: "box", name: "Box", width: 8, depth: 8, height: 8 });
-    const pyramid = shape({ kind: "pyramid", name: "Pyramid", width: 8, depth: 8, height: 8 });
+    const vase = shape({ kind: "vase", name: "Vase", width: 8, depth: 8, height: 8 });
     const meshNoBrep = shape({ kind: "mesh", name: "RawMesh" });
 
-    const { exportedCount, skipped } = await exportShapesToStep([box, pyramid, meshNoBrep]);
+    const { exportedCount, skipped } = await exportShapesToStep([box, vase, meshNoBrep]);
     expect(exportedCount).toBe(1);
-    expect(skipped.map((s) => s.kind).sort()).toEqual(["mesh", "pyramid"]);
-    expect(skipped.find((s) => s.kind === "pyramid")?.reason).toMatch(/no exact B-Rep mapping/i);
+    expect(skipped.map((s) => s.kind).sort()).toEqual(["mesh", "vase"]);
+    expect(skipped.find((s) => s.kind === "vase")?.reason).toMatch(/no exact B-Rep mapping/i);
     expect(skipped.find((s) => s.kind === "mesh")?.reason).toMatch(/no B-Rep source/i);
   });
 
@@ -194,10 +292,11 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
     const dome = shape({ kind: "halfSphere", name: "Faceted dome", x: -40, width: 30, depth: 30, height: 15, steps: 8 });
     const cone = shape({ kind: "cone", name: "Six-sided oval cone", x: 0, width: 30, depth: 15, height: 15, baseRadius: 15, topRadius: 0, sides: 6 });
     const ellipse = shape({ kind: "ellipse", name: "Eight-sided ellipse", x: 40, width: 26, depth: 16, height: 20, sides: 8 });
-    const { blob, exportedCount, skipped } = await exportShapesToStep([dome, cone, ellipse]);
+    const paraboloid = shape({ kind: "paraboloid", name: "Faceted paraboloid", x: 80, width: 20, depth: 20, height: 12, steps: 8 });
+    const { blob, exportedCount, skipped } = await exportShapesToStep([dome, cone, ellipse, paraboloid]);
     expect(skipped).toEqual([]);
-    expect(exportedCount).toBe(3);
-    const expected = (2 / 3) * PI * 15 ** 3 + (PI * 15 * 7.5 * 15) / 3 + PI * 13 * 8 * 20;
+    expect(exportedCount).toBe(4);
+    const expected = (2 / 3) * PI * 15 ** 3 + (PI * 15 * 7.5 * 15) / 3 + PI * 13 * 8 * 20 + (PI * 10 ** 2 * 12) / 2;
     // The pointed oval cone is a B-spline body; OCCT's volume of it runs about 1 % high.
     expect(Math.abs(await reimportVolume(blob) - expected) / expected).toBeLessThan(0.01);
   });
@@ -218,6 +317,47 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
     // Section times centre line (25 + a quarter of 15 + 25), twice.
     const expected = 2 * PI * (5 ** 2 - 3.5 ** 2) * (50 + (PI / 2) * 15);
     expect(near(await reimportVolume(blob), expected, 1e-4)).toBe(true);
+  });
+
+  it("exports a loft through more sections, smooth, straight and with a wall, as its exact body (#1034)", async () => {
+    const { createLoftGeometry, loftFrameSize, loftStoredMeasures } = await import("@/lib/loftGeometry");
+    const loft = (extra: Partial<WorkplaneShape>) => {
+      const base = shape({
+        kind: "loft", name: "Loft", height: 100,
+        loftBottomOutline: "round", loftTopOutline: "round", loftBottomWidth: 10, loftBottomDepth: 10, loftTopWidth: 10, loftTopDepth: 10,
+        loftBottomCorner: 0, loftTopCorner: 0, loftOffsetX: 0, loftOffsetZ: 0, loftWall: 0,
+        loftSections: [{ at: 0.5, outline: "round", width: 30, depth: 30 }],
+        ...extra,
+      });
+      const frame = loftFrameSize(loftStoredMeasures(base));
+      return { ...base, width: frame.width, depth: frame.depth, size: Math.max(frame.width, frame.depth) };
+    };
+    const meshVolume = (source: WorkplaneShape) => {
+      const p = createLoftGeometry(source).getAttribute("position");
+      let total = 0;
+      for (let i = 0; i + 2 < p.count; i += 3) {
+        const [ax, ay, az] = [p.getX(i), p.getY(i), p.getZ(i)];
+        const [bx, by, bz] = [p.getX(i + 1), p.getY(i + 1), p.getZ(i + 1)];
+        const [cx, cy, cz] = [p.getX(i + 2), p.getY(i + 2), p.getZ(i + 2)];
+        total += (ax * (by * cz - bz * cy) + ay * (bz * cx - bx * cz) + az * (bx * cy - by * cx)) / 6;
+      }
+      return total;
+    };
+    const straight = loft({ loftThrough: "straight" });
+    const smooth = loft({ x: 50, loftSections: [{ at: 0.3, outline: "rectangle", width: 24, depth: 18, corner: 4 }, { at: 0.7, outline: "round", width: 30, depth: 26, offsetZ: 3 }] });
+    const walled = loft({ x: 100, loftWall: 1.5 });
+    for (const source of [straight, smooth, walled]) {
+      const { blob, exportedCount, skipped } = await exportShapesToStep([source]);
+      expect(skipped).toEqual([]);
+      expect(exportedCount).toBe(1);
+      const volume = await reimportVolume(blob);
+      if (source === straight) {
+        // Two frustums, radius 5 to 15 and back, 50 high each.
+        expect(near(volume, 2 * ((PI * 50) / 3) * (5 * 5 + 5 * 15 + 15 * 15), 1e-4)).toBe(true);
+      } else {
+        expect(near(volume, meshVolume(source), 5e-3)).toBe(true);
+      }
+    }
   });
 
   it("exports a tapered, a leaning and (since #184) a twisted box as they are drawn, not as plain boxes", async () => {
@@ -323,6 +463,27 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
     expect(near(await reimportVolume(blob), expected, 1e-4)).toBe(true);
   });
 
+  it("exports a herringbone gear and a herringbone pocket as their exact bodies, each side in two halves (#1007)", async () => {
+    const { cadModifierHelicalGearForShape } = await import("@/lib/cadProfileExtrusion");
+    const { helicalGearPartSolid } = await import("@/lib/gearSolid");
+    const { occtKernel } = await import("@/lib/brepKernel");
+    const gear = (overrides: Partial<WorkplaneShape>) => shape({ kind: "gear", gearType: "herringbone", width: 30, depth: 30, size: 30, height: 6, teeth: 12, toothSize: 2.5, centerHoleSize: 6, helixAngle: 22.5, ...overrides });
+    const herringbone = gear({ name: "Herringbone", x: -40, rotation: 20 });
+    const block = shape({ kind: "box", name: "Block", x: 50, width: 40, depth: 40, height: 6 });
+    const pocket = gear({ name: "Pocket", x: 50, hole: true, helixAngle: -15 });
+
+    const { blob, exportedCount, skipped } = await exportShapesToStep([herringbone, block, pocket]);
+    expect(skipped).toEqual([]);
+    expect(exportedCount).toBe(2);
+    const kernel = occtKernel()!;
+    const volume = (source: WorkplaneShape) => kernel.getVolume(helicalGearPartSolid(kernel, cadModifierHelicalGearForShape(source)!));
+    expect(near(await reimportVolume(blob), volume(herringbone) + 40 * 40 * 6 - volume(pocket), 1e-4)).toBe(true);
+    // A helical gear would have the same volume; its 48 sides are one face each, the herringbone's two.
+    const alone = await exportShapesToStep([herringbone]);
+    const faces = kernel.getSubShapes(kernel.importStep(await alone.blob.text()), "face").length;
+    expect(faces).toBe(2 * 48 + 3);
+  });
+
   it("exports a Gridfinity bin and baseplate as their exact bodies", async () => {
     const { cadModifierGridfinityForShape } = await import("@/lib/cadProfileExtrusion");
     const { gridfinityPartSolid } = await import("@/lib/gridfinitySolid");
@@ -348,6 +509,50 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
     expect(await reimportVolume(blob)).toBeGreaterThan(0);
   });
 
+  it("exports a wedge, a pyramid and a paraboloid as exact bodies, and cuts them as holes (#1007)", async () => {
+    const wedge = shape({ kind: "wedge", name: "Wedge", x: -40, width: 20, depth: 10, height: 8 });
+    const pyramid = shape({ kind: "pyramid", name: "Pyramid", x: 0, width: 20, depth: 20, height: 15, sides: 4 });
+    const dome = shape({ kind: "paraboloid", name: "Paraboloid", x: 40, width: 20, depth: 20, height: 12 });
+    const solids = await exportShapesToStep([wedge, pyramid, dome]);
+    expect(solids.exportedCount).toBe(3);
+    expect(solids.skipped).toEqual([]);
+    // Half the wedge's box, a third of the pyramid's, half the paraboloid's cylinder.
+    const volume = (20 * 8 * 10) / 2 + (20 * 20 * 15) / 3 + (PI * 10 ** 2 * 12) / 2;
+    expect(near(await reimportVolume(solids.blob), volume, 0.001)).toBe(true);
+
+    // As holes they are cut out of a block.
+    const block = shape({ kind: "box", name: "Block", width: 40, depth: 40, height: 30 });
+    const holes = [
+      shape({ kind: "wedge", name: "Wedge hole", hole: true, x: -10, z: -10, elevation: 2, width: 10, depth: 8, height: 6 }),
+      shape({ kind: "pyramid", name: "Pyramid hole", hole: true, x: 10, z: -10, elevation: 2, width: 12, depth: 12, height: 9, sides: 4 }),
+      shape({ kind: "paraboloid", name: "Paraboloid hole", hole: true, x: 0, z: 10, elevation: 2, width: 14, depth: 14, height: 10 }),
+    ];
+    const cut = await exportShapesToStep([block, ...holes]);
+    expect(cut.exportedCount).toBe(1);
+    expect(cut.skipped).toEqual([]);
+    const removed = (10 * 6 * 8) / 2 + (12 * 12 * 9) / 3 + (PI * 7 ** 2 * 10) / 2;
+    expect(near(await reimportVolume(cut.blob), 40 * 40 * 30 - removed, 0.001)).toBe(true);
+  });
+
+  it("exports a curved cone as its exact turned body (#1211)", async () => {
+    // Without a bend it is a frustum of radii 10 and 5, 12 high; bent in, its volume is the turned section's.
+    const straight = shape({ kind: "curvedCone", name: "Straight", x: -30, width: 20, depth: 20, height: 12, curvedConeTop: 0.5, curvedConeBend: 0 });
+    const trumpet = shape({ kind: "curvedCone", name: "Trumpet", x: 30, width: 20, depth: 20, height: 12, curvedConeTop: 0.25, curvedConeBend: -0.8 });
+    const { base, top, height, control } = curvedConeSection(20, 12, 0.25, -0.8);
+    const steps = 2000;
+    const at = (s: number) => {
+      const r = (1 - s) ** 2 * base + 2 * (1 - s) * s * control.x + s * s * top;
+      return r * r * (2 * (1 - s) * control.z + 2 * s * (height - control.z));
+    };
+    let sum = at(0) + at(1);
+    for (let index = 1; index < steps; index += 1) sum += at(index / steps) * (index % 2 ? 4 : 2);
+    const volume = (PI * 12 * (10 ** 2 + 10 * 5 + 5 ** 2)) / 3 + (PI * sum) / (3 * steps);
+    const { blob, exportedCount, skipped } = await exportShapesToStep([straight, trumpet]);
+    expect(skipped).toEqual([]);
+    expect(exportedCount).toBe(2);
+    expect(near(await reimportVolume(blob), volume, 0.001)).toBe(true);
+  });
+
   it("cuts a counterbore out of a plate", async () => {
     const plate = shape({ kind: "box", name: "Plate", width: 20, depth: 20, height: 20 });
     const bore = shape({ kind: "counterbore", name: "Bore", hole: true, width: 6.4, depth: 6.4, height: 12, elevation: 8.1, screwHoleShaft: 3.4, screwHoleHeadDepth: 3.2 });
@@ -361,8 +566,56 @@ describe("STEP export round-trip (real OCCT kernel)", () => {
     expect(near(await reimportVolume(blob), expected, 0.001)).toBe(true);
   });
 
+  it("cuts a drilled blind hole out of a plate, the drill point with it (Discussion #621)", async () => {
+    const plate = shape({ kind: "box", name: "Plate", width: 20, depth: 20, height: 20 });
+    const drilled = shape({ kind: "cylinder", name: "Drilled", hole: true, width: 6, depth: 6, height: 12, elevation: 9, drillPointAngle: 118 });
+
+    const { blob, exportedCount, skipped } = await exportShapesToStep([plate, drilled]);
+    expect(exportedCount).toBe(1);
+    expect(skipped).toEqual([]);
+
+    // The wall from 9 up through the top at 20, the tip below 9.
+    const tip = 3 / Math.tan((59 * PI) / 180);
+    const expected = 20 * 20 * 20 - PI * 3 * 3 * (20 - 9) - (PI * 3 * 3 * tip) / 3;
+    expect(near(await reimportVolume(blob), expected, 0.0005)).toBe(true);
+  });
+
+  it("keeps the planes and cylinders of an edited body that was moved and turned, and still exports a stretched one", async () => {
+    const { occtKernel } = await import("@/lib/brepKernel");
+    const kernel = occtKernel()!;
+    // The stored body of an edited part, as the CAD worker bakes it: a 20 x 10 x 30 block (Y up),
+    // standing on y = 0 and centred on x and z, with a round hole through it along z.
+    const block = kernel.translate(kernel.makeBox(20, 10, 30), -10, 0, -15);
+    const bore = kernel.translate(kernel.makeCylinder(3, 30), 0, 5, -15);
+    const stored = kernel.toBREP(kernel.cut(block, bore));
+    const frame = { x: 0, z: 0, elevation: 0, width: 20, depth: 30, height: 10 };
+    const edited = (overrides: Partial<WorkplaneShape>) => shape({ kind: "mesh", name: "Edited", width: 20, depth: 30, height: 10, cadBrep: stored, cadBrepFrame: frame, ...overrides });
+    const surfaces = async (blob: Blob) => {
+      const imported = kernel.importStep(await blob.text());
+      return new Set(kernel.getSubShapes(imported, "face").map((face) => kernel.surfaceType(face)));
+    };
+    const volume = 20 * 10 * 30 - PI * 3 * 3 * 30;
+
+    // Moved, lifted and turned: still the planes and the cylinder it was, not B-splines.
+    const moved = await exportShapesToStep([edited({ x: 25, z: -10, elevation: 3, rotation: 30 })]);
+    expect(moved.skipped).toEqual([]);
+    expect([...await surfaces(moved.blob)].sort()).toEqual(["cylinder", "plane"]);
+    expect(near(await reimportVolume(moved.blob), volume, 1e-4)).toBe(true);
+
+    // Mirrored, the rigid placement has a negative scale; the body must not come out inside out.
+    const mirrored = await exportShapesToStep([edited({ x: 25, mirrorX: true })]);
+    expect(mirrored.skipped).toEqual([]);
+    expect([...await surfaces(mirrored.blob)].sort()).toEqual(["cylinder", "plane"]);
+    expect(near(await reimportVolume(mirrored.blob), volume, 1e-4)).toBe(true);
+
+    // Stretched to twice its width: only the general transform can do that, and it still goes out.
+    const stretched = await exportShapesToStep([edited({ width: 40, size: 40 })]);
+    expect(stretched.skipped).toEqual([]);
+    expect(near(await reimportVolume(stretched.blob), volume * 2, 1e-3)).toBe(true);
+  });
+
   it("throws when there is nothing exact to export", async () => {
-    await expect(exportShapesToStep([shape({ kind: "pyramid", name: "Pyramid" })])).rejects.toThrow(/No exportable B-Rep solids/i);
+    await expect(exportShapesToStep([shape({ kind: "vase", name: "Vase" })])).rejects.toThrow(/No exportable B-Rep solids/i);
   });
 });
 

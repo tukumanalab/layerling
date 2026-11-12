@@ -46,13 +46,31 @@ function dataUrlBlob(dataUrl: string) {
   return new Blob([bytes], { type });
 }
 
+/** The picture as an image element, for the browsers whose createImageBitmap does not read it (Firefox with an SVG). */
+async function pictureElement(source: Blob | string): Promise<HTMLImageElement> {
+  const url = typeof source === "string" ? source : URL.createObjectURL(source);
+  try {
+    const image = new Image();
+    image.src = url;
+    await image.decode();
+    // Firefox reports no size for an SVG without a width and height of its own.
+    if (!image.naturalWidth || !image.naturalHeight) throw new Error(PICTURE_UNREADABLE);
+    return image;
+  } catch {
+    throw new Error(PICTURE_UNREADABLE);
+  } finally {
+    if (typeof source !== "string") URL.revokeObjectURL(url);
+  }
+}
+
 /** The pixels of a PNG or JPG, drawn by the browser no larger than the tracer takes them. */
 export async function picturePixels(source: Blob | string): Promise<RasterPixels> {
-  let bitmap: ImageBitmap;
+  let bitmap: CanvasImageSource & { width: number; height: number; close?: () => void };
   try {
     bitmap = await createImageBitmap(typeof source === "string" ? dataUrlBlob(source) : source);
   } catch {
-    throw new Error(PICTURE_UNREADABLE);
+    // Firefox does not make a bitmap of an SVG file (#1661); an image element reads it.
+    bitmap = await pictureElement(source);
   }
   const factor = Math.min(1, MAX_RASTER_TRACE_SIDE / Math.max(bitmap.width, bitmap.height, 1));
   const width = Math.max(1, Math.round(bitmap.width * factor));
@@ -63,7 +81,7 @@ export async function picturePixels(source: Blob | string): Promise<RasterPixels
   const context = canvas.getContext("2d");
   if (!context) throw new Error(PICTURE_UNREADABLE);
   context.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
+  bitmap.close?.();
   const { data } = context.getImageData(0, 0, width, height);
   return { width, height, data };
 }
@@ -75,6 +93,26 @@ export async function picturePixels(source: Blob | string): Promise<RasterPixels
  * is the one that has more of the picture's pixels: a black sticker whose tail touches the border
  * in a few pixels is still a dark shape, not a dark background (#345).
  */
+/** Most of the picture's edge is transparent: the picture stands on a transparent background. */
+export function pictureHasTransparentEdge(pixels: RasterPixels) {
+  const { width, height, data } = pixels;
+  let edgePixels = 0;
+  let transparent = 0;
+  const count = (x: number, y: number) => {
+    edgePixels += 1;
+    if (data[(y * width + x) * 4 + 3] < 128) transparent += 1;
+  };
+  for (let x = 0; x < width; x += 1) {
+    count(x, 0);
+    count(x, height - 1);
+  }
+  for (let y = 1; y < height - 1; y += 1) {
+    count(0, y);
+    count(width - 1, y);
+  }
+  return transparent * 2 > edgePixels;
+}
+
 export function pictureShapePart(pixels: RasterPixels): RasterPart {
   const { width, height, data } = pixels;
   let dark = 0;
@@ -137,8 +175,18 @@ export async function iconSourceFromFile(file: File, part?: RasterPart): Promise
   return { name, svg: text };
 }
 
-/** A picture as the SVG the import builds: the part that is not its background, PICTURE_IMPORT_WIDTH mm wide. */
+/**
+ * The outline the import traces from a picture, PICTURE_IMPORT_WIDTH mm wide: on a transparent
+ * background every pixel that is not transparent, whatever its colour - a logo of black text round a
+ * light blue shape keeps its text (Discussion #1199) - otherwise the part that is not its background.
+ */
+export function importedPictureTrace(pixels: RasterPixels) {
+  return traceRaster(pixels, pictureHasTransparentEdge(pixels)
+    ? { byOpacity: true, width: PICTURE_IMPORT_WIDTH }
+    : { part: pictureShapePart(pixels), width: PICTURE_IMPORT_WIDTH });
+}
+
+/** A picture as the SVG the import builds (`importedPictureTrace`). */
 export async function importedPictureSvg(source: Blob | string) {
-  const pixels = await picturePixels(source);
-  return traceRaster(pixels, { part: pictureShapePart(pixels), width: PICTURE_IMPORT_WIDTH }).svg;
+  return importedPictureTrace(await picturePixels(source)).svg;
 }

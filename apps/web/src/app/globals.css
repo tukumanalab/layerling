@@ -468,7 +468,7 @@ html[data-toolbar-size="small"] {
 }
 
 html[data-toolbar-size="large"],
-html[data-simple-mode="on"]:not([data-toolbar-size]) {
+html[data-simple-mode="on"]:not([data-toolbar-size], [data-simple-mode-enlarge="off"]) {
   --toolbar-scale: 1.25;
   --editor-toolbar-tools-height: 87px;
   --editor-toolbar-height: 131px;
@@ -478,8 +478,8 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) {
    so the groups wrap onto a further row at any width rather than being cut off. */
 html[data-toolbar-size="large"] .toolbar-mode-content,
 html[data-toolbar-size="large"] .sketch-toolbar-ribbon,
-html[data-simple-mode="on"]:not([data-toolbar-size]) .toolbar-mode-content,
-html[data-simple-mode="on"]:not([data-toolbar-size]) .sketch-toolbar-ribbon {
+html[data-simple-mode="on"]:not([data-toolbar-size], [data-simple-mode-enlarge="off"]) .toolbar-mode-content,
+html[data-simple-mode="on"]:not([data-toolbar-size], [data-simple-mode-enlarge="off"]) .sketch-toolbar-ribbon {
   flex-wrap: wrap;
   height: auto;
 }
@@ -710,34 +710,36 @@ button {
   transform: translate(-50%, -50%);
 }
 
+/* No rounding: the shimmer's radius only showed on the corners the faces share with their boxes, not on the top. */
 .editor-loading-model span {
   position: absolute;
-  border-radius: 8px;
+  border-radius: 0;
   box-shadow: 0 10px 24px rgba(94, 72, 48, 0.08);
 }
 
+/* A 2:1 isometric box, 66 px from its middle to each side, the faces 6 px apart with even seams. */
 .editor-loading-model-top {
-  top: 9px;
+  top: 10px;
   left: 24px;
   width: 132px;
   height: 66px;
-  clip-path: polygon(50% 0, 100% 44%, 50% 100%, 0 44%);
+  clip-path: polygon(66px 0, 132px 33px, 66px 66px, 0 33px);
 }
 
 .editor-loading-model-front {
-  top: 66px;
+  top: 49px;
   left: 24px;
-  width: 66px;
-  height: 78px;
-  clip-path: polygon(0 0, 100% 27%, 100% 100%, 0 72%);
+  width: 63px;
+  height: 103.5px;
+  clip-path: polygon(0 0, 63px 31.5px, 63px 103.5px, 0 72px);
 }
 
 .editor-loading-model-side {
-  top: 66px;
-  left: 90px;
-  width: 66px;
-  height: 78px;
-  clip-path: polygon(0 27%, 100% 0, 100% 72%, 0 100%);
+  top: 49px;
+  left: 93px;
+  width: 63px;
+  height: 103.5px;
+  clip-path: polygon(0 31.5px, 63px 0, 63px 72px, 0 103.5px);
 }
 
 .editor-loading-viewport-controls {
@@ -884,7 +886,7 @@ button {
   overflow: hidden;
   color: #231a11;
   font-size: 23px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1.4;
   text-overflow: ellipsis;
@@ -1284,7 +1286,7 @@ html[data-theme="dark"] .dashboard-trademark {
   align-items: center;
   gap: 4px;
   color: #1a6424;
-  font-weight: 800;
+  font-weight: 600;
   text-decoration: underline;
 }
 
@@ -1321,7 +1323,7 @@ html[data-theme="dark"] .dashboard-trademark {
   padding: 0;
   color: #1a6424;
   font: inherit;
-  font-weight: 800;
+  font-weight: 600;
   text-decoration: underline;
   background: transparent;
   border: 0;
@@ -1376,139 +1378,7 @@ html[data-theme="dark"] .dashboard-trademark {
   margin: -12px 0 20px;
   color: #6c5640;
   font-size: 13px;
-  font-weight: 800;
-}
-
-/* The designs live in this browser and nowhere else: said in bold, and it stays. */
-.storage-notice {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: -8px 0 22px;
-  padding: 14px 14px 14px 16px;
-  background: #fff1dc;
-  border: 2px solid #e08a2c;
-  border-radius: 10px;
-}
-
-/* The designs are on the server: a statement, not a warning. */
-.storage-notice.on-server {
-  background: #e8f4ec;
-  border-color: #4f9a6a;
-}
-
-.storage-notice.on-server .storage-notice-icon {
-  background: #3d8a59;
-}
-
-.storage-notice.on-server .storage-notice-text strong {
-  color: #1f3d2a;
-}
-
-.storage-notice.on-server .storage-notice-text span {
-  color: #34503e;
-}
-
-.storage-notice.on-server .storage-notice-button.secondary {
-  color: #24553a;
-  box-shadow: inset 0 0 0 2px #3d8a59;
-}
-
-.storage-notice-icon {
-  display: grid;
-  flex: none;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  color: #ffffff;
-  background: #d9730d;
-  border-radius: 10px;
-}
-
-.storage-notice-text {
-  display: grid;
-  flex: 1;
-  min-width: 0;
-  gap: 3px;
-}
-
-.storage-notice-text strong {
-  color: #4a2f10;
-  font-size: 16px;
-  font-weight: 900;
-}
-
-.storage-notice-text span {
-  color: #5e4630;
-  font-size: 13.5px;
-  font-weight: 700;
-  line-height: 1.5;
-}
-
-.storage-notice-button {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 15px;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 800;
-  background: #bf6508;
-  border: 0;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.storage-notice-button:hover {
-  background: #a95805;
-}
-
-/* "Back up all" and "Restore backup" side by side; the restore one is the quieter of the two. */
-.storage-notice-actions {
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.storage-notice-button.secondary {
-  color: #8a4a05;
-  background: #ffffff;
-  box-shadow: inset 0 0 0 2px #bf6508;
-}
-
-.storage-notice-button.secondary:hover {
-  background: #ffe9cc;
-}
-
-.storage-notice-help {
-  display: inline-grid;
-  width: 22px;
-  height: 22px;
-  /* In the heading: a box of the usual 30 px would make its line taller than the others. */
-  margin-block: -6px;
-  vertical-align: middle;
-  color: #8a5312;
-}
-
-.storage-notice-help:hover {
-  color: #4a2f10;
-}
-
-@media (max-width: 560px) {
-  .storage-notice {
-    flex-wrap: wrap;
-  }
-
-  .storage-notice-actions {
-    width: 100%;
-  }
-
-  .storage-notice-button {
-    flex: 1 1 140px;
-    justify-content: center;
-  }
+  font-weight: 600;
 }
 
 /* The recommendation to install layerling as an app: a card under the start tiles that is meant
@@ -1547,7 +1417,7 @@ html[data-theme="dark"] .dashboard-trademark {
 .install-app-hint-text strong {
   color: #4a2f10;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .install-app-hint-text span {
@@ -1573,7 +1443,7 @@ html[data-theme="dark"] .dashboard-trademark {
   padding: 10px 18px;
   color: #ffffff;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   background: #bf6508;
   border: 0;
   border-radius: 9px;
@@ -1649,6 +1519,8 @@ a.install-app-hint-button {
   position: fixed;
   z-index: 3000;
   box-sizing: border-box;
+  /* Its full width also near the right edge, where a fixed box would shrink to the room left and grow tall (#1333). */
+  width: max-content;
   max-width: 260px;
   padding: 6px 10px;
   border-radius: 6px;
@@ -1661,6 +1533,11 @@ a.install-app-hint-button {
   overflow-wrap: break-word;
   pointer-events: none;
   transform: translateX(-50%);
+}
+
+/* Above the control its top is the bubble's bottom edge, so a one-line name sits as close as a long one. */
+.pen-hover-tip.pen-hover-tip-above {
+  transform: translate(-50%, -100%);
 }
 
 /* On a tablet over https both cards can float at once (install and tablet): the tablet card steps up. */
@@ -1724,7 +1601,7 @@ body:has(.install-app-hint-floating:not(.tablet-hint)) .install-app-hint.install
 .support-nudge-text strong {
   color: #573f26;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .support-nudge-text span {
@@ -1740,7 +1617,7 @@ body:has(.install-app-hint-floating:not(.tablet-hint)) .install-app-hint.install
   padding: 7px 12px;
   color: #ffffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   text-decoration: none;
   background: #bf6508;
   border-radius: 8px;
@@ -1889,7 +1766,7 @@ body:has(.install-app-hint-floating:not(.tablet-hint)) .install-app-hint.install
   margin-left: 8px;
   color: var(--primary);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   content: "●";
 }
 
@@ -1897,7 +1774,7 @@ body:has(.install-app-hint-floating:not(.tablet-hint)) .install-app-hint.install
   padding: 8px 10px 4px;
   color: var(--muted-strong);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1976,7 +1853,7 @@ body:has(.install-app-hint-floating:not(.tablet-hint)) .install-app-hint.install
 
 .command-palette-blocked {
   color: var(--primary);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 @media (max-width: 560px) {
@@ -2019,7 +1896,7 @@ body:has(.install-app-hint-floating:not(.tablet-hint)) .install-app-hint.install
   flex: 1;
   min-width: 0;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .whats-new-icon {
@@ -2068,14 +1945,14 @@ body:has(.install-app-hint-floating:not(.tablet-hint)) .install-app-hint.install
 
 .whats-new-note a {
   color: #bf6508;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .whats-new-version h2 {
   margin: 0 0 6px;
   color: #bf6508;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -2095,7 +1972,7 @@ body:has(.install-app-hint-floating:not(.tablet-hint)) .install-app-hint.install
 
 .whats-new-version li strong {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .whats-new-version li span {
@@ -2142,7 +2019,7 @@ body:has(.install-app-hint-floating:not(.tablet-hint)) .install-app-hint.install
   padding: 8px 16px;
   color: #ffffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   background: #bf6508;
   border: 0;
   border-radius: 8px;
@@ -2217,11 +2094,7 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   transform: translateY(-1px);
 }
 
-/* All three start tiles have the same cream ground, which the grey-beige icon squares of the two plain ones belong to; the create tile only differs by its orange border and icon. */
-.dashboard-action-tile.create {
-  border-color: #f3a452;
-}
-
+/* All three start tiles look the same at rest (cream ground, plain border); the create tile only differs by its orange icon. */
 .dashboard-action-icon {
   display: grid;
   flex: 0 0 auto;
@@ -2239,31 +2112,21 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   background: transparent;
 }
 
-.dashboard-action-tile span:last-child {
+.dashboard-action-tile span:last-of-type {
   min-width: 0;
   overflow-wrap: anywhere;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 /*
- * On a phone the start page used to put the designs more than a screen down, behind three big tiles and the backup
- * note. Once there are designs, the tiles become one short row and the note moves behind the designs, so the designs
- * start in the first screen (a donor's wish by mail). Without designs nothing changes: the note and the tiles come first.
+ * On a phone the start page used to put the designs more than a screen down, behind three big tiles. Once there are
+ * designs, the tiles become one short row, so the designs start in the first screen (a donor's wish by mail).
  */
 @media (max-width: 560px) {
   .dashboard-main.has-projects {
     display: flex;
     flex-direction: column;
-  }
-
-  .dashboard-main.has-projects .storage-notice {
-    order: 1;
-    margin: 22px 0;
-  }
-
-  .dashboard-main.has-projects .dashboard-welcome {
-    order: 2;
   }
 
   .dashboard-main.has-projects .dashboard-actions-band {
@@ -2281,7 +2144,7 @@ html[data-theme="dark"] .whats-new-earlier:hover {
     text-align: center;
   }
 
-  .dashboard-main.has-projects .dashboard-action-tile span:last-child {
+  .dashboard-main.has-projects .dashboard-action-tile span:last-of-type {
     font-size: 12.5px;
     line-height: 1.2;
   }
@@ -2317,39 +2180,6 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   margin-top: 4px;
   color: #97836e;
   font-size: 13px;
-}
-
-.shared-projects-refresh {
-  display: inline-flex;
-  min-height: 36px;
-  align-items: center;
-  gap: 7px;
-  padding: 0 12px;
-  color: #6a4e31;
-  font-size: 12px;
-  font-weight: 800;
-  background: #fff;
-  border: 1px solid #eae0d0;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.shared-projects-refresh:hover:not(:disabled) {
-  color: #9f5508;
-  border-color: #d59858;
-}
-
-.shared-projects-refresh:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-.shared-projects-refresh .spinning {
-  animation: shared-project-spin 850ms linear infinite;
-}
-
-@keyframes shared-project-spin {
-  to { transform: rotate(360deg); }
 }
 
 .dashboard-controls {
@@ -2494,12 +2324,6 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   font-weight: 600;
 }
 
-.shared-projects-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 /* The folder that stands for the server, sitting among the cards that stand
    for this browser. Same frame and same size as a project card, so the row
    reads as one shelf - only the contents of the picture area differ. */
@@ -2589,6 +2413,14 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   align-items: center;
 }
 
+.project-card.is-opening {
+  pointer-events: none;
+}
+
+.project-card.is-opening .project-card-open {
+  cursor: wait;
+}
+
 .project-preview {
   position: relative;
   display: block;
@@ -2596,6 +2428,32 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   overflow: hidden;
   border-radius: 6px;
   background: #f8f5ef;
+}
+
+.project-preview.is-loading .project-thumbnail-image {
+  opacity: 0.35;
+  filter: grayscale(40%);
+}
+
+.project-preview-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.38);
+  color: #ffffff;
+  backdrop-filter: blur(1.5px);
+  z-index: 2;
+  border-radius: inherit;
+}
+
+.project-preview-spinner {
+  animation: project-preview-spin 0.8s linear infinite;
+}
+
+@keyframes project-preview-spin {
+  to { transform: rotate(360deg); }
 }
 
 .project-list .project-preview {
@@ -2736,7 +2594,7 @@ html[data-theme="dark"] .whats-new-earlier:hover {
 
 .dashboard-confirm-dialog p span {
   color: #48331d;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 /* The destinations in the move dialog: one row each, like a menu, so the list
@@ -2781,7 +2639,7 @@ html[data-theme="dark"] .whats-new-earlier:hover {
 .dashboard-confirm-actions button {
   height: 38px;
   padding: 0 16px;
-  font-weight: 800;
+  font-weight: 600;
   border-radius: 6px;
 }
 
@@ -2814,7 +2672,7 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   padding: 18px;
   color: #6c5640;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .dashboard-rename-dialog input {
@@ -2852,178 +2710,6 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   font-size: 18px;
 }
 
-/* Shown only on a genuine first visit. The steps are numbered because they are
-   a sequence - each one needs the one before it - and the numbers sit in their
-   own column so the text lines up whatever the wording. */
-.dashboard-welcome {
-  margin-top: 18px;
-  padding: 0;
-  background: #ffffff;
-  border: 1px solid #ede4d4;
-  border-radius: 10px;
-}
-
-/* The fold handle. It carries the heading, so a reader who never opens it still
-   learns what is inside; the arrow is drawn here rather than left to the
-   browser's own marker, which differs from engine to engine. */
-.dashboard-welcome-summary {
-  display: grid;
-  grid-template-columns: 18px 1fr;
-  gap: 2px 12px;
-  padding: 16px 22px;
-  cursor: pointer;
-  list-style: none;
-}
-
-.dashboard-welcome-summary::-webkit-details-marker {
-  display: none;
-}
-
-.dashboard-welcome-summary::before {
-  grid-row: span 2;
-  align-self: center;
-  width: 8px;
-  height: 8px;
-  margin-left: 4px;
-  border-right: 2px solid #ad6206;
-  border-bottom: 2px solid #ad6206;
-  transform: rotate(-45deg);
-  transition: transform 120ms ease;
-  content: "";
-}
-
-.dashboard-welcome[open] .dashboard-welcome-summary::before {
-  transform: rotate(45deg);
-}
-
-.dashboard-welcome-summary:hover .dashboard-welcome-summary-title {
-  color: #ad6206;
-}
-
-.dashboard-welcome-summary-title {
-  color: #573f26;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.dashboard-welcome-summary-hint {
-  color: #96816a;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.dashboard-welcome-body {
-  display: grid;
-  gap: 16px;
-  padding: 4px 22px 24px 52px;
-}
-
-/* As wide as the lists in the panel, so the closing lines do not stop short of them. */
-.dashboard-welcome p {
-  margin: 0;
-  color: #7a6650;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.dashboard-welcome ol {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: welcome-step;
-}
-
-.dashboard-welcome li {
-  display: grid;
-  grid-template-columns: 26px 1fr;
-  gap: 4px 12px;
-  color: #7a6650;
-  font-size: 14px;
-  line-height: 1.55;
-}
-
-.dashboard-welcome li::before {
-  counter-increment: welcome-step;
-  content: counter(welcome-step);
-  grid-row: span 2;
-  width: 26px;
-  height: 26px;
-  color: #9a5a06;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 26px;
-  text-align: center;
-  background: #fdf3e2;
-  border: 1px solid #edcfa2;
-  border-radius: 50%;
-}
-
-.dashboard-welcome li strong {
-  color: #573f26;
-  font-size: 15px;
-}
-
-/* The one emphasised thing in the panel, because it is the sentence this
-   project exists for: people arriving from other tools. */
-.dashboard-welcome-switch {
-  padding: 13px 16px;
-  color: #6c5640;
-  background: #fdf4e3;
-  border-left: 3px solid #e8a865;
-  border-radius: 0 7px 7px 0;
-}
-
-.dashboard-welcome-switch strong {
-  color: #9a5a06;
-}
-
-/* Everything beyond the first steps: a plain list, so it does not compete
-   with the numbered steps above it. The step rules match any li in the panel,
-   hence the resets. */
-.dashboard-welcome-more {
-  display: grid;
-  gap: 8px;
-}
-
-.dashboard-welcome-more h3 {
-  margin: 0;
-  color: #573f26;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.dashboard-welcome-more ul {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding-left: 18px;
-}
-
-.dashboard-welcome-more li {
-  display: list-item;
-}
-
-.dashboard-welcome-more li::before {
-  content: none;
-}
-
-.dashboard-welcome-more li strong {
-  font-size: inherit;
-}
-
-.dashboard-welcome-videos a {
-  color: #8f4700;
-  font-weight: 700;
-}
-
-.dashboard-welcome-video-meta {
-  color: #8a745c;
-  font-size: 13px;
-}
-
 /* Present for search engines and screen readers, out of sight on screen. */
 .visually-hidden {
   position: absolute;
@@ -3035,37 +2721,6 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
-}
-
-/* ... which leaves the pointer to the in-editor help as a quiet closing line,
-   not a second box competing with it. */
-.dashboard-welcome-help {
-  color: #8a745c;
-  font-size: 13px;
-}
-
-/* The guide is the way to learn more, so its link stands apart as a button rather than hiding in the sentence. */
-.dashboard-welcome-guide-link {
-  display: flex;
-  align-self: flex-start;
-  width: fit-content;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-  padding: 9px 16px;
-  border: 1.5px solid #ad5900;
-  border-radius: 8px;
-  background: #fff6ea;
-  color: #8f4700;
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.dashboard-welcome-guide-link:hover,
-.dashboard-welcome-guide-link:focus-visible {
-  background: #ad5900;
-  color: #fff;
 }
 
 .preview-grid {
@@ -3092,7 +2747,7 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   top: 50%;
   color: #96816a;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   text-align: center;
   transform: translate(-50%, -50%);
   white-space: nowrap;
@@ -3119,7 +2774,7 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   overflow: hidden;
   color: #573f26;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3131,6 +2786,14 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.project-card-meta-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #c25e00;
+  font-weight: 500;
 }
 
 /* Der Ordner eines Suchtreffers: eine Zeile unter der Kachel, die sagt, wo
@@ -3176,18 +2839,6 @@ html[data-theme="dark"] .whats-new-earlier:hover {
   margin-top: 3px;
 }
 
-.toolbar-section.toolbar-home-section {
-  min-width: auto;
-}
-
-.toolbar-home-section .toolbar-section-label {
-  padding-inline: 4px;
-}
-
-.editor-home-control svg {
-  width: calc(43px * var(--toolbar-scale));
-  height: calc(43px * var(--toolbar-scale));
-}
 
 @media (max-width: 860px) {
   .dashboard-topbar {
@@ -3443,9 +3094,80 @@ html[data-theme="dark"] .edge-modifier-quick-actions button.active {
   cursor: pointer;
 }
 
+/* The punch's three axes side by side. */
+.punch-axis-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 /* Five hole shapes: three to a row. */
 .hole-pattern-panel .hole-pattern-forms {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Paint: fill, circle and lasso side by side. */
+.paint-panel .shell-opening-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* The colours to paint with, a colour of one's own under them, and the eraser beside it. */
+.paint-color-row {
+  display: grid;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.paint-color-row .color-grid {
+  grid-template-columns: repeat(auto-fill, minmax(24px, 1fr));
+  gap: 6px;
+}
+
+.paint-color-row .custom-color {
+  grid-column: auto;
+  justify-self: start;
+}
+
+.paint-eraser {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  margin-top: 8px;
+  padding: 0 10px;
+  color: #6d5133;
+  font-size: 12px;
+  font-weight: 700;
+  background: #fbf8f4;
+  border: 1px solid #d8c8b7;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.paint-eraser.active {
+  color: #9f5508;
+  background: #fff1e0;
+  border-color: #e08a2c;
+}
+
+.paint-panel .paint-count {
+  margin-top: 8px;
+}
+
+/* The shape a lasso of the paint tool is drawing, over the view. */
+.paint-lasso-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.paint-lasso-overlay polygon {
+  fill: rgba(211, 113, 12, 0.16);
+  stroke: #d3710c;
+  stroke-width: 2;
+  stroke-linejoin: round;
 }
 
 .shell-opening-options button.active {
@@ -3480,14 +3202,15 @@ html[data-theme="dark"] .shell-openings-summary {
   color: #a8957f;
 }
 
-.offset-copy {
+/* Both classes: .edge-modifier-field comes later and would turn the row back into a block, so the box sat against its label (#1536). */
+.edge-modifier-field.offset-copy {
   display: flex;
   align-items: flex-start;
   gap: 8px;
   font-weight: 600;
 }
 
-.offset-copy input {
+.edge-modifier-field.offset-copy input {
   flex: none;
   margin-top: 2px;
 }
@@ -3509,7 +3232,7 @@ html[data-theme="dark"] .shell-openings-summary {
   border: 1px solid #e0bd80;
   border-radius: 7px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -3532,7 +3255,9 @@ html[data-theme="dark"] .shell-openings-summary {
   cursor: not-allowed;
 }
 
-.edge-modifier-history-actions span {
+/* Only the note beside the toggle: the labels inside the buttons keep the button's size and colour,
+   so "Undo an edge feature" no longer looks small and greyed out like a disabled button (#1600). */
+.edge-modifier-history-actions > span {
   color: #7a6851;
   font-size: 10px;
   line-height: 1.35;
@@ -3588,7 +3313,7 @@ html[data-theme="dark"] .shell-openings-summary {
   border-radius: 8px;
   cursor: pointer;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .edge-modifier-history-edit:hover {
@@ -3610,12 +3335,12 @@ html[data-theme="dark"] .shell-openings-summary {
 
 .edge-modifier-history-item strong {
   color: #6d4310;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .edge-modifier-history-item small {
   color: #7a6851;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -3625,6 +3350,20 @@ html[data-theme="dark"] .shell-openings-summary {
   color: #6e5841;
   font-size: 12px;
   font-weight: 700;
+}
+
+/* The two bodies of Cut out and Punch, each on a line of its own, and the swap button under them. */
+.edge-modifier-field.tool-roles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.edge-modifier-field.tool-roles button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .edge-modifier-field select {
@@ -3651,6 +3390,86 @@ html[data-theme="dark"] .shell-openings-summary {
 
 .edge-modifier-check input {
   accent-color: #d07313;
+}
+
+/* The cable channel's two ends: a label and a button to click on the body, or the hint that a click is awaited. */
+.cable-channel-end {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cable-channel-end button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  font-weight: 700;
+}
+
+/* The lid panel's button that fits the body to a standard's neck (issue #1482), under the line that measures its top. */
+.lid-neck-fit-button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 0 12px;
+  color: #9f5508;
+  background: #fff1e0;
+  border: 1px solid #e08a2c;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lid-neck-fit-button:hover:not(:disabled) {
+  background: #fde3c4;
+}
+
+.lid-neck-fit-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+html[data-theme="dark"] .lid-neck-fit-button {
+  color: #f3a452;
+  background: #3a2c16;
+  border-color: #b9741f;
+}
+
+html[data-theme="dark"] .lid-neck-fit-button:hover:not(:disabled) {
+  background: #4a3719;
+}
+
+.cable-channel-picking {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #b35f00;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cable-channel-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.cable-channel-status.warning {
+  color: #b42318;
+}
+
+html[data-theme="dark"] .cable-channel-picking {
+  color: #f3a452;
+}
+
+html[data-theme="dark"] .cable-channel-status.warning {
+  color: #ff8a80;
 }
 
 .edge-modifier-error {
@@ -3808,7 +3627,7 @@ html[data-theme="dark"] .shell-openings-summary {
   margin-bottom: 6px;
   color: #6d5133;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .split-axis-control > div {
@@ -3825,13 +3644,19 @@ html[data-theme="dark"] .shell-openings-summary {
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .split-axis-control button.active {
   color: #fff;
   background: #cc7011;
   border-color: #b35f07;
+}
+
+/* Four kinds of connector, two to a row, so "Schwalbenschwanz" and the like fit (Discussion #832); Split and Stretch side by side. */
+.split-connector-control > div,
+.split-mode-control > div {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .split-position-control {
@@ -3856,7 +3681,7 @@ html[data-theme="dark"] .shell-openings-summary {
   border-radius: 6px;
   font: inherit;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   text-align: right;
 }
 
@@ -3864,7 +3689,7 @@ html[data-theme="dark"] .shell-openings-summary {
   min-width: 20px;
   color: #7e6852;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .split-position-pick {
@@ -3900,6 +3725,21 @@ html[data-theme="dark"] .shell-openings-summary {
 .split-panel-help {
   margin: 11px 0 0;
   color: #867360;
+}
+
+/* Under the connectors' settings: how many fit, and why a cut face got none (Discussion #832). */
+.split-connector-summary {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+  color: #6d5133;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.split-connector-summary:empty {
+  display: none;
 }
 
 .split-panel-error {
@@ -4089,7 +3929,7 @@ html[data-theme="dark"] .shell-openings-summary {
   border-radius: 3px;
   cursor: pointer;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .sketch-command-button svg {
@@ -4188,7 +4028,7 @@ html[data-theme="dark"] .shell-openings-summary {
 .toolbar-brand-name {
   color: #231a11;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1.15;
 }
@@ -4209,6 +4049,144 @@ html[data-theme="dark"] .shell-openings-summary {
   }
 }
 
+/* Back to the start page, before the tabs (Stefan, 29.10.2026). */
+.toolbar-title-home {
+  display: grid;
+  flex: 0 0 auto;
+  width: 44px;
+  margin-left: 6px;
+  place-items: center;
+  color: #634729;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.toolbar-title-home svg {
+  width: 30px;
+  height: 30px;
+}
+
+.toolbar-title-home:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.toolbar-title-home:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+/* The pin that keeps every group of the ribbon open, as it was before the groups learned to fold (Stefan, 29.10.2026). */
+.toolbar-ribbon-pin {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  margin-right: -2px;
+  place-items: center;
+  color: #a58c6c;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.toolbar-ribbon-pin:hover {
+  color: #634729;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.toolbar-ribbon-pin.active {
+  color: #d07415;
+}
+
+html[data-theme="dark"] .toolbar-ribbon-pin:hover {
+  color: #f7f2ea;
+  background: #463727;
+}
+
+/* The help in the title row: its four buttons framed in the help colour, as the group was in the ribbon, without its name
+   (that read as a button). All four in the brown of the title row - the search and the question mark were near-black
+   beside the guide and the keyboard (Stefan, 29.10.2026). */
+.toolbar-title-help {
+  --group-color: var(--group-help);
+  display: flex;
+  height: 34px;
+  margin-right: 8px;
+  padding: 0 4px;
+  align-items: center;
+  gap: 2px;
+  background: color-mix(in srgb, var(--group-color) 7%, var(--toolbar-tile));
+  border: 2px solid var(--group-color);
+  border-radius: 10px;
+}
+
+.toolbar-title-help .action-icon-button {
+  width: 30px;
+  height: 28px;
+  color: #634729;
+}
+
+.toolbar-title-help .action-icon-button .toolbar-search-icon,
+.toolbar-title-help .action-icon-button .toolbar-vector-art-icon {
+  color: inherit;
+}
+
+.toolbar-title-help .action-icon-button:hover {
+  color: var(--group-color);
+}
+
+html[data-theme="dark"] .toolbar-title-help .action-icon-button {
+  color: #e3d3c0;
+}
+
+html[data-theme="dark"] .toolbar-title-help .action-icon-button:hover {
+  color: #f7f2ea;
+}
+
+/* Interactive Help, while it is on: its circle is filled orange with the question mark light in it. Only a change of
+   colour of the question mark looked like the other help buttons, and it was taken for off (Discussion #1640). The
+   circle itself is filled, not the button: the button is wider than the icon, and a filled button stood square and
+   to one side of the round icon. */
+.toolbar-title-help .action-icon-button.active,
+.toolbar-title-help .action-icon-button.active:hover {
+  color: #d07415;
+}
+
+.toolbar-title-help .action-icon-button.active svg circle {
+  fill: currentColor;
+}
+
+.toolbar-title-help .action-icon-button.active svg path {
+  stroke: #fff;
+}
+
+html[data-theme="dark"] .toolbar-title-help .action-icon-button.active,
+html[data-theme="dark"] .toolbar-title-help .action-icon-button.active:hover {
+  color: #f29a45;
+}
+
+html[data-theme="dark"] .toolbar-title-help .action-icon-button.active svg path {
+  stroke: #2a2017;
+}
+
+/* On a narrow window - a tablet held upright - the name of the design needs the room: the colour scheme keeps its
+   palette only. */
+@media (max-width: 1100px) {
+  .toolbar-title-row-actions .theme-switch:not(.language-switch) .theme-switch-label {
+    display: none;
+  }
+
+  .toolbar-workspace-tabs button {
+    padding-inline: 12px;
+  }
+}
+
+.toolbar-title-help .action-icon-button svg {
+  width: 22px;
+  height: 22px;
+}
+
 .toolbar-workspace-tabs {
   display: flex;
   width: max-content;
@@ -4227,7 +4205,7 @@ html[data-theme="dark"] .shell-openings-summary {
   border-bottom: 3px solid transparent;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -4270,7 +4248,11 @@ html[data-theme="dark"] .shell-openings-summary {
 .toolbar-section[data-group="shapes"] { --group-color: var(--group-shapes); }
 .toolbar-section[data-group="visibility"] { --group-color: var(--group-visibility); }
 .toolbar-section[data-group="combine"] { --group-color: var(--group-combine); }
-.toolbar-section[data-group="modify"] { --group-color: var(--group-modify); }
+/* Modify's four groups (#1551) keep its colour: they belong together. */
+.toolbar-section[data-group="mirrorPattern"],
+.toolbar-section[data-group="splitShape"],
+.toolbar-section[data-group="edgesWalls"],
+.toolbar-section[data-group="surface"] { --group-color: var(--group-modify); }
 .toolbar-section[data-group="arrange"] { --group-color: var(--group-arrange); }
 .toolbar-section[data-group="manage"] { --group-color: var(--group-manage); }
 .toolbar-section[data-group="help"] { --group-color: var(--group-help); }
@@ -4337,7 +4319,7 @@ html[data-theme="dark"] .shell-openings-summary {
 
 .visibility-dropdown-action strong {
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .visibility-dropdown-help {
@@ -4362,7 +4344,7 @@ html[data-theme="dark"] .shell-openings-summary {
   border-radius: 4px;
   font-family: inherit;
   font-size: 8px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .toolbar-section-label {
@@ -4372,7 +4354,7 @@ html[data-theme="dark"] .shell-openings-summary {
   color: var(--group-color);
   font-family: Arial, Helvetica, sans-serif;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: .04em;
   line-height: 16px;
   text-align: center;
@@ -4400,6 +4382,124 @@ html[data-theme="dark"] .shell-openings-summary {
   background: color-mix(in srgb, var(--group-color) 7%, var(--toolbar-tile));
   border: 2px solid var(--group-color);
   border-radius: 11px;
+}
+
+/* A group the window has no room for folds into one button under its name (useToolbarCollapse, Stefan 29.10.2026):
+   resting the pointer on it, or a tap, opens its tools beneath it, over the workplane. */
+.toolbar-collapse-box {
+  display: none;
+}
+
+.toolbar-section[data-collapsed] {
+  width: 64px;
+  min-width: 64px;
+}
+
+.toolbar-section[data-collapsed] > .toolbar-section-label {
+  overflow: hidden;
+  padding-inline: 3px;
+  text-overflow: ellipsis;
+}
+
+.toolbar-section[data-collapsed] > .toolbar-collapse-box {
+  display: flex;
+}
+
+.toolbar-section[data-collapsed] > .toolbar-section-tools:not(.toolbar-collapse-box),
+.toolbar-section[data-collapsed] > .action-buttons {
+  display: none;
+}
+
+.toolbar-collapse-trigger {
+  position: relative;
+}
+
+/* A tab with a chevron under the folded button, in the group's colour, so it does not pass for one tool but reads as a
+   menu that opens (Stefan 30.10.2026); it turns up while the group is open. */
+.toolbar-section[data-collapsed] .toolbar-collapse-trigger::before {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  width: 18px;
+  height: 11px;
+  content: "";
+  background-color: var(--group-color);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 11'%3E%3Cpath d='M5.5 3.5 9 7l3.5-3.5' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border-radius: 0 0 6px 6px;
+  transform: translateX(-50%);
+  transition: transform 0.15s ease;
+}
+
+.toolbar-section[data-collapsed][data-open] .toolbar-collapse-trigger::before {
+  transform: translateX(-50%) scaleY(-1);
+}
+
+/* History's folded button is Undo itself (#1148): the tab is then a button of its own under it, a little larger than it
+   looks so it is easy to hit, and only it opens the group. */
+.toolbar-collapse-anchor {
+  position: relative;
+  display: flex;
+}
+
+/* It stays above the opened tools, whose frame it touches, so a second click on it closes them; it ends above the first
+   tool's top edge. It hangs from Undo's bottom edge like the other tabs from their buttons (#1506). */
+.toolbar-section[data-collapsed] .toolbar-collapse-tab {
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  z-index: 71;
+  width: 30px;
+  height: 13px;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+/* The chevron starts 2px above the hit area, a pixel above Undo's bottom edge, where the other groups' tabs start. */
+.toolbar-section[data-collapsed] .toolbar-collapse-tab::before {
+  top: -2px;
+  bottom: auto;
+}
+
+/* What the tools would show at a glance - something hidden, files attached - shows on the folded button as a dot. */
+.toolbar-section[data-collapsed]:has(.visibility-hidden-badge, .attachments-indicator) .toolbar-collapse-trigger::after {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  content: "";
+  background: var(--group-color);
+  border: 1.5px solid var(--toolbar-tile);
+  border-radius: 50%;
+}
+
+.toolbar-section[data-collapsed][data-open] > .toolbar-section-tools:not(.toolbar-collapse-box),
+.toolbar-section[data-collapsed][data-open] > .action-buttons {
+  position: absolute;
+  top: calc(var(--editor-toolbar-tools-height) - 8px);
+  left: 0;
+  z-index: 70;
+  display: flex;
+  width: max-content;
+  height: auto;
+  min-height: calc(var(--editor-toolbar-tools-height) - 24px);
+  margin: 0;
+  padding: 4px 6px;
+  background: color-mix(in srgb, var(--group-color) 7%, var(--toolbar-tile));
+  border: 2px solid var(--group-color);
+  border-radius: 11px;
+  box-shadow: 0 14px 34px rgba(66, 48, 29, 0.22);
+}
+
+.toolbar-section[data-collapsed][data-open="end"] > .toolbar-section-tools:not(.toolbar-collapse-box),
+.toolbar-section[data-collapsed][data-open="end"] > .action-buttons {
+  right: 0;
+  left: auto;
 }
 
 .toolbar-spacer {
@@ -4493,6 +4593,12 @@ html[data-theme="dark"] .shell-openings-summary {
 .toolbar-icon:not(.disabled):hover {
   background: var(--toolbar-hover-bg);
   box-shadow: inset 0 0 0 1px var(--toolbar-hover-ring);
+  color: var(--toolbar-icon);
+}
+
+/* A Lucide icon among the tools takes the dark of the drawn icons beside it, not the group colour the button carries:
+   Flexi joints, Cookie cutter and Lid stood out orange among the Modify tools as if they were on (Stefan, 29.10.2026). */
+.toolbar-icon:not(.disabled):not(.active) > svg.lucide {
   color: var(--toolbar-icon);
 }
 
@@ -4659,6 +4765,13 @@ html[data-theme="dark"] .shell-openings-summary {
   min-width: 82px;
 }
 
+/* Shapes taken out of the ribbon (#1550): the section stays, without width, so its panel still opens from the command
+   search at the spot where the group would stand. */
+.toolbar-shapes-section.out-of-ribbon {
+  min-width: 0;
+  width: 0;
+}
+
 .shape-menu-trigger {
   position: relative;
   display: grid;
@@ -4685,6 +4798,30 @@ html[data-theme="dark"] .shell-openings-summary {
   height: var(--toolbar-icon-size);
 }
 
+/* The shapes button opens a menu like a folded group, so it carries the same tab with a chevron in the group's colour
+   under it, turned up while the menu is open (Discussion #1506). It lies above the cube, which would hide its top, and
+   a pixel lower than there for the button's 1px border, so it meets the frame where the folded groups' tabs do. */
+.shape-menu-trigger::before {
+  position: absolute;
+  z-index: 1;
+  bottom: -11px;
+  left: 50%;
+  width: 18px;
+  height: 11px;
+  content: "";
+  background-color: var(--group-color);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 11'%3E%3Cpath d='M5.5 3.5 9 7l3.5-3.5' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border-radius: 0 0 6px 6px;
+  transform: translateX(-50%);
+  transition: transform 0.15s ease;
+}
+
+.shape-menu-trigger.active::before {
+  transform: translateX(-50%) scaleY(-1);
+}
+
 .shape-menu-dropdown {
   position: absolute;
   top: var(--editor-toolbar-tools-height);
@@ -4706,7 +4843,7 @@ html[data-theme="dark"] .shell-openings-summary {
   padding: 0 15px;
   color: #604529;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 42px;
   background: linear-gradient(180deg, #fff, #faf7f3);
   border-bottom: 1px solid #efe7d9;
@@ -4736,7 +4873,7 @@ html[data-theme="dark"] .shell-openings-summary {
   cursor: pointer;
   touch-action: manipulation;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
 
@@ -4855,7 +4992,7 @@ html[data-toolbar-size="small"] .shape-menu-dropdown:not(.sketch-shape-menu-drop
 }
 
 html[data-toolbar-size="large"] .shape-menu-dropdown:not(.sketch-shape-menu-dropdown),
-html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.sketch-shape-menu-dropdown) {
+html[data-simple-mode="on"]:not([data-toolbar-size], [data-simple-mode-enlarge="off"]) .shape-menu-dropdown:not(.sketch-shape-menu-dropdown) {
   --shape-menu-columns: 3;
 }
 
@@ -4905,6 +5042,19 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
 .shape-menu-dropdown.shape-menu-sized-height:not(.sketch-shape-menu-dropdown) .shape-menu-body,
 .shape-menu-dropdown.shape-menu-sized-height.sketch-shape-menu-dropdown > .shape-menu-list {
   max-height: calc(var(--shape-menu-height) - 46px);
+}
+
+/* Pinned, the 3D editor's Shapes panel lies in the workplane under the inspector (#1283), at the spot it hung
+   from its button (window pixels, divided by the zoom like every length of the panel). */
+.shape-menu-home {
+  display: contents;
+}
+
+.shape-menu-dropdown.shape-menu-under-inspector {
+  position: fixed;
+  z-index: 7;
+  top: calc(var(--shape-menu-home-top) / var(--toolbar-scale));
+  left: calc(var(--shape-menu-home-left) / var(--toolbar-scale));
 }
 
 /* Narrow: only the pictures stay, as in Tinkercad. The name is in each tile's tooltip. */
@@ -4993,7 +5143,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
   padding: 8px 15px 0;
   color: #8a6d4c;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -5010,7 +5160,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
   color: #573e24;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1;
   letter-spacing: 0;
   background: transparent;
@@ -5070,7 +5220,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
 
 .top-action-panel strong {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .top-action-panel header button {
@@ -5107,6 +5257,19 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
 .icon-tag-panel.moving,
 .icon-tag-panel.moving header.movable {
   cursor: grabbing;
+}
+
+/* Moved down the work area, the panel is cut to the room left below it: its content scrolls
+   then, so the export button at its foot stays reachable. */
+.top-action-panel.floating {
+  display: flex;
+  flex-direction: column;
+}
+
+.top-action-panel.floating > .export-dialog-body,
+.top-action-panel.floating > .top-action-body {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .top-action-panel.export-action-panel,
@@ -5156,7 +5319,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
 .export-section-heading strong {
   color: #4d3720;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .export-file-input-wrap {
@@ -5195,7 +5358,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
   padding: 0 9px 0 4px;
   color: #937f6a;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   text-transform: lowercase;
 }
 
@@ -5264,7 +5427,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
   margin: 0;
   color: #4d3720;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -5291,7 +5454,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
   padding: 4px 8px;
   color: #975613;
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 600;
   text-transform: uppercase;
   background: #f8f5ef;
   border: 1px solid #ece2d0;
@@ -5365,7 +5528,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
   padding: 0 5px;
   color: #94816c;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 600;
   letter-spacing: 0.02em;
   background: transparent;
   border: 0;
@@ -5530,7 +5693,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
 
 .lyl-history-range-labels span.active {
   color: #9f5508;
-  font-weight: 850;
+  font-weight: 600;
 }
 
 .export-format-summary {
@@ -5552,7 +5715,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
 .export-format-summary strong {
   color: #52391f;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 600;
 }
 
 .export-format-summary span,
@@ -5602,7 +5765,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 600;
 }
 
 .export-dialog-footer .export-primary-button {
@@ -5693,7 +5856,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
   border-radius: 3px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .top-action-body button:hover {
@@ -5730,6 +5893,55 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
   line-height: 1.35;
 }
 
+.server-design-picker {
+  display: grid;
+  gap: 4px;
+  max-height: 220px;
+  padding: 8px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ebe1cf;
+  border-radius: 8px;
+}
+
+.server-design-path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #8e7a66;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.top-action-body .server-design-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 30px;
+  padding: 4px 8px;
+  color: #5a3917;
+  background: #fff;
+  border-color: transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.top-action-body .server-design-up {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  place-items: center;
+}
+
+.server-design-note {
+  margin: 0;
+  color: #8e7a66;
+  font-size: 11px;
+}
+
 .open-lyl-project-icon {
   display: grid;
   width: 34px;
@@ -5747,7 +5959,7 @@ html[data-simple-mode="on"]:not([data-toolbar-size]) .shape-menu-dropdown:not(.s
   gap: 9px;
   color: #9c8b78;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
@@ -5837,7 +6049,7 @@ html[data-theme="dark"] .import-option {
 
 .import-drop-zone strong {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.25;
 }
 
@@ -5870,7 +6082,7 @@ html[data-theme="dark"] .import-option {
   padding: 7px 14px;
   color: #5c442b;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.4;
   white-space: normal;
   word-break: break-word;
@@ -5906,7 +6118,7 @@ html[data-theme="dark"] .import-option {
   color: #fff;
   font: inherit;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   background: #cf6a12;
   border: 0;
   border-radius: 8px;
@@ -5936,7 +6148,7 @@ html[data-theme="dark"] .import-option {
   place-items: center;
   color: #fff;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 600;
   line-height: 1;
   background: #d9730d;
   border: 2px solid #fffaf2;
@@ -6029,6 +6241,26 @@ html[data-theme="dark"] .visibility-hidden-badge {
   container: workplane / size;
 }
 
+/* What an empty design says: where to start, and that Ctrl+K finds any tool. */
+.workplane-empty-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  z-index: 2;
+  max-width: min(560px, calc(100% - 32px));
+  margin: 0;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  transform: translateX(-50%);
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+  pointer-events: none;
+}
+
 .sketch-workspace-stage {
   position: relative;
   flex: 1;
@@ -6049,7 +6281,7 @@ html[data-theme="dark"] .visibility-hidden-badge {
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(25, 64, 43, 0.2);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 600;
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -6110,9 +6342,24 @@ html[data-theme="dark"] .visibility-hidden-badge {
   z-index: 1;
   color: #7a6249;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+/* The title is the window's handle: a bar across the top of the picture that takes the press, the rest lets clicks through. */
+.sketch-revolve-preview-title.movable {
+  top: 0;
+  right: 0;
+  left: 0;
+  padding: 10px 12px 8px;
+  cursor: grab;
+  touch-action: none;
+  pointer-events: auto;
+}
+
+.sketch-revolve-preview.moving .sketch-revolve-preview-title.movable {
+  cursor: grabbing;
 }
 
 .sketch-revolve-preview canvas {
@@ -6369,7 +6616,7 @@ html[data-theme="dark"] .sketch-shape-options .unit {
 
 .sketch-revolve-guide text {
   fill: #9e2996;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-anchor: end;
 }
@@ -6470,6 +6717,16 @@ html[data-theme="dark"] .sketch-shape-options .unit {
   stroke-width: 3;
 }
 
+/* Freehand (#1280): the line under the pen while it is drawn, before it becomes points. */
+.sketch-freehand-preview {
+  fill: none;
+  stroke: #ce7416;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
 .sketch-preview-line {
   stroke: #ce7416;
   stroke-width: 2;
@@ -6505,6 +6762,25 @@ html[data-theme="dark"] .sketch-shape-options .unit {
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
   cursor: move;
+}
+
+/* A Bezier handle (#1008) answers the pointer like a point: the hand, and lit up. Its wider ring catches near misses
+   unseen, so the reference image under it is not grabbed instead. */
+.sketch-curve-handles .sketch-curve-handle {
+  cursor: pointer;
+}
+
+.sketch-curve-handles .sketch-curve-handle circle {
+  cursor: pointer;
+}
+
+.sketch-curve-handles circle.sketch-curve-handle-hit {
+  fill: transparent;
+  stroke: none;
+}
+
+.sketch-curve-handles .sketch-curve-handle:hover circle:not(.sketch-curve-handle-hit):not(.sketch-handle-selected) {
+  fill: #f08036;
 }
 
 .sketch-points circle {
@@ -6683,7 +6959,7 @@ html[data-theme="dark"] .sketch-shape-options .unit {
   border-radius: 17px;
   cursor: pointer;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .sketch-point-actions button:disabled {
@@ -6719,6 +6995,44 @@ html[data-theme="dark"] .sketch-shape-options .unit {
   height: 20px;
   margin: auto 2px;
   background: #dccdbd;
+}
+
+/* The middle of the selection, typed in mm from the sketch's origin (#1064). */
+.sketch-selection-position {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px;
+  color: #725b43;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sketch-selection-position input {
+  width: 64px;
+  height: 29px;
+  padding: 0 8px;
+  color: #746352;
+  font: 700 12px/1 var(--font-ui);
+  background: #ffffff;
+  border: 1px solid #daccbe;
+  border-radius: 999px;
+  outline: 0;
+}
+
+.sketch-selection-position input:focus {
+  border-color: #ea953d;
+  box-shadow: 0 0 0 3px rgba(161, 83, 0, 0.14);
+}
+
+.sketch-selection-position input:disabled {
+  cursor: default;
+  opacity: 0.52;
+}
+
+/* "Handle X" is two words: they stay on one line next to their field (#1250). */
+.sketch-selection-position > span {
+  white-space: nowrap;
 }
 
 .sketch-corner-dialog {
@@ -6809,8 +7123,8 @@ html[data-theme="dark"] .sketch-shape-options .unit {
   z-index: 11;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 5px;
+  gap: 1px;
+  padding: 4px;
   background: #faf7f3;
   border: 1px solid rgba(219, 207, 194, 0.9);
   border-radius: 17px;
@@ -6822,7 +7136,7 @@ html[data-theme="dark"] .sketch-shape-options .unit {
   position: relative;
   display: grid;
   width: 44px;
-  height: 43px;
+  height: 40px;
   place-items: center;
   color: #5a3917;
   background: transparent;
@@ -6838,13 +7152,17 @@ html[data-theme="dark"] .sketch-shape-options .unit {
    keeps its size relative to the others (they are drawn from 22 to 28 px), so
    the browser zooms the icon instead of every icon getting one new size. */
 .camera-controls > button,
-.camera-controls > div > button {
+.camera-controls > div > button,
+.camera-controls > .camera-group > div > button,
+.camera-controls > .camera-controls-handle > button {
   width: calc(44px * var(--toolbar-scale));
-  height: calc(43px * var(--toolbar-scale));
+  height: calc(40px * var(--toolbar-scale));
 }
 
 .camera-controls > button > svg,
-.camera-controls > div > button > svg {
+.camera-controls > div > button > svg,
+.camera-controls > .camera-group > div > button > svg,
+.camera-controls > .camera-controls-handle > button > svg {
   zoom: var(--toolbar-scale);
 }
 
@@ -6872,11 +7190,13 @@ html[data-theme="dark"] .sketch-shape-options .unit {
   box-shadow: inset 3px 0 0 #c56808;
 }
 
+/* Its buttons (place, eye, reset) take their places in the group around them, so a flat window's two columns can fill rows with them. */
 .workplane-control-group {
-  position: relative;
+  display: contents;
 }
 
-.tape-control-group {
+.tape-control-group,
+.protractor-control-group {
   position: relative;
 }
 
@@ -6960,6 +7280,44 @@ html[data-theme="dark"] .panel-grip:hover {
 
 .section-control-group {
   position: relative;
+}
+
+/* The first button folds the bar away and, dragged, moves it (Stefan, 31.10.2026). A grip above the arrow says so; in two
+   columns it sits in the middle of the bar. */
+.camera-controls-handle {
+  display: flex;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.camera-controls.moving .camera-controls-handle {
+  cursor: grabbing;
+}
+
+.camera-controls .camera-controls-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  cursor: inherit;
+}
+
+.camera-controls .camera-controls-toggle > svg:first-child {
+  opacity: 0.55;
+}
+
+/* What belongs together in the camera bar sits in a frame of its own (Stefan, 31.10.2026): the view, the zoom, the
+   projection, the workplane, the measuring and the notes. One column: the buttons below each other. Two columns (a flat
+   window): each group takes whole rows, two buttons wide, so a pair like plus and minus never splits. */
+.camera-controls > .camera-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 1px;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 14px;
 }
 
 /* The section button is the last one in the bar, so the panel opens upwards
@@ -7114,6 +7472,21 @@ html[data-theme="dark"] .panel-grip:hover {
   flex: 1 1 auto;
   padding: 0 6px;
   white-space: nowrap;
+}
+
+/* The cut face (#446): its name above the three looks, so a long name in any language fits the panel. */
+.section-popover-axis-row.section-cut-face-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.section-cut-face-row .section-axis-buttons {
+  flex: none;
+}
+
+.camera-controls .section-tool-popover .section-cut-face-row .section-orientation-btn {
+  flex: 1 1 0;
 }
 
 .camera-controls .section-tool-popover .section-axis-btn:hover {
@@ -7339,7 +7712,7 @@ html[data-theme="dark"] .inspector-bundle-note {
 .section-measure-readout strong {
   color: #2b1f14;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .section-measure-readout span,
@@ -7359,6 +7732,308 @@ html[data-theme="dark"] .inspector-bundle-note {
   inset: 0;
   z-index: 7;
   pointer-events: none;
+}
+
+/* The clearance check (Spiel prüfen): its status line, the pairs it found, and the place a row shows in the view. */
+.clearance-status {
+  min-height: 18px;
+  margin: 10px 0 6px;
+  color: #6f5b46;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.clearance-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clearance-stale {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  color: #8a4a00;
+  background: #fff3e0;
+  border: 1px solid #f0b46a;
+  border-radius: 7px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.clearance-list {
+  display: grid;
+  gap: 4px;
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.clearance-list.stale {
+  opacity: 0.55;
+}
+
+.clearance-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  color: #3a2816;
+  text-align: left;
+  background: #fbf8f3;
+  border: 1px solid #ede5d6;
+  border-left: 4px solid #a39584;
+  border-radius: 7px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.clearance-row svg {
+  flex: none;
+  margin-top: 1px;
+  color: #a39584;
+}
+
+.clearance-row-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.clearance-row-text strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.clearance-row-text span {
+  color: #7e6953;
+  font-size: 11px;
+}
+
+.clearance-row.overlap,
+.clearance-row.touching {
+  border-left-color: #d93a3f;
+}
+
+.clearance-row.overlap svg,
+.clearance-row.touching svg {
+  color: #d93a3f;
+}
+
+.clearance-row.tight {
+  border-left-color: #e8851a;
+}
+
+.clearance-row.tight svg {
+  color: #e8851a;
+}
+
+.clearance-row.fine {
+  border-left-color: #2f9e5b;
+}
+
+.clearance-row.fine svg {
+  color: #2f9e5b;
+}
+
+.clearance-row:disabled {
+  cursor: default;
+}
+
+.clearance-row:hover:not(:disabled),
+.clearance-row.active {
+  background: #fff1de;
+}
+
+.clearance-row.active {
+  box-shadow: 0 0 0 2px rgba(232, 133, 26, 0.45);
+}
+
+.clearance-hint {
+  margin: 8px 0 0;
+  color: #867360;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* The print check (Druck prüfen): the nozzle as buttons with a field for any other, and a line for each of its five
+   checks - green when it found nothing, amber with what and where, and a Show button that points the view at it. */
+.print-check-nozzles {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr);
+}
+
+.print-check-nozzle-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 7px;
+  background: white;
+  border: 1px solid #d8c8b7;
+  border-radius: 7px;
+}
+
+.print-check-nozzle-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  color: #533d26;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.print-check-nozzle-field input:focus {
+  outline: none;
+}
+
+.print-check-nozzle-field:focus-within {
+  border-color: #e08a2c;
+  box-shadow: 0 0 0 2px rgba(224, 138, 44, 0.25);
+}
+
+.print-check-nozzle-field span {
+  color: #8a7560;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.print-check-nozzle-hint {
+  display: block;
+  margin-top: 6px;
+  color: #867360;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.print-check-list {
+  max-height: none;
+}
+
+.print-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 8px;
+  color: #3a2816;
+  background: #fbf8f3;
+  border: 1px solid #ede5d6;
+  border-left: 4px solid #a39584;
+  border-radius: 7px;
+}
+
+.print-check-row > svg {
+  flex: none;
+  margin-top: 1px;
+  color: #a39584;
+}
+
+.print-check-row .clearance-row-text {
+  flex: 1;
+}
+
+.print-check-row.ok {
+  border-left-color: #2f9e5b;
+}
+
+.print-check-row.ok > svg {
+  color: #2f9e5b;
+}
+
+.print-check-row.warning {
+  border-left-color: #e8851a;
+}
+
+.print-check-row.warning > svg {
+  color: #e8851a;
+}
+
+.print-check-row.active {
+  background: #fff1de;
+  box-shadow: 0 0 0 2px rgba(232, 133, 26, 0.45);
+}
+
+.print-check-row .clearance-row-text .print-check-meaning {
+  color: #8a5a1c;
+}
+
+.print-check-show {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  color: #9f5508;
+  background: #fffdf9;
+  border: 1px solid #e3bd8f;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.print-check-show:hover:not(:disabled),
+.print-check-show[aria-pressed="true"] {
+  background: #fff1e0;
+  border-color: #e08a2c;
+}
+
+.print-check-show:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.clearance-mark-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.clearance-mark-line {
+  stroke: #e8851a;
+  stroke-width: 2.5;
+}
+
+.clearance-mark-point {
+  fill: #e8851a;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.clearance-mark-ring {
+  fill: none;
+  stroke: #e8851a;
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+.clearance-mark-overlay.overlap .clearance-mark-line,
+.clearance-mark-overlay.touching .clearance-mark-line,
+.clearance-mark-overlay.overlap .clearance-mark-ring,
+.clearance-mark-overlay.touching .clearance-mark-ring {
+  stroke: #d93a3f;
+}
+
+.clearance-mark-overlay.overlap .clearance-mark-point,
+.clearance-mark-overlay.touching .clearance-mark-point {
+  fill: #d93a3f;
+}
+
+.clearance-mark-overlay.fine .clearance-mark-line,
+.clearance-mark-overlay.fine .clearance-mark-ring {
+  stroke: #2f9e5b;
+}
+
+.clearance-mark-overlay.fine .clearance-mark-point {
+  fill: #2f9e5b;
 }
 
 .section-measure-outline {
@@ -7408,6 +8083,60 @@ html[data-theme="dark"] .inspector-bundle-note {
 }
 
 .workplane-wrap.section-measure-mode canvas {
+  cursor: crosshair;
+}
+
+/* The protractor (#1228): its legs and arc in the measuring orange, the normals of measured faces in blue. */
+.protractor-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.protractor-leg,
+.protractor-arc {
+  stroke: #c86a12;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.protractor-leg.preview {
+  stroke-dasharray: 5 4;
+}
+
+.protractor-normal {
+  stroke: #1677c8;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.protractor-point {
+  fill: #c86a12;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.protractor-hover {
+  fill: rgba(200, 106, 18, 0.22);
+  stroke: #c86a12;
+  stroke-width: 2;
+}
+
+/* Behind a body: dashed and faint, so a point on the far side does not look as if it sat on the near one. */
+.protractor-leg.hidden,
+.protractor-arc.hidden,
+.protractor-normal.hidden {
+  stroke-dasharray: 3 4;
+  opacity: 0.45;
+}
+
+.protractor-point.hidden,
+.protractor-hover.hidden {
+  opacity: 0.45;
+}
+
+.workplane-wrap.protractor-mode canvas {
   cursor: crosshair;
 }
 
@@ -7463,9 +8192,11 @@ html[data-theme="dark"] .inspector-bundle-note {
   cursor: crosshair;
 }
 
+/* The tape measure's crosshair is open in the middle: the system one covered the small ring that
+   shows where the point will snap (#963). Dark lines with a light edge, readable on any ground. */
 .workplane-wrap.tape-mode .three-workplane-host,
 .workplane-wrap.tape-mode .three-workplane-host:active {
-  cursor: crosshair;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg stroke-linecap='round'%3E%3Cpath d='M16 2v8M16 22v8M2 16h8M22 16h8' stroke='%23ffffff' stroke-width='3.5'/%3E%3Cpath d='M16 2v8M16 22v8M2 16h8M22 16h8' stroke='%23241f20' stroke-width='1.5'/%3E%3C/g%3E%3C/svg%3E") 16 16, crosshair;
 }
 
 .workplane-wrap.corner-ruler-mode .three-workplane-host,
@@ -7552,7 +8283,7 @@ html[data-theme="dark"] .touch-multi-select {
   color: #fff;
   background: #bf6508;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 20px;
   text-align: center;
   pointer-events: none;
@@ -7637,153 +8368,6 @@ html[data-theme="dark"] .touch-multi-select {
   box-shadow: 0 1px 4px rgba(40, 110, 150, 0.12);
 }
 
-.tape-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 7;
-  pointer-events: none;
-}
-
-.tape-guides {
-  position: absolute;
-  inset: 0;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.tape-segment {
-  stroke: #5a3917;
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-  pointer-events: none;
-  transition: stroke 120ms ease, stroke-width 120ms ease;
-}
-
-.tape-segment-hit {
-  stroke: transparent;
-  stroke-width: 14;
-  vector-effect: non-scaling-stroke;
-  pointer-events: stroke;
-  cursor: pointer;
-}
-
-.tape-point,
-.tape-hover-point {
-  fill: #ffffff;
-  stroke: #b66108;
-  stroke-width: 2.4;
-  vector-effect: non-scaling-stroke;
-}
-
-.tape-point {
-  pointer-events: all;
-  cursor: pointer;
-  transition: fill 120ms ease, stroke 120ms ease, filter 120ms ease;
-}
-
-.tape-overlay.move-mode .tape-point {
-  cursor: grab;
-}
-
-.tape-overlay.move-mode .tape-point:active {
-  cursor: grabbing;
-  fill: #f6f1e8;
-  filter: drop-shadow(0 0 4px rgba(129, 67, 0, 0.4));
-}
-
-.tape-overlay.delete-mode .tape-segment-group:hover .tape-segment,
-.tape-overlay.quick-delete .tape-segment-group:hover .tape-segment {
-  stroke: var(--hover-accent-color);
-  stroke-width: 3;
-  filter: drop-shadow(0 0 2px rgba(220, 63, 54, 0.3));
-}
-
-.tape-overlay.delete-mode .tape-point:hover,
-.tape-overlay.quick-delete .tape-point:hover {
-  fill: #fff0ee;
-  stroke: var(--hover-accent-color);
-  filter: drop-shadow(0 0 3px rgba(220, 63, 54, 0.36));
-}
-
-.tape-point.pending {
-  fill: #cf6e09;
-  stroke: #ffffff;
-  filter: drop-shadow(0 0 3px rgba(113, 58, 0, 0.72));
-}
-
-.tape-hover-point {
-  fill: rgba(155, 80, 0, 0.28);
-  stroke-dasharray: 3 2;
-  pointer-events: none;
-}
-
-.tape-hover-edge {
-  fill: none;
-  stroke: #e17709;
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 0 3px rgba(173, 89, 0, 0.48));
-  pointer-events: none;
-}
-
-.tape-label {
-  position: absolute;
-  z-index: 2;
-  min-width: 46px;
-  padding: 5px 9px;
-  color: #3a2816;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(224, 208, 190, 0.96);
-  border-radius: 999px;
-  box-shadow: 0 1px 4px rgba(58, 40, 20, 0.12);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
-  text-align: center;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-}
-
-/* A measurement with a body at one end: a click types a length and moves that body (#823). */
-.tape-label.editable {
-  font-family: inherit;
-  pointer-events: auto;
-  cursor: text;
-}
-
-.tape-label.editable:hover,
-.tape-label.editable:focus-visible {
-  color: #ad5900;
-  border-color: #ad5900;
-}
-
-/* The button under a measurement that puts a reference point in its middle (#323). */
-.tape-mark {
-  position: absolute;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  color: #3a2816;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(224, 208, 190, 0.96);
-  border-radius: 999px;
-  box-shadow: 0 1px 4px rgba(58, 40, 20, 0.12);
-  cursor: pointer;
-  pointer-events: auto;
-  transform: translate(-50%, -50%);
-}
-
-.tape-mark:hover,
-.tape-mark:focus-visible {
-  color: #ad5900;
-  border-color: #ad5900;
-}
-
 /* --- Winkellineal-Werkzeug ---------------------------------------------
    Reine Bildschirm-Darstellung wie das Massband, kein Three.js-Objekt und
    kein Formen-Katalog-Eintrag - der Griff ist immer direkt ziehbar, ohne
@@ -7827,6 +8411,21 @@ html[data-theme="dark"] .touch-multi-select {
 
 .corner-ruler-handle:active {
   cursor: grabbing;
+  fill: #f6f1e8;
+  filter: drop-shadow(0 0 4px rgba(129, 67, 0, 0.4));
+}
+
+/* An arm's end, dragged to make the arm longer or shorter (Discussion #1469): smaller than the corner's handle. */
+.corner-ruler-end-handle {
+  fill: #ffffff;
+  stroke: #b66108;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  pointer-events: all;
+  cursor: ew-resize;
+}
+
+.corner-ruler-end-handle:active {
   fill: #f6f1e8;
   filter: drop-shadow(0 0 4px rgba(129, 67, 0, 0.4));
 }
@@ -7939,15 +8538,47 @@ html[data-theme="dark"] .touch-multi-select {
 
 /* The ruler's lines stay in view over bodies (the eye is open) or hide behind them. */
 .corner-ruler-occlude-toggle,
-.corner-ruler-selected-toggle {
+.corner-ruler-selected-toggle,
+.corner-ruler-plate-toggle,
+.corner-ruler-arms-toggle {
   color: #6b5b46;
   background: rgba(255, 255, 255, 0.96);
   border-color: rgba(182, 97, 8, 0.45);
 }
 
 .corner-ruler-occlude-toggle.active,
-.corner-ruler-selected-toggle.active {
+.corner-ruler-selected-toggle.active,
+.corner-ruler-arms-toggle.active {
   color: #b66108;
+}
+
+/* The switch of one arm (Discussion #1649): its axis letter, filled in the axis colour while the arm is shown. */
+.corner-ruler-arm-toggle {
+  --corner-ruler-arm-axis: #6b5b46;
+  width: 18px;
+  height: 18px;
+  color: var(--corner-ruler-arm-axis);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px dashed var(--corner-ruler-arm-axis);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.corner-ruler-arm-toggle.axis-x { --corner-ruler-arm-axis: #d6363c; }
+.corner-ruler-arm-toggle.axis-y { --corner-ruler-arm-axis: #2f9a4b; }
+.corner-ruler-arm-toggle.axis-z { --corner-ruler-arm-axis: #2f6fe0; }
+
+.corner-ruler-arm-toggle.active,
+.corner-ruler-arm-toggle.active:hover {
+  color: #ffffff;
+  background: var(--corner-ruler-arm-axis);
+  border-style: solid;
+}
+
+/* The last arm shown cannot be switched off. */
+.corner-ruler-arm-toggle:disabled {
+  cursor: default;
 }
 
 .corner-ruler-tick-label.hidden,
@@ -8003,6 +8634,22 @@ html[data-theme="dark"] .touch-multi-select {
 [data-theme="dark"] .corner-ruler-mode-toggle:hover {
   background: rgba(46, 125, 50, 0.35);
   border-color: #81c784;
+}
+
+[data-theme="dark"] .corner-ruler-arm-toggle.axis-x { --corner-ruler-arm-axis: #ff6b70; }
+[data-theme="dark"] .corner-ruler-arm-toggle.axis-y { --corner-ruler-arm-axis: #5fd47c; }
+[data-theme="dark"] .corner-ruler-arm-toggle.axis-z { --corner-ruler-arm-axis: #6aa0ff; }
+
+[data-theme="dark"] .corner-ruler-arm-toggle {
+  color: var(--corner-ruler-arm-axis);
+  border-color: var(--corner-ruler-arm-axis);
+}
+
+[data-theme="dark"] .corner-ruler-arm-toggle.active,
+[data-theme="dark"] .corner-ruler-arm-toggle.active:hover {
+  color: #14110e;
+  background: var(--corner-ruler-arm-axis);
+  border-color: var(--corner-ruler-arm-axis);
 }
 
 [data-theme="dark"] .ruler-coordinate-badge {
@@ -8118,7 +8765,8 @@ html[data-theme="dark"] .touch-multi-select {
 .transform-overlay.hide-selection-chrome .transform-guides,
 .transform-overlay.hide-selection-chrome .dimension-label,
 .transform-overlay.hide-selection-chrome .transform-handle,
-.transform-overlay.hide-selection-chrome .rotate-handle {
+.transform-overlay.hide-selection-chrome .rotate-handle,
+.transform-overlay.hide-selection-chrome .slide-handle {
   opacity: 0;
 }
 
@@ -8168,6 +8816,16 @@ html[data-theme="dark"] .touch-multi-select {
   transform: translate(-50%, -50%);
 }
 
+/* The dots and the equal-gaps pills in the colours of their axis, as the move and size handles (Discussion #1472):
+   the align axis y is the height (blue), z the depth (green). The dark theme only changes the variable, so hover
+   and disabled below still win there too. */
+.align-dot.axis-x, .align-spread.axis-x { --align-axis-color: #d6363c; background: var(--align-axis-color); }
+.align-dot.axis-y, .align-spread.axis-y { --align-axis-color: #2f6fe0; background: var(--align-axis-color); }
+.align-dot.axis-z, .align-spread.axis-z { --align-axis-color: #2f9a4b; background: var(--align-axis-color); }
+html[data-theme="dark"] .align-dot.axis-x, html[data-theme="dark"] .align-spread.axis-x { --align-axis-color: #ff6b70; }
+html[data-theme="dark"] .align-dot.axis-y, html[data-theme="dark"] .align-spread.axis-y { --align-axis-color: #6aa0ff; }
+html[data-theme="dark"] .align-dot.axis-z, html[data-theme="dark"] .align-spread.axis-z { --align-axis-color: #5fd47c; }
+
 /* For a finger or a rubber-tip stylus the dots keep their look and catch from further away, a finger's width round them (#854). */
 @media (pointer: coarse) {
   .align-dot {
@@ -8195,6 +8853,126 @@ html[data-theme="dark"] .touch-multi-select {
   box-shadow: none;
   cursor: default;
   opacity: 0.72;
+}
+
+/* With Alt held the dots are squares, like the size handles: they stretch the parts instead of moving them (#998). */
+.align-overlay.size-mode .align-dot {
+  border-radius: 2px;
+}
+
+/* Equal gaps: a pill beside the middle dot of each line, turned along it; with Alt it asks for a gap (dashed). */
+.align-spread {
+  position: absolute;
+  width: 26px;
+  height: 16px;
+  padding: 0;
+  border: 2px solid #fcfbf8;
+  border-radius: 999px;
+  background: #312519;
+  color: #fcfbf8;
+  box-shadow: 0 1px 5px rgba(40, 27, 13, 0.32);
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) rotate(var(--spread-angle, 0deg));
+}
+
+.align-spread::before {
+  position: absolute;
+  inset: -8px;
+  border-radius: 999px;
+  content: "";
+}
+
+.align-spread-icon {
+  display: block;
+  width: 18px;
+  height: 9px;
+  margin: 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.align-spread:hover:not(:disabled),
+.align-spread:focus-visible:not(:disabled) {
+  background: #e17709;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(173, 89, 0, 0.18), 0 1px 5px rgba(40, 27, 13, 0.32);
+}
+
+.align-spread.disabled,
+.align-spread:disabled {
+  background: #b0a498;
+  box-shadow: none;
+  cursor: default;
+  opacity: 0.72;
+}
+
+.align-overlay.size-mode .align-spread:not(:disabled) {
+  border-style: dashed;
+}
+
+.align-gap-field {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--foreground);
+  box-shadow: 0 4px 16px rgba(40, 27, 13, 0.22);
+  font: 13px var(--font-ui);
+  pointer-events: auto;
+  transform: translate(-50%, calc(-100% - 14px));
+  white-space: nowrap;
+}
+
+.align-gap-field label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.align-gap-field input {
+  width: 64px;
+  padding: 3px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.align-gap-unit {
+  color: var(--muted-strong);
+}
+
+.align-gap-field button[type="submit"] {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.align-gap-field button[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.align-gap-close {
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--muted-strong);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .mirror-overlay {
@@ -8296,6 +9074,24 @@ html[data-theme="dark"] .touch-multi-select {
 .dimension-label.armed {
   border-color: rgba(166, 86, 0, 0.85);
   box-shadow: 0 0 0 3px rgba(173, 89, 0, 0.22), 0 1px 4px rgba(58, 40, 20, 0.09);
+}
+
+/* Workspace setting "Dimension boxes in axis colours" (#1279): each value box in the colour of its axis,
+   as the size handles: a light tint, a strong edge and dark text, the same in the dark theme so the number stays easy to read. */
+.workplane-wrap.dimension-axis-colors .dimension-label[data-axis],
+.workplane-wrap.dimension-axis-colors .dimension-input[data-axis] {
+  background: var(--dimension-axis-tint);
+  border: 1px solid var(--dimension-axis-edge);
+  color: var(--dimension-axis-text);
+  opacity: 1;
+}
+
+.workplane-wrap.dimension-axis-colors [data-axis="x"] { --dimension-axis-tint: #fde4e4; --dimension-axis-edge: #d6363c; --dimension-axis-text: #6e1418; }
+.workplane-wrap.dimension-axis-colors [data-axis="y"] { --dimension-axis-tint: #dff3e4; --dimension-axis-edge: #2f9a4b; --dimension-axis-text: #144a24; }
+.workplane-wrap.dimension-axis-colors [data-axis="z"] { --dimension-axis-tint: #e0eafc; --dimension-axis-edge: #2f6fe0; --dimension-axis-text: #12357a; }
+
+.workplane-wrap.dimension-axis-colors .dimension-label[data-axis].armed {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dimension-axis-edge) 30%, transparent), 0 1px 4px rgba(58, 40, 20, 0.09);
 }
 
 .dimension-input {
@@ -8497,6 +9293,13 @@ html[data-theme="dark"] .touch-multi-select {
   background: #f5f2ec;
 }
 
+/* Slope along: the lower end's dot, round so it is not taken for the height. */
+.transform-handle.height-top.slope-end {
+  border-radius: 50%;
+  background: #e0873a;
+  border-color: #6b3a12;
+}
+
 .transform-handle.edge,
 .transform-handle.dark {
   width: 9px;
@@ -8504,11 +9307,17 @@ html[data-theme="dark"] .touch-multi-select {
   background: #433629;
 }
 
+/* The handles that change one measure carry the colour of its axis, as the turn arrows do (#1078): the middle of a side width or depth, the top height. The corners change two and stay neutral. */
+.transform-handle.axis-x { background: #d6363c; border-color: #7d1a1e; }
+.transform-handle.axis-y { background: #2f9a4b; border-color: #17542a; }
+.transform-handle.axis-z { background: #2f6fe0; border-color: #163f86; }
+
 .transform-handle:not(.height-lift):hover {
     background: var(--hover-accent-color);
     border-color: var(--hover-accent-border-color);
 }
 
+/* The lift arrow moves along Z, so it is blue like the Z turn arrow and the Z axis arrow on the plate (Facebook group). */
 .transform-handle.height-lift {
   border: 0;
   width: 0;
@@ -8516,13 +9325,13 @@ html[data-theme="dark"] .touch-multi-select {
   background: transparent;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-bottom: 13px solid #433629;
+  border-bottom: 13px solid #2f6fe0;
   box-shadow: none;
 }
 
 .transform-handle.height-lift.lower {
   border-bottom: 0;
-  border-top: 13px solid #433629;
+  border-top: 13px solid #2f6fe0;
 }
 
 .transform-handle.height-lift:hover {
@@ -8659,6 +9468,78 @@ html[data-theme="dark"] .touch-multi-select {
   stroke-linejoin: round;
 }
 
+/* The X and Y arrows beside the lift arrow (Discussion #1434): pulled, the selection moves along that axis only.
+   The button is the grab area along the arrow, turned to where the axis runs on the screen. */
+.slide-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: 34px;
+  height: 18px;
+  padding: 0;
+  --slide-handle-axis: #433629;
+  --slide-handle-halo: rgba(255, 252, 247, 0.95);
+  color: var(--slide-handle-axis);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: inherit;
+  pointer-events: auto;
+  touch-action: none;
+  transform: translate3d(var(--overlay-x, 0), var(--overlay-y, 0), 0) translate(-50%, -50%) rotate(var(--slide-handle-angle, 0deg));
+  will-change: transform;
+}
+
+.slide-handle.axis-x { --slide-handle-axis: #d6363c; }
+.slide-handle.axis-y { --slide-handle-axis: #2f9a4b; }
+
+.slide-handle-icon {
+  display: block;
+  width: 32px;
+  height: 16px;
+  margin: 1px;
+  overflow: visible;
+}
+
+/* The arrows stand on the body: a rim in the halo colour keeps the red one readable on a red body. */
+.slide-arrow-rim {
+  fill: var(--slide-handle-halo);
+  stroke: var(--slide-handle-halo);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.slide-arrow-shaft {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.slide-arrow-head {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+/* Hovered, the arrow gets heavier. */
+.slide-handle:hover .slide-arrow-shaft {
+  stroke-width: 3.2;
+}
+
+/* For a finger or a rubber-tip stylus the arrows catch from further away, as the other handles do. */
+@media (pointer: coarse) {
+  .slide-handle::before {
+    position: absolute;
+    inset: -10px;
+    content: "";
+  }
+}
+
 .rotation-edit {
   position: absolute;
   left: 0;
@@ -8787,6 +9668,9 @@ html[data-theme="dark"] .rotation-angle-badge {
   width: 320px;
   max-height: none;
   overflow-y: auto;
+  /* The snap dock sticks to the bottom and covers the last ~55px of the view; the browser counts a field behind it
+     as visible and does not scroll to it on Tab. This keeps a focused field above the dock (Issue #1547). */
+  scroll-padding-bottom: 64px;
   /* A thin bar that shows: on a laptop's touchpad the panel is easier to scroll by its bar. */
   scrollbar-color: #cdbfa9 transparent;
   scrollbar-width: thin;
@@ -8980,7 +9864,7 @@ html[data-theme="dark"] .rotation-angle-badge {
   border-radius: 4px;
   outline: none;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .inspector-header-actions {
@@ -9122,7 +10006,7 @@ html[data-theme="dark"] .rotation-angle-badge {
 .color-value {
   color: #98846f;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .color-grid {
@@ -9219,7 +10103,7 @@ html[data-theme="dark"] .rotation-angle-badge {
   border-radius: 5px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .shape-inspector .edit-sketch-button:hover:not(:disabled),
@@ -9353,7 +10237,7 @@ html[data-theme="dark"] .rotation-angle-badge {
   border-radius: 7px;
   cursor: pointer;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
 }
 
@@ -9484,6 +10368,17 @@ html[data-theme="dark"] .rotation-angle-badge {
   white-space: nowrap;
 }
 
+/* Dragging the name changes the value; the panel still scrolls up and down under a finger. */
+.range-property-name.scrubbable {
+  cursor: ew-resize;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.range-property-name.scrubbable .property-reset {
+  cursor: pointer;
+}
+
 .property-reset {
   display: inline-grid;
   width: 18px;
@@ -9591,7 +10486,7 @@ html[data-theme="dark"] .property-defaults-actions button {
 .range-value-unit {
   color: #816f5d;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 600;
   line-height: 1;
 }
 
@@ -9643,13 +10538,27 @@ html[data-theme="dark"] .property-defaults-actions button {
 
 .select-property {
   display: grid;
-  /* A long label (German "Buchstabenkanten") takes the room it needs instead of running under the field. */
-  grid-template-columns: minmax(92px, max-content) minmax(0, 1fr);
+  /* A long label (German "Buchstabenkanten") takes the room it needs instead of running under the field,
+     but at most a little over half the row: past that it wraps, and the field keeps room for its choice
+     ("Through the Sections" left "Straight" cut off, Discussion #1614). */
+  grid-template-columns: fit-content(55%) minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   color: #867563;
   font-size: 15px;
   font-weight: 650;
+}
+
+/* Short labels still start their fields at the same place. */
+.select-property > span:first-child {
+  min-width: 92px;
+}
+
+/* The board's number fields keep their width and a long label wraps instead: "Reach through the wall (mm)" squeezed its field until the last digit was cut off (#1344). */
+.sbc-board-clearance,
+.sbc-board-reach,
+.sbc-board-up-reach {
+  grid-template-columns: minmax(0, 1fr) 76px;
 }
 
 .text-property input,
@@ -9714,7 +10623,7 @@ html[data-theme="dark"] .property-defaults-actions button {
 
 .mesh-compare-header strong {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -9827,7 +10736,7 @@ html[data-theme="dark"] .property-defaults-actions button {
   border: 1px solid #e9e4dc;
   border-radius: 5px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
@@ -9930,7 +10839,7 @@ html[data-theme="dark"] .property-defaults-actions button {
   border-radius: 5px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .mesh-compare-actions .secondary {
@@ -10002,6 +10911,136 @@ html[data-theme="dark"] .mesh-compare-actions .secondary {
   color: #8d7b68;
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Layers of a surface texture: a tab per pattern, and one to add another. A layer that still needs faces is dashed,
+   and so is the line that asks for them. */
+.surface-layers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.surface-layers button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 9px 0 5px;
+  color: #6d5133;
+  font: 700 12px/1 var(--font-ui);
+  background: #fbf8f4;
+  border: 1px solid #e0d4c6;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.surface-layers button.active {
+  color: #8a4504;
+  background: #ffe7cc;
+  border-color: #d97813;
+  box-shadow: inset 0 0 0 1px #d97813;
+}
+
+.surface-layers button.needed {
+  border-style: dashed;
+  border-color: #d9a24f;
+}
+
+.surface-layer-number {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: #fff;
+  font-size: 11px;
+  background: #b08a62;
+  border-radius: 50%;
+}
+
+.surface-layers button.active .surface-layer-number {
+  background: #d97813;
+}
+
+.surface-layers .surface-layer-add {
+  padding-left: 7px;
+  color: #8a6a45;
+  background: transparent;
+  border-style: dashed;
+}
+
+.cylinder-wrap-hint.surface-layer-missing {
+  color: #9a5d06;
+  font-weight: 700;
+}
+
+/* The vase's drawing boards (card Draw): the vase tool's boards, in the editor's colours. */
+.vase-drawing {
+  --accent: var(--primary);
+  --surface: #fffdf9;
+  --grid: #e6d6b0;
+  --grid-major: #c9a45a;
+  --label: #8a7a66;
+  --field-edge: var(--border-strong);
+  --vz-height: 300px;
+}
+
+.vase-drawing-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+}
+
+.vase-drawing-tabs button {
+  min-height: 32px;
+  padding: 4px 6px;
+  color: var(--muted-strong);
+  background: transparent;
+  font: 700 12.5px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+
+.vase-drawing-tabs button + button {
+  border-left: 1px solid var(--border-strong);
+}
+
+.vase-drawing-tabs button[aria-pressed="true"] {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.vase-drawing-host .vz-hint {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.vase-drawing-host[inert] {
+  opacity: 0.55;
+}
+
+/* The vase's print card: weight and filament, then the core's notes on printing it. */
+.vase-print-report {
+  display: grid;
+  gap: 8px;
+}
+
+.vase-print-weight {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.vase-print-notes {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  color: #8d6a3b;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -10145,7 +11184,7 @@ html[data-theme="dark"] .property-hint {
   min-width: 18px;
   text-align: center;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .name-tag-layers {
@@ -10183,6 +11222,16 @@ html[data-theme="dark"] .property-hint {
   background: var(--swatch);
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
   cursor: pointer;
+}
+
+/* The pattern part's colour in the surface texture card: the colour card's own-colour pill, in the field's column. */
+.surface-pattern-color .custom-color {
+  grid-column: auto;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 6px;
+  width: 100%;
+  padding-right: 8px;
+  font-size: 12px;
 }
 
 .name-tag-swatch input {
@@ -10255,6 +11304,40 @@ html[data-theme="dark"] .property-hint {
 
 .name-tag-sides.name-tag-edge > span {
   padding-right: 8px;
+}
+
+/* Centre or edge for the position fields (#973). */
+.name-tag-sides.position-from {
+  grid-template-columns: auto repeat(2, minmax(0, 1fr));
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.name-tag-sides.position-from > span {
+  padding-right: 8px;
+}
+
+/* What a group does when it is resized (Discussion #526): the two choices are long, so they sit under the label and may wrap. */
+.name-tag-sides.group-resize-choice {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.name-tag-sides.group-resize-choice > span {
+  grid-column: 1 / -1;
+}
+
+.name-tag-sides.group-resize-choice button {
+  height: auto;
+  min-height: 30px;
+  padding: 6px 8px;
+  line-height: 1.2;
+  border-radius: 15px;
+}
+
+.name-tag-sides.group-resize-choice button:disabled {
+  cursor: default;
+  opacity: 0.52;
 }
 
 .name-tag-sides.name-tag-edge button {
@@ -10360,8 +11443,9 @@ html[data-theme="dark"] .shape-inspector .name-tag-start .name-tag-start-button:
   border-color: #f0a65a;
 }
 
+/* Across the whole row, as under the number fields: under the field alone it was a narrow column (Discussion #1614). */
 .select-property-hint {
-  grid-column: 2;
+  grid-column: 1 / -1;
   margin-top: -5px;
   color: #8d7b68;
   font-size: 12px;
@@ -10508,6 +11592,238 @@ html[data-theme="dark"] .font-picker-option.action {
 
 .font-manager-row .font-preview-line {
   margin-top: 2px;
+}
+
+/* The surface texture's pattern, chosen by its picture: like the gear type's pictures, it takes the card's whole width
+   under its label. The field shows the chosen pattern; opened, a grid of all of them with a search above. */
+.select-property.pattern-picker {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.pattern-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 36px;
+  padding: 3px 12px 3px 3px;
+  color: #746352;
+  font: 600 15px/1.2 var(--font-ui);
+  text-align: left;
+  background: #fff;
+  border: 1px solid #daccbe;
+  border-radius: 999px;
+  outline: 0;
+  cursor: pointer;
+  box-shadow: inset 0 1px 1px rgba(65, 46, 25, 0.04);
+}
+
+.pattern-picker-trigger > span:not(.pattern-thumbnail) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pattern-picker-trigger > svg {
+  flex: none;
+}
+
+.pattern-picker-trigger:focus-visible,
+.pattern-picker-trigger[aria-expanded="true"] {
+  border-color: #ea953d;
+  box-shadow: 0 0 0 3px rgba(161, 83, 0, 0.14);
+}
+
+.pattern-picker-trigger:disabled {
+  cursor: default;
+  opacity: 0.52;
+}
+
+.pattern-thumbnail {
+  display: block;
+  flex: none;
+  width: 40px;
+  height: 30px;
+  object-fit: cover;
+  background: #ebe4da;
+  border-radius: 5px;
+}
+
+/* In the round field the picture is rounded at its ends like the field. */
+.pattern-picker-trigger .pattern-thumbnail {
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.pattern-picker-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+  padding: 5px;
+  color: #5d4731;
+  background: #fff;
+  border: 1px solid #daccbe;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(65, 46, 25, 0.22);
+}
+
+.pattern-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 31px;
+  padding: 0 12px;
+  color: #9a8874;
+  background: #fff;
+  border: 1px solid #daccbe;
+  border-radius: 999px;
+}
+
+.pattern-picker-search:focus-within {
+  border-color: #ea953d;
+  box-shadow: 0 0 0 3px rgba(161, 83, 0, 0.14);
+}
+
+.pattern-picker-search input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  color: #746352;
+  font: 600 14px/1 var(--font-ui);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.pattern-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  max-height: 330px;
+  overflow-y: auto;
+  scrollbar-color: #cdbfa9 transparent;
+  scrollbar-width: thin;
+}
+
+.pattern-picker-grid button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 4px 3px 3px;
+  color: #6d5133;
+  font: 600 12px/1.2 var(--font-ui);
+  text-align: left;
+  background: #fbf8f4;
+  border: 1px solid #e0d4c6;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.pattern-picker-grid button > span:not(.pattern-thumbnail) {
+  min-width: 0;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.pattern-picker-grid button:hover {
+  border-color: #cd9860;
+}
+
+.pattern-picker-grid button.selected {
+  color: #8a4504;
+  background: #ffe7cc;
+  border-color: #d97813;
+  box-shadow: inset 0 0 0 1px #d97813;
+}
+
+.pattern-picker-grid button:focus-visible {
+  outline: 2px solid #ea953d;
+  outline-offset: 1px;
+}
+
+.pattern-picker-check {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  padding: 2px;
+  color: #fff;
+  background: #d97813;
+  border-radius: 50%;
+}
+
+.pattern-picker-empty {
+  grid-column: 1 / -1;
+  margin: 6px 4px;
+  color: #8d7b68;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+html[data-theme="dark"] .pattern-picker-trigger,
+html[data-theme="dark"] .pattern-picker-search {
+  color: #e6d8c6;
+  background: #21180f;
+  border-color: #5c4b3a;
+}
+
+html[data-theme="dark"] .pattern-picker-search input {
+  color: #e6d8c6;
+}
+
+html[data-theme="dark"] .pattern-thumbnail {
+  background: #3b2c1d;
+}
+
+html[data-theme="dark"] .pattern-picker-popover {
+  color: #e6d8c6;
+  background: #2b2016;
+  border-color: #5c4b3a;
+}
+
+html[data-theme="dark"] .pattern-picker-grid {
+  scrollbar-color: #5a4a3a transparent;
+}
+
+html[data-theme="dark"] .pattern-picker-grid button {
+  color: #ede4d4;
+  background: #2f2418;
+  border-color: #53412f;
+}
+
+html[data-theme="dark"] .pattern-picker-grid button:hover {
+  border-color: #81684f;
+}
+
+html[data-theme="dark"] .pattern-picker-grid button.selected {
+  color: #ffc27a;
+  background: #4a3214;
+  border-color: #e08a2c;
+  box-shadow: inset 0 0 0 1px #e08a2c;
+}
+
+html[data-theme="dark"] .pattern-picker-check {
+  color: #2b2016;
+  background: #e08a2c;
+}
+
+html[data-theme="dark"] .pattern-picker-empty {
+  color: #a08a72;
 }
 
 .text-property input:focus,
@@ -10761,6 +12077,28 @@ html[data-theme="dark"] .font-picker-option.action {
   margin: 0;
 }
 
+/* The snap menu a short middle click opens at the pointer (Discussion #1439): over every panel, inside the window. */
+.snap-menu.snap-menu-at-pointer {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  z-index: 90;
+  max-height: calc(100vh - 16px);
+}
+
+.snap-menu-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+  padding: 3px 9px 6px;
+  color: #725a42;
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
 .workspace-modal {
   position: absolute;
   inset: 0;
@@ -10822,7 +12160,7 @@ html[data-theme="dark"] .font-picker-option.action {
 
 .workspace-modal-header strong {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .workspace-modal-header button {
@@ -10872,7 +12210,7 @@ html[data-theme="dark"] .font-picker-option.action {
   border-radius: 5px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   text-align: left;
 }
 
@@ -10933,6 +12271,66 @@ html[data-theme="dark"] .font-picker-option.action {
   line-height: 1.4;
 }
 
+/* The printer's play (printerPlay.ts): the field in mm, the values the fit test is printed with, its button and a line. */
+.workspace-printer-play {
+  align-items: start;
+}
+
+.workspace-printer-play > label {
+  padding-top: 4px;
+}
+
+.workspace-printer-play-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #756657;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workspace-printer-play-field input {
+  width: 110px;
+  height: 26px;
+  padding: 0 8px;
+  color: #61482f;
+  background: #fff;
+  border: 1px solid #dacfc2;
+  border-radius: 2px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.workspace-printer-play-values {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.workspace-printer-play-values button {
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.workspace-printer-play-values button.active {
+  color: #9a520a;
+  background: #fbefe1;
+  border-color: #cf710f;
+}
+
+.workspace-printer-play-make,
+.workspace-printer-play-base {
+  grid-column: 2;
+}
+
+.workspace-printer-play > small {
+  display: block;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
 .bed-overhang-warning {
   position: fixed;
   bottom: 44px;
@@ -10973,6 +12371,48 @@ html[data-theme="dark"] .font-picker-option.action {
   border-radius: 50%;
   cursor: pointer;
   pointer-events: auto;
+}
+
+/* While overhangs are shown: how much needs supports and the steepest overhang, under the view. */
+.overhang-figures {
+  position: fixed;
+  bottom: 44px;
+  left: 50%;
+  z-index: 29;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(640px, calc(100vw - 32px));
+  padding: 7px 14px 7px 10px;
+  color: #5c442b;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #ded0c2;
+  border-radius: 999px;
+  box-shadow: 0 2px 12px rgba(68, 49, 28, 0.16);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* Above the warning that a body leaves the build volume, and above the open group's bar with it. */
+.overhang-figures.stacked-1 {
+  bottom: 88px;
+}
+
+.overhang-figures.stacked-2 {
+  bottom: 132px;
+}
+
+/* The hatching's own red and white, so the line reads as the hatched faces' figure. */
+.overhang-figures-swatch {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #c8372d;
+  border-radius: 4px;
+  background: repeating-linear-gradient(135deg, #e0453a 0 3px, #ffffff 3px 6px);
 }
 
 .bed-overhang-dismiss:hover,
@@ -11064,7 +12504,7 @@ html[data-theme="dark"] .font-picker-option.action {
   cursor: pointer;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.03em;
   text-align: left;
   transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
@@ -11179,7 +12619,7 @@ html[data-theme="dark"] .font-picker-option.action {
   border: 1px solid #d9cdbf;
   border-radius: 8px;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .workspace-color-popover-footer label > span {
@@ -11197,7 +12637,7 @@ html[data-theme="dark"] .font-picker-option.action {
   outline: 0;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
@@ -11235,13 +12675,39 @@ html[data-theme="dark"] .font-picker-option.action {
   accent-color: #cf710f;
 }
 
-.workspace-range small {
+/* A select's line beneath it says what the chosen option does (the mouse buttons, #1013). */
+.workspace-range small,
+.workspace-select > small {
   grid-column: 2;
   display: flex;
   justify-content: space-between;
   color: #756657;
   font-size: 12px;
   font-weight: 700;
+}
+
+.workspace-space-mouse-invert {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.workspace-space-mouse-invert-title {
+  flex-basis: 100%;
+  color: #756657;
+  font-weight: 700;
+}
+
+.workspace-space-mouse-invert label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .workspace-history-setting {
@@ -11442,7 +12908,7 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
   gap: 6px;
   color: #7a6550;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .workspace-dimensions input {
@@ -11453,7 +12919,7 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
   background: #fff;
   border: 1px solid #dacfc2;
   border-radius: 2px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .workspace-shape-picker {
@@ -11462,7 +12928,7 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .workspace-shape-picker-control {
@@ -11544,7 +13010,7 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
   border-radius: 5px;
   cursor: pointer;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .workspace-shape-card-heading button:disabled {
@@ -11579,7 +13045,7 @@ html[data-theme="dark"] .workspace-custom-snap-add:hover {
   border-radius: 5px;
   cursor: pointer;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 html[data-theme="dark"] .workspace-reset-row {
@@ -11604,7 +13070,7 @@ html[data-theme="dark"] .workspace-reset-row button {
   gap: 6px;
   color: #7a6550;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .workspace-shape-specials {
@@ -11636,7 +13102,7 @@ html[data-theme="dark"] .workspace-reset-row button {
   gap: 6px;
   color: #7a6550;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .workspace-shape-dimensions input,
@@ -11651,7 +13117,7 @@ html[data-theme="dark"] .workspace-reset-row button {
   background: #fff;
   border: 1px solid #d7cbbe;
   border-radius: 5px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .workspace-shape-limit {
@@ -11682,29 +13148,43 @@ html[data-theme="dark"] .workspace-reset-row button {
   line-height: 1.5;
 }
 
-.workspace-footer-buttons {
-  display: flex;
-  gap: 8px;
+/* The hint gives way to the buttons: it wraps its own words, and only when it would be narrower
+   than 160px do the buttons move to a row of their own (#1045). */
+.workspace-footer-hint {
+  flex: 1 1 160px;
 }
 
+.workspace-footer-buttons {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* A label on one line: the buttons had a fixed height and wrapped "Meine Vorgabe verwenden" out of it
+   on the Mac's wider Avenir Next (#1045). */
 .make-default-button {
   min-width: 128px;
-  height: 34px;
-  padding: 0 14px;
+  min-height: 34px;
+  padding: 6px 14px;
+  white-space: nowrap;
   color: #584026;
   background: #fcfaf7;
   border: 1px solid #eae2d4;
   border-radius: 3px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .workspace-modal-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px 16px;
   min-height: 64px;
   padding: 12px 24px;
   color: #756656;
@@ -12129,7 +13609,6 @@ html[data-theme="dark"] .dashboard-action-tile,
 html[data-theme="dark"] .project-card,
 html[data-theme="dark"] .dashboard-select,
 html[data-theme="dark"] .dashboard-segmented,
-html[data-theme="dark"] .shared-projects-refresh,
 html[data-theme="dark"] .project-empty,
 html[data-theme="dark"] .project-card-menu,
 html[data-theme="dark"] .dashboard-confirm-dialog {
@@ -12243,56 +13722,6 @@ html[data-theme="dark"] .support-nudge-close:hover {
   background: #3a2c16;
 }
 
-html[data-theme="dark"] .storage-notice {
-  background: #33230f;
-  border-color: #d9863a;
-}
-
-html[data-theme="dark"] .storage-notice-text strong {
-  color: #fbeed9;
-}
-
-html[data-theme="dark"] .storage-notice-text span {
-  color: #e2cfb6;
-}
-
-html[data-theme="dark"] .storage-notice.on-server {
-  background: #15291d;
-  border-color: #4f9a6a;
-}
-
-html[data-theme="dark"] .storage-notice.on-server .storage-notice-text strong {
-  color: #dff0e5;
-}
-
-html[data-theme="dark"] .storage-notice.on-server .storage-notice-text span {
-  color: #bcd6c5;
-}
-
-html[data-theme="dark"] .storage-notice.on-server .storage-notice-button.secondary {
-  color: #dff0e5;
-  background: #15291d;
-  box-shadow: inset 0 0 0 2px #4f9a6a;
-}
-
-html[data-theme="dark"] .storage-notice-button.secondary {
-  color: #fbeed9;
-  background: #33230f;
-  box-shadow: inset 0 0 0 2px #d9863a;
-}
-
-html[data-theme="dark"] .storage-notice-button.secondary:hover {
-  background: #4a3318;
-}
-
-html[data-theme="dark"] .storage-notice-help {
-  color: #f3a452;
-}
-
-html[data-theme="dark"] .storage-notice-help:hover {
-  color: #fbeed9;
-}
-
 html[data-theme="dark"] .install-app-hint-text strong {
   color: #fbeed9;
 }
@@ -12307,74 +13736,6 @@ html[data-theme="dark"] .install-app-hint-close:hover,
 html[data-theme="dark"] .install-app-hint-later:hover {
   color: #fbeed9;
   background: #4a3318;
-}
-
-html[data-theme="dark"] .dashboard-welcome {
-  background: var(--panel);
-  border-color: #514130;
-}
-
-html[data-theme="dark"] .dashboard-welcome h2,
-html[data-theme="dark"] .dashboard-welcome h3,
-html[data-theme="dark"] .dashboard-welcome li strong {
-  color: #f3ede3;
-}
-
-/* The folded-shut state was left behind when the rest of this panel was given
-   dark colours: its heading kept the near-brown of the light theme and came
-   out dimmer than the line underneath it. */
-html[data-theme="dark"] .dashboard-welcome-summary-title {
-  color: #f3ede3;
-}
-
-html[data-theme="dark"] .dashboard-welcome-summary-hint {
-  color: #a79078;
-}
-
-html[data-theme="dark"] .dashboard-welcome-summary:hover .dashboard-welcome-summary-title {
-  color: #f3a452;
-}
-
-html[data-theme="dark"] .dashboard-welcome p,
-html[data-theme="dark"] .dashboard-welcome li {
-  color: #bda78e;
-}
-
-html[data-theme="dark"] .dashboard-welcome li::before {
-  color: #f3a452;
-  background: #3a2c16;
-  border-color: #6b5326;
-}
-
-html[data-theme="dark"] .dashboard-welcome-switch {
-  color: #cdb99f;
-  background: #332619;
-  border-left-color: #b9762c;
-}
-
-html[data-theme="dark"] .dashboard-welcome-switch strong {
-  color: #f3a452;
-}
-
-html[data-theme="dark"] .dashboard-welcome-videos a {
-  color: #f3a452;
-}
-
-html[data-theme="dark"] .dashboard-welcome-video-meta,
-html[data-theme="dark"] .dashboard-welcome-help {
-  color: #a08a71;
-}
-
-html[data-theme="dark"] .dashboard-welcome-guide-link {
-  border-color: #f3a452;
-  background: rgba(243, 164, 82, 0.12);
-  color: #f3a452;
-}
-
-html[data-theme="dark"] .dashboard-welcome-guide-link:hover,
-html[data-theme="dark"] .dashboard-welcome-guide-link:focus-visible {
-  background: #f3a452;
-  color: #241a10;
 }
 
 html[data-theme="dark"] .dashboard-legal-dot {
@@ -12487,6 +13848,15 @@ html[data-theme="dark"] .dashboard-confirm-dialog p {
   color: #a89179;
 }
 
+html[data-theme="dark"] .project-card-meta-loading {
+  color: #f59e0b;
+}
+
+html[data-theme="dark"] .project-preview-loading {
+  background: rgba(0, 0, 0, 0.58);
+  color: #ffffff;
+}
+
 html[data-theme="dark"] .dashboard-rename-dialog input,
 html[data-theme="dark"] .dashboard-confirm-cancel,
 html[data-theme="dark"] .dashboard-confirm-dialog header button {
@@ -12535,7 +13905,6 @@ html[data-theme="dark"] .project-menu-trigger {
 
 html[data-theme="dark"] .dashboard-action-tile.create {
   color: #f7f3ec;
-  border-color: #a3682b;
 }
 
 html[data-theme="dark"] .dashboard-action-tile:not(.create) .dashboard-action-icon {
@@ -12598,6 +13967,14 @@ html[data-theme="dark"] .shape-menu-trigger:hover,
 html[data-theme="dark"] .shape-menu-trigger.active,
 html[data-theme="dark"] .toolbar-workspace-tabs button:hover {
   color: #f7f2ea;
+  background: #463727;
+}
+
+html[data-theme="dark"] .toolbar-title-home {
+  color: #e3d3c0;
+}
+
+html[data-theme="dark"] .toolbar-title-home:hover:not(:disabled) {
   background: #463727;
 }
 
@@ -12666,6 +14043,28 @@ html[data-theme="dark"] .workspace-printer-info {
   color: #b9a58f;
 }
 
+html[data-theme="dark"] .workspace-printer-play-field {
+  color: #b9a58f;
+}
+
+html[data-theme="dark"] .workspace-printer-play-field input {
+  color: #ddccb9;
+  background: #35281b;
+  border-color: #5e4c3a;
+}
+
+html[data-theme="dark"] .workspace-printer-play-values button.active {
+  color: #f3b26a;
+  background: #4a321b;
+  border-color: #cf710f;
+}
+
+html[data-theme="dark"] .overhang-figures {
+  color: #f1e4d3;
+  background: rgba(40, 32, 24, 0.94);
+  border-color: rgba(227, 181, 122, 0.35);
+}
+
 html[data-theme="dark"] .bed-overhang-warning {
   color: #ffc78a;
   background: #3a2511;
@@ -12680,6 +14079,107 @@ html[data-theme="dark"] .shell-opening-options button {
 
 html[data-theme="dark"] .shell-opening-options button.active {
   color: #ffb866;
+  background: #4a3217;
+  border-color: #c7772a;
+}
+
+html[data-theme="dark"] .paint-eraser {
+  color: #ddccb9;
+  background: #35281b;
+  border-color: #5a4633;
+}
+
+html[data-theme="dark"] .paint-eraser.active {
+  color: #ffb866;
+  background: #4a3217;
+  border-color: #c7772a;
+}
+
+html[data-theme="dark"] .clearance-status {
+  color: #d3bfa8;
+}
+
+html[data-theme="dark"] .clearance-stale {
+  color: #ffc78a;
+  background: #3a2511;
+  border-color: #a8601f;
+}
+
+html[data-theme="dark"] .clearance-row {
+  color: #ecdcc9;
+  background: #2f2418;
+  border-color: #53412f;
+  border-left-color: #8d7c69;
+}
+
+html[data-theme="dark"] .clearance-row-text span,
+html[data-theme="dark"] .clearance-hint {
+  color: #b9a58f;
+}
+
+html[data-theme="dark"] .clearance-row.overlap,
+html[data-theme="dark"] .clearance-row.touching {
+  border-left-color: #ef5b60;
+}
+
+html[data-theme="dark"] .clearance-row.tight {
+  border-left-color: #f39a3a;
+}
+
+html[data-theme="dark"] .clearance-row.fine {
+  border-left-color: #4cbf7b;
+}
+
+html[data-theme="dark"] .clearance-row:hover:not(:disabled),
+html[data-theme="dark"] .clearance-row.active {
+  background: #45311b;
+}
+
+html[data-theme="dark"] .print-check-nozzle-field {
+  background: #35281b;
+  border-color: #5a4633;
+}
+
+html[data-theme="dark"] .print-check-nozzle-field input {
+  color: #ecdcc9;
+}
+
+html[data-theme="dark"] .print-check-nozzle-field span,
+html[data-theme="dark"] .print-check-nozzle-hint {
+  color: #b9a58f;
+}
+
+html[data-theme="dark"] .print-check-row {
+  color: #ecdcc9;
+  background: #2f2418;
+  border-color: #53412f;
+  border-left-color: #8d7c69;
+}
+
+html[data-theme="dark"] .print-check-row.ok {
+  border-left-color: #4cbf7b;
+}
+
+html[data-theme="dark"] .print-check-row.warning {
+  border-left-color: #f39a3a;
+}
+
+html[data-theme="dark"] .print-check-row.active {
+  background: #45311b;
+}
+
+html[data-theme="dark"] .print-check-row .clearance-row-text .print-check-meaning {
+  color: #e0b27a;
+}
+
+html[data-theme="dark"] .print-check-show {
+  color: #ffb866;
+  background: #35281b;
+  border-color: #7a5428;
+}
+
+html[data-theme="dark"] .print-check-show:hover:not(:disabled),
+html[data-theme="dark"] .print-check-show[aria-pressed="true"] {
   background: #4a3217;
   border-color: #c7772a;
 }
@@ -12700,6 +14200,10 @@ html[data-theme="dark"] .split-panel-target {
   color: #e7c896;
   background: #2a2015;
   border-color: #53412f;
+}
+
+html[data-theme="dark"] .split-connector-summary {
+  color: #e7c896;
 }
 
 html[data-theme="dark"] .split-axis-control button.active,
@@ -12731,7 +14235,7 @@ html[data-theme="dark"] .edge-modifier-history-edit:hover {
   background: #3f301f;
 }
 
-html[data-theme="dark"] .edge-modifier-history-actions span,
+html[data-theme="dark"] .edge-modifier-history-actions > span,
 html[data-theme="dark"] .edge-modifier-history-hint,
 html[data-theme="dark"] .edge-modifier-history-item small {
   color: #a79078;
@@ -12767,6 +14271,7 @@ html[data-theme="dark"] .shape-menu-item .sketch-shape-menu-icon {
 html[data-theme="dark"] .camera-controls button,
 html[data-theme="dark"] .snap-menu button,
 html[data-theme="dark"] .snap-object-toggle,
+html[data-theme="dark"] .snap-menu-title,
 html[data-theme="dark"] .snap-row {
   color: #d5c4b3;
 }
@@ -12872,7 +14377,8 @@ html[data-theme="dark"] .section-measure-help {
   color: #a89787;
 }
 
-html[data-theme="dark"] .section-measure-outline {
+html[data-theme="dark"] .section-measure-outline,
+html[data-theme="dark"] .protractor-normal {
   stroke: #4ba3ec;
 }
 
@@ -12946,6 +14452,39 @@ html[data-theme="dark"] .select-property-hint {
   color: #a08a72;
 }
 
+html[data-theme="dark"] .surface-layers button {
+  color: #ede4d4;
+  background: #2f2418;
+  border-color: #53412f;
+}
+
+html[data-theme="dark"] .surface-layers button.active {
+  color: #ffc27a;
+  background: #4a3214;
+  border-color: #e08a2c;
+  box-shadow: inset 0 0 0 1px #e08a2c;
+}
+
+html[data-theme="dark"] .surface-layers .surface-layer-add {
+  color: #e7c896;
+  background: transparent;
+}
+
+html[data-theme="dark"] .cylinder-wrap-hint.surface-layer-missing {
+  color: #f0b13c;
+}
+
+html[data-theme="dark"] .vase-print-notes {
+  color: #d1a96f;
+}
+
+html[data-theme="dark"] .vase-drawing {
+  --surface: #2a2017;
+  --grid: #43362a;
+  --grid-major: #6e5638;
+  --label: #b39d84;
+}
+
 html[data-theme="dark"] .gear-type-options button {
   color: #bea892;
   background: #21180f;
@@ -12980,14 +14519,20 @@ html[data-theme="dark"] .rotate-handle {
 
 html[data-theme="dark"] .rotate-handle.axis-x { --rotate-handle-axis: #ff6b70; }
 html[data-theme="dark"] .rotate-handle.axis-y { --rotate-handle-axis: #5fd47c; }
+html[data-theme="dark"] .slide-handle { --slide-handle-halo: rgba(28, 24, 20, 0.9); }
+html[data-theme="dark"] .slide-handle.axis-x { --slide-handle-axis: #ff6b70; }
+html[data-theme="dark"] .slide-handle.axis-y { --slide-handle-axis: #5fd47c; }
 html[data-theme="dark"] .rotate-handle.axis-z { --rotate-handle-axis: #6aa0ff; }
+html[data-theme="dark"] .transform-handle.axis-x { background: #ff6b70; border-color: #7d1a1e; }
+html[data-theme="dark"] .transform-handle.axis-y { background: #5fd47c; border-color: #17542a; }
+html[data-theme="dark"] .transform-handle.axis-z { background: #6aa0ff; border-color: #163f86; }
 
 html[data-theme="dark"] .transform-handle.height-lift {
-  border-bottom-color: #ffffff;
+  border-bottom-color: #6aa0ff;
 }
 
 html[data-theme="dark"] .transform-handle.height-lift.lower {
-  border-top-color: #ffffff;
+  border-top-color: #6aa0ff;
 }
 
 html[data-theme="dark"] .transform-handle.height-lift:hover {
@@ -13086,6 +14631,7 @@ html[data-theme="dark"] .workspace-settings-nav {
 html[data-theme="dark"] .workspace-settings-nav button,
 html[data-theme="dark"] .workspace-dimensions label,
 html[data-theme="dark"] .workspace-range small,
+html[data-theme="dark"] .workspace-select > small,
 html[data-theme="dark"] .workspace-history-labels,
 html[data-theme="dark"] .workspace-history-note,
 html[data-theme="dark"] .workspace-toggle-copy small,
@@ -13329,6 +14875,16 @@ html[data-theme="dark"] .sketch-point-actions button {
   color: #cbd5e0;
 }
 
+html[data-theme="dark"] .sketch-selection-position {
+  color: #cbd5e0;
+}
+
+html[data-theme="dark"] .sketch-selection-position input {
+  color: #f7fafc;
+  background: #1e1a16;
+  border-color: #554438;
+}
+
 html[data-theme="dark"] .sketch-point-actions button:hover,
 html[data-theme="dark"] .sketch-point-actions button.active {
   color: #f7fafc;
@@ -13565,8 +15121,11 @@ html[data-theme="dark"] .grid-settings {
    "Huelle" passten 2081, 1765 und 1615 px. Ohne "Flaeche loeschen" waren es
    2038, 1728 und 1582 px, ohne den Knopf der Interaktiven Hilfe 1990, 1688
    und 1544 px: Jeder neue Knopf verschiebt alle drei Schwellen um das, was
-   er braucht - neu messen. */
-@media (max-width: 2180px) {
+   er braucht - neu messen.
+   Neu gemessen am 09.11.2026 (1.154.1, #1533): voll 2369 px, mittel 2045 px,
+   klein 1732 px; die alten Schwellen 2215/1897 lagen so tief, dass bei 1898 bis
+   2045 px die Gruppe Flaeche vom Band daneben verdeckt wurde. */
+@media (max-width: 2375px) {
   :root {
     --toolbar-icon-size: calc(37px * var(--toolbar-scale));
   }
@@ -13587,7 +15146,7 @@ html[data-theme="dark"] .grid-settings {
   }
 }
 
-@media (max-width: 1850px) {
+@media (max-width: 2050px) {
   :root {
     --toolbar-icon-size: calc(34px * var(--toolbar-scale));
   }
@@ -13602,14 +15161,15 @@ html[data-theme="dark"] .grid-settings {
   }
 }
 
-/* Below the width even the smallest step needs (1690 px, measured with the
-   command search, guide, shortcuts, Interactive Help, Delete face and Hull buttons;
-   the middle step needs 1842 px and the full size 2172 px) the groups wrap onto a
+/* Below the width even the smallest step needs (1734 px, measured with the
+   command search, guide, shortcuts, Interactive Help, Delete face and Hull buttons,
+   after Show common part went into Intersection, #372; the middle step needs
+   1894 px and the full size 2212 px) the groups wrap onto a
    further row instead of scrolling sideways: a scrolling bar hides tools and
    cuts off every menu that hangs beneath it. The bar grows, and the editor
    passes its real height on (see --editor-toolbar-height). A new button in
    the bar moves all three thresholds up: measure again. */
-@media (max-width: 1698px) {
+@media (max-width: 1737px) {
   .toolbar-mode-content,
   .sketch-toolbar-ribbon {
     flex-wrap: wrap;
@@ -13619,6 +15179,22 @@ html[data-theme="dark"] .grid-settings {
   .toolbar-mode-content .tool-group {
     display: contents;
   }
+}
+
+/* "Keep all groups open" folds nothing, so the widths above, worked out for a ribbon that folds, do not hold: between
+   them and the width the open groups need, the browser squeezed the groups below their buttons instead, and Visibility's
+   buttons spilled over Shapes with its name cut off (Jürgen Keller by mail, 10.11.2026, in Safari with its tab bar on
+   the left). Pinned, the groups wrap onto a further row whenever they do not fit, at any width. */
+.toolbar-mode-content.ribbon-pinned {
+  flex-wrap: wrap;
+  height: auto;
+}
+
+/* The 3D ribbon's two wrappers of groups lay their sections out as if they were not there, at every width: each section
+   carries its own CSS order (the order set in the settings, lib/ribbonOrder.ts), and a group may stand in either wrapper's
+   place. */
+.toolbar-mode-content.geometry .tool-group {
+  display: contents;
 }
 
 /* Die Kurzanleitung teilt sich die Karte mit der Kuerzelliste; nur die
@@ -13686,6 +15262,16 @@ html[data-theme="dark"] .theme-check {
   color: #f3a452;
 }
 
+/* Die Kameraleiste ist mit den beiden Notizknoepfen (31.10.2026) um zwei Knoepfe laenger geworden, und die Flaeche eines 900 Pixel hohen Fensters
+   ist rund 750 hoch: Bei Normalgroesse lief sie unten ins Fussband. Bis 900 Pixel wird sie darum schon verkleinert, wie unter 780.
+   Mit dem Winkelmesser (#1228) braucht sie ungeschrumpft 800 Pixel unter der Oberkante der Flaeche, also bis 970 Pixel Fensterhoehe. */
+@media (min-height: 781px) and (max-height: 970px) {
+  .camera-controls {
+    transform: scale(0.88);
+    transform-origin: top left;
+  }
+}
+
 /* Ein flaches Fenster - ein iPad quer, in Safari mit Adress-, Lesezeichen- und
    Tableiste - laesst der Arbeitsflaeche kaum vierhundert Pixel. Die
    Kameraleiste braucht aufgerecht rund 380 davon und lief deshalb unten aus dem
@@ -13722,55 +15308,47 @@ html[data-theme="dark"] .theme-check {
    nur gut 500 Pixel hoch, und die einspaltige Leiste (120 + 460 Pixel) lief
    unten aus dem Bild - samt dem Knopf, der eine eingeschaltete
    Schnittansicht anzeigt. */
-@container workplane (max-height: 600px) {
+/* Verkleinert braucht die einspaltige Leiste seit dem Winkelmesser (#1228) 718 Pixel der Flaeche; bis 740 steht sie zweispaltig. */
+@container workplane (max-height: 740px) {
   .camera-controls {
     display: grid;
     grid-template-columns: repeat(2, auto);
     transform: none;
   }
 
-  /* Gefuellt wird zeilenweise, und das Zoompaar rutscht hinter die
-     Ansichtsknoepfe: So beginnt es auf einer neuen Zeile und Plus und Minus
-     stehen nebeneinander statt ueber Eck.
-
-     Benannt statt gezaehlt: Ein nth-child sitzt nur so lange richtig, bis
-     zwischen den Knoepfen einer dazukommt - der Finger-Umschalter tat genau
-     das und trieb Plus und Minus ueber Eck. Er reiht sich hier hinter das
-     Paar ein, damit dessen Zeile gerade aufgeht. */
-  .camera-controls > .camera-zoom-button,
-  .camera-controls > .camera-touch-rotate {
-    order: 1;
+  /* Jede Gruppe nimmt ganze Zeilen, zwei Knoepfe breit: Plus und Minus, Maßband und Winkellineal, Notiz und ihr Auge
+     bleiben so nebeneinander, und der Rahmen faellt mit der Gruppe zusammen. */
+  .camera-controls > .camera-group {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    grid-column: 1 / -1;
+    justify-content: start;
   }
 
-  .camera-controls > .workplane-control-group,
-  .camera-controls > .workplane-display-control-group,
-  .camera-controls > .tape-control-group,
-  .camera-controls > .corner-ruler-control-group,
-  .camera-controls > .section-control-group {
-    order: 2;
+  .camera-controls > .camera-controls-handle {
+    grid-column: 1 / -1;
   }
 }
 
 /* At Large the column is a quarter taller, so it needs two columns from a taller
-   workplane on - 600 px was measured for Medium (#241). */
-@container workplane (max-height: 720px) {
+   workplane on - 600 px was measured for Medium (#241). With the protractor (#1228)
+   it needs 960 px of the workplane at full size. */
+@container workplane (max-height: 980px) {
   html[data-toolbar-size="large"] .camera-controls {
     display: grid;
     grid-template-columns: repeat(2, auto);
     transform: none;
   }
 
-  html[data-toolbar-size="large"] .camera-controls > .camera-zoom-button,
-  html[data-toolbar-size="large"] .camera-controls > .camera-touch-rotate {
-    order: 1;
+  html[data-toolbar-size="large"] .camera-controls > .camera-group {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    grid-column: 1 / -1;
+    justify-content: start;
   }
 
-  html[data-toolbar-size="large"] .camera-controls > .workplane-control-group,
-  html[data-toolbar-size="large"] .camera-controls > .workplane-display-control-group,
-  html[data-toolbar-size="large"] .camera-controls > .tape-control-group,
-  html[data-toolbar-size="large"] .camera-controls > .corner-ruler-control-group,
-  html[data-toolbar-size="large"] .camera-controls > .section-control-group {
-    order: 2;
+  html[data-toolbar-size="large"] .camera-controls > .camera-controls-handle {
+    grid-column: 1 / -1;
   }
 }
 
@@ -13788,7 +15366,10 @@ html[data-theme="dark"] .theme-check {
   display: flex;
   flex-direction: column;
   width: 300px;
-  max-width: calc(100vw - 120px);
+  /* Wider or narrower at the lower right corner (Discussion #1636); MIN/MAX_PANEL_WIDTH in ObjectListPanel.tsx. */
+  min-width: min(240px, calc(100vw - 120px));
+  max-width: min(600px, calc(100vw - 120px));
+  resize: horizontal;
   max-height: calc(100% - 96px);
   background: rgba(254, 253, 252, 0.96);
   backdrop-filter: blur(12px);
@@ -13873,6 +15454,12 @@ html[data-theme="dark"] .theme-check {
 .outliner-close-button:hover {
   color: #3b2817;
   background: #e9e0d3;
+}
+
+/* Sorted A to Z: the button stays lit, so the list's order does not come as a surprise (#1046). */
+.outliner-sort-button.active {
+  color: #ad6206;
+  background: #f6e7d2;
 }
 
 .outliner-search-wrap {
@@ -14009,6 +15596,58 @@ html[data-theme="dark"] .theme-check {
   background: #ede6da;
 }
 
+.outliner-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 20px;
+  margin-left: -6px;
+  padding: 0;
+  flex: none;
+  color: #9c8a78;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.outliner-drag-handle:hover,
+.outliner-drag-handle:focus-visible {
+  color: #8c735d;
+  background: #ede6da;
+}
+
+.outliner-item.dragging {
+  opacity: 0.5;
+}
+
+.outliner-item.dragging .outliner-drag-handle {
+  cursor: grabbing;
+}
+
+.outliner-item.drop-before {
+  box-shadow: inset 0 2px 0 #d9832b;
+}
+
+.outliner-item.drop-after {
+  box-shadow: inset 0 -2px 0 #d9832b;
+}
+
+/* An expanded group that takes in the dragged shape (Discussion #1338). */
+.outliner-item.drop-into {
+  box-shadow: inset 0 0 0 2px #d9832b;
+}
+
+.outliner-child-item .outliner-drag-handle {
+  margin-left: -4px;
+}
+
+.outliner-child-item.dragging {
+  opacity: 0.5;
+}
+
 .outliner-expand-spacer {
   width: 18px;
   flex: none;
@@ -14059,6 +15698,18 @@ html[data-theme="dark"] .theme-check {
   text-overflow: ellipsis;
 }
 
+/* The toolbar's group and bundle marks, small enough for a row; the thicker
+   stroke keeps them from thinning to a hairline at this size. */
+.outliner-shape-name .outliner-kind-icon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  margin-right: 5px;
+  vertical-align: -3px;
+  stroke-width: 3.6;
+  opacity: 0.75;
+}
+
 .outliner-shape-kind {
   font-size: 10px;
   color: #9a8877;
@@ -14083,14 +15734,18 @@ html[data-theme="dark"] .theme-check {
   flex: none;
 }
 
+/* One letter for Solid or Hole, the word as its tooltip (Discussion #1636). */
 .outliner-badge {
   display: inline-block;
-  padding: 1px 6px;
+  min-width: 18px;
+  padding: 1px 4px;
   font-size: 10px;
   font-weight: 700;
+  line-height: 14px;
+  text-align: center;
   border-radius: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  cursor: default;
 }
 
 .outliner-badge.badge-solid {
@@ -14106,8 +15761,10 @@ html[data-theme="dark"] .theme-check {
 }
 
 .outliner-badge.small {
-  padding: 0 4px;
+  min-width: 15px;
+  padding: 0 3px;
   font-size: 9px;
+  line-height: 12px;
 }
 
 .outliner-row-actions {
@@ -14153,6 +15810,16 @@ html[data-theme="dark"] .theme-check {
   opacity: 1;
 }
 
+/* The open shield (#1277) shows only where it is wanted, so the list does not grow wider. */
+.outliner-action-btn.shape-lock-btn {
+  display: none;
+}
+
+.outliner-item:hover > .outliner-row-main .outliner-action-btn.shape-lock-btn,
+.outliner-item.selected > .outliner-row-main .outliner-action-btn.shape-lock-btn {
+  display: flex;
+}
+
 .outliner-children-list {
   list-style: none;
   margin: 0;
@@ -14167,6 +15834,16 @@ html[data-theme="dark"] .theme-check {
   gap: 6px;
   padding: 3px 0;
   font-size: 11px;
+}
+
+.outliner-child-item.opens-group {
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.outliner-child-item.opens-group:hover,
+.outliner-child-item.opens-group:focus-visible {
+  background: rgba(86, 62, 36, 0.08);
 }
 
 .outliner-child-name {
@@ -14226,6 +15903,11 @@ html[data-theme="dark"] .outliner-close-button:hover {
   background: #443a30;
 }
 
+html[data-theme="dark"] .outliner-sort-button.active {
+  color: #f0a64a;
+  background: #4a3826;
+}
+
 html[data-theme="dark"] .outliner-search-wrap {
   background: #24201b;
   border-color: #383027;
@@ -14260,6 +15942,16 @@ html[data-theme="dark"] .outliner-shape-name {
 
 html[data-theme="dark"] .outliner-shape-kind {
   color: #8c7d6e;
+}
+
+html[data-theme="dark"] .outliner-drag-handle {
+  color: #7d6c5b;
+}
+
+html[data-theme="dark"] .outliner-drag-handle:hover,
+html[data-theme="dark"] .outliner-drag-handle:focus-visible {
+  color: #a8947f;
+  background: #443a30;
 }
 
 html[data-theme="dark"] .outliner-expand-toggle {
@@ -14306,6 +15998,11 @@ html[data-theme="dark"] .outliner-children-list {
 
 html[data-theme="dark"] .outliner-child-name {
   color: #cbd5e0;
+}
+
+html[data-theme="dark"] .outliner-child-item.opens-group:hover,
+html[data-theme="dark"] .outliner-child-item.opens-group:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
 }
 
 html[data-theme="dark"] .inspector-rename-button {
@@ -14576,6 +16273,11 @@ html[data-theme="dark"] .shape-menu-pin.active {
   border-bottom: none;
 }
 
+/* The title bar alone has no corner to drag the width at. */
+.outliner-panel.collapsed {
+  resize: none;
+}
+
 .guide-modal h3 {
   display: flex;
   align-items: center;
@@ -14647,7 +16349,7 @@ html[data-theme="dark"] .shape-menu-subtitle {
   align-items: center;
   gap: 9px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -14670,7 +16372,7 @@ html[data-theme="dark"] .shape-menu-subtitle {
 .color-recent-label {
   color: #84715d;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -14998,6 +16700,134 @@ html[data-theme="dark"] .color-recent {
   overscroll-behavior: contain;
 }
 
+/* The window to draw a vase in: large, over the editor area, moved by its title bar and made larger or
+   smaller from its corner. It opens below the status messages, which appear in the top left corner. The
+   drawing board takes the whole height; its buttons and fields stand beside it - a vase is tall. */
+.edge-modifier-panel.vase-drawing-window {
+  top: calc(var(--editor-toolbar-height) + 62px);
+  left: 84px;
+  right: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(980px, calc(100vw - 84px - 360px));
+  min-width: min(520px, calc(100vw - 16px));
+  max-width: calc(100vw - 16px);
+  height: calc(100dvh - var(--editor-toolbar-height) - var(--editor-footer-height) - 76px);
+  min-height: 380px;
+  max-height: calc(100dvh - var(--editor-toolbar-height) - 16px);
+  overflow: hidden;
+  resize: both;
+  z-index: 47;
+}
+
+.vase-drawing-window:focus {
+  outline: none;
+}
+
+.vase-drawing-window-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.vase-drawing-window-body > .cylinder-wrap-hint {
+  margin: 0;
+}
+
+.vase-drawing-window .vase-drawing-tabs {
+  max-width: 520px;
+}
+
+.vase-drawing-window .vase-drawing-tabs button {
+  min-height: 36px;
+  font-size: 13.5px;
+}
+
+.vase-drawing-window .vase-drawing-host {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.vase-drawing-window .vz {
+  flex: 1;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.vase-drawing-window .vz-board {
+  min-height: 0;
+}
+
+.vase-drawing-window .vz svg {
+  height: 100%;
+  min-height: 220px;
+}
+
+/* Wide: the board on the left, the settings in a column on the right. The column scrolls on its own when the
+   window is lower than it (Discussion #1186: with a photo, its settings ran out of a low window). */
+@media (min-width: 901px) {
+  .vase-drawing-window .vz {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 270px);
+    column-gap: 14px;
+  }
+
+  .vase-drawing-window .vz > .vz-board {
+    grid-column: 1;
+  }
+
+  .vase-drawing-window .vz > .vz-side {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    grid-column: 2;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 2px 4px 2px 2px;
+    /* A thin bar that shows, as on the properties panel: it says there is more below. */
+    scrollbar-color: #cdbfa9 transparent;
+    scrollbar-width: thin;
+  }
+
+  html[data-theme="dark"] .vase-drawing-window .vz > .vz-side {
+    scrollbar-color: #5a4a3a transparent;
+  }
+}
+
+/* Narrow screens: the toolbar alone takes half of a phone, so the window covers the whole screen, the board
+   at a fixed height, and it scrolls. */
+@media (max-width: 900px) {
+  .edge-modifier-panel.vase-drawing-window {
+    top: 8px;
+    left: 8px;
+    z-index: 60;
+    width: calc(100vw - 16px);
+    min-width: 0;
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+    overflow-y: auto;
+    resize: none;
+  }
+
+  .vase-drawing-window-body,
+  .vase-drawing-window .vase-drawing-host {
+    flex: none;
+  }
+
+  .vase-drawing-window .vz {
+    grid-template-rows: none;
+  }
+
+  .vase-drawing-window .vz svg {
+    height: min(62dvh, 520px);
+  }
+}
+
 .edge-modifier-panel > .edge-modifier-footer {
   position: sticky;
   bottom: -14px;
@@ -15153,7 +16983,7 @@ html[data-theme="dark"] .color-recent {
   gap: 4px 10px;
   color: #4d3720;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .icon-tag-width input {
@@ -15220,7 +17050,7 @@ html[data-theme="dark"] .top-action-body .icon-tag-ok {
 
 .icon-tag-preview-empty {
   font-size: 26px;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.08em;
 }
 
@@ -15231,7 +17061,7 @@ html[data-theme="dark"] .top-action-body .icon-tag-ok {
   gap: 4px;
   color: var(--foreground);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .qr-code-text textarea {
@@ -15284,7 +17114,7 @@ html[data-theme="dark"] .top-action-body .icon-tag-ok {
   gap: 8px;
   color: var(--foreground);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .qr-code-check input {
@@ -15432,7 +17262,7 @@ html[data-theme="dark"] [data-help-hover] {
 .interactive-help-more small {
   display: block;
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.03em;
   opacity: 0.72;
 }
@@ -15543,4 +17373,613 @@ html[data-theme="dark"] .whats-new-note a:hover,
 html[data-theme="dark"] .guide-videos a:hover,
 html[data-theme="dark"] .interactive-help-more a:hover {
   color: #ffc784;
+}
+
+/* The bar of build plates (Discussion #456): at the foot of the view, in the middle, like the camera column in look. */
+.plate-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 140px);
+  padding: 4px 6px;
+  transform: translateX(-50%);
+  color: #5a3917;
+  background: #faf7f3;
+  border: 1px solid rgba(219, 207, 194, 0.9);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(84, 59, 32, 0.14), 0 2px 6px rgba(84, 59, 32, 0.08);
+  font-size: 13px;
+}
+
+.plate-bar-chips,
+.plate-bar-tools {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.plate-bar-chips {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.plate-bar-chip,
+.plate-bar-icon,
+.plate-bar-text {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.plate-bar-icon {
+  justify-content: center;
+  width: 32px;
+  padding: 0;
+}
+
+.plate-bar-chip:hover:not(:disabled),
+.plate-bar-icon:hover:not(:disabled),
+.plate-bar-text:hover:not(:disabled) {
+  background: #f1e6d9;
+  border-color: #e3d2bf;
+}
+
+.plate-bar-chip.active {
+  color: #fff;
+  background: #bf6508;
+  border-color: #bf6508;
+}
+
+.plate-bar-chip-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(90, 57, 23, 0.12);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.plate-bar-chip.active .plate-bar-chip-count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Something on the plate reaches past it or above the build height. */
+.plate-bar-chip.has-overhangs .plate-bar-chip-count {
+  color: #fff;
+  background: #c2410c;
+}
+
+.plate-bar-chip:disabled,
+.plate-bar-icon:disabled,
+.plate-bar-text:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.plate-bar-rename {
+  width: 150px;
+  height: 32px;
+  padding: 0 8px;
+  color: inherit;
+  background: #fff;
+  border: 1px solid #bf6508;
+  border-radius: 10px;
+  font: inherit;
+}
+
+.plate-bar-separator {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 22px;
+  margin: 0 3px;
+  background: rgba(90, 57, 23, 0.18);
+}
+
+.export-plate-scope-hint {
+  margin: 6px 0 0;
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+html[data-theme="dark"] .plate-bar {
+  color: #ede4d4;
+  background: rgba(40, 30, 20, 0.97);
+  border-color: #655340;
+}
+
+html[data-theme="dark"] .plate-bar-chip:hover:not(:disabled),
+html[data-theme="dark"] .plate-bar-icon:hover:not(:disabled),
+html[data-theme="dark"] .plate-bar-text:hover:not(:disabled) {
+  background: rgba(84, 66, 46, 0.9);
+  border-color: #79634c;
+}
+
+html[data-theme="dark"] .plate-bar-chip-count {
+  background: rgba(237, 228, 212, 0.14);
+}
+
+html[data-theme="dark"] .plate-bar-rename {
+  background: #2a2017;
+}
+
+html[data-theme="dark"] .plate-bar-separator {
+  background: rgba(237, 228, 212, 0.2);
+}
+
+@media (max-width: 700px) {
+  .plate-bar {
+    max-width: calc(100% - 20px);
+    bottom: 8px;
+  }
+
+  .plate-bar-text span {
+    display: none;
+  }
+}
+
+.plate-bar-help {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: inherit;
+}
+
+/* Tinted tiles for the inspector cards: each fold-away section keeps its own colour, in both themes. */
+.property-card:has(> .property-card-header[aria-controls^="properties-"]) {
+  background: rgba(217, 118, 28, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(217, 118, 28, 0.45);
+}
+.property-card:has(> .property-card-header[aria-controls^="properties-"]) > .property-card-header {
+  color: #9A520F;
+  font-weight: 650;
+}
+.property-card:has(> .property-card-header[aria-controls^="properties-"]) > .property-card-header:hover {
+  background: rgba(217, 118, 28, 0.2);
+}
+.property-card:has(> .property-card-header[aria-controls^="properties-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(217, 118, 28) 0 var(--slider-pos), rgba(217, 118, 28, 0.24) var(--slider-pos) 100%);
+}
+.property-card:has(> .property-card-header[aria-controls^="properties-"]) .range-control input[type="range"]::-webkit-slider-thumb {
+  border-color: rgb(217, 118, 28);
+}
+.property-card:has(> .property-card-header[aria-controls^="properties-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(217, 118, 28, 0.24);
+}
+.property-card:has(> .property-card-header[aria-controls^="properties-"]) .range-control input[type="range"]::-moz-range-progress {
+  background: rgb(217, 118, 28);
+}
+.property-card:has(> .property-card-header[aria-controls^="properties-"]) .range-control input[type="range"]::-moz-range-thumb {
+  border-color: rgb(217, 118, 28);
+}
+.property-card:has(> .property-card-header[aria-controls^="properties-"]) .check-property input {
+  accent-color: rgb(217, 118, 28);
+  --sw: rgb(217, 118, 28);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="properties-"]) {
+  background: rgba(217, 118, 28, 0.17);
+  box-shadow: inset 0 0 0 1px rgba(217, 118, 28, 0.5);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="properties-"]) > .property-card-header {
+  color: #F2A453;
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="properties-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(217, 118, 28) 0 var(--slider-pos), rgba(255, 255, 255, 0.16) var(--slider-pos) 100%);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="properties-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(255, 255, 255, 0.16);
+}
+.property-card:has(> .property-card-header[aria-controls^="position-"]) {
+  background: rgba(70, 130, 200, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(70, 130, 200, 0.45);
+}
+.property-card:has(> .property-card-header[aria-controls^="position-"]) > .property-card-header {
+  color: #245C99;
+  font-weight: 650;
+}
+.property-card:has(> .property-card-header[aria-controls^="position-"]) > .property-card-header:hover {
+  background: rgba(70, 130, 200, 0.2);
+}
+.property-card:has(> .property-card-header[aria-controls^="position-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(70, 130, 200) 0 var(--slider-pos), rgba(70, 130, 200, 0.24) var(--slider-pos) 100%);
+}
+.property-card:has(> .property-card-header[aria-controls^="position-"]) .range-control input[type="range"]::-webkit-slider-thumb {
+  border-color: rgb(70, 130, 200);
+}
+.property-card:has(> .property-card-header[aria-controls^="position-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(70, 130, 200, 0.24);
+}
+.property-card:has(> .property-card-header[aria-controls^="position-"]) .range-control input[type="range"]::-moz-range-progress {
+  background: rgb(70, 130, 200);
+}
+.property-card:has(> .property-card-header[aria-controls^="position-"]) .range-control input[type="range"]::-moz-range-thumb {
+  border-color: rgb(70, 130, 200);
+}
+.property-card:has(> .property-card-header[aria-controls^="position-"]) .check-property input {
+  accent-color: rgb(70, 130, 200);
+  --sw: rgb(70, 130, 200);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="position-"]) {
+  background: rgba(70, 130, 200, 0.17);
+  box-shadow: inset 0 0 0 1px rgba(70, 130, 200, 0.5);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="position-"]) > .property-card-header {
+  color: #9CC4F2;
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="position-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(70, 130, 200) 0 var(--slider-pos), rgba(255, 255, 255, 0.16) var(--slider-pos) 100%);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="position-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(255, 255, 255, 0.16);
+}
+.property-card:has(> .property-card-header[aria-controls^="rotation-"]) {
+  background: rgba(40, 170, 140, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(40, 170, 140, 0.45);
+}
+.property-card:has(> .property-card-header[aria-controls^="rotation-"]) > .property-card-header {
+  color: #17705D;
+  font-weight: 650;
+}
+.property-card:has(> .property-card-header[aria-controls^="rotation-"]) > .property-card-header:hover {
+  background: rgba(40, 170, 140, 0.2);
+}
+.property-card:has(> .property-card-header[aria-controls^="rotation-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(40, 170, 140) 0 var(--slider-pos), rgba(40, 170, 140, 0.24) var(--slider-pos) 100%);
+}
+.property-card:has(> .property-card-header[aria-controls^="rotation-"]) .range-control input[type="range"]::-webkit-slider-thumb {
+  border-color: rgb(40, 170, 140);
+}
+.property-card:has(> .property-card-header[aria-controls^="rotation-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(40, 170, 140, 0.24);
+}
+.property-card:has(> .property-card-header[aria-controls^="rotation-"]) .range-control input[type="range"]::-moz-range-progress {
+  background: rgb(40, 170, 140);
+}
+.property-card:has(> .property-card-header[aria-controls^="rotation-"]) .range-control input[type="range"]::-moz-range-thumb {
+  border-color: rgb(40, 170, 140);
+}
+.property-card:has(> .property-card-header[aria-controls^="rotation-"]) .check-property input {
+  accent-color: rgb(40, 170, 140);
+  --sw: rgb(40, 170, 140);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="rotation-"]) {
+  background: rgba(40, 170, 140, 0.17);
+  box-shadow: inset 0 0 0 1px rgba(40, 170, 140, 0.5);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="rotation-"]) > .property-card-header {
+  color: #7FDEC6;
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="rotation-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(40, 170, 140) 0 var(--slider-pos), rgba(255, 255, 255, 0.16) var(--slider-pos) 100%);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="rotation-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(255, 255, 255, 0.16);
+}
+.property-card:has(> .property-card-header[aria-controls^="taper-"]) {
+  background: rgba(140, 110, 210, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(140, 110, 210, 0.45);
+}
+.property-card:has(> .property-card-header[aria-controls^="taper-"]) > .property-card-header {
+  color: #5B3FA8;
+  font-weight: 650;
+}
+.property-card:has(> .property-card-header[aria-controls^="taper-"]) > .property-card-header:hover {
+  background: rgba(140, 110, 210, 0.2);
+}
+.property-card:has(> .property-card-header[aria-controls^="taper-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(140, 110, 210) 0 var(--slider-pos), rgba(140, 110, 210, 0.24) var(--slider-pos) 100%);
+}
+.property-card:has(> .property-card-header[aria-controls^="taper-"]) .range-control input[type="range"]::-webkit-slider-thumb {
+  border-color: rgb(140, 110, 210);
+}
+.property-card:has(> .property-card-header[aria-controls^="taper-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(140, 110, 210, 0.24);
+}
+.property-card:has(> .property-card-header[aria-controls^="taper-"]) .range-control input[type="range"]::-moz-range-progress {
+  background: rgb(140, 110, 210);
+}
+.property-card:has(> .property-card-header[aria-controls^="taper-"]) .range-control input[type="range"]::-moz-range-thumb {
+  border-color: rgb(140, 110, 210);
+}
+.property-card:has(> .property-card-header[aria-controls^="taper-"]) .check-property input {
+  accent-color: rgb(140, 110, 210);
+  --sw: rgb(140, 110, 210);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="taper-"]) {
+  background: rgba(140, 110, 210, 0.17);
+  box-shadow: inset 0 0 0 1px rgba(140, 110, 210, 0.5);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="taper-"]) > .property-card-header {
+  color: #C3AFF2;
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="taper-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(140, 110, 210) 0 var(--slider-pos), rgba(255, 255, 255, 0.16) var(--slider-pos) 100%);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="taper-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(255, 255, 255, 0.16);
+}
+.property-card:has(> .property-card-header[aria-controls^="twist-"]) {
+  background: rgba(210, 90, 120, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(210, 90, 120, 0.45);
+}
+.property-card:has(> .property-card-header[aria-controls^="twist-"]) > .property-card-header {
+  color: #A02B52;
+  font-weight: 650;
+}
+.property-card:has(> .property-card-header[aria-controls^="twist-"]) > .property-card-header:hover {
+  background: rgba(210, 90, 120, 0.2);
+}
+.property-card:has(> .property-card-header[aria-controls^="twist-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(210, 90, 120) 0 var(--slider-pos), rgba(210, 90, 120, 0.24) var(--slider-pos) 100%);
+}
+.property-card:has(> .property-card-header[aria-controls^="twist-"]) .range-control input[type="range"]::-webkit-slider-thumb {
+  border-color: rgb(210, 90, 120);
+}
+.property-card:has(> .property-card-header[aria-controls^="twist-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(210, 90, 120, 0.24);
+}
+.property-card:has(> .property-card-header[aria-controls^="twist-"]) .range-control input[type="range"]::-moz-range-progress {
+  background: rgb(210, 90, 120);
+}
+.property-card:has(> .property-card-header[aria-controls^="twist-"]) .range-control input[type="range"]::-moz-range-thumb {
+  border-color: rgb(210, 90, 120);
+}
+.property-card:has(> .property-card-header[aria-controls^="twist-"]) .check-property input {
+  accent-color: rgb(210, 90, 120);
+  --sw: rgb(210, 90, 120);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="twist-"]) {
+  background: rgba(210, 90, 120, 0.17);
+  box-shadow: inset 0 0 0 1px rgba(210, 90, 120, 0.5);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="twist-"]) > .property-card-header {
+  color: #F29DB4;
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="twist-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(210, 90, 120) 0 var(--slider-pos), rgba(255, 255, 255, 0.16) var(--slider-pos) 100%);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="twist-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(255, 255, 255, 0.16);
+}
+.property-card:has(> .property-card-header[aria-controls^="slope-"]) {
+  background: rgba(130, 170, 50, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(130, 170, 50, 0.45);
+}
+.property-card:has(> .property-card-header[aria-controls^="slope-"]) > .property-card-header {
+  color: #4F6B12;
+  font-weight: 650;
+}
+.property-card:has(> .property-card-header[aria-controls^="slope-"]) > .property-card-header:hover {
+  background: rgba(130, 170, 50, 0.2);
+}
+.property-card:has(> .property-card-header[aria-controls^="slope-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(130, 170, 50) 0 var(--slider-pos), rgba(130, 170, 50, 0.24) var(--slider-pos) 100%);
+}
+.property-card:has(> .property-card-header[aria-controls^="slope-"]) .range-control input[type="range"]::-webkit-slider-thumb {
+  border-color: rgb(130, 170, 50);
+}
+.property-card:has(> .property-card-header[aria-controls^="slope-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(130, 170, 50, 0.24);
+}
+.property-card:has(> .property-card-header[aria-controls^="slope-"]) .range-control input[type="range"]::-moz-range-progress {
+  background: rgb(130, 170, 50);
+}
+.property-card:has(> .property-card-header[aria-controls^="slope-"]) .range-control input[type="range"]::-moz-range-thumb {
+  border-color: rgb(130, 170, 50);
+}
+.property-card:has(> .property-card-header[aria-controls^="slope-"]) .check-property input {
+  accent-color: rgb(130, 170, 50);
+  --sw: rgb(130, 170, 50);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="slope-"]) {
+  background: rgba(130, 170, 50, 0.17);
+  box-shadow: inset 0 0 0 1px rgba(130, 170, 50, 0.5);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="slope-"]) > .property-card-header {
+  color: #BFE070;
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="slope-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(130, 170, 50) 0 var(--slider-pos), rgba(255, 255, 255, 0.16) var(--slider-pos) 100%);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="slope-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(255, 255, 255, 0.16);
+}
+.property-card:has(> .property-card-header[aria-controls^="narrow-"]) {
+  background: rgba(196, 150, 30, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(196, 150, 30, 0.45);
+}
+.property-card:has(> .property-card-header[aria-controls^="narrow-"]) > .property-card-header {
+  color: #7A5C06;
+  font-weight: 650;
+}
+.property-card:has(> .property-card-header[aria-controls^="narrow-"]) > .property-card-header:hover {
+  background: rgba(196, 150, 30, 0.2);
+}
+.property-card:has(> .property-card-header[aria-controls^="narrow-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(196, 150, 30) 0 var(--slider-pos), rgba(196, 150, 30, 0.24) var(--slider-pos) 100%);
+}
+.property-card:has(> .property-card-header[aria-controls^="narrow-"]) .range-control input[type="range"]::-webkit-slider-thumb {
+  border-color: rgb(196, 150, 30);
+}
+.property-card:has(> .property-card-header[aria-controls^="narrow-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(196, 150, 30, 0.24);
+}
+.property-card:has(> .property-card-header[aria-controls^="narrow-"]) .range-control input[type="range"]::-moz-range-progress {
+  background: rgb(196, 150, 30);
+}
+.property-card:has(> .property-card-header[aria-controls^="narrow-"]) .range-control input[type="range"]::-moz-range-thumb {
+  border-color: rgb(196, 150, 30);
+}
+.property-card:has(> .property-card-header[aria-controls^="narrow-"]) .check-property input {
+  accent-color: rgb(196, 150, 30);
+  --sw: rgb(196, 150, 30);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="narrow-"]) {
+  background: rgba(196, 150, 30, 0.17);
+  box-shadow: inset 0 0 0 1px rgba(196, 150, 30, 0.5);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="narrow-"]) > .property-card-header {
+  color: #E8C660;
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="narrow-"]) .range-control input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, rgb(196, 150, 30) 0 var(--slider-pos), rgba(255, 255, 255, 0.16) var(--slider-pos) 100%);
+}
+html[data-theme="dark"] .property-card:has(> .property-card-header[aria-controls^="narrow-"]) .range-control input[type="range"]::-moz-range-track {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* A symbol before each section title, so the sections are told apart by more than their colour. */
+.property-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.property-card-title svg {
+  flex: 0 0 auto;
+}
+
+/* A switch that belongs to the slider above it: a little in, with a small line up to that slider. */
+.check-property-sub {
+  position: relative;
+  margin-left: 6px;
+  padding-left: 24px;
+}
+.check-property-sub::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: -12px;
+  width: 11px;
+  height: 21px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  border-bottom-left-radius: 4px;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Sliding switches instead of tick boxes inside the inspector cards: the label on the left, the switch on the right, in the colour of its section. */
+.property-card .check-property {
+  flex-direction: row-reverse;
+  justify-content: space-between;
+}
+.property-card .check-property > span {
+  flex: 1 1 auto;
+}
+.property-card .check-property input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+  border: 1.5px solid #8a7b6a;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.06);
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.property-card .check-property input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #8a7b6a;
+  transition: left 0.15s, background-color 0.15s;
+}
+.property-card .check-property input[type="checkbox"]:checked {
+  border-color: var(--sw, #b3711f);
+  background: var(--sw, #b3711f);
+}
+.property-card .check-property input[type="checkbox"]:checked::after {
+  left: 21px;
+  background: #fff;
+}
+.property-card .check-property input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--sw, #b3711f);
+  outline-offset: 2px;
+}
+.property-card .check-property input[type="checkbox"]:disabled {
+  opacity: 0.5;
+}
+html[data-theme="dark"] .property-card .check-property input[type="checkbox"] {
+  border-color: #7d7d7d;
+  background: rgba(0, 0, 0, 0.25);
+}
+html[data-theme="dark"] .property-card .check-property input[type="checkbox"]::after {
+  background: #989898;
+}
+html[data-theme="dark"] .property-card .check-property input[type="checkbox"]:checked {
+  border-color: var(--sw, #b3711f);
+  background: color-mix(in srgb, var(--sw, #b3711f) 22%, #0a0a0a);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--sw, #b3711f) 50%, transparent);
+}
+html[data-theme="dark"] .property-card .check-property input[type="checkbox"]:checked::after {
+  background: color-mix(in srgb, var(--sw, #b3711f) 65%, white);
+}
+
+/* The other cards of the inspector (Wrap around a cylinder, Surface texture, ...) are tiles of the same shape in a
+   neutral colour, so that the colours stay the signs of the object's own sections. The coloured sections above are
+   more specific and keep theirs. */
+.property-card {
+  background: rgba(93, 71, 49, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(93, 71, 49, 0.24);
+}
+html[data-theme="dark"] .property-card {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+/* Choice fields in the dark theme: the closed field is dark like the number fields beside it. The list that opens
+   keeps the light colour scheme (see .select-property select above, the Chrome-on-Linux hover fix), and its
+   options say their colours outright, dark text on a light ground, so the row under the pointer stays readable. */
+html[data-theme="dark"] .select-property select {
+  color: #f1eee9;
+  background-color: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+}
+html[data-theme="dark"] .select-property select option {
+  color: #3b2f22;
+  background-color: #fff;
+}
+
+/* The title bar of a card reaches the edges of its tile, so the shade under the pointer fills the whole bar. The shade
+   is a lighter touch of the tile's own colour (coloured sections above), or a neutral one for the other cards. */
+.property-card > button.property-card-header {
+  width: calc(100% + 28px);
+  margin: 0 -14px;
+  padding: 0 14px;
+  border-radius: 8px 8px 0 0;
+}
+.property-card.collapsed > button.property-card-header {
+  border-radius: 8px;
+}
+.property-card > button.property-card-header:hover {
+  background: rgba(93, 71, 49, 0.1);
+}
+html[data-theme="dark"] .property-card > button.property-card-header:hover {
+  background: rgba(255, 255, 255, 0.1);
 }

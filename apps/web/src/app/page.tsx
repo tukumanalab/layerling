@@ -1,8 +1,9 @@
 "use client";
 
 import { requestPersistentStorage } from "@/lib/persistentStorage";
+import { clearDesignOpening, forgetDesignOpening, markDesignOpening, takeUnfinishedOpening } from "@/lib/openingDesignGuard";
 import { keepShownSelection, localDesignKey, selectionHasStale, serverDesignKey, toggleDesignSelection } from "@/lib/designSelection";
-import { Archive, ArchiveRestore, ArrowLeft, Check, CheckSquare, Clock3, Copy, EllipsisVertical, Folder, FolderInput, FolderKanban, FolderPlus, FolderUp, Grid3X3, List, Pencil, Plus, RefreshCw, Search, Server, ShieldAlert, SlidersHorizontal, Sparkles, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, Check, History, CheckSquare, Clock3, Copy, EllipsisVertical, Folder, FolderInput, FolderKanban, FolderPlus, FolderUp, Grid3X3, List, LoaderCircle, MonitorDown, Pencil, Plus, RefreshCw, Search, Server, Shapes, SlidersHorizontal, Sparkles, Trash2, X } from "lucide-react";
 import { withBasePath } from "@/lib/basePath";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { AppFooter } from "@/components/AppFooter";
@@ -21,8 +22,10 @@ import {
   folderAndDescendants,
   folderContents,
   folderOfDesign,
+  folderPathFrom,
   folderPathNames,
   folderTrail,
+  foldersEmptiedByMove,
   moveDesignFolder,
   moveDesignsToFolder,
   normalizeDesignFolders,
@@ -31,7 +34,7 @@ import {
   type DesignFolder,
 } from "@/lib/designFolders";
 import dynamic from "next/dynamic";
-import { importFailureSummary, importModelFiles } from "@/lib/modelImport";
+import { importFailureReason, importFailureSummary, importModelFiles } from "@/lib/modelImport";
 import { loadTextFonts } from "@/lib/textFonts";
 import { loadStoredCustomFonts } from "@/lib/customFontStore";
 import { fetchServerDefaults, type NewDesignsOnServerSetting } from "@/lib/serverDefaults";
@@ -44,6 +47,8 @@ import { localizedError } from "@/lib/userErrors";
 import { historyTrimSteps, isProjectTooLargeError, isStorageFullError, trimHistoryWindow } from "@/lib/historyTrim";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
 import { WelcomeGuideBody } from "@/components/WelcomeGuide";
+import { DashboardWelcome, useWelcomeHidden } from "@/components/DashboardWelcome";
+import { BrowserBackupNote, DesignTabs, YourBackupCard, type DesignTab } from "@/components/DesignTabs";
 import { useOfflineAvailable } from "@/lib/offlineSupport";
 import { InstallAppHint } from "@/components/InstallAppHint";
 import { TabletHint } from "@/components/TabletHint";
@@ -66,18 +71,26 @@ import {
 } from "@/lib/placementWorkplane";
 import { dedupeProjectAssets } from "@/lib/projectAssets";
 import { formatFileSize } from "@/lib/formatFileSize";
-import { hydrateProjectShapeState, reconcileLoadedProjectShapeCacheEntry, type ImportedMeshResource } from "@/lib/projectShapePersistence";
-import { ToolbarImportIcon } from "@/components/toolbarIcons";
+import { hydrateProjectShapeState, nextProjectRevision, reconcileLoadedProjectShapeCacheEntry, type ImportedMeshResource } from "@/lib/projectShapePersistence";
+import { ToolbarHistoryIcon, ToolbarImportIcon } from "@/components/toolbarIcons";
 import { writeDesignView, writeSavedViews } from "@/lib/designView";
-import { writeCornerRulers } from "@/lib/cornerRulerStore";
+import { seedStartCornerRuler, writeCornerRulers } from "@/lib/cornerRulerStore";
 import { readTape, writeTape } from "@/lib/tapeStore";
 import { useFileAccept } from "@/lib/fileAccept";
-import { lylFileAccessSupported, onLylFilesLaunched, pickFilesToImport, rememberLylFile, type LylFileHandle } from "@/lib/lylFileAccess";
-import { exportLylProject, importLylProject, inspectLylProjectPackage, LYL_CREATED_WITH_VERSION, LYL_MEDIA_TYPE, withLylProjectName } from "@/lib/lylProject";
-import { backupDesignAlreadyThere, backupEntryPaths, backupFileName, backupFolderPaths, backupThumbnailPath, unpackBackupFolders, isBackupFileName, createBackupWriter, unpackBackup, zipHoldsDesigns } from "@/lib/projectBackup";
+import { dropBackupTarget, linkedLylFile, lylFileAccessSupported, onLylFilesLaunched, pickBackupTarget, pickFilesToImport, rememberLylFile, writeBackupTarget, type LylFileHandle } from "@/lib/lylFileAccess";
+import { exportLylProject, importLylProject, inspectLylProjectPackage, LYL_CREATED_WITH_VERSION, LYL_MEDIA_TYPE, withLylProjectName, withLylThumbnail } from "@/lib/lylProject";
+import { relieveOverFineCadMeshes, type RemeshCadBrep } from "@/lib/cadMeshRelief";
+import { backupDesignAlreadyThere, backupEntryPaths, backupFileName, backupFolderPaths, backupNamePrefix, backupThumbnailPath, unpackBackupFolders, isBackupFileName, createBackupWriter, unpackBackup, zipHoldsDesigns } from "@/lib/projectBackup";
+import { CUSTOM_SHAPES_FOLDER } from "@/lib/customShapesServer";
+import { backupNoteState, readLastFullBackup, rememberFullBackup } from "@/lib/backupState";
+import { FileBackupsDialog, type FileBackupsScope } from "@/components/FileBackupsDialog";
+import { FILE_BACKUP_SETTINGS_EVENT, readFileBackupSettings } from "@/lib/fileBackups";
+import { backupUrgency, daysBetween, DEFAULT_FILE_BACKUP_SETTINGS } from "@/lib/fileBackupRules";
+import { downloadBackup, pngDataUrl, projectThumbnailBlob, projectThumbnailPngBytes, serverCustomShapesBackupEntries, writeServerBackup } from "@/lib/backupDownload";
 import { getWorkshopConfig, WorkshopClient } from "@/lib/workshopBridge";
 import { customShapesBackupEntries, restoreCustomShapesFromBackup } from "@/lib/myShapes";
 import { SHARED_PROJECTS_ENDPOINT } from "@/lib/sharedProjectsEndpoint";
+import { sendSavedWorkspaceDefaultsToServer, syncWorkspaceDefaultWithServer } from "@/lib/serverWorkspaceDefault";
 import { PICTURE_FILE_ACCEPT } from "@/lib/pictureIcon";
 import { designsToRecover, hiddenCopiesOf, isInlineThumbnail, LOST_DESIGNS_RECOVERED_KEY, orphanedProjectIds, projectListForLocalStorage, withStoredThumbnails, writeProjectList } from "@/lib/designListStorage";
 import { deleteDesignThumbnail, loadDesignThumbnails, saveDesignThumbnail } from "@/lib/designThumbnailStore";
@@ -153,6 +166,9 @@ function sharedProjectKey(project: Pick<SharedProject, "fileName" | "path">) {
 }
 
 /** Joins a folder path with a name, without leaving a stray slash at the front. */
+/** How long a design must have been open before its opening counts as done (#1157, lib/openingDesignGuard.ts). */
+const DESIGN_OPENED_AFTER_MS = 10_000;
+
 function joinStorePath(path: string, name: string) {
   return path ? `${path}/${name}` : name;
 }
@@ -256,18 +272,21 @@ function takeInterruptedBackup(): BackupProgress | null {
 const SERVER_ANSWER_WAIT_MS = 8000;
 
 /**
- * Two answers the start page waits for before it knows where a new design goes: the server's defaults and
- * the first look at its folder. `wait()` holds until each has come, or for SERVER_ANSWER_WAIT_MS at most.
+ * The answers the start page waits for before it knows where a new design goes and how it starts: the
+ * server's defaults, the first look at its folder and the "Make default" kept in its store. `wait()` holds
+ * until each has come, or for SERVER_ANSWER_WAIT_MS at most.
  */
 function serverAnswerGate() {
   let defaults = () => {};
   let listing = () => {};
+  let settings = () => {};
   const answered = Promise.all([
     new Promise<void>((resolve) => { defaults = resolve; }),
     new Promise<void>((resolve) => { listing = resolve; }),
+    new Promise<void>((resolve) => { settings = resolve; }),
   ]);
   const wait = () => Promise.race([answered, new Promise((resolve) => setTimeout(resolve, SERVER_ANSWER_WAIT_MS))]).then(() => undefined);
-  return { defaults: () => defaults(), listing: () => listing(), wait };
+  return { defaults: () => defaults(), listing: () => listing(), settings: () => settings(), wait };
 }
 /** So lang darf ein Entwurfsname werden - so lang kuerzt auch das Umbenennen. */
 const PROJECT_NAME_LIMIT = 80;
@@ -319,6 +338,12 @@ function formatUpdated(timestamp: number, language: Language) {
   if (age < 3_600_000) return t("dashboard.minutesAgo", { count: Math.max(1, Math.round(age / 60_000)) });
   if (age < 86_400_000) return t("dashboard.today");
   return new Intl.DateTimeFormat(language, { month: "short", day: "numeric" }).format(new Date(timestamp));
+}
+
+/** The last backup's time for the notice over the designs: day and clock, the year only when it is another one. */
+function formatBackupTime(timestamp: number, language: Language) {
+  const sameYear = new Date(timestamp).getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat(language, { year: sameYear ? undefined : "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(timestamp));
 }
 
 function projectShapeCacheEntry(
@@ -422,7 +447,10 @@ function projectResourceRecordId(projectId: string, kind: ProjectShapeResourceRe
   return `${projectId}:${projectResourceKey(kind, resourceId)}`;
 }
 
-async function loadProjectShapes(projectId: string) {
+/** The kernel's worker is only loaded for a design that has a body to mesh lighter (lib/cadMeshRelief.ts). */
+const remeshCadBrepLater: RemeshCadBrep = (brep, deflection, capped) => import("@/lib/editorSketchCad").then(({ remeshCadBrep }) => remeshCadBrep(brep, deflection, capped));
+
+async function loadProjectShapes(projectId: string, options: { currentStateOnly?: boolean } = {}) {
   const database = await openProjectShapesDb();
   const record = await new Promise<ProjectShapeRecord | null>((resolve, reject) => {
     const transaction = database.transaction(PROJECT_SHAPES_STORE_NAME, "readonly");
@@ -438,7 +466,7 @@ async function loadProjectShapes(projectId: string) {
   const storedPackage = record.lylPackage ?? record.skfPackage;
   if (storedPackage) {
     database.close();
-    const restored = await importLylProject(storedPackage);
+    const { project: restored, relieved } = await relieveOverFineCadMeshes(await importLylProject(storedPackage, options), remeshCadBrepLater);
     return {
       ...record,
       shapes: restored.shapes,
@@ -446,6 +474,8 @@ async function loadProjectShapes(projectId: string) {
       historyIndex: restored.historyIndex,
       assets: restored.assets,
       attachments: restored.attachments,
+      // Bodies meshed lighter than they were stored (Discussion #1042): the design is saved so again.
+      relievedMeshes: relieved,
     };
   }
 
@@ -530,47 +560,6 @@ async function projectPackageBytes(project: DashboardProject) {
 /** Die beiden Muster, aus denen der Name einer Kopie entsteht. */
 function duplicateNamePatterns(): DuplicateNamePatterns {
   return { copy: t("dashboard.copyOf"), numbered: t("dashboard.copyOfNumbered") };
-}
-
-/** The card picture as a PNG the server will take, or nothing. */
-async function projectThumbnailBlob(thumbnailUrl: string | null | undefined): Promise<Blob | null> {
-  if (!thumbnailUrl) return null;
-  try {
-    const blob = await (await fetch(thumbnailUrl)).blob();
-    if (blob.type !== "image/png" || blob.size === 0 || blob.size > 5 * 1024 * 1024) return null;
-    return blob;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * The card picture as PNG bytes for a backup, or nothing. A picture kept as a data address is
- * read without fetching it.
- */
-async function projectThumbnailPngBytes(thumbnailUrl: string | null | undefined): Promise<Uint8Array | null> {
-  if (!thumbnailUrl) return null;
-  const inline = /^data:image\/png;base64,(.+)$/.exec(thumbnailUrl);
-  if (inline) {
-    try {
-      const text = atob(inline[1]);
-      const bytes = new Uint8Array(text.length);
-      for (let index = 0; index < text.length; index += 1) bytes[index] = text.charCodeAt(index);
-      return bytes;
-    } catch {
-      return null;
-    }
-  }
-  if (thumbnailUrl.startsWith("data:")) return null;
-  const blob = await projectThumbnailBlob(thumbnailUrl);
-  return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
-}
-
-/** PNG bytes from a backup as the data address a card picture is handed over with. */
-function pngDataUrl(bytes: Uint8Array) {
-  let text = "";
-  for (let index = 0; index < bytes.length; index += 0x8000) text += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
-  return `data:image/png;base64,${btoa(text)}`;
 }
 
 /**
@@ -1013,19 +1002,41 @@ export default function Home() {
   const [themePreference, setThemePreference] = useState<AppThemePreference>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedAppTheme>("light");
   const [dashboardNotice, setDashboardNotice] = useState("");
+  // When "Back up all" last took every design of this browser, for the notice over them; read once on the page.
+  const [lastFullBackup, setLastFullBackup] = useState<number | null>(null);
+  useEffect(() => setLastFullBackup(readLastFullBackup()), []);
+  // The automatic backups' settings, for how loud the notice over the designs grows; they belong to the browser.
+  const [fileBackupSettings, setFileBackupSettings] = useState(DEFAULT_FILE_BACKUP_SETTINGS);
+  useEffect(() => {
+    setFileBackupSettings(readFileBackupSettings());
+    const follow = () => setFileBackupSettings(readFileBackupSettings());
+    window.addEventListener(FILE_BACKUP_SETTINGS_EVENT, follow);
+    return () => window.removeEventListener(FILE_BACKUP_SETTINGS_EVENT, follow);
+  }, []);
+  // "Earlier versions" open: of one design, or (null) of every design; undefined while closed.
+  const [backupsScope, setBackupsScope] = useState<FileBackupsScope | undefined>(undefined);
   // A design left with nothing in it, waiting for an answer on whether it stays.
   const [emptyProjectPromptId, setEmptyProjectPromptId] = useState<string | null>(null);
   const [sharedProjects, setSharedProjects] = useState<SharedProject[]>([]);
   const [sharedFolders, setSharedFolders] = useState<SharedFolder[]>([]);
   const [sharedPath, setSharedPath] = useState("");
+  /** Designs in the whole server store, for the server's tab; null until it has answered. */
+  const [sharedTotal, setSharedTotal] = useState<number | null>(null);
+  /** Decided once, when both counts are first known, so the tabs do not swap places under the pointer. */
+  const [serverTabFirst, setServerTabFirst] = useState<boolean | null>(null);
+  /** A tab was picked, or a design was left, before that: the open tab stays as it is. */
+  const tabChosenRef = useRef(false);
   const [sharedProjectsEnabled, setSharedProjectsEnabled] = useState(false);
   const [sharedProjectsLoading, setSharedProjectsLoading] = useState(false);
   const [sharedSearch, setSharedSearch] = useState<SharedSearchResult | null>(null);
   const [sharedSearchLoading, setSharedSearchLoading] = useState(false);
+  const [openingSharedKey, setOpeningSharedKey] = useState<string | null>(null);
   // Hochgezaehlt, wenn sich am Server etwas geaendert hat: Eine Trefferliste
   // muss dann neu gefragt werden, sie haengt an keinem Ordner.
   const [sharedSearchNonce, setSharedSearchNonce] = useState(0);
   const [projectShapesById, setProjectShapesById] = useState<Record<string, ProjectShapeCacheEntry>>({});
+  const projectShapesByIdRef = useRef(projectShapesById);
+  projectShapesByIdRef.current = projectShapesById;
   const projectsJsonRef = useRef("");
   const sharedPathRef = useRef("");
   // Where a new design goes is known only once the server has answered: its defaults (LAYERLING_NEW_DESIGNS_ON_SERVER)
@@ -1087,9 +1098,10 @@ export default function Home() {
     try {
       const query = wanted ? `?path=${encodeURIComponent(wanted)}` : "";
       const response = await fetch(`${SHARED_PROJECTS_ENDPOINT}${query}`, { cache: "no-store" });
-      const payload = await response.json() as { enabled?: boolean; path?: string; folders?: SharedFolder[]; projects?: SharedProject[]; error?: string };
+      const payload = await response.json() as { enabled?: boolean; path?: string; total?: number; folders?: SharedFolder[]; projects?: SharedProject[]; error?: string };
       sharedEnabledRef.current = Boolean(payload.enabled);
       setSharedProjectsEnabled(Boolean(payload.enabled));
+      if (typeof payload.total === "number") setSharedTotal(payload.total);
       setSharedProjects(Array.isArray(payload.projects) ? payload.projects : []);
       setSharedFolders(Array.isArray(payload.folders) ? payload.folders : []);
       // A folder that is gone takes us back to where it was, not to an error.
@@ -1102,6 +1114,7 @@ export default function Home() {
       setSharedProjectsEnabled(false);
       setSharedProjects([]);
       setSharedFolders([]);
+      setSharedTotal(null);
     } finally {
       setSharedProjectsLoading(false);
       serverAnswer.listing();
@@ -1180,6 +1193,8 @@ export default function Home() {
     } else {
       serverAnswer.defaults();
     }
+    // "Make default" kept in the server store comes back to a browser that forgot it.
+    void syncWorkspaceDefaultWithServer(window.localStorage).finally(serverAnswer.settings);
     setAppTheme(storedTheme, false);
     setThemePreference(storedTheme);
     const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -1242,10 +1257,16 @@ export default function Home() {
       return;
     }
     const params = new URLSearchParams(window.location.search);
-    if (params.has("codexBooleanCase") || params.get("editor") === "1") {
-      const requestedProjectId = params.get("project");
-      if (requestedProjectId && storedProjects.some((project) => project.id === requestedProjectId)) {
-        setActiveProjectId(requestedProjectId);
+    const requestedProjectId = params.get("project");
+    const requestedProject = requestedProjectId ? storedProjects.find((project) => project.id === requestedProjectId) : undefined;
+    if (params.get("editor") === "1" && requestedProject && takeUnfinishedOpening(window.localStorage, requestedProject.id)) {
+      // The last opening of this design never finished, most likely the browser ran out of memory:
+      // reopening it straight away would crash the page again, so the start page comes first (#1157).
+      setDashboardNotice(t("notice.designDidNotOpen", { name: requestedProject.name }));
+      window.history.replaceState(null, "", "/");
+    } else if (params.has("codexBooleanCase") || params.get("editor") === "1") {
+      if (requestedProject) {
+        setActiveProjectId(requestedProject.id);
       }
       startEditorTransition();
       setEditorStarted(true);
@@ -1253,6 +1274,16 @@ export default function Home() {
     }
     setMounted(true);
   }, [startEditorTransition]);
+
+  // And a default saved here goes to the store, for the other browsers.
+  useEffect(() => sendSavedWorkspaceDefaultsToServer(window.localStorage), []);
+
+  // Closed or reloaded in the usual way: nothing crashed while a design opened (#1157).
+  useEffect(() => {
+    const forget = () => forgetDesignOpening(window.localStorage);
+    window.addEventListener("pagehide", forget);
+    return () => window.removeEventListener("pagehide", forget);
+  }, []);
 
   useEffect(() => {
     return subscribeToAppTheme(() => {
@@ -1283,6 +1314,14 @@ export default function Home() {
     if (!mounted) return;
     void refreshSharedProjects();
   }, [mounted, refreshSharedProjects]);
+
+  // The place with more designs gets the first tab, and opens first unless a tab was already picked.
+  useEffect(() => {
+    if (!mounted || serverTabFirst !== null || !sharedProjectsEnabled || sharedTotal === null) return;
+    const first = sharedTotal > projects.filter((project) => !project.sharedProject).length;
+    setServerTabFirst(first);
+    if (first && !tabChosenRef.current) setDashboardSection("shared");
+  }, [mounted, projects, serverTabFirst, sharedProjectsEnabled, sharedTotal]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -1383,8 +1422,11 @@ export default function Home() {
     if (cached && cached.revision >= (activeProject.revision ?? 0)) return;
 
     let canceled = false;
+    // Taken away once the design has opened; still there after a crash, it keeps a reload from opening it again (#1157).
+    markDesignOpening(window.localStorage, activeProjectId);
     void loadProjectShapes(activeProjectId)
       .then((record) => {
+        window.setTimeout(() => clearDesignOpening(window.localStorage, activeProjectId), DESIGN_OPENED_AFTER_MS);
         if (canceled) return;
         const loadedRevision = record?.revision ?? 0;
         const revision = Math.max(activeProject.revision ?? 0, loadedRevision, 1);
@@ -1403,7 +1445,12 @@ export default function Home() {
             [activeProjectId]: reconciled,
           };
         });
-        if (record && !record.lylPackage && !record.skfPackage && loadedRevision > 0) {
+        if (record && "relievedMeshes" in record && record.relievedMeshes > 0) {
+          // The lighter meshes are saved, so the design opens light from now on (Discussion #1042).
+          void saveProjectShapesWhenIdle(activeProjectId, loadedEntry, projectShapeSaveContext(activeProject)).catch(() => {
+            // The stored design stays as it was and is lightened again on the next opening.
+          });
+        } else if (record && !record.lylPackage && !record.skfPackage && loadedRevision > 0) {
           // Migrate the data at the revision it was actually read from disk. Using the
           // newer project metadata revision here can let stale shapes outrank a live edit.
           void saveProjectShapesWhenIdle(activeProjectId, loadedEntry, projectShapeSaveContext(activeProject)).catch(() => {
@@ -1412,6 +1459,8 @@ export default function Home() {
         }
       })
       .catch((error) => {
+        // A design that could not be read did not crash the page.
+        clearDesignOpening(window.localStorage, activeProjectId);
         if (!canceled) {
           setDashboardNotice(error instanceof Error ? localizedError(error.message) : t("notice.projectShapesLoadFailed"));
           setProjectShapesById((current) => {
@@ -1615,7 +1664,14 @@ export default function Home() {
     placementWorkplane: PlacementWorkplane;
     sketchPlacementWorkplane: PlacementWorkplane;
   }) => {
-    const revision = Math.max(Date.now(), nextProjectRevisionRef.current + 1);
+    // Newer than every revision the design has, or the cache and the storage below would throw this edit away (#1652).
+    const revision = nextProjectRevision(
+      Date.now(),
+      nextProjectRevisionRef.current,
+      projectShapesByIdRef.current[snapshot.projectId]?.revision,
+      projectsRef.current.find((project) => project.id === snapshot.projectId)?.revision,
+      newestRequestedRevision.get(snapshot.projectId),
+    );
     nextProjectRevisionRef.current = revision;
     newestRequestedRevision.set(snapshot.projectId, revision);
     const entry = projectShapeCacheEntryFromEditor(revision, snapshot.shapes, snapshot.history, snapshot.historyIndex, snapshot.assets, snapshot.attachments);
@@ -1735,6 +1791,7 @@ export default function Home() {
 
   const createAndOpenProject = (name?: string) => {
     const project = newProject(name ?? t("dashboard.untitledDesign", { number: projects.length + 1 }), projects.length, 0, openFolderId);
+    seedStartCornerRuler(project.id);
     setProjectShapesById((current) => ({
       ...current,
       [project.id]: projectShapeCacheEntry(project.revision ?? project.updatedAt, []),
@@ -1750,10 +1807,10 @@ export default function Home() {
     openEditor(project.id, { allowMissingFromStorage: true });
   };
 
-  const openLylProjectFromFile = useCallback(async (file: File, sharedProject?: SharedProject, fileHandle?: LylFileHandle, nameOverride?: string) => {
+  const openLylProjectFromFile = useCallback(async (file: File, sharedProject?: SharedProject, fileHandle?: LylFileHandle, options?: { name?: string }) => {
     setDashboardNotice(t("notice.validatingFile", { name: file.name }));
     try {
-      const restored = await importLylProject(await file.arrayBuffer());
+      const restored = (await relieveOverFineCadMeshes(await importLylProject(await file.arrayBuffer()), remeshCadBrepLater)).project;
       const now = Date.now();
       // A project on the server has one working copy here, not one per opening.
       // Without this, every visit to the folder left another namesake behind.
@@ -1765,7 +1822,8 @@ export default function Home() {
         // Der Dateiname sticht den Namen im Paket: Auf der Karte steht der
         // Dateiname, und eine Kopie traegt den des Originals im Paket, bis der
         // erste Speicherlauf ihn nachzieht.
-        ...(existing ?? newProject(sharedProject?.name ?? nameOverride ?? restored.projectName, projects.length, restored.shapes.length, sharedProject ? null : openFolderId)),
+        // A backup opened from "Earlier versions" comes with a name that says which one it is.
+        ...(existing ?? newProject(sharedProject?.name ?? options?.name ?? restored.projectName, projects.length, restored.shapes.length, sharedProject ? null : openFolderId)),
         createdAt: restored.createdAt,
         updatedAt: now,
         revision: now,
@@ -1811,17 +1869,17 @@ export default function Home() {
     }
   }, [openFolderId, projects, refreshSharedProjects]);
 
-  // A .lyl opened from the file manager with the installed app (#605). Only the first file: a design
-  // opens the editor, so a second one could not be shown anyway.
-  const openLaunchedFileRef = useRef(openLylProjectFromFile);
-  openLaunchedFileRef.current = openLylProjectFromFile;
+  // A .lyl opened from the file manager with the installed app (#605), or an .stl or .3mf (#1287), which
+  // becomes a new design as with Import on the start page. Only the first file: a design opens the editor,
+  // so a second one could not be shown anyway.
+  const openLaunchedFileRef = useRef<(file: File, handle: LylFileHandle) => Promise<unknown>>((file, handle) => openLylProjectFromFile(file, undefined, handle));
   useEffect(() => {
     if (!mounted) return;
     let taken = false;
     onLylFilesLaunched((file, handle) => {
       if (taken) return;
       taken = true;
-      void openLaunchedFileRef.current(file, undefined, handle).finally(() => { taken = false; });
+      void openLaunchedFileRef.current(file, handle).finally(() => { taken = false; });
     });
   }, [mounted]);
 
@@ -1837,7 +1895,7 @@ export default function Home() {
           return;
         }
         // The title on the service wins: it may have been changed there since the last save.
-        const opened = await openLylProjectFromFile(new File([bytes as BlobPart], "design.lyl"), undefined, undefined, workshop.config.title ?? undefined);
+        const opened = await openLylProjectFromFile(new File([bytes as BlobPart], "design.lyl"), undefined, undefined, { name: workshop.config.title ?? undefined });
         if (!opened.ok) throw new Error(opened.message);
       } catch (error) {
         // Not a blank design instead: saving that over the real one would lose it.
@@ -1848,6 +1906,8 @@ export default function Home() {
   }, [mounted, workshop]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openSharedProject = useCallback(async (sharedProject: SharedProject) => {
+    const key = sharedProjectKey(sharedProject);
+    setOpeningSharedKey(key);
     setDashboardNotice(t("notice.openingShared", { name: sharedProject.name }));
     try {
       const response = await fetch(`${SHARED_PROJECTS_ENDPOINT}?${storeQuery(sharedProject.path ?? "", sharedProject.fileName)}`, { cache: "no-store" });
@@ -1860,6 +1920,8 @@ export default function Home() {
       await openLylProjectFromFile(file, { ...sharedProject, revision });
     } catch (error) {
       setDashboardNotice(error instanceof Error ? localizedError(error.message) : t("notice.openSharedFailed"));
+    } finally {
+      setOpeningSharedKey(null);
     }
   }, [openLylProjectFromFile]);
 
@@ -1894,6 +1956,9 @@ export default function Home() {
         throw new Error(payload.error ?? "Could not delete shared project");
       }
       setSharedProjects((current) => current.filter((project) => project.fileName !== sharedProject.fileName));
+      // The tab counts the whole server store from the listing; without this it kept the deleted design until the
+      // next listing, a reload (Jürgen Keller, 07.11.2026: "Entwürfe (2)" over one design).
+      setSharedTotal((total) => (total === null ? null : Math.max(0, total - 1)));
       // The working copy in this browser is only a mirror of the server file, and the file was
       // deleted on purpose: the copy goes too, or it would turn up again among the browser designs
       // without a thumbnail (#265).
@@ -1993,6 +2058,78 @@ export default function Home() {
     }
   }, [refreshSharedProjects, sharedProjects]);
 
+  /**
+   * A design of the server folder, taken into this browser: the way back from "Put on the server" (#1572).
+   * The file is fetched as it is on the server now and becomes a design of this browser, at its top level; a
+   * working copy that is already here becomes that design, so its view and picture stay. Only once it is stored
+   * here is the file deleted on the server. If that fails - somebody changed the file meanwhile, or the server
+   * went away - the design is in both places, and the notice says so.
+   */
+  const takeSharedProjectIntoBrowser = useCallback(async (sharedProject: SharedProject) => {
+    const where = sharedProject.path ?? "";
+    const existing = projects.find((project) => project.sharedProject?.fileName === sharedProject.fileName && (project.sharedProject?.path ?? "") === where);
+    setDashboardNotice(t("notice.takingIntoBrowser", { name: sharedProject.name }));
+    try {
+      // A save of the working copy still on its way to the server goes first, so the file fetched is the newest.
+      if (existing) await sharedSavesRef.current[existing.id]?.catch(() => undefined);
+      const response = await fetch(`${SHARED_PROJECTS_ENDPOINT}?${storeQuery(where, sharedProject.fileName)}`, { cache: "no-store" });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(payload.error ?? t("notice.openSharedFailed"));
+      }
+      const revision = response.headers.get("etag")?.replace(/^W\//, "").replace(/^"|"$/g, "") || sharedProject.revision;
+      const restored = (await relieveOverFineCadMeshes(await importLylProject(await response.arrayBuffer()), remeshCadBrepLater)).project;
+      // The picture lives beside the file on the server and goes with it, so this browser keeps a copy of its own.
+      const kept = existing?.thumbnailUrl;
+      const picture = isInlineThumbnail(kept) ? kept : await projectThumbnailDataUrl(sharedProject.thumbnailUrl).catch(() => null);
+      const now = Date.now();
+      const project: DashboardProject = {
+        ...(existing ?? newProject(sharedProject.name, projects.length, restored.shapes.length, null)),
+        createdAt: restored.createdAt,
+        updatedAt: now,
+        revision: now,
+        shapes: restored.shapes.length,
+        workspace: restored.workspace,
+        snapGrid: restored.snapGrid,
+        placementElevation: restored.placementElevation,
+        placementWorkplane: restored.placementWorkplane,
+        sketchPlacementWorkplane: restored.sketchPlacementWorkplane,
+        thumbnailUrl: picture,
+        folderId: null,
+        sharedProject: undefined,
+      };
+      const entry = projectShapeCacheEntry(now, restored.shapes, restored.history, restored.historyIndex, restored.assets, restored.attachments);
+      await saveProjectShapes(project.id, entry, projectShapeSaveContext(project));
+      if (!existing) {
+        if (restored.view) writeDesignView(project.id, restored.view);
+        if (restored.savedViews) writeSavedViews(project.id, restored.savedViews);
+        if (restored.cornerRulers) writeCornerRulers(project.id, restored.cornerRulers);
+        if (restored.tapeMeasurements) writeTape(project.id, restored.tapeMeasurements);
+      }
+      setProjectShapesById((current) => ({ ...current, [project.id]: entry }));
+      setProjects((current) => existing
+        ? current.map((candidate) => (candidate.id === project.id ? project : candidate))
+        : [project, ...current]);
+      // Stored here: now the file on the server can go, but only the one that was fetched.
+      const removal = await fetch(`${SHARED_PROJECTS_ENDPOINT}?${storeQuery(where, sharedProject.fileName)}`, {
+        method: "DELETE",
+        headers: { "If-Match": `"${revision}"` },
+      }).catch(() => null);
+      if (!removal?.ok) {
+        const payload = removal ? await removal.json().catch(() => ({})) as { error?: string } : {};
+        const reason = payload.error ? localizedError(payload.error) : t("notice.deleteSharedFailed");
+        setDashboardNotice(`${t("notice.takenIntoBrowserKept", { name: sharedProject.name })} ${reason}`);
+        await refreshSharedProjects();
+        return;
+      }
+      setSharedProjects((current) => current.filter((candidate) => !(candidate.fileName === sharedProject.fileName && (candidate.path ?? "") === where)));
+      setSharedTotal((total) => (total === null ? null : Math.max(0, total - 1)));
+      setDashboardNotice(t("notice.takenIntoBrowser", { name: sharedProject.name }));
+    } catch (error) {
+      setDashboardNotice(error instanceof Error ? localizedError(error.message) : t("notice.takeIntoBrowserFailed"));
+    }
+  }, [projects, refreshSharedProjects]);
+
   const saveActiveProjectToShared = useCallback(async ({ exportName, bytes, thumbnailDataUrl, targetFileName }: { exportName: string; bytes: Uint8Array; thumbnailDataUrl: string; targetFileName?: string }) => {
     const activeProject = projects.find((project) => project.id === activeProjectId);
     if (!activeProject) throw new Error(t("status.sharedNoProject"));
@@ -2063,7 +2200,8 @@ export default function Home() {
 
   /** Puts a project into a folder of the store as a file that is not there yet. */
   const putProjectOnServer = useCallback(async (project: DashboardProject, targetPath: string) => {
-    const bytes = await projectPackageBytes(project);
+    // The file carries the card's picture, for other programs to show (#1226).
+    const bytes = await withLylThumbnail(await projectPackageBytes(project), await projectThumbnailPngBytes(project.thumbnailUrl).catch(() => null));
     const { fileName } = sharedProjectSaveTarget({ projectName: project.name, exportName: project.name, binding: undefined });
     const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
     const projectBlob = new Blob([body], { type: LYL_MEDIA_TYPE });
@@ -2157,34 +2295,76 @@ export default function Home() {
   }, [projects, refreshSharedProjects]);
 
   /**
-   * Every design of this browser that is not on the server yet, put there one after the other (#316).
-   * A move like the single one: each card is bound to its file, and the editor's automatic save writes
-   * there from then on. One that cannot go - the name is taken, or the server hiccups - stays in the
-   * browser, and the notice says how many.
+   * Designs of this browser that are not on the server yet, put there one after the other (#316): all of them
+   * (`rootFolderId` null, "Put all on the server") or a folder with everything in it. A move like the single one: each
+   * card is bound to its file, and the editor's automatic save writes there from then on. They keep their folders
+   * (Discussion #1572): each folder is made below the server folder that is open, empty ones too, and the design goes
+   * into its own; a folder put on the server becomes a folder there. The folders left empty in the browser go. One that
+   * cannot go - the name is taken, or the server hiccups - stays in the browser, in its folder, and the notice says how many.
    */
-  const sendAllProjectsToServer = useCallback(async () => {
-    const targets = projects.filter((project) => !project.sharedProject);
-    if (targets.length === 0) return;
+  const sendDesignsToServer = useCallback(async (rootFolderId: string | null) => {
+    const folders = designFolders;
+    const scope = rootFolderId ? folderAndDescendants(folders, rootFolderId) : new Set(folders.map((folder) => folder.id));
+    const inScope = (project: DashboardProject) => {
+      if (!rootFolderId) return true;
+      const folderId = folderOfDesign(folders, project.folderId);
+      return folderId !== null && scope.has(folderId);
+    };
+    const targets = projects.filter((project) => !project.sharedProject && inScope(project));
+    if (targets.length === 0 && !rootFolderId) return;
+    const base = sharedPathRef.current;
+    // Each folder once, its parent first; where a name is not allowed there, the folder above (`storeFolderPath`).
+    const made = new Map<string, Promise<string>>();
+    const serverFolder = (names: string[]): Promise<string> => {
+      if (names.length === 0) return Promise.resolve(base);
+      const key = names.join("/");
+      let path = made.get(key);
+      if (!path) {
+        path = serverFolder(names.slice(0, -1)).then((parent) => storeFolderPath(parent, names.slice(-1)));
+        made.set(key, path);
+      }
+      return path;
+    };
+    for (const folder of folders) {
+      if (scope.has(folder.id)) await serverFolder(folderPathFrom(folders, folder.id, rootFolderId));
+    }
     let done = 0;
     let failed = 0;
     let firstFailure = "";
+    const moved = new Set<string>();
     for (const project of targets) {
       setDashboardNotice(t("notice.sendingAllToServer", { done: done + failed + 1, count: targets.length }));
       try {
-        const saved = await putProjectOnServer(project, sharedPathRef.current);
+        const path = await serverFolder(folderPathFrom(folders, folderOfDesign(folders, project.folderId), rootFolderId));
+        const saved = await putProjectOnServer(project, path);
         setProjects((current) => current.map((candidate) => candidate.id === project.id
-          ? { ...candidate, sharedProject: { fileName: saved.fileName, revision: saved.revision, path: saved.path ?? sharedPathRef.current } }
+          ? { ...candidate, folderId: null, sharedProject: { fileName: saved.fileName, revision: saved.revision, path: saved.path ?? path } }
           : candidate));
+        moved.add(project.id);
         done += 1;
       } catch (error) {
         failed += 1;
         if (!firstFailure) firstFailure = error instanceof Error ? localizedError(error.message) : t("notice.saveSharedFailed");
       }
     }
+    const staying = projects.filter((project) => !project.sharedProject && !moved.has(project.id));
+    const emptied = foldersEmptiedByMove(folders, staying, scope);
+    if (emptied.size > 0) {
+      setDesignFolders((current) => current.filter((folder) => !emptied.has(folder.id)));
+      // The folder that was open goes too: the nearest one on its way that stays, as when a folder is deleted.
+      setOpenFolderId((current) => {
+        if (!current || !emptied.has(current)) return current;
+        const kept = folderTrail(folders, current).filter((folder) => !emptied.has(folder.id));
+        return kept.length ? kept[kept.length - 1].id : null;
+      });
+    }
     await refreshSharedProjects();
+    const rootFolder = rootFolderId ? folders.find((folder) => folder.id === rootFolderId) : undefined;
     if (failed > 0) setDashboardNotice(`${t("notice.sentAllPartial", { done, failed })} ${firstFailure}`);
+    else if (targets.length === 0 && rootFolder) setDashboardNotice(t("notice.folderMadeOnServer", { name: rootFolder.name }));
     else setDashboardNotice(done === 1 ? t("notice.sentAllOne") : t("notice.sentAllMany", { count: done }));
-  }, [projects, putProjectOnServer, refreshSharedProjects]);
+  }, [designFolders, projects, putProjectOnServer, refreshSharedProjects, storeFolderPath]);
+  const sendAllProjectsToServer = useCallback(() => sendDesignsToServer(null), [sendDesignsToServer]);
 
   /**
    * A new design started inside a folder of the store. It is put there right
@@ -2207,6 +2387,8 @@ export default function Home() {
     }
 
     const project = newProject(name, projects.length);
+    // Before the first upload, so the file on the server carries the square from the start (#1386).
+    seedStartCornerRuler(project.id);
     const entry = projectShapeCacheEntry(project.revision ?? project.updatedAt, []);
     setProjectShapesById((current) => ({ ...current, [project.id]: entry }));
     await saveProjectShapes(project.id, entry, projectShapeSaveContext(project)).catch(() => {
@@ -2229,7 +2411,8 @@ export default function Home() {
   /** "Create new 3D design": in the server folder when new designs start there, decided once the server has answered. */
   const createNewDesign = async () => {
     await serverAnswer.wait();
-    if (newDesignsGoToServer()) await createProjectInStoreFolder();
+    // On the server's tab a new design goes into the server folder that is open.
+    if ((dashboardSection === "shared" && sharedEnabledRef.current) || newDesignsGoToServer()) await createProjectInStoreFolder();
     else createAndOpenProject();
   };
 
@@ -2319,51 +2502,84 @@ export default function Home() {
     }
   }, [projects, refreshSharedProjects, removeWorkingCopies]);
 
-  // Every design of this browser as its own .lyl, together in one ZIP, and
-  // the custom shapes of this browser in a folder beside them.
-  const backupAllProjects = useCallback(async () => {
-    const shapeEntries = await customShapesBackupEntries().catch(() => []);
-    const shapeCount = Math.max(0, shapeEntries.length - 1);
-    if (projects.length === 0 && shapeCount === 0) {
+  // Designs of this browser, each as its own .lyl, together in one ZIP. "Back up all" takes every design
+  // and the custom shapes of this browser in a folder beside them; the chosen designs or one folder (#991)
+  // go without the shapes. Empty folders go along when all or a folder is backed up.
+  const backupProjects = useCallback(async (scope: { designIds: string[] } | { folderId: string } | null) => {
+    // The browser's own designs: a design of the server kept here while open is the server's to back up.
+    const inFolder = (folderId: string, id: string | null | undefined) => folderTrail(designFolders, folderOfDesign(designFolders, id)).some((folder) => folder.id === folderId);
+    const designs = !scope
+      ? localDesigns
+      : "designIds" in scope
+        ? localDesigns.filter((project) => scope.designIds.includes(project.id))
+        : localDesigns.filter((project) => inFolder(scope.folderId, project.folderId));
+    // A folder's backup is named after it, and so is the backup of one chosen design (Discussion #1317), so several of
+    // them stay apart in the downloads.
+    const folder = scope && "folderId" in scope ? designFolders.find((entry) => entry.id === scope.folderId) : undefined;
+    const single = scope && "designIds" in scope && designs.length === 1 ? designs[0] : undefined;
+    const named = folder?.name ?? single?.name;
+    const suggestedName = backupFileName(new Date(), named ? backupNamePrefix(named) : undefined);
+    // A design changed while the backup runs may not be in it, so the backup counts from when it began.
+    const startedAt = Date.now();
+    if (scope && designs.length === 0) {
       setDashboardNotice(t("notice.backupEmpty"));
+      return;
+    }
+    // Where the backup goes is asked first, while the click still counts for the browser: reading the designs can
+    // take a while. Chrome and Edge show a save dialog that remembers its folder; elsewhere it is a download.
+    let target = designs.length > 0 ? await pickBackupTarget(suggestedName) : null;
+    if (designs.length > 0 && !target) {
+      setDashboardNotice(t("notice.backupNothingChosen"));
+      return;
+    }
+    const shapeEntries = scope ? [] : await customShapesBackupEntries().catch(() => []);
+    const shapeCount = Math.max(0, shapeEntries.length - 1);
+    if (designs.length === 0 && shapeCount === 0) {
+      setDashboardNotice(t("notice.backupEmpty"));
+      return;
+    }
+    // Only custom shapes: asked once they are read, which is quick.
+    target ??= await pickBackupTarget(suggestedName);
+    if (!target) {
+      setDashboardNotice(t("notice.backupNothingChosen"));
       return;
     }
     try {
       // A design in a folder goes into the ZIP in that folder, so a restore puts it back there (#496).
-      const names = backupEntryPaths(projects.map((project) => ({ name: project.name, folder: folderPathNames(designFolders, project.folderId) })), t("dashboard.backupFallbackName"));
+      const names = backupEntryPaths(designs.map((project) => ({ name: project.name, folder: folderPathNames(designFolders, project.folderId) })), t("dashboard.backupFallbackName"));
       // Each design goes into the file as it comes and is let go, instead of all of them and then the whole ZIP once
       // more in memory, where large designs made Safari reload the page without a word (#887).
       const writer = createBackupWriter();
       const skipped: string[] = [];
-      for (let index = 0; index < projects.length; index += 1) {
-        setDashboardNotice(t("notice.backingUp", { index: index + 1, total: projects.length }));
+      for (let index = 0; index < designs.length; index += 1) {
+        setDashboardNotice(t("notice.backingUp", { index: index + 1, total: designs.length }));
         // Noted before the design is read, so a page that is gone in the middle can say afterwards where it stopped.
-        writeBackupProgress({ index: index + 1, total: projects.length, name: projects[index].name });
+        writeBackupProgress({ index: index + 1, total: designs.length, name: designs[index].name });
         try {
-          writer.add(names[index], await projectPackageBytes(projects[index]));
+          writer.add(names[index], await projectPackageBytes(designs[index]));
         } catch (error) {
           // One design that cannot be read does not cost the backup of the others; the message names it.
-          skipped.push(`${projects[index].name} (${error instanceof Error ? localizedError(error.message) : String(error)})`);
+          skipped.push(`${designs[index].name} (${error instanceof Error ? localizedError(error.message) : String(error)})`);
           continue;
         }
         // The card picture goes along, so a restore shows it at once.
-        const thumbnail = await projectThumbnailPngBytes(projects[index].thumbnailUrl).catch(() => null);
+        const thumbnail = await projectThumbnailPngBytes(designs[index].thumbnailUrl).catch(() => null);
         if (thumbnail) writer.add(backupThumbnailPath(names[index]), thumbnail);
       }
       shapeEntries.forEach((entry) => writer.add(entry.name, entry.bytes));
       // Folders with no design anywhere inside them go along as empty folders.
-      const holding = new Set(projects.flatMap((project) => folderTrail(designFolders, folderOfDesign(designFolders, project.folderId)).map((folder) => folder.id)));
-      const emptyFolders = designFolders.filter((folder) => !holding.has(folder.id) && !designFolders.some((other) => other.parentId === folder.id));
+      const holding = new Set(designs.flatMap((project) => folderTrail(designFolders, folderOfDesign(designFolders, project.folderId)).map((folder) => folder.id)));
+      const foldersAlong = !scope ? designFolders : "folderId" in scope ? designFolders.filter((folder) => inFolder(scope.folderId, folder.id)) : [];
+      const emptyFolders = foldersAlong.filter((folder) => !holding.has(folder.id) && !designFolders.some((other) => other.parentId === folder.id));
       backupFolderPaths(emptyFolders.map((folder) => folderPathNames(designFolders, folder.id))).forEach((name) => writer.add(name, new Uint8Array()));
-      const fileName = backupFileName(new Date());
-      const url = URL.createObjectURL(writer.finish());
+      await writeBackupTarget(target, writer.finish(), (name, zip) => downloadBackup(zip, name));
+      const fileName = target.fileName;
       writeBackupProgress(null);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      const saved = projects.length - skipped.length;
+      const saved = designs.length - skipped.length;
+      if (!scope && skipped.length === 0 && designs.length > 0) {
+        rememberFullBackup(startedAt);
+        setLastFullBackup(startedAt);
+      }
       const done = shapeCount
         ? t("notice.backupDoneWithShapes", { count: saved, shapes: shapeCount, name: fileName })
         : t("notice.backupDone", { count: saved, name: fileName });
@@ -2372,7 +2588,44 @@ export default function Home() {
       writeBackupProgress(null);
       setDashboardNotice(t("notice.backupFailed", { reason: error instanceof Error ? localizedError(error.message) : String(error) }));
     }
-  }, [designFolders, projects]);
+  }, [designFolders, localDesigns]);
+  const backupAllProjects = useCallback(() => backupProjects(null), [backupProjects]);
+
+  // Every design of the server, in its folders, and its custom shapes, as the same kind of ZIP:
+  // "Restore backup" brings it back, on this computer or another.
+  const backupAllServerDesigns = useCallback(async () => {
+    // Asked before the designs are fetched, while the click still counts (see backupProjects).
+    const target = await pickBackupTarget(backupFileName(new Date(), "layerling-server-backup"));
+    if (!target) {
+      setDashboardNotice(t("notice.backupNothingChosen"));
+      return;
+    }
+    try {
+      const writer = createBackupWriter();
+      const { count, skipped } = await writeServerBackup(writer, t("dashboard.backupFallbackName"), (index, total, name) => {
+        setDashboardNotice(t("notice.backingUp", { index, total }));
+        writeBackupProgress({ index, total, name });
+      });
+      // As in the browser's backup, a shape that cannot be read does not cost the designs.
+      const shapes = await serverCustomShapesBackupEntries().catch(() => ({ entries: [], count: 0 }));
+      shapes.entries.forEach((entry) => writer.add(entry.name, entry.bytes));
+      writeBackupProgress(null);
+      if (count === 0 && skipped.length === 0 && shapes.count === 0) {
+        await dropBackupTarget(target);
+        setDashboardNotice(t("notice.backupEmpty"));
+        return;
+      }
+      await writeBackupTarget(target, writer.finish(), (name, zip) => downloadBackup(zip, name));
+      const fileName = target.fileName;
+      const done = shapes.count
+        ? t("notice.backupDoneWithShapes", { count, shapes: shapes.count, name: fileName })
+        : t("notice.backupDone", { count, name: fileName });
+      setDashboardNotice(skipped.length ? `${done} ${t("notice.backupSkipped", { count: skipped.length, names: skipped.join("; ") })}` : done);
+    } catch (error) {
+      writeBackupProgress(null);
+      setDashboardNotice(t("notice.backupFailed", { reason: error instanceof Error ? localizedError(error.message) : String(error) }));
+    }
+  }, []);
 
   // A backup brings every design back as a new design of this browser; the
   // editor stays closed, so the whole set lands on the start page at once.
@@ -2405,9 +2658,11 @@ export default function Home() {
     let restoredFolders = designFolders;
     let failed = 0;
     let alreadyThere = 0;
-    // With new designs on the server the backup goes there, into the open folder, its folders made below it.
+    // Of those, the ones whose card here is bound to a file on the server: the notice says where they are (#1572).
+    let onServer = 0;
+    // On the server's tab, or with new designs on the server, the backup goes there, into the open folder, its folders made below it.
     await serverAnswer.wait();
-    const toServer = newDesignsGoToServer();
+    const toServer = (dashboardSection === "shared" && sharedEnabledRef.current) || newDesignsGoToServer();
     const serverBase = sharedPathRef.current;
     let serverProblem = "";
     const restoredThumbnails: { projectId: string; image: string; shapes: number }[] = [];
@@ -2418,7 +2673,8 @@ export default function Home() {
         // A restore keeps the creation time of a design, so the same name and creation time means it is already here (#407).
         const restoredName = restored.projectName || projectNameFromFileName(entries[index].name);
         if (backupDesignAlreadyThere(projects, { name: restoredName, createdAt: restored.createdAt })) {
-          alreadyThere += 1;
+          if (backupDesignAlreadyThere(projects.filter((project) => !project.sharedProject), { name: restoredName, createdAt: restored.createdAt })) alreadyThere += 1;
+          else onServer += 1;
           continue;
         }
         const now = Date.now() + index;
@@ -2438,9 +2694,12 @@ export default function Home() {
         const entry = projectShapeCacheEntry(now, restored.shapes, restored.history, restored.historyIndex, restored.assets, restored.attachments);
         await saveProjectShapes(local.id, entry, projectShapeSaveContext(local));
         let project = local;
+        const thumbnail = entries[index].thumbnail;
         if (toServer) {
           const where = await storeFolderPath(serverBase, entries[index].folder ?? []);
-          const outcome = await placeNewDesign(local, where);
+          // The picture from the backup goes up with the design: the server's card showed none until the design was
+          // next saved from the editor (Jürgen Keller, a browser backup restored into the Docker version).
+          const outcome = await placeNewDesign(thumbnail ? { ...local, thumbnailUrl: pngDataUrl(thumbnail) } : local, where);
           project = outcome.project;
           if (outcome.problem && !serverProblem) serverProblem = outcome.problem;
         }
@@ -2450,7 +2709,6 @@ export default function Home() {
         if (restored.tapeMeasurements) writeTape(project.id, restored.tapeMeasurements);
         restoredProjects.push(project);
         restoredEntries[project.id] = entry;
-        const thumbnail = entries[index].thumbnail;
         if (thumbnail) restoredThumbnails.push({ projectId: project.id, image: pngDataUrl(thumbnail), shapes: restored.shapes.length });
       } catch {
         failed += 1;
@@ -2476,15 +2734,18 @@ export default function Home() {
     const keptFolders = restoredFolders.filter((folder) => designFolders.some((existing) => existing.id === folder.id)
       || [...usedFolders].some((used) => folderTrail(restoredFolders, used).some((onTheWay) => onTheWay.id === folder.id)));
     if (keptFolders.length !== designFolders.length) setDesignFolders(keptFolders);
-    const skippedNote = alreadyThere > 0 && restoredProjects.length > 0 ? ` ${t("notice.backupAlreadyThere", { count: alreadyThere })}` : "";
-    if (restoredProjects.length === 0 && failed === 0 && alreadyThere > 0) {
-      setDashboardNotice(t("notice.backupAllThere", { count: alreadyThere, name: file.name }) + shapesNote);
+    const onServerNote = onServer > 0 ? ` ${t("notice.backupOnServerToo", { count: onServer })}` : "";
+    if (restoredProjects.length === 0 && failed === 0 && alreadyThere + onServer > 0) {
+      setDashboardNotice((alreadyThere === 0
+        ? t("notice.backupAllOnServer", { count: onServer, name: file.name })
+        : t("notice.backupAllThere", { count: alreadyThere + onServer, name: file.name }) + onServerNote) + shapesNote);
       return;
     }
+    const skippedNote = (alreadyThere > 0 && restoredProjects.length > 0 ? ` ${t("notice.backupAlreadyThere", { count: alreadyThere })}` : "") + onServerNote;
     setDashboardNotice((failed
       ? t("notice.backupRestoredPartly", { count: restoredProjects.length, failed, name: file.name })
       : t("notice.backupRestored", { count: restoredProjects.length, name: file.name })) + skippedNote + shapesNote + (serverProblem ? ` ${serverProblem}` : ""));
-  }, [designFolders, newDesignsGoToServer, placeNewDesign, projects, refreshSharedProjects, serverAnswer, storeFolderPath, updateProjectSnapshot]);
+  }, [dashboardSection, designFolders, newDesignsGoToServer, placeNewDesign, projects, refreshSharedProjects, serverAnswer, storeFolderPath, updateProjectSnapshot]);
 
   const importFilesFromDashboard = useCallback(
     async (files: File[], fileHandle?: LylFileHandle) => {
@@ -2525,7 +2786,7 @@ export default function Home() {
         setDashboardNotice(result.mtlOnly
           ? t("status.importMtlAlone")
           : failures.length === 1 && result.files.length <= 1
-            ? failures[0].reason
+            ? importFailureReason(failures[0])
             : t("status.importNoneFailed", { total: Math.max(result.files.length, failures.length), summary: failureSummary }));
         return;
       }
@@ -2557,6 +2818,7 @@ export default function Home() {
     },
     [openFolderId, openLylProjectFromFile, placeNewDesign, projects.length, refreshSharedProjects, restoreBackup],
   );
+  openLaunchedFileRef.current = (file, handle) => importFilesFromDashboard([file], handle);
 
   /** Chrome and Edge: a file dialog that hands over the file's place, so Save can write back into it (#251). */
   const pickDashboardImport = async () => {
@@ -2590,6 +2852,7 @@ export default function Home() {
       setProjects((current) => current.map((project) => (project.id === activeProjectId ? { ...project, updatedAt: Date.now() } : project)));
     }
     // Back where you came from: a project opened from the folder returns to it.
+    tabChosenRef.current = true;
     setDashboardSection(leavingProject?.sharedProject ? "shared" : "home");
     setEditorLoading(false);
     setView("dashboard");
@@ -2669,6 +2932,38 @@ export default function Home() {
    * Bindung an eine Serverdatei, denn die gehoert dem Original, und das
    * Kartenbild als blosse Adresse - das bekommt sie als eigenes Bild.
    */
+  /**
+   * Opens a design without its undo history (#1157). Only the current state is read from the
+   * stored package, written back as the design with a history of one entry, and then opened.
+   * A design whose history grew too large to open in the browser opens again this way.
+   */
+  const openProjectWithoutHistory = async (projectId: string) => {
+    const project = projects.find((candidate) => candidate.id === projectId);
+    if (!project) return;
+    setDashboardNotice(t("notice.openingWithoutHistory", { name: project.name }));
+    try {
+      // A save still writing on the way out would bring the old history back over the cut one.
+      await (projectShapeSaveQueuesRef.current[projectId] ?? Promise.resolve()).catch(() => undefined);
+      markDesignOpening(window.localStorage, projectId);
+      const stored = await loadProjectShapes(projectId, { currentStateOnly: true });
+      if (!stored) throw new Error(t("notice.projectShapesLoadFailed"));
+      // A package comes back with one entry already; an older record still carries its whole history.
+      const history = stored.history ?? [];
+      const current = history[Math.min(Math.max(0, stored.historyIndex ?? history.length - 1), history.length - 1)];
+      const revision = Math.max(Date.now(), (project.revision ?? 0) + 1);
+      const entry = projectShapeCacheEntry(revision, current?.shapes ?? stored.shapes ?? [], current ? [current] : undefined, 0, stored.assets ?? [], stored.attachments);
+      await saveProjectShapes(projectId, entry, projectShapeSaveContext(project));
+      // The cut entry is newer than any stored revision, so the editor takes it instead of reading the package again.
+      setProjectShapesById((existing) => ({ ...existing, [projectId]: entry }));
+      setDashboardNotice("");
+      openEditor(projectId);
+      window.setTimeout(() => clearDesignOpening(window.localStorage, projectId), DESIGN_OPENED_AFTER_MS);
+    } catch (error) {
+      clearDesignOpening(window.localStorage, projectId);
+      setDashboardNotice(error instanceof Error ? localizedError(error.message) : t("notice.openWithoutHistoryFailed"));
+    }
+  };
+
   const duplicateProject = async (projectId: string) => {
     const source = projects.find((project) => project.id === projectId);
     if (!source) return;
@@ -2861,6 +3156,9 @@ export default function Home() {
           visibleFolders={visibleFolders}
           openFolderId={openFolderId}
           localDesigns={localDesigns}
+          lastFullBackup={lastFullBackup}
+          backupReminderDays={fileBackupSettings.reminderDays}
+          onShowBackups={setBackupsScope}
           onOpenFolder={(folderId) => {
             setOpenFolderId(folderId);
             setDashboardNotice("");
@@ -2874,13 +3172,13 @@ export default function Home() {
           sharedFolders={sharedFolders}
           sharedPath={sharedPath}
           sharedProjects={visibleSharedProjects}
-          onCreateInStoreFolder={() => void createProjectInStoreFolder()}
           onCreateStoreFolder={(name) => void createStoreFolder(name)}
           onRenameStoreFolder={(folderPath, name) => void renameStoreFolder(folderPath, name)}
           onDeleteStoreFolder={(folderPath, recursive) => void deleteStoreFolder(folderPath, recursive)}
           onOpenStoreFolder={openStoreFolder}
           onMoveSharedProject={(project, targetPath) => void moveSharedProject(project, targetPath)}
           onSendProjectToServer={(projectId) => void sendProjectToServer(projectId)}
+          onTakeSharedProjectIntoBrowser={(project) => void takeSharedProjectIntoBrowser(project)}
           sharedProjectsEnabled={sharedProjectsEnabled}
           sharedProjectsLoading={sharedProjectsLoading}
           sharedSearch={sharedSearch}
@@ -2893,32 +3191,45 @@ export default function Home() {
           onNewDesignsOnServerChange={changeNewDesignsOnServer}
           localOnlyProjects={projects.filter((project) => !project.sharedProject).length}
           onSendAllToServer={() => void sendAllProjectsToServer()}
+          onSendFolderToServer={(folderId) => void sendDesignsToServer(folderId)}
           onDeleteProject={deleteProject}
           onDeleteProjects={deleteProjects}
           onDeleteSharedProject={(project) => void deleteSharedProject(project)}
           onDeleteSharedProjects={(sharedList) => void deleteSharedProjectsInTurn(sharedList)}
           onDuplicateProject={(projectId) => void duplicateProject(projectId)}
+          onOpenProjectWithoutHistory={(projectId) => void openProjectWithoutHistory(projectId)}
           onDuplicateSharedProject={(project) => void duplicateSharedProject(project)}
           onImportFile={() => void pickDashboardImport()}
           onBackupAll={() => void backupAllProjects()}
+          onBackupProjects={(designIds) => void backupProjects({ designIds })}
+          onBackupFolder={(folderId) => void backupProjects({ folderId })}
+          onBackupAllServer={() => void backupAllServerDesigns()}
           onRestoreBackup={() => backupRestoreInputRef.current?.click()}
+          openingSharedKey={openingSharedKey}
           onOpenSharedProject={(project) => void openSharedProject(project)}
           onOpenProject={openEditor}
           onQueryChange={setQuery}
           onRenameProject={renameProject}
           onRefreshSharedProjects={() => void refreshSharedProjects()}
-          onLocalProjects={() => {
-            setDashboardSection("home");
+          sharedTotal={sharedTotal}
+          serverTabFirst={Boolean(serverTabFirst)}
+          onSelectSection={(section) => {
+            tabChosenRef.current = true;
+            setDashboardSection(section);
             setDashboardNotice("");
-          }}
-          onSharedProjects={() => {
-            setDashboardSection("shared");
-            setDashboardNotice("");
-            void refreshSharedProjects();
+            if (section === "shared") void refreshSharedProjects();
           }}
           onSortModeChange={setSortMode}
           onViewModeChange={setViewMode}
           onWorkspace={openLatestProject}
+          latestThumbnailUrl={[...projects].sort((a, b) => b.updatedAt - a.updatedAt)[0]?.thumbnailUrl ?? null}
+        />
+      ) : null}
+      {backupsScope !== undefined ? (
+        <FileBackupsDialog
+          scope={backupsScope}
+          onOpen={(file, name) => openLylProjectFromFile(file, undefined, undefined, { name })}
+          onClose={() => setBackupsScope(undefined)}
         />
       ) : null}
       {emptyProjectPrompt ? (
@@ -2976,6 +3287,11 @@ export default function Home() {
               onHome={workshop ? undefined : openDashboard}
               workshop={workshop}
               onOpenLylProjectFile={openLylProjectFromFile}
+              onBackUpAllDesigns={() => {
+                // The save dialog comes first, while the click still counts; the start page then shows how it goes.
+                void backupAllProjects();
+                openDashboard();
+              }}
               onSaveSharedProject={saveActiveProjectToShared}
               onSaveExportFile={saveExportFileToShared}
               serverFileName={activeProject?.sharedProject?.fileName ?? null}
@@ -3087,6 +3403,9 @@ function Dashboard({
   visibleFolders,
   openFolderId,
   localDesigns,
+  lastFullBackup,
+  backupReminderDays,
+  onShowBackups,
   onOpenFolder,
   onCreateFolder,
   onRenameFolder,
@@ -3097,13 +3416,13 @@ function Dashboard({
   sharedFolders,
   sharedPath,
   sharedProjects,
-  onCreateInStoreFolder,
   onCreateStoreFolder,
   onRenameStoreFolder,
   onDeleteStoreFolder,
   onOpenStoreFolder,
   onMoveSharedProject,
   onSendProjectToServer,
+  onTakeSharedProjectIntoBrowser,
   sharedProjectsEnabled,
   sharedProjectsLoading,
   sharedSearch,
@@ -3116,25 +3435,33 @@ function Dashboard({
   onDeleteSharedProject,
   onDeleteSharedProjects,
   onDuplicateProject,
+  onOpenProjectWithoutHistory,
   onDuplicateSharedProject,
   onImportFile,
   onBackupAll,
+  onBackupProjects,
+  onBackupFolder,
+  onBackupAllServer,
   onRestoreBackup,
+  openingSharedKey = null,
   newDesignsOnServer,
   newDesignsOnServerLocked,
   onNewDesignsOnServerChange,
   localOnlyProjects,
   onSendAllToServer,
+  onSendFolderToServer,
   onOpenSharedProject,
   onOpenProject,
   onQueryChange,
   onRenameProject,
   onRefreshSharedProjects,
-  onLocalProjects,
-  onSharedProjects,
+  sharedTotal,
+  serverTabFirst,
+  onSelectSection,
   onSortModeChange,
   onViewModeChange,
   onWorkspace,
+  latestThumbnailUrl,
 }: {
   dashboardSection: DashboardSection;
   dashboardNotice: string;
@@ -3146,6 +3473,12 @@ function Dashboard({
   openFolderId: string | null;
   /** The designs a folder counts. */
   localDesigns: DashboardProject[];
+  /** When "Back up all" last took all of them, or null. */
+  lastFullBackup: number | null;
+  /** Days without "Back up all" before the notice grows louder; 0 never. */
+  backupReminderDays: number;
+  /** Opens "Earlier versions" of one design, or of every design with null. */
+  onShowBackups: (scope: FileBackupsScope) => void;
   onOpenFolder: (folderId: string | null) => void;
   onCreateFolder: (name: string) => void;
   onRenameFolder: (folderId: string, name: string) => void;
@@ -3156,13 +3489,13 @@ function Dashboard({
   sharedFolders: SharedFolder[];
   sharedPath: string;
   sharedProjects: SharedProject[];
-  onCreateInStoreFolder: () => void;
   onCreateStoreFolder: (name: string) => void;
   onRenameStoreFolder: (folderPath: string, name: string) => void;
   onDeleteStoreFolder: (folderPath: string, recursive: boolean) => void;
   onOpenStoreFolder: (path: string) => void;
   onMoveSharedProject: (project: SharedProject, targetPath: string) => void;
   onSendProjectToServer: (projectId: string) => void;
+  onTakeSharedProjectIntoBrowser: (project: SharedProject) => void;
   sharedProjectsEnabled: boolean;
   sharedProjectsLoading: boolean;
   sharedSearch: SharedSearchResult | null;
@@ -3175,30 +3508,48 @@ function Dashboard({
   onDeleteSharedProject: (project: SharedProject) => void;
   onDeleteSharedProjects: (projects: SharedProject[]) => void;
   onDuplicateProject: (projectId: string) => void;
+  /** Opens a design with only its current state, without the undo history (#1157). */
+  onOpenProjectWithoutHistory: (projectId: string) => void;
   onDuplicateSharedProject: (project: SharedProject) => void;
   onImportFile: () => void;
   onBackupAll: () => void;
+  onBackupProjects: (designIds: string[]) => void;
+  onBackupFolder: (folderId: string) => void;
+  onBackupAllServer: () => void;
   onRestoreBackup: () => void;
+  openingSharedKey?: string | null;
   newDesignsOnServer: boolean;
   newDesignsOnServerLocked: boolean;
   onNewDesignsOnServerChange: (on: boolean) => void;
   localOnlyProjects: number;
   onSendAllToServer: () => void;
+  onSendFolderToServer: (folderId: string) => void;
   onOpenSharedProject: (project: SharedProject) => void;
   onOpenProject: (projectId: string) => void;
   onQueryChange: (value: string) => void;
   onRenameProject: (projectId: string, name: string) => void;
   onRefreshSharedProjects: (path?: string) => void;
-  /** The way back from the server folder to the designs of this browser. */
-  onLocalProjects: () => void;
-  onSharedProjects: () => void;
+  /** Designs in the whole server store, for its tab; null until the server has answered. */
+  sharedTotal: number | null;
+  /** The server tab comes first when the server held more designs than the browser. */
+  serverTabFirst: boolean;
+  onSelectSection: (section: DashboardSection) => void;
   onSortModeChange: (value: string) => void;
   onViewModeChange: (value: ViewMode) => void;
   onWorkspace: () => void;
+  /** The card picture of the design "Continue workplane" opens. */
+  latestThumbnailUrl: string | null;
 }) {
   const language = useLanguage();
-  // New designs start on the server and this browser holds none of its own: the storage notice says so instead of asking for a backup.
-  const serverKeepsDesigns = sharedProjectsEnabled && newDesignsOnServer && localOnlyProjects === 0;
+  // Without a server there are only the browser's designs. When every new design must go to the server and this
+  // browser holds none of its own, there are only the server's.
+  const backupNote = useMemo(() => backupNoteState(localDesigns, lastFullBackup), [localDesigns, lastFullBackup]);
+  const backupLevel = useMemo(
+    () => backupUrgency({ lastFullBackup, designs: localDesigns, now: Date.now(), reminderDays: backupReminderDays }),
+    [localDesigns, lastFullBackup, backupReminderDays],
+  );
+  const showBrowserTab = !sharedProjectsEnabled || !newDesignsOnServerLocked || localDesigns.length > 0;
+  const activeSection: DashboardSection = !sharedProjectsEnabled ? "home" : showBrowserTab ? dashboardSection : "shared";
   const offlineOk = useOfflineAvailable();
   const { update, isDismissed, dismiss: dismissUpdate } = useAppUpdate(LYL_CREATED_WITH_VERSION);
   const whatsNew = useWhatsNew(LYL_CREATED_WITH_VERSION);
@@ -3206,7 +3557,10 @@ function Dashboard({
   const [openProjectMenuId, setOpenProjectMenuId] = useState<string | null>(null);
   const [openSharedProjectMenuKey, setOpenSharedProjectMenuKey] = useState<string | null>(null);
   const [projectPendingDeleteId, setProjectPendingDeleteId] = useState<string | null>(null);
+  const [projectPendingHistoryCutId, setProjectPendingHistoryCutId] = useState<string | null>(null);
   const [sharedProjectPendingDeleteKey, setSharedProjectPendingDeleteKey] = useState<string | null>(null);
+  // A design of the server about to come into this browser (#1572): it leaves the server for everybody, so it asks first.
+  const [sharedProjectPendingTake, setSharedProjectPendingTake] = useState<SharedProject | null>(null);
   // Choosing several designs to delete them together (#886): the keys of what is chosen (designSelection.ts).
   const [selecting, setSelecting] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
@@ -3242,7 +3596,9 @@ function Dashboard({
   const searchResults = sharedProjectsEnabled && searchTerm ? sharedSearch : null;
   const searchHits = searchResults ? searchResults.projects.length + searchResults.folders.length : 0;
   const shownSharedProjects = searchResults ? searchResults.projects : sharedProjects;
-  const shownSharedFolders = searchResults ? searchResults.folders : sharedFolders;
+  // The store's own folder for custom shapes, at its top level: drawn apart, and always first.
+  const isShapesFolder = (folder: SharedFolder) => folder.name === CUSTOM_SHAPES_FOLDER && !(folder.path ?? sharedPath);
+  const shownSharedFolders = [...(searchResults ? searchResults.folders : sharedFolders)].sort((a, b) => Number(isShapesFolder(b)) - Number(isShapesFolder(a)));
 
   /**
    * Einem Treffer in seinen Ordner folgen.
@@ -3256,17 +3612,18 @@ function Dashboard({
     onOpenStoreFolder(folderPath);
   };
   const projectPendingDelete = projects.find((project) => project.id === projectPendingDeleteId) ?? null;
+  const projectPendingHistoryCut = projects.find((project) => project.id === projectPendingHistoryCutId) ?? null;
   const sharedProjectPendingDelete = shownSharedProjects.find((project) => sharedProjectKey(project) === sharedProjectPendingDeleteKey) ?? null;
   const projectPendingRename = projects.find((project) => project.id === projectPendingRenameId) ?? null;
 
   // What can be chosen is what the open list shows: the designs of this browser, or those of the server folder.
-  const selectableKeys = dashboardSection === "shared"
+  const selectableKeys = activeSection === "shared"
     ? shownSharedProjects.map((project) => serverDesignKey(sharedProjectKey(project)))
     : projects.map((project) => localDesignKey(project.id));
   const selectableSignature = selectableKeys.join("\n");
   const selectedLocal = projects.filter((project) => selectedKeys.has(localDesignKey(project.id)));
   const selectedShared = shownSharedProjects.filter((project) => selectedKeys.has(serverDesignKey(sharedProjectKey(project))));
-  const selectedCount = dashboardSection === "shared" ? selectedShared.length : selectedLocal.length;
+  const selectedCount = activeSection === "shared" ? selectedShared.length : selectedLocal.length;
   const toggleSelected = (key: string) => setSelectedKeys((current) => toggleDesignSelection(current, key));
   const endSelecting = () => {
     setSelecting(false);
@@ -3279,7 +3636,7 @@ function Dashboard({
     setSelecting(true);
   };
   const confirmSelectionDelete = () => {
-    if (dashboardSection === "shared") onDeleteSharedProjects(selectedShared);
+    if (activeSection === "shared") onDeleteSharedProjects(selectedShared);
     else onDeleteProjects(selectedLocal.map((project) => project.id));
     endSelecting();
   };
@@ -3293,7 +3650,7 @@ function Dashboard({
     setSelecting(false);
     setSelectedKeys(new Set());
     setSelectionDeletePending(false);
-  }, [dashboardSection, openFolderId, sharedPath]);
+  }, [activeSection, openFolderId, sharedPath]);
   useEffect(() => {
     if (!selecting || selectionDeletePending) return;
     const onKey = (event: KeyboardEvent) => {
@@ -3308,6 +3665,16 @@ function Dashboard({
       <strong role="status">{t("dashboard.selectedCount", { count: selectedCount })}</strong>
       <button type="button" onClick={() => setSelectedKeys(new Set(selectableKeys))}>{t("dashboard.selectAll")}</button>
       <button type="button" disabled={selectedCount === 0} onClick={() => setSelectedKeys(new Set())}>{t("dashboard.selectNone")}</button>
+      {activeSection === "shared" ? null : (
+        <button
+          type="button"
+          disabled={selectedCount === 0}
+          title={t("dashboard.backupSelectedTitle")}
+          onClick={() => onBackupProjects(selectedLocal.map((project) => project.id))}
+        >
+          {t("dashboard.backupSelected")}
+        </button>
+      )}
       <button className="delete" type="button" disabled={selectedCount === 0} onClick={() => setSelectionDeletePending(true)}>{t("common.delete")}</button>
       <button type="button" onClick={endSelecting}>{t("dashboard.selectDone")}</button>
     </div>
@@ -3325,10 +3692,22 @@ function Dashboard({
     setSharedProjectPendingDeleteKey(null);
   }, [sharedProjectPendingDeleteKey, shownSharedProjects]);
 
+  const confirmOpenWithoutHistory = () => {
+    if (!projectPendingHistoryCut) return;
+    onOpenProjectWithoutHistory(projectPendingHistoryCut.id);
+    setProjectPendingHistoryCutId(null);
+  };
+
   const confirmProjectDelete = () => {
     if (!projectPendingDelete) return;
     onDeleteProject(projectPendingDelete.id);
     setProjectPendingDeleteId(null);
+  };
+
+  const confirmSharedProjectTake = () => {
+    if (!sharedProjectPendingTake) return;
+    onTakeSharedProjectIntoBrowser(sharedProjectPendingTake);
+    setSharedProjectPendingTake(null);
   };
 
   const confirmSharedProjectDelete = () => {
@@ -3485,6 +3864,69 @@ function Dashboard({
     closeProjectRename();
   };
 
+  const welcome = useWelcomeHidden();
+  // Brought back from the footer: open, and scrolled into view.
+  const [welcomeReopened, setWelcomeReopened] = useState(false);
+  const showWelcome = () => {
+    welcome.show();
+    setWelcomeReopened(true);
+    window.requestAnimationFrame(() => document.getElementById("welcome")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
+  // The counts are of the whole place, or of what the search found there.
+  const browserCount = localSearch ? projects.length : localDesigns.length;
+  const serverCount = searchResults ? searchResults.projects.length : sharedTotal ?? sharedProjects.length;
+  // A design of the server can come back into this browser (#1572), unless the server wants every design kept there.
+  const canTakeIntoBrowser = sharedProjectsEnabled && !newDesignsOnServerLocked;
+  const browserTab: DesignTab<DashboardSection> = {
+    id: "home",
+    label: t("dashboard.tabBrowser", { count: browserCount }),
+    count: browserCount,
+    // A design of the server dropped on the browser's tab comes into this browser. ":" is not allowed in a folder's name.
+    dropTarget: dropFolderPath === ":browser",
+    dropProps: {
+      onDragOver: (event) => {
+        if (!draggedSharedKey || !canTakeIntoBrowser) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        setDropFolderPath(":browser");
+      },
+      onDragLeave: () => setDropFolderPath((current) => (current === ":browser" ? null : current)),
+      onDrop: (event) => {
+        event.preventDefault();
+        const dragged = sharedProjects.find((project) => sharedProjectKey(project) === draggedSharedKey);
+        setDraggedSharedKey(null);
+        setDropFolderPath(null);
+        if (dragged && canTakeIntoBrowser) setSharedProjectPendingTake(dragged);
+      },
+    },
+  };
+  const serverTab: DesignTab<DashboardSection> = {
+    id: "shared",
+    label: t("dashboard.tabServer", { count: serverCount }),
+    count: serverCount,
+    // A design or a folder of this browser dropped on the server's tab goes onto the server, a folder with all in it (#1572).
+    dropTarget: dropFolderPath === "server",
+    dropProps: {
+      onDragOver: (event) => {
+        if (!draggedProjectId && !draggedFolderId) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        setDropFolderPath("server");
+      },
+      onDragLeave: () => setDropFolderPath((current) => (current === "server" ? null : current)),
+      onDrop: (event) => {
+        event.preventDefault();
+        const projectId = draggedProjectId;
+        const folderId = draggedFolderId;
+        clearLocalDrag();
+        if (projectId) onSendProjectToServer(projectId);
+        else if (folderId) onSendFolderToServer(folderId);
+      },
+    },
+  };
+  const designTabs = !sharedProjectsEnabled ? [browserTab] : !showBrowserTab ? [serverTab] : serverTabFirst ? [serverTab, browserTab] : [browserTab, serverTab];
+
   return (
     <main className="dashboard-shell">
       <header className="dashboard-topbar">
@@ -3506,7 +3948,7 @@ function Dashboard({
       </header>
 
       <div className="dashboard-layout">
-        <section className={`dashboard-main${hasProjects ? " has-projects" : ""}`} aria-label={dashboardSection === "shared" ? t("shared.title") : t("dashboard.projects")}>
+        <section className={`dashboard-main${hasProjects ? " has-projects" : ""}`} aria-label={activeSection === "shared" ? t("shared.title") : t("dashboard.projects")}>
           {update && !isDismissed && !simpleMode ? (
             <aside
               className="dashboard-update-notice"
@@ -3532,103 +3974,181 @@ function Dashboard({
               <UpdatePreview update={update} currentVersion={LYL_CREATED_WITH_VERSION} />
             </aside>
           ) : null}
-          {dashboardSection === "shared" ? (
+          {welcome.hidden === false && !simpleMode ? (
+            <DashboardWelcome open={(!hasProjects && !sharedTotal) || welcomeReopened} offline={offlineOk} onHide={welcome.hide} />
+          ) : null}
+          {/* Order follows what someone actually does: start something new,
+              pick up where they left off, open something that exists. The
+              same three on both tabs: they do not depend on where designs live. */}
+          <div className="dashboard-actions-band">
+            <button className="dashboard-action-tile create" type="button" onClick={onCreate}>
+              <span className="dashboard-action-icon">
+                <Plus size={25} strokeWidth={2.8} />
+              </span>
+              <span>{t("dashboard.createDesign")}</span>
+            </button>
+            <button className="dashboard-action-tile" type="button" onClick={onWorkspace}>
+              <span className="dashboard-action-icon">
+                <Clock3 size={24} strokeWidth={2.4} />
+              </span>
+              <span>{t("dashboard.continueWorkplane")}</span>
+              {latestThumbnailUrl ? <img className="dashboard-action-thumb" src={latestThumbnailUrl} alt="" /> : null}
+            </button>
+            <button className="dashboard-action-tile" type="button" onClick={onImportFile}>
+              <span className="dashboard-action-icon">
+                {/* The same picture as the import button in the editor. */}
+                <ToolbarImportIcon width={30} height={30} />
+              </span>
+              <span>{t("dashboard.importGeometry")}</span>
+            </button>
+          </div>
+          {dashboardNotice ? (
+            <div className="dashboard-import-notice" role="status">
+              {dashboardNotice}
+            </div>
+          ) : null}
+          {whatsNew.view && !simpleMode ? <WhatsNewCard view={whatsNew.view} current={LYL_CREATED_WITH_VERSION} onClose={whatsNew.dismiss} /> : null}
+          {simpleMode ? null : <InstallAppHint />}
+          {simpleMode ? null : <TabletHint />}
+          <DesignTabs tabs={designTabs} active={activeSection} onSelect={onSelectSection}>
+            {activeSection === "shared" ? (
+              <button className="dashboard-select dashboard-backup-button" type="button" onClick={() => onRefreshSharedProjects()} disabled={sharedProjectsLoading}>
+                <RefreshCw size={17} className={sharedProjectsLoading ? "spinning" : undefined} />
+                <span>{t("shared.refresh")}</span>
+              </button>
+            ) : (
+              <>
+                {sharedProjectsEnabled ? (
+                  <label className="dashboard-select dashboard-new-on-server" title={t(newDesignsOnServerLocked ? "dashboard.newOnServerLockedTitle" : "dashboard.newOnServerTitle")}>
+                    <Server size={17} />
+                    <input type="checkbox" checked={newDesignsOnServer} disabled={newDesignsOnServerLocked} onChange={(event) => onNewDesignsOnServerChange(event.currentTarget.checked)} />
+                    <span>{t("dashboard.newOnServer")}</span>
+                  </label>
+                ) : null}
+                {sharedProjectsEnabled && localOnlyProjects > 0 ? (
+                  <button className="dashboard-select dashboard-backup-button" type="button" title={t("dashboard.sendAllToServerTitle")} onClick={onSendAllToServer}>
+                    <FolderUp size={17} />
+                    <span>{t("dashboard.sendAllToServer")}</span>
+                  </button>
+                ) : null}
+              </>
+            )}
+            {/* From here on the same on both tabs. A new folder goes into the open one; while
+                searching, the way back to the folder stands there instead. */}
+            {localSearch ? (
+              <button className="dashboard-select dashboard-backup-button" type="button" onClick={() => onQueryChange("")}>
+                <X size={17} />
+                <span>{t("shared.searchClear")}</span>
+              </button>
+            ) : (
+              <button
+                className="dashboard-select dashboard-backup-button"
+                type="button"
+                title={t(activeSection === "shared" || newDesignsOnServer ? "dashboard.newFolderOnServerTitle" : "dashboard.newFolderTitle")}
+                onClick={() => {
+                  if (activeSection === "shared") {
+                    setFolderNameDraft(suggestStoreFolderName(t("shared.newFolderSuggestion"), sharedFolders.map((folder) => folder.name)));
+                    setFolderDialog({ mode: "create" });
+                    return;
+                  }
+                  setLocalFolderNameDraft(suggestDesignFolderName(designFolders, t("shared.newFolderSuggestion"), openFolderId));
+                  setLocalFolderDialog({ mode: "create" });
+                }}
+              >
+                <FolderPlus size={17} />
+                <span>{t("shared.newFolder")}</span>
+              </button>
+            )}
+            {selectableKeys.length > 0 ? (
+              <button
+                className={`dashboard-select dashboard-backup-button${selecting ? " active" : ""}`}
+                type="button"
+                aria-pressed={selecting}
+                title={t("dashboard.selectTitle")}
+                onClick={() => (selecting ? endSelecting() : startSelecting())}
+              >
+                <CheckSquare size={17} />
+                <span>{t("dashboard.select")}</span>
+              </button>
+            ) : null}
+            <button
+              className="dashboard-select dashboard-backup-button"
+              type="button"
+              title={t(activeSection === "shared" ? "dashboard.downloadAllServerTitle" : "dashboard.backupAllTitle")}
+              onClick={activeSection === "shared" ? onBackupAllServer : onBackupAll}
+            >
+              <Archive size={17} />
+              <span>{t("dashboard.backupAll")}</span>
+            </button>
+            {/* Also there with no designs yet: a new computer is where a backup is restored. */}
+            <button className="dashboard-select dashboard-backup-button" type="button" title={t("dashboard.restoreBackupTitle")} onClick={onRestoreBackup}>
+              <ArchiveRestore size={17} />
+              <span>{t("dashboard.restoreBackup")}</span>
+            </button>
+            <button className="dashboard-select dashboard-backup-button" type="button" title={t("backups.allTitle")} onClick={() => onShowBackups(null)}>
+              <History size={17} />
+              <span>{t("backups.title")}</span>
+            </button>
+            <label className="dashboard-select">
+              <SlidersHorizontal size={17} />
+              <select value={sortMode} onChange={(event) => onSortModeChange(event.currentTarget.value)} aria-label={t("dashboard.sortLabel")}>
+                <option value="recent">{t("dashboard.sortRecent")}</option>
+                <option value="name">{t("dashboard.sortName")}</option>
+              </select>
+            </label>
+            <div className="dashboard-segmented" aria-label={t("dashboard.viewLabel")}>
+              <button className={viewMode === "grid" ? "active" : ""} type="button" aria-label={t("dashboard.viewGrid")} onClick={() => onViewModeChange("grid")}>
+                <Grid3X3 size={17} />
+              </button>
+              <button className={viewMode === "list" ? "active" : ""} type="button" aria-label={t("dashboard.viewList")} onClick={() => onViewModeChange("list")}>
+                <List size={18} />
+              </button>
+            </div>
+          </DesignTabs>
+          {activeSection === "shared" ? (
             <>
-              {dashboardNotice ? <div className="dashboard-import-notice" role="status">{dashboardNotice}</div> : null}
-              <div className="dashboard-section-header shared-projects-header">
-                <div>
-                  <h1>{t("shared.title")}</h1>
-                  {/* Beim Suchen sagt diese Zeile, was gefunden wurde; sonst
-                      ist sie die Adresse: Jeder Schritt zurueck ist ein
-                      Schritt, den man gehen kann, und der letzte nennt den
-                      Ordner, in dem man steht. */}
-                  {searchResults && searchHits > 0 ? (
-                    <p className="dashboard-section-subtitle store-search-line" role="status">
-                      {searchHits === 1
-                        ? t("shared.searchCountOne", { query: searchResults.query })
-                        : t("shared.searchCountMany", { count: searchHits, query: searchResults.query })}
-                      {searchResults.truncated ? ` ${t("shared.searchTruncated")}` : ""}
-                    </p>
-                  ) : searchResults ? null : (
-                  <nav className="store-trail" aria-label={t("shared.trailLabel")}>
-                    <button
-                      type="button"
-                      onClick={() => onOpenStoreFolder("")}
-                      disabled={!sharedPath}
-                      className={dropFolderPath === "" ? "drop-target" : undefined}
-                      {...storeDropTarget("")}
-                    >
-                      {t("shared.trailRoot")}
-                    </button>
-                    {sharedPath.split("/").filter(Boolean).map((segment, index, all) => {
-                      const upTo = all.slice(0, index + 1).join("/");
-                      const here = index === all.length - 1;
-                      return (
-                        <Fragment key={upTo}>
-                          <span className="store-trail-separator" aria-hidden="true">/</span>
-                          <button
-                            type="button"
-                            onClick={() => onOpenStoreFolder(upTo)}
-                            disabled={here}
-                            className={dropFolderPath === upTo ? "drop-target" : undefined}
-                            {...storeDropTarget(upTo)}
-                          >
-                            {segment}
-                          </button>
-                        </Fragment>
-                      );
-                    })}
-                  </nav>
-                  )}
-                </div>
-                <div className="shared-projects-actions">
-                  <button className="shared-projects-refresh" type="button" onClick={onLocalProjects}>
-                    <ArrowLeft size={16} />
-                    <span>{t("shared.backToLocal")}</span>
-                  </button>
-                  {/* Anlegen gehoert in einen Ordner. In einer Trefferliste
-                      steht stattdessen der Weg zurueck in den Ordner. */}
-                  {searchResults ? (
-                    <button className="shared-projects-refresh" type="button" onClick={() => onQueryChange("")}>
-                      <X size={16} />
-                      <span>{t("shared.searchClear")}</span>
-                    </button>
-                  ) : (
-                  <>
-                  <button className="shared-projects-refresh" type="button" onClick={onCreateInStoreFolder}>
-                    <Plus size={16} strokeWidth={2.6} />
-                    <span>{t("shared.newDesign")}</span>
-                  </button>
+              <div className="design-tab-trail">
+                {/* Beim Suchen sagt diese Zeile, was gefunden wurde; sonst
+                    ist sie die Adresse: Jeder Schritt zurueck ist ein
+                    Schritt, den man gehen kann, und der letzte nennt den
+                    Ordner, in dem man steht. Ganz oben sagt das der Reiter. */}
+                {searchResults && searchHits > 0 ? (
+                  <p className="dashboard-section-subtitle store-search-line" role="status">
+                    {searchHits === 1
+                      ? t("shared.searchCountOne", { query: searchResults.query })
+                      : t("shared.searchCountMany", { count: searchHits, query: searchResults.query })}
+                    {searchResults.truncated ? ` ${t("shared.searchTruncated")}` : ""}
+                  </p>
+                ) : searchResults || !sharedPath ? null : (
+                <nav className="store-trail" aria-label={t("shared.trailLabel")}>
                   <button
-                    className="shared-projects-refresh"
                     type="button"
-                    onClick={() => {
-                      setFolderNameDraft(suggestStoreFolderName(t("shared.newFolderSuggestion"), sharedFolders.map((folder) => folder.name)));
-                      setFolderDialog({ mode: "create" });
-                    }}
+                    onClick={() => onOpenStoreFolder("")}
+                    className={dropFolderPath === "" ? "drop-target" : undefined}
+                    {...storeDropTarget("")}
                   >
-                    <FolderPlus size={16} />
-                    <span>{t("shared.newFolder")}</span>
+                    {t("shared.trailRoot")}
                   </button>
-                  </>
-                  )}
-                  {shownSharedProjects.length > 0 ? (
-                    <button
-                      className={`shared-projects-refresh${selecting ? " active" : ""}`}
-                      type="button"
-                      aria-pressed={selecting}
-                      title={t("dashboard.selectTitle")}
-                      onClick={() => (selecting ? endSelecting() : startSelecting())}
-                    >
-                      <CheckSquare size={16} />
-                      <span>{t("dashboard.select")}</span>
-                    </button>
-                  ) : null}
-                  <button className="shared-projects-refresh" type="button" onClick={() => onRefreshSharedProjects()} disabled={sharedProjectsLoading}>
-                    <RefreshCw size={16} className={sharedProjectsLoading ? "spinning" : undefined} />
-                    <span>{t("shared.refresh")}</span>
-                  </button>
-                </div>
+                  {sharedPath.split("/").filter(Boolean).map((segment, index, all) => {
+                    const upTo = all.slice(0, index + 1).join("/");
+                    const here = index === all.length - 1;
+                    return (
+                      <Fragment key={upTo}>
+                        <span className="store-trail-separator" aria-hidden="true">/</span>
+                        <button
+                          type="button"
+                          onClick={() => onOpenStoreFolder(upTo)}
+                          disabled={here}
+                          className={dropFolderPath === upTo ? "drop-target" : undefined}
+                          {...storeDropTarget(upTo)}
+                        >
+                          {segment}
+                        </button>
+                      </Fragment>
+                    );
+                  })}
+                </nav>
+                )}
               </div>
               {selectionBar}
               {/* Inside a folder the grid is drawn even when there is nothing in
@@ -3671,7 +4191,7 @@ function Dashboard({
                         onClick={() => (searchResults ? openFolderFromSearch(folderPath) : onOpenStoreFolder(folderPath))}
                       >
                         <span className="project-preview server-folder-preview">
-                          <FolderKanban aria-hidden="true" />
+                          {isShapesFolder(folder) ? <Shapes aria-hidden="true" /> : <FolderKanban aria-hidden="true" />}
                         </span>
                         <span className="project-card-title" translate="no">{folder.name}</span>
                         <span className="project-card-meta">{searchResults
@@ -3681,7 +4201,8 @@ function Dashboard({
                       {/* Umbenennen und Loeschen eines Ordners gehoeren dorthin,
                           wo er steht - in der Trefferliste fuehrt die Kachel
                           erst einmal hin. */}
-                      {searchResults ? null : (
+                      {/* The custom shapes folder is found by its name: it is not renamed or deleted. */}
+                      {searchResults || isShapesFolder(folder) ? null : (
                       <>
                       <button
                         className="project-menu-trigger"
@@ -3733,13 +4254,15 @@ function Dashboard({
                   {shownSharedProjects.map((project, index) => {
                     const key = sharedProjectKey(project);
                     const where = project.path ?? "";
+                    const isOpening = openingSharedKey === key;
                     return (
                     <article
-                      className={`project-card shared-project-card${draggedSharedKey === key ? " dragging" : ""}${selecting ? " selectable" : ""}${selecting && selectedKeys.has(serverDesignKey(key)) ? " selected" : ""}`}
+                      className={`project-card shared-project-card${isOpening ? " is-opening" : ""}${draggedSharedKey === key ? " dragging" : ""}${selecting ? " selectable" : ""}${selecting && selectedKeys.has(serverDesignKey(key)) ? " selected" : ""}`}
                       key={key}
-                      draggable={!searchResults && !selecting}
-                      title={searchResults ? undefined : t("shared.dragHint")}
+                      draggable={!searchResults && !selecting && !isOpening}
+                      title={searchResults ? undefined : t(canTakeIntoBrowser ? "shared.dragHintBrowserTab" : "shared.dragHint")}
                       onDragStart={(event) => {
+                        if (isOpening) return;
                         event.dataTransfer.effectAllowed = "move";
                         event.dataTransfer.setData("text/plain", project.fileName);
                         setDraggedSharedKey(key);
@@ -3752,13 +4275,31 @@ function Dashboard({
                       <button
                         className="project-card-open"
                         type="button"
+                        disabled={Boolean(openingSharedKey)}
+                        aria-busy={isOpening ? "true" : undefined}
                         aria-pressed={selecting ? selectedKeys.has(serverDesignKey(key)) : undefined}
                         aria-label={selecting ? t("dashboard.selectDesign", { name: project.name }) : undefined}
-                        onClick={() => (selecting ? toggleSelected(serverDesignKey(key)) : onOpenSharedProject(project))}
+                        onClick={() => {
+                          if (openingSharedKey) return;
+                          if (selecting) {
+                            toggleSelected(serverDesignKey(key));
+                          } else {
+                            onOpenSharedProject(project);
+                          }
+                        }}
                       >
-                        <ProjectPreview accent={PROJECT_ACCENTS[index % PROJECT_ACCENTS.length]} thumbnailUrl={project.thumbnailUrl} />
+                        <ProjectPreview accent={PROJECT_ACCENTS[index % PROJECT_ACCENTS.length]} thumbnailUrl={project.thumbnailUrl} loading={isOpening} />
                         <span className="project-card-title" translate="no">{project.name}</span>
-                        <span className="project-card-meta">{formatUpdated(project.updatedAt, language)} - {formatFileSize(project.size)}</span>
+                        <span className="project-card-meta">
+                          {isOpening ? (
+                            <span className="project-card-meta-loading">
+                              <LoaderCircle size={13} className="project-preview-spinner" />
+                              <span>{t("notice.openingShared", { name: project.name })}</span>
+                            </span>
+                          ) : (
+                            `${formatUpdated(project.updatedAt, language)} - ${formatFileSize(project.size)}`
+                          )}
+                        </span>
                       </button>
                       {/* Ein Treffer sagt, wo er liegt - und der Ordner ist ein
                           Knopf, der genau dorthin fuehrt. Ohne das waere die
@@ -3821,6 +4362,20 @@ function Dashboard({
                             <Copy size={16} />
                             <span>{t("common.duplicate")}</span>
                           </button>
+                          {canTakeIntoBrowser ? (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              title={t("dashboard.takeIntoBrowserTitle")}
+                              onClick={() => {
+                                setOpenSharedProjectMenuKey(null);
+                                setSharedProjectPendingTake(project);
+                              }}
+                            >
+                              <MonitorDown size={16} />
+                              <span>{t("dashboard.takeIntoBrowser")}</span>
+                            </button>
+                          ) : null}
                           <button
                             className="delete"
                             type="button"
@@ -3851,166 +4406,52 @@ function Dashboard({
             </>
           ) : (
             <>
-              {/* Order follows what someone actually does: start something new,
-                  pick up where they left off, open something that exists, then
-                  the shared folder beside it. Settings close the row. */}
-              <div className="dashboard-actions-band">
-                <button className="dashboard-action-tile create" type="button" onClick={onCreate}>
-                  <span className="dashboard-action-icon">
-                    <Plus size={25} strokeWidth={2.8} />
-                  </span>
-                  <span>{t("dashboard.createDesign")}</span>
-                </button>
-                <button className="dashboard-action-tile" type="button" onClick={onWorkspace}>
-                  <span className="dashboard-action-icon">
-                    <Clock3 size={24} strokeWidth={2.4} />
-                  </span>
-                  <span>{t("dashboard.continueWorkplane")}</span>
-                </button>
-                <button className="dashboard-action-tile" type="button" onClick={onImportFile}>
-                  <span className="dashboard-action-icon">
-                    {/* The same picture as the import button in the editor. */}
-                    <ToolbarImportIcon width={30} height={30} />
-                  </span>
-                  <span>{t("dashboard.importGeometry")}</span>
-                </button>
-              </div>
-              {dashboardNotice ? (
-                <div className="dashboard-import-notice" role="status">
-                  {dashboardNotice}
-                </div>
+              {localDesigns.length > 0 ? <YourBackupCard onBackUpNow={onBackupAll} /> : null}
+              {localDesigns.length > 0 ? (
+                <BrowserBackupNote
+                  state={backupNote}
+                  when={backupNote.kind === "never" ? "" : formatBackupTime(backupNote.at, language)}
+                  urgency={backupLevel}
+                  days={backupNote.kind === "never" ? 0 : daysBetween(backupNote.at, Date.now())}
+                  count={localDesigns.length}
+                  onBackUpNow={onBackupAll}
+                />
               ) : null}
-              {whatsNew.view && !simpleMode ? <WhatsNewCard view={whatsNew.view} current={LYL_CREATED_WITH_VERSION} onClose={whatsNew.dismiss} /> : null}
-              {simpleMode ? null : <InstallAppHint />}
-              {simpleMode ? null : <TabletHint />}
-              {/* The designs live in the browser, and a browser can fail or break with an update: said plainly and always (not to be closed).
-                  With new designs on the server and none left in this browser there is nothing here to back up: the notice says
-                  where they are instead, and keeps the way to bring in a backup made before. */}
-              <aside className={`storage-notice${serverKeepsDesigns ? " on-server" : ""}`} aria-label={t(serverKeepsDesigns ? "storageNotice.serverTitle" : "storageNotice.title")}>
-                <span className="storage-notice-icon" aria-hidden="true">
-                  {serverKeepsDesigns ? <Server size={24} strokeWidth={2.4} /> : <ShieldAlert size={24} strokeWidth={2.4} />}
-                </span>
-                <div className="storage-notice-text">
-                  <strong>{t(serverKeepsDesigns ? "storageNotice.serverTitle" : "storageNotice.title")} <GuideHelpLink chapter="files" section="backingUp" className="storage-notice-help" iconSize={16} /></strong>
-                  <span>{t(serverKeepsDesigns ? "storageNotice.serverBody" : "storageNotice.body")}</span>
-                </div>
-                <div className="storage-notice-actions">
-                  {projects.length > 0 && !serverKeepsDesigns ? (
-                    <button className="storage-notice-button" type="button" title={t("dashboard.backupAllTitle")} onClick={onBackupAll}>
-                      <Archive size={16} strokeWidth={2.6} />
-                      <span>{t("dashboard.backupAll")}</span>
-                    </button>
-                  ) : null}
-                  {/* Also shown on a new computer with no designs yet: that is where a backup is restored. */}
-                  <button className="storage-notice-button secondary" type="button" title={t("dashboard.restoreBackupTitle")} onClick={onRestoreBackup}>
-                    <ArchiveRestore size={16} strokeWidth={2.6} />
-                    <span>{t("dashboard.restoreBackup")}</span>
-                  </button>
-                </div>
-              </aside>
-
-              <div className="dashboard-section-header">
-                <div>
-                  <h1>{t("dashboard.projects")}</h1>
-                  {/* Inside a folder the line under the heading is the way back: every step a
-                      button, and a place to drop a design or a folder on (#496). */}
-                  {openFolderId && !localSearch ? (
-                    <nav className="store-trail" aria-label={t("dashboard.folderTrailLabel")}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenFolder(null)}
-                        className={localDropTarget === "" ? "drop-target" : undefined}
-                        {...localDropTargetProps(null)}
-                      >
-                        {t("dashboard.projects")}
-                      </button>
-                      {openTrail.map((folder, index) => {
-                        const here = index === openTrail.length - 1;
-                        return (
-                          <Fragment key={folder.id}>
-                            <span className="store-trail-separator" aria-hidden="true">/</span>
-                            <button
-                              type="button"
-                              onClick={() => onOpenFolder(folder.id)}
-                              disabled={here}
-                              className={localDropTarget === folder.id ? "drop-target" : undefined}
-                              {...localDropTargetProps(folder.id)}
-                            >
-                              <span translate="no">{folder.name}</span>
-                            </button>
-                          </Fragment>
-                        );
-                      })}
-                    </nav>
-                  ) : null}
-                  <span className="dashboard-section-subtitle">{projects.length === 1
-                    ? t("dashboard.projectsVisibleOne")
-                    : t("dashboard.projectsVisibleMany", { count: projects.length })}</span>
-                </div>
-                <div className="dashboard-controls">
-                  {sharedProjectsEnabled ? (
-                    <label className="dashboard-select dashboard-new-on-server" title={t(newDesignsOnServerLocked ? "dashboard.newOnServerLockedTitle" : "dashboard.newOnServerTitle")}>
-                      <Server size={17} />
-                      <input type="checkbox" checked={newDesignsOnServer} disabled={newDesignsOnServerLocked} onChange={(event) => onNewDesignsOnServerChange(event.currentTarget.checked)} />
-                      <span>{t("dashboard.newOnServer")}</span>
-                    </label>
-                  ) : null}
-                  {sharedProjectsEnabled && localOnlyProjects > 0 ? (
-                    <button className="dashboard-select dashboard-backup-button" type="button" title={t("dashboard.sendAllToServerTitle")} onClick={onSendAllToServer}>
-                      <FolderUp size={17} />
-                      <span>{t("dashboard.sendAllToServer")}</span>
-                    </button>
-                  ) : null}
-                  {localSearch ? null : (
+              <div className="design-tab-trail">
+                {/* Inside a folder the line under the tabs is the way back: every step a
+                    button, and a place to drop a design or a folder on (#496). */}
+                {openFolderId && !localSearch ? (
+                  <nav className="store-trail" aria-label={t("dashboard.folderTrailLabel")}>
                     <button
-                      className="dashboard-select dashboard-backup-button"
                       type="button"
-                      title={t(sharedProjectsEnabled && newDesignsOnServer ? "dashboard.newFolderOnServerTitle" : "dashboard.newFolderTitle")}
-                      onClick={() => {
-                        setLocalFolderNameDraft(suggestDesignFolderName(designFolders, t("shared.newFolderSuggestion"), openFolderId));
-                        setLocalFolderDialog({ mode: "create" });
-                      }}
+                      onClick={() => onOpenFolder(null)}
+                      className={localDropTarget === "" ? "drop-target" : undefined}
+                      {...localDropTargetProps(null)}
                     >
-                      <FolderPlus size={17} />
-                      <span>{t("shared.newFolder")}</span>
+                      {t(sharedProjectsEnabled ? "dashboard.trailBrowserRoot" : "dashboard.projects")}
                     </button>
-                  )}
-                  {projects.length > 0 ? (
-                    <button
-                      className={`dashboard-select dashboard-backup-button${selecting ? " active" : ""}`}
-                      type="button"
-                      aria-pressed={selecting}
-                      title={t("dashboard.selectTitle")}
-                      onClick={() => (selecting ? endSelecting() : startSelecting())}
-                    >
-                      <CheckSquare size={17} />
-                      <span>{t("dashboard.select")}</span>
-                    </button>
-                  ) : null}
-                  <label className="dashboard-select">
-                    <SlidersHorizontal size={17} />
-                    <select value={sortMode} onChange={(event) => onSortModeChange(event.currentTarget.value)} aria-label={t("dashboard.sortLabel")}>
-                      <option value="recent">{t("dashboard.sortRecent")}</option>
-                      <option value="name">{t("dashboard.sortName")}</option>
-                    </select>
-                  </label>
-                  <div className="dashboard-segmented" aria-label={t("dashboard.viewLabel")}>
-                    <button className={viewMode === "grid" ? "active" : ""} type="button" aria-label={t("dashboard.viewGrid")} onClick={() => onViewModeChange("grid")}>
-                      <Grid3X3 size={17} />
-                    </button>
-                    <button className={viewMode === "list" ? "active" : ""} type="button" aria-label={t("dashboard.viewList")} onClick={() => onViewModeChange("list")}>
-                      <List size={18} />
-                    </button>
-                  </div>
-                </div>
+                    {openTrail.map((folder, index) => {
+                      const here = index === openTrail.length - 1;
+                      return (
+                        <Fragment key={folder.id}>
+                          <span className="store-trail-separator" aria-hidden="true">/</span>
+                          <button
+                            type="button"
+                            onClick={() => onOpenFolder(folder.id)}
+                            disabled={here}
+                            className={localDropTarget === folder.id ? "drop-target" : undefined}
+                            {...localDropTargetProps(folder.id)}
+                          >
+                            <span translate="no">{folder.name}</span>
+                          </button>
+                        </Fragment>
+                      );
+                    })}
+                  </nav>
+                ) : null}
               </div>
-
               {selectionBar}
-              {/* Two places, one row: the folder on the left holds what is on the
-                  server, the cards beside it what this browser holds. Side by
-                  side they cannot be mistaken for one another - and the folder
-                  stays visible even when the browser has nothing in it yet. */}
-              {projects.length > 0 || visibleFolders.length > 0 || (sharedProjectsEnabled && !openFolderId) || (openFolderId && !localSearch) ? (
+              {projects.length > 0 || visibleFolders.length > 0 || (openFolderId && !localSearch) ? (
                 <div className={viewMode === "grid" ? "project-grid" : "project-list"}>
                   {/* The way back out of a folder, first in the row like in the server folder. */}
                   {openFolderId && !localSearch ? (
@@ -4029,40 +4470,6 @@ function Dashboard({
                       </button>
                     </article>
                   ) : null}
-                  {sharedProjectsEnabled && !openFolderId ? (
-                    <article
-                      className={`project-card server-folder-card${dropFolderPath === "server" ? " drop-target" : ""}`}
-                      onDragOver={(event) => {
-                        if (!draggedProjectId) return;
-                        event.preventDefault();
-                        event.dataTransfer.dropEffect = "move";
-                        setDropFolderPath("server");
-                      }}
-                      onDragLeave={() => setDropFolderPath((current) => (current === "server" ? null : current))}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        const projectId = draggedProjectId;
-                        setDraggedProjectId(null);
-                        setDropFolderPath(null);
-                        if (projectId) onSendProjectToServer(projectId);
-                      }}
-                    >
-                      <button className="project-card-open" type="button" onClick={onSharedProjects}>
-                        <span className="project-preview server-folder-preview">
-                          <FolderKanban size={46} strokeWidth={1.5} aria-hidden="true" />
-                        </span>
-                        <span className="project-card-title" translate="no">{t("dashboard.sharedProjects")}</span>
-                        {/* Beim Suchen sagt die Kachel, wieviel auf dem Server
-                            gefunden wurde - sonst wuesste niemand, dass es dort
-                            ueberhaupt etwas zu holen gibt. */}
-                        <span className="project-card-meta">{searchResults
-                          ? (searchHits === 1 ? t("shared.searchHitsOne") : t("shared.searchHitsMany", { count: searchHits }))
-                          : sharedProjects.length === 1
-                            ? t("dashboard.serverFolderCountOne")
-                            : t("dashboard.serverFolderCountMany", { count: sharedProjects.length })}</span>
-                      </button>
-                    </article>
-                  ) : null}
                   {visibleFolders.map((folder) => {
                     const contents = folderContents(designFolders, localDesigns, folder.id);
                     const where = folderPathNames(designFolders, folder.parentId);
@@ -4071,7 +4478,7 @@ function Dashboard({
                         className={`project-card server-folder-card local-folder-card${localDropTarget === folder.id ? " drop-target" : ""}${draggedFolderId === folder.id ? " dragging" : ""}`}
                         key={`local-folder-${folder.id}`}
                         draggable={!localSearch}
-                        title={localSearch ? undefined : t("dashboard.folderDragHint")}
+                        title={localSearch ? undefined : sharedProjectsEnabled ? t("dashboard.folderDragHintServerTab") : t("dashboard.folderDragHint")}
                         onDragStart={(event) => {
                           event.dataTransfer.effectAllowed = "move";
                           event.dataTransfer.setData("text/plain", folder.name);
@@ -4132,6 +4539,32 @@ function Dashboard({
                                   <span>{t("common.rename")}</span>
                                 </button>
                                 <button
+                                  type="button"
+                                  role="menuitem"
+                                  title={t("dashboard.backupFolderTitle")}
+                                  onClick={() => {
+                                    setOpenLocalFolderMenuId(null);
+                                    onBackupFolder(folder.id);
+                                  }}
+                                >
+                                  <Archive size={16} />
+                                  <span>{t("dashboard.backupSelected")}</span>
+                                </button>
+                                {sharedProjectsEnabled ? (
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    title={t("dashboard.sendFolderToServerTitle")}
+                                    onClick={() => {
+                                      setOpenLocalFolderMenuId(null);
+                                      onSendFolderToServer(folder.id);
+                                    }}
+                                  >
+                                    <Server size={16} />
+                                    <span>{t("dashboard.sendToServer")}</span>
+                                  </button>
+                                ) : null}
+                                <button
                                   className="delete"
                                   type="button"
                                   role="menuitem"
@@ -4155,7 +4588,7 @@ function Dashboard({
                       className={`project-card${draggedProjectId === project.id ? " dragging" : ""}${selecting ? " selectable" : ""}${selecting && selectedKeys.has(localDesignKey(project.id)) ? " selected" : ""}`}
                       key={project.id}
                       draggable={!selecting}
-                      title={sharedProjectsEnabled ? t("dashboard.dragHintServer") : t("shared.dragHint")}
+                      title={sharedProjectsEnabled ? t("dashboard.dragHintServerTab") : t("shared.dragHint")}
                       onDragStart={(event) => {
                         event.dataTransfer.effectAllowed = "move";
                         event.dataTransfer.setData("text/plain", project.name);
@@ -4230,6 +4663,30 @@ function Dashboard({
                           <button
                             type="button"
                             role="menuitem"
+                            title={t("dashboard.openWithoutHistoryTitle")}
+                            onClick={() => {
+                              setOpenProjectMenuId(null);
+                              setProjectPendingHistoryCutId(project.id);
+                            }}
+                          >
+                            <ToolbarHistoryIcon width={16} height={16} />
+                            <span>{t("dashboard.openWithoutHistory")}</span>
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            title={t("backups.openTitle")}
+                            onClick={() => {
+                              setOpenProjectMenuId(null);
+                              onShowBackups({ projectId: project.id, fileHandle: linkedLylFile(project.id), name: project.name });
+                            }}
+                          >
+                            <History size={16} />
+                            <span>{t("backups.title")}</span>
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
                             onClick={() => {
                               setOpenProjectMenuId(null);
                               setDesignPendingMoveId(project.id);
@@ -4268,35 +4725,21 @@ function Dashboard({
                     </article>
                   ))}
                 </div>
-              ) : query.trim().length > 0 ? (
+              ) : (
                 <div className="project-empty">
                   <strong>{t("dashboard.emptyTitle")}</strong>
                   <span>{t("dashboard.emptyHint")}</span>
                 </div>
-              ) : null}
+              )}
               {openFolderId && !localSearch && projects.length === 0 && visibleFolders.length === 0 ? (
                 <div className="project-empty">
                   <strong>{t("dashboard.folderEmptyTitle")}</strong>
                   <span>{t("dashboard.folderEmptyHint")}</span>
                 </div>
               ) : null}
-              {/* Open on a first visit, when there is nothing else to look at,
-                  and folded away to a single line once projects exist - still
-                  there for anyone who wants to read it again. `open` is keyed
-                  to the unfiltered count, so a fruitless search neither opens
-                  nor closes it behind the reader's back. */}
-              {simpleMode ? null : <details className="dashboard-welcome" open={!hasProjects}>
-                <summary className="dashboard-welcome-summary">
-                  <span className="dashboard-welcome-summary-title">{t("welcome.teaserTitle")}</span>
-                  <span className="dashboard-welcome-summary-hint">{t("welcome.teaserHint")}</span>
-                </summary>
-                <div className="dashboard-welcome-body">
-                  <WelcomeGuideBody tr={t} offline={offlineOk} />
-                </div>
-              </details>}
             </>
           )}
-          <AppFooter version={LYL_CREATED_WITH_VERSION} updateInfo={update} />
+          <AppFooter version={LYL_CREATED_WITH_VERSION} updateInfo={update} onShowWelcome={welcome.hidden && !simpleMode ? showWelcome : undefined} />
         </section>
       </div>
 
@@ -4310,7 +4753,7 @@ function Dashboard({
               </button>
             </header>
             <p>{selectedCount === 1
-              ? t("confirm.deleteProjectBody", { name: (dashboardSection === "shared" ? selectedShared[0] : selectedLocal[0]).name })
+              ? t("confirm.deleteProjectBody", { name: (activeSection === "shared" ? selectedShared[0] : selectedLocal[0]).name })
               : t("confirm.deleteDesignsBody", { count: selectedCount })}</p>
             <div className="dashboard-confirm-actions">
               <button className="dashboard-confirm-cancel" type="button" onClick={() => setSelectionDeletePending(false)}>
@@ -4318,6 +4761,28 @@ function Dashboard({
               </button>
               <button className="dashboard-confirm-delete" type="button" onClick={confirmSelectionDelete}>
                 {t("confirm.delete")}
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {projectPendingHistoryCut ? (
+        <section className="dashboard-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="history-cut-project-title">
+          <div className="dashboard-confirm-dialog">
+            <header>
+              <strong id="history-cut-project-title">{t("confirm.openWithoutHistoryTitle")}</strong>
+              <button type="button" aria-label={t("confirm.cancel")} onClick={() => setProjectPendingHistoryCutId(null)}>
+                <X size={18} />
+              </button>
+            </header>
+            <p>{t("confirm.openWithoutHistoryBody", { name: projectPendingHistoryCut.name })}</p>
+            <div className="dashboard-confirm-actions">
+              <button className="dashboard-confirm-cancel" type="button" onClick={() => setProjectPendingHistoryCutId(null)}>
+                {t("confirm.cancel")}
+              </button>
+              <button className="dashboard-confirm-delete" type="button" onClick={confirmOpenWithoutHistory}>
+                {t("confirm.openWithoutHistory")}
               </button>
             </div>
           </div>
@@ -4340,6 +4805,28 @@ function Dashboard({
               </button>
               <button className="dashboard-confirm-delete" type="button" onClick={confirmProjectDelete}>
                 {t("confirm.delete")}
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {sharedProjectPendingTake ? (
+        <section className="dashboard-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="take-shared-project-title">
+          <div className="dashboard-confirm-dialog">
+            <header>
+              <strong id="take-shared-project-title">{t("confirm.takeIntoBrowserTitle")}</strong>
+              <button type="button" aria-label={t("confirm.takeIntoBrowserCancel")} onClick={() => setSharedProjectPendingTake(null)}>
+                <X size={18} />
+              </button>
+            </header>
+            <p>{t("confirm.takeIntoBrowserBody", { name: sharedProjectPendingTake.name })}</p>
+            <div className="dashboard-confirm-actions">
+              <button className="dashboard-confirm-cancel" type="button" onClick={() => setSharedProjectPendingTake(null)}>
+                {t("confirm.cancel")}
+              </button>
+              <button className="dashboard-confirm-save" type="button" autoFocus onClick={confirmSharedProjectTake}>
+                {t("dashboard.takeIntoBrowser")}
               </button>
             </div>
           </div>
@@ -4676,7 +5163,7 @@ function Dashboard({
   );
 }
 
-function ProjectPreview({ accent, thumbnailUrl }: { accent: DashboardProject["accent"]; thumbnailUrl?: string | null }) {
+function ProjectPreview({ accent, thumbnailUrl, loading = false }: { accent: DashboardProject["accent"]; thumbnailUrl?: string | null; loading?: boolean }) {
   const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(null);
   const showThumbnail = Boolean(thumbnailUrl && thumbnailUrl !== failedThumbnailUrl);
 
@@ -4685,7 +5172,7 @@ function ProjectPreview({ accent, thumbnailUrl }: { accent: DashboardProject["ac
   }, [thumbnailUrl]);
 
   return (
-    <span className={`project-preview accent-${accent}`} aria-hidden="true">
+    <span className={`project-preview accent-${accent}${loading ? " is-loading" : ""}`} aria-hidden="true">
       {showThumbnail ? (
         <img className="project-thumbnail-image" src={thumbnailUrl ?? ""} alt="" onError={() => setFailedThumbnailUrl(thumbnailUrl ?? null)} />
       ) : (
@@ -4694,6 +5181,11 @@ function ProjectPreview({ accent, thumbnailUrl }: { accent: DashboardProject["ac
           <span className="preview-empty-mark">{t("dashboard.noSnapshot")}</span>
         </>
       )}
+      {loading ? (
+        <span className="project-preview-loading">
+          <LoaderCircle size={28} className="project-preview-spinner" />
+        </span>
+      ) : null}
     </span>
   );
 }

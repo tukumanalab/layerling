@@ -1,5 +1,6 @@
 "use client";
 
+import { getEditorProfile } from "@/lib/editorProfile";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
 import { MovableToolPanel } from "@/components/workplane/MovableToolPanel";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
@@ -9,7 +10,7 @@ import type { CadModifierKind, CadModifierQuality } from "@/lib/cadModifierTypes
 import { CAD_MODIFIER_MAX_SHARP_ANGLE, cadModifierUserErrorMessage, edgeModifierSelectionStatus } from "@/lib/cadModifierRuntime";
 import { t } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
-import type { WorkplaneWorkspaceSettings } from "@/types/layerling";
+import type { EdgeTreatmentFeature, WorkplaneWorkspaceSettings } from "@/types/layerling";
 import { selectWholeValue } from "@/lib/numberField";
 import { useWheelField } from "@/lib/useWheelField";
 import { wheelBaseStep, wheelNextValue } from "@/lib/wheelValueStep";
@@ -34,10 +35,12 @@ function formatSliderValue(value: number, accuracy: WorkplaneWorkspaceSettings["
 export type EdgeHistoryOption = {
   id: string;
   label: string;
-  kind: CadModifierKind;
+  kind: EdgeTreatmentFeature["kind"];
   amount: number;
   /** Only for a variable fillet (#687): the radius at the edge's end. */
   endAmount?: number;
+  /** Only for a concave fillet (#1160). */
+  concave?: boolean;
   edgeCount: number;
   /** Only for a deletion of faces. */
   faceCount?: number;
@@ -54,8 +57,12 @@ function edgeHistoryLabel(option: EdgeHistoryOption) {
     : String(Number(option.amount.toFixed(2)));
   if (option.kind === "shell") return t("edge.revertShell", { size });
   if (option.kind === "offset") return t("edge.revertOffset", { size });
+  if (option.kind === "surfaceTexture") return t("edge.revertSurfaceTexture", { size });
   if (option.kind === "deleteFace") {
     return option.faceCount === 1 ? t("edge.revertDeleteFaceOne") : t("edge.revertDeleteFaceMany", { count: option.faceCount ?? 0 });
+  }
+  if (option.kind === "fillet" && option.concave) {
+    return option.edgeCount === 1 ? t("edge.revertConcaveOne", { size }) : t("edge.revertConcaveMany", { size, count: option.edgeCount });
   }
   if (option.edgeCount === 1) {
     return t(option.kind === "fillet" ? "edge.revertFilletOne" : option.kind === "chamfillet" ? "edge.revertChamfilletOne" : "edge.revertChamferOne", { size });
@@ -321,8 +328,13 @@ export function EdgeModifierPanel({
   busy,
   prepared,
   error,
+  sizeRefused = false,
+  searchingLargest = false,
+  onFindLargest,
   onAmountChange,
   endAmount = null,
+  concave = false,
+  onConcaveChange,
   onEndAmountChange,
   onSwapEnds,
   onChamferAngleChange,
@@ -367,11 +379,18 @@ export function EdgeModifierPanel({
   busy: boolean;
   prepared: boolean;
   error: string | null;
+  /** The error stands because the size was refused: offer the search for the largest size that fits (#1635). */
+  sizeRefused?: boolean;
+  searchingLargest?: boolean;
+  onFindLargest?: () => void;
   onAmountChange: (value: number) => void;
   /** A fillet whose radius changes along its one edge (#687): the radius at the edge's end, null for one radius. */
   endAmount?: number | null;
   /** null switches the variable radius off; NaN switches it on at a starting value. */
   onEndAmountChange?: (value: number | null) => void;
+  /** A fillet that scoops the edge out instead of rounding it (#1160). */
+  concave?: boolean;
+  onConcaveChange?: (value: boolean) => void;
   onSwapEnds?: () => void;
   onChamferAngleChange: (value: number) => void;
   onKindChange?: (kind: "chamfer" | "chamfillet") => void;
@@ -396,6 +415,7 @@ export function EdgeModifierPanel({
   onApply: () => void;
   onCancel: () => void;
 }) {
+  const onlyVisibleEdgesOption = kind === "fillet" ? getEditorProfile()?.tools.fillet?.options?.onlyVisibleEdges : undefined;
   useLanguage();
   const title = kind === "fillet" ? t("edge.filletTitle") : kind === "chamfillet" ? t("edge.chamfilletTitle") : t("edge.chamferTitle");
   const amountMin = Math.min(MIN_EDGE_MODIFIER_AMOUNT, Math.max(Number.EPSILON, maxAmount));
@@ -484,7 +504,14 @@ export function EdgeModifierPanel({
         </div>
       ) : null}
 
-      {kind === "fillet" && onEndAmountChange ? (
+      {kind === "fillet" && onConcaveChange ? (
+        <label className="edge-modifier-check" title={t("edge.concaveHint")}>
+          <input type="checkbox" checked={concave} disabled={!prepared} onChange={(event) => onConcaveChange(event.currentTarget.checked)} />
+          <span>{t("edge.concave")}</span>
+        </label>
+      ) : null}
+
+      {kind === "fillet" && onEndAmountChange && !concave ? (
         <label className="edge-modifier-check" title={t("edge.variableRadiusHint")}>
           <input type="checkbox" checked={variable} disabled={!prepared} onChange={(event) => onEndAmountChange(event.currentTarget.checked ? Number.NaN : null)} />
           <span>{t("edge.variableRadius")}</span>
@@ -500,7 +527,7 @@ export function EdgeModifierPanel({
         coarse={{ step: lengthDisplayUnit(workspace).label === "in" ? 25.4 / 64 : EDGE_MODIFIER_SLIDER_STEP, max: EDGE_MODIFIER_SLIDER_MAX }}
         workspace={workspace}
         length
-        disabled={!prepared}
+        disabled={!prepared || searchingLargest}
         onChange={onAmountChange}
       />
 
@@ -529,10 +556,12 @@ export function EdgeModifierPanel({
 
       <EdgeModifierSlider label={t("edge.sharpThreshold")} value={sharpAngle} min={1} max={CAD_MODIFIER_MAX_SHARP_ANGLE} step={1} unit="°" workspace={workspace} disabled={!prepared} onChange={onSharpAngleChange} />
 
-      <label className="edge-modifier-check" title={t("edge.onlyVisibleEdgesHint")}>
-        <input type="checkbox" checked={onlyVisibleEdges} disabled={!prepared} onChange={(event) => onOnlyVisibleEdgesChange(event.currentTarget.checked)} />
-        <span>{t("edge.onlyVisibleEdges")}</span>
-      </label>
+      {onlyVisibleEdgesOption?.visible !== false ? (
+        <label className="edge-modifier-check" title={t("edge.onlyVisibleEdgesHint")}>
+          <input type="checkbox" checked={onlyVisibleEdges} disabled={!prepared || onlyVisibleEdgesOption?.locked} onChange={(event) => onOnlyVisibleEdgesChange(event.currentTarget.checked)} />
+          <span>{t("edge.onlyVisibleEdges")}</span>
+        </label>
+      ) : null}
 
       <label className="edge-modifier-check" title={t("edge.tangentChainsHint")}>
         <input type="checkbox" checked={tangentChain} disabled={!prepared} onChange={(event) => onTangentChainChange(event.currentTarget.checked)} />
@@ -561,9 +590,17 @@ export function EdgeModifierPanel({
       </label>
 
       {error ? <div ref={errorRef} className="edge-modifier-error" role="alert">{cadModifierUserErrorMessage(error)}</div> : null}
+      {(error && sizeRefused || searchingLargest) && onFindLargest ? (
+        <div className="edge-modifier-quick-actions">
+          <button type="button" disabled={!prepared || searchingLargest} title={t("edge.findLargestHint")} onClick={onFindLargest}>
+            {searchingLargest ? <LoaderCircle className="edge-modifier-spinner" size={15} /> : null}
+            {t(searchingLargest ? "edge.findLargestBusy" : "edge.findLargest")}
+          </button>
+        </div>
+      ) : null}
       <div className="edge-modifier-footer">
         <button type="button" className="secondary" onClick={onCancel}>{t(selectedCount === 0 && !busy ? "edge.done" : "common.cancel")}</button>
-        <button type="button" className="primary" disabled={!prepared || busy || selectedCount === 0 || Boolean(error)} onClick={onApply}>
+        <button type="button" className="primary" disabled={!prepared || busy || searchingLargest || selectedCount === 0 || Boolean(error)} onClick={onApply}>
           {busy ? <LoaderCircle className="edge-modifier-spinner" size={17} /> : <Check size={17} />}
           {t("edge.apply")}
         </button>

@@ -21,6 +21,11 @@ export type RasterTraceOptions = {
   part?: RasterPart;
   /** Where dark turns light, 0 to 1. 0.5 by default. */
   threshold?: number;
+  /**
+   * Every pixel that is not transparent is the shape, whatever its colour (`part` is not used): for a
+   * picture on a transparent background, where the transparency already says what the picture is.
+   */
+  byOpacity?: boolean;
   /** At most this many line pieces in the whole outline; the line is straightened until it fits. */
   maxSegments?: number;
   /** How wide the outline comes out, in the SVG's units, its height in proportion. One pixel one unit by default. */
@@ -94,7 +99,7 @@ export function shrinkRaster(pixels: RasterPixels, maxSide = MAX_RASTER_TRACE_SI
  * How much each pixel belongs to the shape, 0 to 1, on a grid one pixel wider on every side (that
  * border is empty, so every line closes). A transparent pixel belongs to nothing.
  */
-function shapeField(pixels: RasterPixels, part: RasterPart) {
+export function shapeField(pixels: RasterPixels, part: RasterPart, byOpacity = false) {
   const { width, height, data } = pixels;
   const gridWidth = width + 2;
   const field = new Float32Array(gridWidth * (height + 2));
@@ -103,14 +108,14 @@ function shapeField(pixels: RasterPixels, part: RasterPart) {
       const index = (y * width + x) * 4;
       const lightness = (0.2126 * data[index] + 0.7152 * data[index + 1] + 0.0722 * data[index + 2]) / 255;
       const opacity = data[index + 3] / 255;
-      field[(y + 1) * gridWidth + x + 1] = opacity * (part === "dark" ? 1 - lightness : lightness);
+      field[(y + 1) * gridWidth + x + 1] = byOpacity ? opacity : opacity * (part === "dark" ? 1 - lightness : lightness);
     }
   }
   return softened(field, gridWidth, height + 2);
 }
 
 /** The field blurred by a 3x3 weighting (1 2 1), which rounds off the steps of hard pixel edges. */
-function softened(field: Float32Array, width: number, height: number) {
+export function softened(field: Float32Array, width: number, height: number) {
   const across = new Float32Array(field.length);
   for (let y = 0; y < height; y += 1) {
     for (let x = 1; x < width - 1; x += 1) {
@@ -132,7 +137,7 @@ function softened(field: Float32Array, width: number, height: number) {
  * The closed lines where the field crosses `threshold` (marching squares). Grid point (x, y) is the
  * centre of pixel (x - 1, y - 1); the lines come back in pixel coordinates.
  */
-function fieldRings(field: Float32Array, width: number, height: number, threshold: number): Point[][] {
+export function fieldRings(field: Float32Array, width: number, height: number, threshold: number): Point[][] {
   const value = (x: number, y: number) => field[y * width + x];
   // A crossing on the edge from grid point (x, y) to the right (even key) or downward (odd key).
   const crossing = (key: number): Point => {
@@ -206,7 +211,7 @@ function fieldRings(field: Float32Array, width: number, height: number, threshol
   return rings;
 }
 
-function ringArea(ring: Point[]) {
+export function ringArea(ring: Point[]) {
   let area = 0;
   for (let index = 0; index < ring.length; index += 1) {
     const a = ring[index];
@@ -264,15 +269,17 @@ function straightenedRing(ring: Point[], tolerance: number): Point[] {
 const coordinate = (value: number) => String(Math.round(value * 100) / 100);
 
 /**
- * Traces one part of a picture as an outline. Throws RASTER_TRACE_EMPTY when that part has
- * nothing larger than a speck.
+ * The closed lines round one part of a picture, straightened, in the pixels of the picture as it
+ * was traced (shrunk to MAX_RASTER_TRACE_SIDE at most; its size comes along): x to the right, y
+ * down, a pixel's edges on whole numbers. Throws RASTER_TRACE_EMPTY when that part has nothing
+ * larger than a speck.
  */
-export function traceRaster(source: RasterPixels, options: RasterTraceOptions = {}): RasterTrace {
+export function traceRasterRings(source: RasterPixels, options: RasterTraceOptions = {}): { rings: Array<Array<{ x: number; y: number }>>; width: number; height: number } {
   const pixels = shrinkRaster(source);
   const { width, height } = pixels;
   const threshold = Math.min(0.95, Math.max(0.05, options.threshold ?? 0.5));
   const maxSegments = Math.max(8, options.maxSegments ?? DEFAULT_RASTER_TRACE_SEGMENTS);
-  const field = shapeField(pixels, options.part ?? "dark");
+  const field = shapeField(pixels, options.part ?? "dark", options.byOpacity === true);
   // A speck: smaller than a few pixels, or than a thousandth of a percent of the picture.
   const speck = Math.max(3, width * height * 1e-5);
   const rings = fieldRings(field, width + 2, height + 2, threshold).filter((ring) => ring.length >= 3 && ringArea(ring) >= speck);
@@ -286,6 +293,15 @@ export function traceRaster(source: RasterPixels, options: RasterTraceOptions = 
     tolerance = Math.min(MAX_TOLERANCE, tolerance * 1.35);
   }
   if (!lines.length) throw new Error(RASTER_TRACE_EMPTY);
+  return { rings: lines, width, height };
+}
+
+/**
+ * Traces one part of a picture as an outline. Throws RASTER_TRACE_EMPTY when that part has
+ * nothing larger than a speck.
+ */
+export function traceRaster(source: RasterPixels, options: RasterTraceOptions = {}): RasterTrace {
+  const { rings: lines, width, height } = traceRasterRings(source, options);
   let unit = 1;
   if (options.width !== undefined) {
     let minX = Number.POSITIVE_INFINITY;

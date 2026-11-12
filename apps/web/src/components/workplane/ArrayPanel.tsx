@@ -6,10 +6,12 @@ import { Check, X } from "lucide-react";
 import { EdgeModifierSlider } from "@/components/workplane/EdgeModifierPanel";
 import { t } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
-import { ARRAY_MAX_COUNT, ARRAY_MIN_COUNT, arrayGroupsCopies, type ArrayMode, type ArraySettings } from "@/lib/shapeArray";
+import { ARRAY_MAX_COUNT, ARRAY_MIN_COUNT, arrayGridSize, arrayGroupsCopies, type ArrayMode, type ArraySettings } from "@/lib/shapeArray";
 import type { WorkplaneWorkspaceSettings } from "@/types/layerling";
 
-const ARRAY_MODES: readonly ArrayMode[] = ["row", "circle"];
+const ARRAY_MODES: readonly ArrayMode[] = ["row", "grid", "circle"];
+/** Spread the row over a body along X or Y, or not (null). */
+const FIT_OPTIONS = [null, "x", "y"] as const;
 const MAX_SPACING = 300;
 const MAX_SPIRAL_STEP = 100;
 /** The row steps along all three axes at once; each has its own spacing. */
@@ -20,7 +22,7 @@ const ROW_AXES = [
 ] as const;
 
 /**
- * Repeating the selection n times in a row or around a circle. The copies
+ * Repeating the selection n times in a row, a grid or around a circle. The copies
  * show on the workplane while the numbers change and only land in the design
  * with "Create".
  */
@@ -29,15 +31,27 @@ export function ArrayPanel({
   settings,
   workspace,
   pivotSet,
+  fitBody,
+  fitGap,
+  fitGapMax,
+  onFitGap,
   onChange,
   onApply,
   onCancel,
 }: {
   targetName: string;
+  /** With a fit to a body already worked out into the spacings. */
   settings: ArraySettings;
   workspace: WorkplaneWorkspaceSettings;
   /** A rotation pivot is set - the circle centre was taken from it. */
   pivotSet: boolean;
+  /** The body the row can be spread over (#1037): the one chosen, or else the one under the pieces; none, no choice. */
+  fitBody: { id: string; name: string } | null;
+  /** The pieces' gap to the body's nearer end along the chosen axis, while the row is spread over it. */
+  fitGap: number | null;
+  fitGapMax: number;
+  /** Moves the originals so their gap to the nearer end is this. */
+  onFitGap: (gap: number) => void;
   onChange: (patch: Partial<ArraySettings>) => void;
   onApply: () => void;
   onCancel: () => void;
@@ -45,6 +59,8 @@ export function ArrayPanel({
   useLanguage();
   const title = t("array.title");
   const halfPlate = Math.max(workspace.width, workspace.depth) / 2;
+  const grid = settings.mode === "grid" ? arrayGridSize(settings) : null;
+  const help = settings.mode === "row" ? "array.helpRow" : grid ? "array.helpGrid" : pivotSet ? "array.helpCirclePivot" : "array.helpCircle";
   return (
     <MovableToolPanel className="edge-modifier-panel shell-panel array-panel" ariaLabel={title}>
       {(handleProps) => (<>
@@ -61,7 +77,7 @@ export function ArrayPanel({
 
       <div className="edge-modifier-target">
         <strong>{targetName}</strong>
-        <span>{t(settings.mode === "row" ? "array.helpRow" : pivotSet ? "array.helpCirclePivot" : "array.helpCircle")}</span>
+        <span>{t(help)}</span>
       </div>
 
       <div className="edge-modifier-field shell-openings" role="radiogroup" aria-label={t("array.mode")}>
@@ -87,18 +103,105 @@ export function ArrayPanel({
         <span>{t("array.groupCopies")}</span>
       </label>
 
-      <EdgeModifierSlider
-        label={t("array.count")}
-        value={settings.count}
-        min={ARRAY_MIN_COUNT}
-        max={ARRAY_MAX_COUNT}
-        step={1}
-        workspace={workspace}
-        onChange={(value) => onChange({ count: Math.round(value) })}
-      />
+      {grid ? null : (
+        <EdgeModifierSlider
+          label={t("array.count")}
+          value={settings.count}
+          min={ARRAY_MIN_COUNT}
+          max={ARRAY_MAX_COUNT}
+          step={1}
+          workspace={workspace}
+          onChange={(value) => onChange({ count: Math.round(value) })}
+        />
+      )}
 
-      {settings.mode === "row" ? (
+      {grid ? (
         <>
+          <EdgeModifierSlider
+            label={t("array.columns")}
+            value={grid.columns}
+            min={1}
+            max={ARRAY_MAX_COUNT}
+            step={1}
+            workspace={workspace}
+            onChange={(value) => onChange({ count: Math.round(value) })}
+          />
+          <EdgeModifierSlider
+            label={t("array.spacingX")}
+            value={settings.spacingX}
+            min={-MAX_SPACING}
+            max={MAX_SPACING}
+            step={0.5}
+            workspace={workspace}
+            length
+            onChange={(value) => onChange({ spacingX: value })}
+          />
+          <EdgeModifierSlider
+            label={t("array.rows")}
+            value={settings.rows ?? 1}
+            min={1}
+            max={ARRAY_MAX_COUNT}
+            step={1}
+            workspace={workspace}
+            onChange={(value) => onChange({ rows: Math.round(value) })}
+          />
+          <EdgeModifierSlider
+            label={t("array.spacingY")}
+            value={settings.rowSpacing ?? 0}
+            min={-MAX_SPACING}
+            max={MAX_SPACING}
+            step={0.5}
+            workspace={workspace}
+            length
+            onChange={(value) => onChange({ rowSpacing: value })}
+          />
+          <span className="shell-openings-summary">
+            {t(grid.capped ? "array.gridCapped" : "array.gridTotal", { columns: grid.columns, rows: grid.rows, count: grid.columns * grid.rows, max: ARRAY_MAX_COUNT })}
+          </span>
+        </>
+      ) : settings.mode === "row" ? (
+        <>
+          <div className="edge-modifier-field shell-openings" role="radiogroup" aria-label={t("array.fit")}>
+            <span>{t("array.fit")}</span>
+            <div className="shell-opening-options">
+              {FIT_OPTIONS.map((option) => {
+                const active = (settings.fit?.axis ?? null) === option;
+                return (
+                  <button
+                    key={option ?? "off"}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    className={active ? "active" : ""}
+                    disabled={option !== null && !fitBody}
+                    // Back to spacings, the row keeps the ones it was spread with.
+                    onClick={() => onChange(option && fitBody
+                      ? { fit: { axis: option, bodyId: fitBody.id } }
+                      : { fit: null, spacingX: settings.spacingX, spacingY: settings.spacingY, spacingZ: settings.spacingZ })}
+                  >
+                    {t(option ? `array.fit.${option}` : "array.fit.off")}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {settings.fit && fitBody && fitGap !== null ? (
+            <>
+              <span className="shell-openings-summary">{t("array.fitHint", { name: fitBody.name })}</span>
+              <EdgeModifierSlider
+                label={t("array.fitGap")}
+                value={Math.round(fitGap * 100) / 100}
+                min={0}
+                max={Math.max(1, Math.floor(fitGapMax))}
+                step={0.5}
+                workspace={workspace}
+                length
+                onChange={onFitGap}
+              />
+            </>
+          ) : fitBody ? null : (
+            <span className="shell-openings-summary">{t("array.fitNone")}</span>
+          )}
           {ROW_AXES.map(({ key, label }) => (
             <EdgeModifierSlider
               key={key}
@@ -109,6 +212,8 @@ export function ArrayPanel({
               step={0.5}
               workspace={workspace}
               length
+              // Spread over a body, the spacing follows the count and the gap.
+              disabled={Boolean(settings.fit && fitBody)}
               onChange={(value) => onChange({ [key]: value })}
             />
           ))}

@@ -2,12 +2,15 @@
 
 import { DEFAULT_STENCIL_BRIDGES, MAX_BRIDGE_COUNT, normalizedStencilBridges, type StencilBridgeOptions } from "@/lib/stencilBridges";
 import { GuideHelpLink } from "@/components/GuideHelpLink";
-import { CloudUpload, Download, EyeOff, FilePlus2, FolderOpen, ImagePlus, Info, X } from "lucide-react";
+import { MovableToolPanel } from "@/components/workplane/MovableToolPanel";
+import { ArchiveRestore, CloudUpload, Download, EyeOff, FilePlus2, FolderOpen, ImagePlus, Info, Server, X } from "lucide-react";
+import { OPEN_FILE_BACKUPS_EVENT } from "@/lib/fileBackups";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { t, type MessageKey } from "@/lib/i18n";
 import { useLanguage } from "@/lib/useLanguage";
 import { ToolbarImportIcon } from "../icons";
 import { AttachmentsPanel } from "./AttachmentsPanel";
+import { ServerDesignPicker } from "./ServerDesignPicker";
 import { DEFAULT_INFILL_PERCENT, DEFAULT_PRINT_MATERIAL, DEFAULT_WALLS, INFILL_CHOICES, PRINT_MATERIALS, WALL_CHOICES, normalizeInfillPercent, normalizePrintMaterial, normalizeWalls, printEstimateWithInfill, type PrintMaterial } from "@/lib/printEstimate";
 import { type EditorHistoryExportLimit } from "@/lib/editorHistory";
 import { projectExportFileName, stlNameAsksForNewFile } from "@/lib/exportNames";
@@ -35,6 +38,7 @@ export function TopActionPanel({
   shapeCount,
   scopeLabel,
   selectionLeavesOut,
+  plateScope,
   onSelectAll,
   onlyHoles,
   hiddenCount = 0,
@@ -55,6 +59,7 @@ export function TopActionPanel({
   onPickFile,
   onPickProjectFile,
   onPickInsertProjectFile,
+  onInsertDesignFile,
   onPickReferenceImage,
   workspaceHistoryLimit,
   attachments,
@@ -70,6 +75,8 @@ export function TopActionPanel({
   scopeLabel: "selected" | "total";
   /** Set when a selection is exported that leaves out visible bodies: how many are selected, how many are visible. */
   selectionLeavesOut?: { selected: number; total: number } | null;
+  /** With several build plates and nothing selected (#456): what to write - all plates, one file per plate, or one plate. */
+  plateScope?: { plates: readonly string[]; value: "all" | "each" | number; onChange: (value: "all" | "each" | number) => void } | null;
   onSelectAll?: () => void;
   onlyHoles?: boolean;
   /** Ausgeblendete Teile, die der Export auslaesst - gesagt, bevor er laeuft. */
@@ -93,6 +100,8 @@ export function TopActionPanel({
   onPickFile: () => void;
   onPickProjectFile: () => void;
   onPickInsertProjectFile: () => void;
+  /** A design file fetched from the server, to insert like one picked on the computer (Discussion #1378). */
+  onInsertDesignFile: (file: File) => void | Promise<void>;
   /** A reference image to line parts up on (#680). */
   onPickReferenceImage: () => void;
   workspaceHistoryLimit: LylHistoryLimit;
@@ -104,6 +113,7 @@ export function TopActionPanel({
   onAttachmentView: (attachment: ProjectAttachment) => void;
   onAttachmentNotice: (message: string) => void;
 }) {
+  const [serverDesignsOpen, setServerDesignsOpen] = useState(false);
   const [keepSvgPage, setKeepSvgPage] = useState(false);
   useEffect(() => setKeepSvgPage(readKeepSvgPage()), []);
   // The width a picture or an SVG comes in at; empty keeps its own size, and it counts for the next import only.
@@ -120,6 +130,18 @@ export function TopActionPanel({
   const suggestedName = ownObjectName && exportFormat !== "lyl" ? ownObjectName : projectName;
   const [exportName, setExportName] = useState(suggestedName);
   const previousSuggestedNameRef = useRef(suggestedName);
+  // Ready to type a new name when Export opens: the field takes the focus with the name selected, so typing replaces it
+  // (Discussion #1507) - except on a touch screen, where focusing it would pop up the keyboard. The name is selected here
+  // too, as the field's focus handler does not run while the window itself is not focused.
+  const exportNameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (panel !== "export") return;
+    const touch = typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+    const field = exportNameRef.current;
+    if (touch || !field) return;
+    field.focus({ preventScroll: true });
+    field.select();
+  }, [panel]);
   // Starts at the history setting from the workspace settings, so a project
   // file carries what the editor keeps unless it is changed here.
   const [lylHistoryLimit, setLylHistoryLimit] = useState<LylHistoryLimit>(workspaceHistoryLimit);
@@ -130,14 +152,15 @@ export function TopActionPanel({
     setExportName((current) => current === previousSuggestedName ? suggestedName : current);
     previousSuggestedNameRef.current = suggestedName;
   }, [suggestedName]);
-  // A custom number from the settings joins the usual stops in its place; the last stop, None,
+  // A custom number from the settings joins the usual stops in its place; the first stop, None,
   // saves the design with its current state only, for sharing a file without its undo steps (#246).
+  // More history lies to the right, as on the slider in the workspace settings (#1631).
   const lylHistoryLimits = useMemo<readonly LylHistoryLimit[]>(() => {
-    const presets: number[] = [100, 50, 30];
+    const presets: number[] = [30, 50, 100];
     const numbers = typeof workspaceHistoryLimit === "number" && !presets.includes(workspaceHistoryLimit)
-      ? [...presets, workspaceHistoryLimit].sort((a, b) => b - a)
+      ? [...presets, workspaceHistoryLimit].sort((a, b) => a - b)
       : presets;
-    return ["unlimited", ...numbers, 0];
+    return [0, ...numbers, "unlimited"];
   }, [workspaceHistoryLimit]);
   const lylHistoryLimitIndex = Math.max(0, lylHistoryLimits.indexOf(lylHistoryLimit));
   const [printMaterial, setPrintMaterial] = useState<PrintMaterial>(() => {
@@ -286,17 +309,15 @@ export function TopActionPanel({
   };
 
   return (
-    <div
-      className={`top-action-panel ${panel === "export" ? "export-action-panel" : panel === "import" || panel === "attachments" ? "import-action-panel" : ""}`}
-      role="dialog"
-      aria-label={title}
-    >
-      <header>
+    // Movable by its title bar like the other tool panels, so it never has to cover the design (as QrCodePanel).
+    <MovableToolPanel className={`top-action-panel icon-tag-panel ${panel === "export" ? "export-action-panel" : panel === "import" || panel === "attachments" ? "import-action-panel" : ""}`} ariaLabel={title}>
+      {(handleProps) => (<>
+      <header className="movable" title={t("panel.moveHint")} {...handleProps}>
         <div className="top-action-heading">
           <strong>{title}</strong>
         </div>
         <div className="panel-header-actions">
-          {panel === "attachments" ? <GuideHelpLink chapter="files" /> : <GuideHelpLink section={panel === "import" ? "importing" : "exporting"} />}
+          {panel === "attachments" ? <GuideHelpLink section="attachments" /> : <GuideHelpLink section={panel === "import" ? "importing" : "exporting"} />}
           <button aria-label={t("panel.close", { title })} onClick={onClose}>
             <X size={18} />
           </button>
@@ -328,6 +349,18 @@ export function TopActionPanel({
               <small>{t("import.insertProjectHint")}</small>
             </span>
           </button>
+          {sharedProjectsEnabled ? (
+            <>
+              <button className="open-lyl-project-button" type="button" onClick={() => setServerDesignsOpen((open) => !open)} aria-expanded={serverDesignsOpen} data-testid="import-insert-from-server">
+                <span className="open-lyl-project-icon"><Server size={18} /></span>
+                <span>
+                  <strong>{t("import.insertFromServer")}</strong>
+                  <small>{t("import.insertFromServerHint")}</small>
+                </span>
+              </button>
+              {serverDesignsOpen ? <ServerDesignPicker onInsertFile={onInsertDesignFile} /> : null}
+            </>
+          ) : null}
           <button className="open-lyl-project-button" type="button" onClick={onPickReferenceImage} data-testid="import-reference-image">
             <span className="open-lyl-project-icon"><ImagePlus size={18} /></span>
             <span>
@@ -388,6 +421,7 @@ export function TopActionPanel({
             <label htmlFor="export-file-name">{t("export.fileName")}</label>
             <div className="export-file-input-wrap">
               <input
+                ref={exportNameRef}
                 id="export-file-name"
                 className="export-file-input"
                 value={exportName}
@@ -467,6 +501,27 @@ export function TopActionPanel({
                 </select>
               </label>
               <StencilBridgeControls on={bridgesOn} options={bridges} onToggle={setBridgesOn} onChange={setBridges} />
+            </section>
+          ) : null}
+
+          {exportsBodies && plateScope ? (
+            <section className="export-setting-section export-plate-scope">
+              <label>
+                <strong>{t("export.plates")}</strong>{" "}
+                <select
+                  aria-label={t("export.plates")}
+                  value={String(plateScope.value === "each" && !(exportFormat === "stl" || exportFormat === "3mf" || exportFormat === "obj") ? "all" : plateScope.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    plateScope.onChange(value === "all" || value === "each" ? value : Number(value));
+                  }}
+                >
+                  <option value="all">{t("export.platesAll", { count: plateScope.plates.length })}</option>
+                  {exportFormat === "stl" || exportFormat === "3mf" || exportFormat === "obj" ? <option value="each">{t("export.platesEach")}</option> : null}
+                  {plateScope.plates.map((label, index) => <option key={index} value={String(index)}>{label}</option>)}
+                </select>
+              </label>
+              <p className="export-plate-scope-hint">{t("export.platesHint")}</p>
             </section>
           ) : null}
 
@@ -638,6 +693,12 @@ export function TopActionPanel({
                   <span>{t("export.stlSaveAs")}</span>
                 </button>
               ) : null}
+              {exportFormat === "lyl" ? (
+                <button className="export-shared-button" type="button" title={t("backups.openTitle")} onClick={() => window.dispatchEvent(new Event(OPEN_FILE_BACKUPS_EVENT))}>
+                  <ArchiveRestore />
+                  <span>{t("backups.title")}</span>
+                </button>
+              ) : null}
               {exportFormat === "lyl" && sharedProjectsEnabled ? (
                 <button
                   className="export-shared-button"
@@ -676,7 +737,8 @@ export function TopActionPanel({
           </footer>
         </div>
       ) : null}
-    </div>
+      </>)}
+    </MovableToolPanel>
   );
 }
 

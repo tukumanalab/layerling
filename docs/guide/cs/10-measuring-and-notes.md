@@ -11,13 +11,13 @@ Nástroj je ve spodní části levé lišty pohledu, {{ui:camera.tapeTools}}. M�
 
 ![Nabídka měření: přidání, přesunutí bodů, odebrání, celé hrany a odstranění všech měření.](shot:tape-menu)
 
-1. **{{ui:camera.addMeasurement}}:** Klikněte na první bod, přesuňte ukazatel k druhému a znovu klikněte. Zobrazí se vzdálenost.
+1. **{{ui:camera.addMeasurement}}:** Klikněte na první bod, přesuňte ukazatel k druhému a znovu klikněte. Zobrazí se vzdálenost a před ní osy, podél kterých měření vede: X, Y nebo Z u přímého, XY, XZ nebo YZ napříč rovinou, 3D pro všechny tři. Najeďte na popisek a uvidíte, jak daleko měření sahá podél každé osy; na bodu uvidíte jeho souřadnice. Při umisťování druhého bodu se osy, vzdálenost a rozsah podél každé osy zobrazují vedle ukazatele. Měření, které leží většinou za jiným tělesem, zbledne; po najetí na jeho čáru nebo popisek se znovu zobrazí naplno. Kromě rohů a hran se bod přichytí také ke středu rovné plochy pod ukazatelem a ke středu kruhové hrany, například okraje otvoru nebo válce: nabízený střed označuje malý křížek v kroužku; když se k němu ukazatel přiblíží, bod se na něj přichytí a nápověda řekne, čeho je to střed ({{ui:camera.tapeCentreFace}}, {{ui:camera.tapeCentreHole}} nebo {{ui:camera.tapeCentreCircle}}).
 2. **{{ui:camera.moveMeasurement}}:** Přetáhněte měřicí body; hodnota se průběžně mění.
 3. **{{ui:camera.deleteMeasurement}}:** Po zapnutí klikněte na měření, které chcete odstranit.
 4. **{{ui:camera.tapeWholeEdges}}:** Kliknutí na hranu změří celou její délku, například obvod kružnice. Při vypnutí se na hranu umístí bod a druhý můžete zvolit kdekoliv. Změříte tak průměr i jiné vzdálenosti. [[Alt]] režim pro jedno kliknutí obrátí. Na kružnici se při přiblížení ukazatele přichytí bod protilehlý prvnímu. Body leží na skutečné kružnici, takže průměr vyjde přesně.
 5. **{{ui:camera.deleteAllMeasurements}}:** Odstraní všechna měření. Protože operaci nelze vrátit, program si vyžádá potvrzení. Bez měření nemá příkaz co odstranit.
-6. **{{ui:camera.tapeMarkMiddle}}:** Pod hodnotou každého měření je tlačítko se zaměřovacím křížem. Vytvoří [referenční bod](#referencni-body) ve středu měření. U kruhové hrany, například okraje otvoru, je to střed kružnice, a to i u importované sítě. U průměru nebo přímého měření vznikne bod v polovině úsečky. Přetahovaný tvar se na něj přichytí svým středem. Již existující bod se nevytváří znovu. Měřicí pásmo se k referenčním bodům přichytává stejně jako k rohům. Chcete-li měřit od středu kružnice nebo úsečky, nejprve jej označte a potom na bod klikněte.
-7. **{{ui:camera.tapeTypeLength}}:** Leží-li aspoň jeden konec přímého měření na tělese, lze na jeho číslo kliknout. Zadejte novou délku a stiskněte [[Enter]]: těleso u druhého bodu se posune podél změřené čáry, až je vzdálenost přesně taková, jako u pravítka v Tinkercadu. Je-li vybráno jen těleso u prvního bodu, posune se to. Měřicí body zůstávají na tělese, takže měření jde s ním. Měřte od rohu, hrany nebo [referenčního bodu](#referencni-body), například středu kružnice, a díly tak umístíte na přesnou vzdálenost.
+6. **{{ui:camera.tapeMarkMiddle}}:** Uprostřed každého měření je malá kulatá značka se spodní polovinou vyplněnou. Vytvoří [referenční bod](#referencni-body) ve středu měření. U kruhové hrany, například okraje otvoru, je to střed kružnice, a to i u importované sítě. U průměru nebo přímého měření vznikne bod v polovině úsečky. Přetahovaný tvar se na něj přichytí svým středem. Již existující bod se nevytváří znovu. Měřicí pásmo se k referenčním bodům přichytává stejně jako k rohům. Chcete-li měřit od středu kružnice nebo úsečky, nejprve jej označte a potom na bod klikněte.
+7. **{{ui:camera.tapeTypeLength}}:** Leží-li aspoň jeden konec přímého měření na tělese, lze na jeho číslo kliknout. Zadejte novou délku a stiskněte [[Enter]]: těleso u druhého bodu se posune podél změřené čáry, až je vzdálenost přesně taková, jako u pravítka v Tinkercadu. Je-li vybráno jen těleso u prvního bodu, posune se to. Měřicí body zůstávají na tělese, takže měření jde s ním. Měřte od rohu, hrany nebo středu plochy či otvoru, a díly tak umístíte na přesnou vzdálenost: od středu otvoru ke středu horní plochy válce se válec posune střed na střed. Záporná délka ho posune o tolik za první bod, třeba 5 mm dovnitř za hranu kvádru. [Referenční bod](#referencni-body) nepatří k žádnému tělesu, mezi dvěma referenčními body se proto nic neposune. Vede-li měření podél dvou nebo tří os, má pole pod délkou ještě políčko pro každou z nich (ΔX, ΔY, ΔZ, vzdálenosti, které se ukážou při najetí na číslo): zadejte hodnotu tam a těleso se posune jen podél této osy. [[Tab]] přechází z políčka na políčko, [[Esc]] pole zavře a nic neposune. Při najetí na číslo uvidíte, které těleso se posune, nebo proč žádné nemůže: je zamčené, oba body leží na stejném tělese, nebo žádný neleží na tělese. Hlášení potom řekne, co se posunulo a o kolik; jedno Zpět to vrátí.
 
 [[Esc]] ukončí režim měření.
 
@@ -27,13 +27,15 @@ Nástroj je ve spodní části levé lišty pohledu, {{ui:camera.tapeTools}}. M�
 
 ## Úhelník
 
-Pro měření v pravém úhlu použijte {{ui:camera.cornerRulerTool}} v liště pohledu a klikněte na pracovní rovinu. Vloží se dvě kolmá ramena s ryskami. Ani úhelník není tělesem. Kliknete-li blízko rohu objektu, jeho počátek se přesně přichytí k tomuto rohu.
+Pro měření v pravém úhlu použijte {{ui:camera.cornerRulerTool}} v liště pohledu a klikněte na pracovní rovinu. Vloží se dvě kolmá ramena s ryskami. Ani úhelník není tělesem. Kliknete-li blízko rohu objektu, jeho počátek se přesně přichytí k tomuto rohu. Pokud ho potřebujete skoro v každém návrhu, zapněte v nastavení pod {{ui:workspace.measurement}} volbu {{ui:workspace.startWithCornerRuler}}: každý nový návrh pak začne s úhelníkem v počátku souřadnic.
 
 Úhelník leží na pracovní rovině. Je-li rovina umístěna na boku tělesa, leží tam i úhelník, viz [Pohled a pracovní rovina](chapter:view-and-workplane). Pro kótování na svislé stěně na ni nejprve položte pracovní rovinu, úhelník přiložte k levému hornímu rohu a klikáním na úchyt natočte ramena doprava a dolů.
 
 - **Tažením úchytu** měníte polohu.
 - **Krátkým kliknutím na úchyt** otočíte úhelník o 90°.
 - **×** vedle úhelníku jej odstraní.
+- **Tažením malého kroužku na konci ramene** rameno prodloužíte nebo zkrátíte, po celých milimetrech. Nejspodnější tlačítko pod úchytem, {{ui:ruler.armsToPlate}}, nastaví obě ramena na šířku a hloubku tiskové podložky tiskárny zvolené v nastavení. Úhelník si délky ramen pamatuje s návrhem a nově umístěný je převezme.
+- **{{ui:ruler.arms}}** (tlačítko se třemi osami, hned nad ním) otevře přepínač pro každé rameno, pojmenovaný podle osy, podél které vede. Kromě dvou ramen v rovině je tu třetí, které stojí v rohu kolmo k pracovní rovině: na podložce míří nahoru podél Z, s vlastní stupnicí, pro válec nebo cokoli, co stavíte do výšky. Na začátku je vypnuté: klikněte na jeho písmeno a zobrazí se, a tažením malého kroužku na jeho konci ho prodloužíte nebo zkrátíte. Ramena v rovině se stejně vypínají, když překážejí; jedno rameno zůstane vždy. Zelená čísla vybraného tělesa zůstávají, ať jsou vidět kterákoli ramena, a návrh si pamatuje, která to jsou.
 - **Malé tlačítko vlevo od úchytu** přepíná měření od vnějšího okraje tělesa, se symbolem čar, nebo od jeho středu, se zaměřovacím křížem. Stejný malý přepínač je i u každého zeleného čísla a nastavuje pouze danou kótu. U stojícího válce tak můžete měřit v obou ramenech ke středu a ve výšce ke spodní straně, u ležícího napříč ke středu a podélně ke konci. Pokud se všechna tři nastavení shodují, tlačítko u úchytu ukáže společný režim.
 
 U těles umístěných u ramen úhelník automaticky ukazuje rozměry. To funguje pouze na základní podložce, nikoli na boční stěně. Tlačítko se šipkou pod úchytem úhelníku to vypne, takže míry ukazují jen vybraná tělesa; ukládá se s projektem.
@@ -44,14 +46,43 @@ V režimu středu vedou zelené rozměry do středu tělesa, včetně výšky. S
 
 Měřicí nástroj i úhelník zůstávají na místě při přechodu do náčrtu a zpět do 3D. Ani jeden se neukládá do historie. Úhelník se s projektem ukládá, stejně jako měření měřicího nástroje, v prohlížeči i v souboru .lyl: po otevření projektu jsou zase tam. Tlačítko s okem mezi tlačítky měřicího nástroje všechna měření skryje a znovu zobrazí; uloží se i to, zda jsou skrytá, a kdo měření přidá, posune nebo smaže, uvidí je předtím znovu.
 
+## Úhloměr
+
+Úhel změříte tlačítkem {{ui:camera.protractor}} v liště pohledu. Vedle něj se otevře řada tlačítek, a dokud na tlačítko znovu nekliknete nebo nestisknete [[Esc]], měří každé kliknutí do pohledu úhloměrem. Stejně jako měření vzdáleností se přichytává k rohům a hranám těles; vedle těles položí bod na podložku.
+
+- {{ui:camera.protractorPoints}}: nejprve klikněte na vrchol úhlu, pak na bod na každém rameni. Už při umisťování posledního bodu se úhel zobrazuje; po třetím kliknutí zůstane, s obloukem mezi rameny. Je to úhel ve vrcholu, od 0° do 180°. Při pohledu přímo shora, zepředu nebo z boku měří úhel tak, jak je tam vidět: horní roh a dolní roh přímo pod ním jsou tentýž bod. V šikmém pohledu je to úhel v prostoru.
+- {{ui:camera.protractorFaces}}: klikněte na dvě rovné plochy. Krátká modrá čárka na každé ukazuje, kam plocha směřuje, a popisek uvádí oba úhly, které plochy svírají, menší jako první: zkosení 45° proti horní ploše dá 45° · 135°, dvě stěny kvádru jen 90°. Zakřivená plocha nemá jediný směr, proto úhloměr žádá rovnou plochu.
+
+Další kliknutí po hotovém úhlu začne nový a {{ui:camera.protractorClear}} jej odstraní. Úhel sleduje tělesa, když je posunete nebo otočíte. Nic z něj se neukládá ani nejde do historie: zmizí, jakmile úhloměr odložíte.
+
 ## Vzdálenosti od počátku a při přesouvání
 
 V nastavení {{ui:workspace.appearance}} jsou dva přepínače průběžného kótování:
 
-- {{ui:workspace.showMoveDimensions}} zobrazuje posunutí během tažení.
+- {{ui:workspace.showMoveDimensions}} zobrazuje posunutí během tažení. Patří sem i zvedání modrou šipkou nad tělesem, měřené podél jeho přední hrany. Po puštění klikni na takové číslo a napiš přesnou vzdálenost; záporná hodnota jde dolů.
 - {{ui:workspace.showOriginDimensions}} zobrazuje vzdálenosti výběru od počátku podložky, i při výběru více těles.
 
-{{ui:workspace.dimensionsAlwaysVisible}} ponechá rozměry zobrazené trvale.
+{{ui:workspace.dimensionsAlwaysVisible}} ponechá rozměry zobrazené trvale. Když těleso nestojí na pracovní rovině, zobrazí se i jeho výška nad ní; kliknutím na číslo zadáš novou.
+S volbou {{ui:workspace.dimensionAxisColors}} dostane každé políčko barvu své osy jako úchyty: červenou pro X, zelenou pro Y a modrou pro Z. I u malého dílu tak hned vidíš, které číslo je které.
+
+Když na chvíli překážejí, stiskněte [[Q]]: rozměry a vzdálenosti kolem výběru zmizí a díl, který posouváte, je dobře vidět. Další [[Q]] je vrátí. Úchyt, na který ukážete, svůj rozměr ukáže i tak.
+
+## Kontrola vůle
+
+Díly, které se mají po tisku pohybovat - flexi drak, pant tištěný vcelku, krabička s víkem, osa v otvoru - potřebují mezi sebou mezeru. Když je příliš malá, slepí se; když se překrývají, vytisknou se jako jeden kus. {{ui:editor.tool.clearance}} vedle {{ui:editor.tool.loftSketches}} to zkontroluje před tiskem. Vezme vybrané objekty, nebo všechny viditelné, když není nic vybráno (tytéž, které bere export), a zkontroluje každou dvojici:
+
+- **{{ui:clearance.kind.overlap}}** (červeně): oba díly sdílejí objem. Ten se ukáže červeně uvnitř těles, která zprůhlední, a seznam uvede jeho velikost.
+- **{{ui:clearance.kind.touching}}** (červeně): díly se dotýkají a při tisku se spojí.
+- **{{ui:clearance.kind.tight}}** (oranžově): nejužší mezera je menší než {{ui:clearance.threshold}}.
+- **{{ui:clearance.kind.fine}}** (zeleně): nejužší mezera je alespoň tak široká.
+
+Každý řádek jmenuje oba díly a u mezery její šířku a polohu: {{ui:clearance.direction.side}} (ve stejné vrstvě) nebo {{ui:clearance.direction.layer}} (nad nebo pod: tam může slicer nechat volné jen celé vrstvy, takže mezera tenčí než jedna vrstva se zavře). Klepnutí na řádek přesune kameru na místo, orámuje oba díly a vyznačí nejužší místo čárou s číslem. Dvojice vzdálené víc než 5 mm se neuvádějí. Na návrhu se nic nemění: kontrola nic neukládá a nezanechává nic k vrácení.
+
+{{ui:clearance.threshold}} začíná na 0,3 mm; 0,3 je těsné, 0,4 obvyklé pro tisk vcelku. Změna hned znovu seřadí seznam bez nové kontroly a prohlížeč si hodnotu zapamatuje. {{ui:clearance.splitParts}} (na začátku zapnuto) kontroluje proti sobě i oddělené díly jednoho objektu: flexi drak nebo pant importovaný jako jedno STL je jeden objekt, ale jeho články jsou oddělené díly. V seznamu jsou jako „Název · Díl 2“. Díl v dutině jiného, třeba kulička v kleci, je samostatný díl.
+
+Když návrh změníte, zatímco je okno otevřené, ukáže se {{ui:clearance.stale}}; klepněte na to nebo na {{ui:clearance.checkAgain}}. [[Esc]] nebo {{ui:clearance.close}} okno zavře. Mezery mění i změna velikosti: flexi model zmenšený na 70 % má jen 70 % své vůle, po změně velikosti proto kontrolujte znovu.
+
+Kontrola měří trojúhelníkovou síť, kterou dostane i slicer. Kulatá osa a její otvor jsou mnohoúhelníky s vrcholy na kružnici, takže mezera může vyjít o několik setin menší než kulaté rozměry. Dvojice s příliš mnoha trojúhelníky je uvedena jako {{ui:clearance.kind.unchecked}}. AI provede stejnou kontrolu pomocí `layerling_check_clearance`.
 
 ## Poznámky
 
@@ -60,20 +91,21 @@ Poznámka zachytí informace, které geometrie nevyjadřuje: „Šroub je o 0,3 
 - Poznámka umístěná **na těleso** se pohybuje spolu s ním.
 - Poznámka **vedle tělesa** zůstává na pracovní rovině, {{ui:note.free}}.
 - {{ui:note.detach}} odpojí poznámku od tělesa.
+- {{ui:note.forAi}} změní poznámku v zadání pro AI agenta na mostu MCP (viz „AI s MCP“): agent ji přečte přes `layerling_list_notes`, udělá práci a odpoví ve stejné poznámce, pod tvým textem. Může také na model dávat vlastní poznámky, aby se na místě na něco zeptal nebo něco ohlásil. Požádejte agenta, aby hlídal vaše poznámky, a bude na ně čekat pomocí `layerling_wait_for_notes`: pak pracujete jen na modelu a každý nový požadavek se převezme, jakmile políčko zaškrtnete, bez návratu do okna agenta.
 - {{ui:editor.tool.group}} vezme připojenou poznámku do skupiny; {{ui:editor.tool.ungroup}} ji předá viditelné části pod ní, i vnořené skupině. Dokud je skupina otevřená přes {{ui:group.edit}}, její poznámky se pohybují s částí pod nimi a tlačítkem {{ui:group.done}} se vrátí ke skupině; zrušení je vrátí do původního stavu.
 - Když je její těleso smazáno nebo pod ní už není žádné viditelné těleso, poznámka zůstane, kde byla, na pracovní rovině.
 - Tažením za špendlík poznámku přesunete. Kliknutím na špendlík kartu sbalíte, zůstane jen malé číslo; dalším kliknutím ji zase otevřete. Kliknutím do textu ho upravíte.
 - [[Enter]] potvrdí text, [[Esc]] vrátí podobu před zahájením úpravy. [[Shift]]+[[Enter]] vloží nový řádek.
-- **V náčrtu** vložíte poznámku také pomocí {{ui:editor.tool.note}} (v sekci {{ui:editor.group.manage}}) nebo klávesy [[N]], kamkoli do náčrtu. Všechny poznámky náčrtu patří k jeho tělesu: ve 3D zobrazení na něm sedí, nahoře na tělese vytvořeném přes {{ui:sketch.extrude}} nebo {{ui:sketch.sweep}} a na nakresleném profilu tělesa vytvořeného přes {{ui:sketch.revolve}}, a pohybují se s ním. Když náčrt znovu otevřete, ukáže poznámky tělesa, i ty vložené ve 3D. V náčrtu vezme {{ui:sketch.undo}} poznámku zpět stejně jako čáru a {{ui:sketch.cancel}} zahodí, co jste na poznámkách změnili. [[Shift]]+[[N]] poznámky i zde zobrazí nebo skryje.
+- **V náčrtu** vložíte poznámku také pomocí {{ui:editor.tool.note}} nebo klávesy [[N]], kamkoli do náčrtu. Všechny poznámky náčrtu patří k jeho tělesu: ve 3D zobrazení na něm sedí, nahoře na tělese vytvořeném přes {{ui:sketch.extrude}} nebo {{ui:sketch.sweep}} a na nakresleném profilu tělesa vytvořeného přes {{ui:sketch.revolve}}, a pohybují se s ním. Když náčrt znovu otevřete, ukáže poznámky tělesa, i ty vložené ve 3D. V náčrtu vezme {{ui:sketch.undo}} poznámku zpět stejně jako čáru a {{ui:sketch.cancel}} zahodí, co jste na poznámkách změnili. [[Shift]]+[[N]] poznámky i zde zobrazí nebo skryje.
 
 Poznámky se ukládají v projektu, do exportu se nezahrnují a jejich viditelnost přepíná {{ui:visibility.notes}} (v {{ui:editor.visibilityOptions}}, šipce vedle ikony oka) nebo zkratka [[Shift]]+[[N]].
 
 ## Referenční body
 
-Referenční bod je samostatná značka v prostoru, podobná rysce při práci v dílně. Nepatří žádnému tělesu, netiskne se a ostatní objekty se na něj přichytávají. Klikněte pravým tlačítkem na těleso a vyberte {{ui:contextMenu.markCenter}}, {{ui:contextMenu.markCorners}} nebo {{ui:contextMenu.markMidpoints}}. Body vzniknou na horní ploše tělesa, případně celého výběru. {{ui:contextMenu.markFaceCenter}} místo toho umístí bod doprostřed rovné stěny, na kterou jste klikli pravým tlačítkem, třeba na boku nebo na konci.
+Referenční bod je samostatná značka v prostoru, podobná rysce při práci v dílně. Nepatří žádnému tělesu, netiskne se a ostatní objekty se na něj přichytávají. Klikněte pravým tlačítkem na těleso a vyberte {{ui:contextMenu.markCenter}}, {{ui:contextMenu.markCorners}} nebo {{ui:contextMenu.markMidpoints}}. Body vzniknou na horní ploše tělesa, případně celého výběru. {{ui:contextMenu.markFaceCenter}} místo toho umístí bod doprostřed rovné stěny, na kterou jste klikli pravým tlačítkem, třeba na boku nebo na konci. Je-li nastaven střed otáčení, {{ui:contextMenu.markPivot}} umístí bod přesně na něj, takže se střed jiného dílu zachytí v bodě, kolem kterého se výběr otáčí.
 
 - Bod přesunete tažením nebo kliknutím otevřete souřadnice v nastavených jednotkách. Každou kartu lze přetáhnout za záhlaví samostatně; ostatní zůstanou na místě. Dvojklik ji vrátí a naposledy použitá karta se zobrazí vpředu. **Odstranit všechny** na kartě nebo v nabídce pravého tlačítka odstraní všechny body najednou. {{ui:common.delete}} odstraní jednotlivý bod.
-- Bod vytvoří i měřicí nástroj: {{ui:camera.tapeMarkMiddle}} pod hodnotou měření označí jeho střed, například střed kruhového otvoru. Měřit lze také od takového bodu: pásmo se k referenčním bodům přichytává stejně jako k rohům.
+- Bod vytvoří i měřicí nástroj: {{ui:camera.tapeMarkMiddle}}, napůl vyplněná značka uprostřed měření, označí jeho střed, například střed kruhového otvoru. Měřit lze také od takového bodu: pásmo se k referenčním bodům přichytává stejně jako k rohům.
 - Při tažení se na body přichytávají hrany i středy tvarů, stejně jako na jiná tělesa při {{ui:workspace.objectSnap}}. Přichytává se i úhelník.
 - Body se ukládají do projektu, neexportují se a zobrazují či skrývají se společně s poznámkami přes {{ui:visibility.notes}} ([[Shift]]+[[N]]).
 - AI je může vytvářet, vypisovat a odstraňovat pomocí `layerling_add_reference_points`, `layerling_list_reference_points` a `layerling_remove_reference_points`.
@@ -88,4 +120,4 @@ Referenční obrázek je obrázek, podle kterého zarovnáte díly: položte fot
 - {{ui:referenceImage.calibrate}} mu dá skutečnou velikost jako ve skice: klikněte na dva body obrázku, jejichž skutečnou vzdálenost znáte - třeba dva montážní otvory desky - a zadejte tuto vzdálenost do pole {{ui:referenceImage.distance}}. Obrázek si zachová proporce i střed.
 - Zamkněte ho zámkem v záhlaví jeho nastavení a zůstane na místě: kliknutí pak jím procházejí na podložku. K odemčení ho vyberte v seznamu objektů.
 - Obrázek je v souboru návrhu uložen jednou, ať se kopíruje nebo vrací kolikrát chce. Velký obrázek zvětší soubor o tolik; hlášení při přidání uvede jeho velikost.
-- AI ho přidá, posune, kalibruje, zeslabí a zamkne pomocí `layerling_reference_image`.
+- AI ho přidá, posune, kalibruje, zeslabí a zamkne pomocí `layerling_reference_image`. S `trace` obrázek obkreslí do tělesa náčrtu, které na něm stojí, jako {{ui:sketch.traceImage}} v náčrtu.

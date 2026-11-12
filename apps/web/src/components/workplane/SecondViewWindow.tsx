@@ -29,6 +29,7 @@ import { orbitViewBy, panViewBy, viewArrowStep } from "@/lib/viewArrowKeys";
 import { savedViewForKey } from "@/lib/designView";
 import { viewFaceForKey } from "@/lib/viewCubeDrag";
 import { ZOOM_STEP_IN, ZOOM_STEP_OUT } from "@/lib/workplaneSettings";
+import { timedCameraDamping } from "@/lib/cameraInertia";
 
 /**
  * A second view of the design in a window of its own: the same scene, seen through a camera of
@@ -44,7 +45,6 @@ const VIEW_PAGE = "/view.html";
 /** The OrbitControls settings the second view takes over from the 3D view's camera. */
 const SHARED_CONTROL_SETTINGS = [
   "enableDamping",
-  "dampingFactor",
   "rotateSpeed",
   "zoomSpeed",
   "panSpeed",
@@ -120,13 +120,11 @@ type SecondViewWindowProps = {
   projectId: string | null | undefined;
   /** The main window's selection, which F frames here too. */
   getSelectedIds: () => readonly string[];
-  /** Whether anything is selected there, for the bar's "Center view on selection". */
-  hasSelection: boolean;
   /** The window was closed by the user, or went away with a reload. */
   onClosed: () => void;
 };
 
-export function SecondViewWindow({ popup, threeRef, projectId, getSelectedIds, hasSelection, onClosed }: SecondViewWindowProps) {
+export function SecondViewWindow({ popup, threeRef, projectId, getSelectedIds, onClosed }: SecondViewWindowProps) {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const cubeRef = useRef<HTMLDivElement | null>(null);
@@ -334,7 +332,7 @@ export function SecondViewWindow({ popup, threeRef, projectId, getSelectedIds, h
         return;
       }
       const face = viewFaceForKey(event.key, event.code, event.shiftKey);
-      const key = event.key.toLowerCase();
+      const key = (event.key ?? "").toLowerCase();
       let move: ((view: CameraRig) => void) | null = null;
       if (face) {
         move = (view) => {
@@ -373,11 +371,15 @@ export function SecondViewWindow({ popup, threeRef, projectId, getSelectedIds, h
     // A frame is drawn when this camera moved, or when the 3D view drew one: that is when the scene changed.
     let lastMainFrame = -1;
     let frameId = 0;
+    let lastFrameAt = performance.now();
     const animate = () => {
       frameId = popup.requestAnimationFrame(animate);
       const state = threeRef.current;
       if (!state) return;
-      const turning = stepCameraTurn(rig, performance.now());
+      const now = performance.now();
+      const turning = stepCameraTurn(rig, now);
+      controls.dampingFactor = timedCameraDamping(now - lastFrameAt);
+      lastFrameAt = now;
       const moved = controls.update();
       const mainFrame = state.renderer.info.render.frame;
       if (!turning && !moved && !rig.needsRender && mainFrame === lastMainFrame) return;
@@ -425,11 +427,13 @@ export function SecondViewWindow({ popup, threeRef, projectId, getSelectedIds, h
       <ViewCube getRig={getRig} cubeRef={cubeRef} />
       {notice ? <p className="editor-status second-view-notice" role="status">{notice}</p> : null}
       <SecondViewCameraBar
-        hasSelection={hasSelection}
         orthographic={orthographic}
         workplaneHidden={workplaneHidden}
         onHome={() => moveCamera(resetCamera)}
-        onFocusSelection={() => moveCamera(focusSelection)}
+        // As F does: with nothing selected the whole scene (#1082).
+        onFocusSelection={() => moveCamera((view) => {
+          if (!focusSelection(view)) resetCamera(view);
+        })}
         onZoomIn={() => moveCamera((rig) => zoomCameraBy(rig, ZOOM_STEP_IN))}
         onZoomOut={() => moveCamera((rig) => zoomCameraBy(rig, ZOOM_STEP_OUT))}
         onToggleProjection={() => moveCamera(toggleCameraProjection)}

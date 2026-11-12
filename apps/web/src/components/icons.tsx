@@ -1,4 +1,4 @@
-import { Blend } from "lucide-react";
+import { PrinterCheck, SearchCheck } from "lucide-react";
 import type { CSSProperties, SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -10,7 +10,7 @@ type SpriteRect = {
 };
 
 const toolbarSprite = "assets/editor/toolbar-sprite.svg?v=2";
-const vectorToolbarSprite = "assets/editor/vector-toolbar-icons.svg?v=1";
+const vectorToolbarSprite = "assets/editor/vector-toolbar-icons.svg?v=2";
 
 // The drawn height of a sprite icon comes from --sprite-icon-size (35px unless
 // a stylesheet sets it), so the toolbar size setting can scale it from CSS.
@@ -66,8 +66,9 @@ function VectorToolbarSpriteIcon({ rect, className, style }: IconProps & { rect:
   );
 }
 
+// A plain cube: the plus beside it went when the button got the chevron tab of the other menus (Discussion #1506).
 export function ToolbarShapeAddIcon(props: IconProps) {
-  return <VectorToolbarSpriteIcon rect={{ x: 104, y: 0, width: 29, height: 27 }} {...props} />;
+  return <VectorToolbarSpriteIcon rect={{ x: 104, y: 0, width: 24, height: 27 }} {...props} />;
 }
 
 export function ToolbarHideSelectedIcon(props: IconProps) {
@@ -103,10 +104,29 @@ export function ToolbarHullIcon(props: IconProps) {
   );
 }
 
-// The class gives it the same disabled dimming as the rest of the ribbon; the
-// bare theme colour alone left it looking live on the dark grounds.
-export function ToolbarIntersectPreviewIcon({ className, ...props }: IconProps) {
-  return <Blend className={["toolbar-vector-art-icon", className].filter(Boolean).join(" ")} {...props} />;
+// Loft between two sketches: a small outline above a large one, joined by the walls between them.
+export function ToolbarLoftSketchesIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true" className="toolbar-vector-art-icon" {...props}>
+      <path d="M17 11H31L42 37H6Z" fill="currentColor" opacity="0.22" />
+      <path d="M17 11L6 37M31 11L42 37" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <rect x="15" y="7" width="18" height="8" rx="3" fill="none" stroke="currentColor" strokeWidth="2.4" />
+      <rect x="4" y="32" width="40" height="10" rx="4" fill="none" stroke="currentColor" strokeWidth="2.4" />
+    </svg>
+  );
+}
+
+/**
+ * The clearance check: two parts with the gap between them measured. The class gives it the same disabled dimming as the
+ * rest of the ribbon; the bare theme colour alone left it looking live on the dark grounds.
+ */
+export function ToolbarClearanceIcon({ className, ...props }: IconProps) {
+  return <SearchCheck className={["toolbar-vector-art-icon", className].filter(Boolean).join(" ")} {...props} />;
+}
+
+/** The print check: a printer with a tick, beside the clearance check's magnifier; the same class for the dimming. */
+export function ToolbarPrintCheckIcon({ className, ...props }: IconProps) {
+  return <PrinterCheck className={["toolbar-vector-art-icon", className].filter(Boolean).join(" ")} {...props} />;
 }
 
 export function ToolbarAlignIcon(props: IconProps) {
@@ -120,19 +140,26 @@ export {
   SketchHalfCircleIcon,
   SketchPieSliceIcon,
   ToolbarAttachmentsIcon,
+  ToolbarBuildPlatesIcon,
   ToolbarCenterOnWorkplaneIcon,
   ToolbarChamferIcon,
+  ToolbarCookieCutterIcon,
   ToolbarCopyIcon,
   ToolbarDropToWorkplaneIcon,
   ToolbarDuplicateIcon,
   ToolbarExportIcon,
   ToolbarFilletIcon,
+  ToolbarFlexiIcon,
   ToolbarHistoryIcon,
   ToolbarHollowIcon,
   ToolbarOffsetIcon,
   ToolbarCutOutIcon,
+  ToolbarPunchIcon,
   ToolbarDeleteFaceIcon,
   ToolbarSimplifyIcon,
+  ToolbarMakeExactIcon,
+  ToolbarSurfaceTextureIcon,
+  ToolbarPaintIcon,
   ToolbarBundleIcon,
   ToolbarGroupIcon,
   ToolbarGuideIcon,
@@ -144,9 +171,13 @@ export {
   ToolbarPatternIcon,
   ToolbarHolePatternIcon,
   ToolbarFaceToolIcon,
+  ToolbarSupportRibIcon,
+  ToolbarStencilBridgeIcon,
   ToolbarConstructionLineIcon,
   ToolbarMiddleLineIcon,
   ToolbarLayFlatIcon,
+  ToolbarLidIcon,
+  ToolbarCableChannelIcon,
   ToolbarMateFacesIcon,
   ToolbarNoteIcon,
   ToolbarSplitIcon,

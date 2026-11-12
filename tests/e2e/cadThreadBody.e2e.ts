@@ -25,6 +25,16 @@ describe("the thread's exact body", () => {
     ["a screw with a cylinder head", { threadRole: "screw" }],
     ["a screw with a hex head, both head rims chamfered", { threadRole: "screw", threadHead: "hex", threadHeadChamfer: 0.4 }],
     ["a countersunk screw", { threadRole: "screw", threadHead: "countersunk" }],
+    // The drive in the head and the head's own diameter (#1052).
+    ["a screw with a Torx drive", { threadRole: "screw", threadDrive: "torx" }],
+    ["a countersunk screw with a Phillips drive", { threadRole: "screw", threadHead: "countersunk", threadDrive: "phillips" }],
+    ["a hex head with a Torx drive, both head rims chamfered", { threadRole: "screw", threadHead: "hex", threadDrive: "torx", threadHeadChamfer: 0.3 }],
+    ["a flat wide head with a deep hex socket", { threadRole: "screw", threadDiameter: 20, threadPitch: 2, threadHeadHeight: 2, threadHeadDiameter: 26, threadDriveSize: 8, threadDriveDepth: 1.8, height: 30 }],
+    ["a screw with a slot across its head", { threadRole: "screw", threadDrive: "slot" }],
+    ["a countersunk screw with a slot", { threadRole: "screw", threadHead: "countersunk", threadDrive: "slot" }],
+    ["a screw with a Robertson square", { threadRole: "screw", threadDrive: "robertson" }],
+    ["a countersunk screw with a Robertson square", { threadRole: "screw", threadHead: "countersunk", threadDrive: "robertson" }],
+    ["a socket head without a drive", { threadRole: "screw", threadDrive: "none" }],
     ["a nut", { threadRole: "nut" }],
     ["a nut with chamfered rims, left hand", { threadRole: "nut", threadHeadChamfer: 0.5, threadHand: "left" }],
     ["a tapped hole", { threadRole: "bore", hole: true }],
@@ -44,6 +54,30 @@ describe("the thread's exact body", () => {
     ["a nut with the own profile, 45 degrees", { threadRole: "nut", threadProfile: "custom", threadFlankAngle: 45, threadDepth: 0.6 }],
     ["a tapped hole with the own profile and a chamfer", { threadRole: "bore", hole: true, threadProfile: "custom", threadFlankAngle: 75, threadDepth: 0.5, threadChamfer: 0.4 }],
     ["a rod turned, tipped and lifted", { rotation: 30, rotationX: 90, elevation: 4, x: 12, z: -5 }],
+    // Nut shapes and heads from outlines (#1131).
+    ["a square nut", { threadRole: "nut", threadHead: "square" }],
+    ["a flange nut", { threadRole: "nut", threadHead: "flange" }],
+    ["a wing nut", { threadRole: "nut", threadHead: "wing" }],
+    ["a star knob nut, left hand", { threadRole: "nut", threadHead: "knob", threadHand: "left" }],
+    ["a screw with a square head", { threadRole: "screw", threadHead: "square" }],
+    ["a screw with a flange head", { threadRole: "screw", threadHead: "flange" }],
+    ["a screw with a wing head", { threadRole: "screw", threadHead: "wing" }],
+    ["a screw with a star knob", { threadRole: "screw", threadHead: "knob" }],
+    ["a star knob with a hex socket", { threadRole: "screw", threadHead: "knob", threadDrive: "hex" }],
+    // A collar between head and thread (#1152): a cylinder on the head, or a round tier on an outline head.
+    ["a star knob with a collar, height 30", { threadRole: "screw", threadHead: "knob", threadCollarHeight: 4, threadCollarDiameter: 14, height: 30 }],
+    ["a star knob with the widest collar and a hex socket", { threadRole: "screw", threadHead: "knob", threadDrive: "hex", threadCollarHeight: 3, threadCollarDiameter: 40, height: 30 }],
+    ["a cylinder head with a collar and a Torx drive", { threadRole: "screw", threadDrive: "torx", threadCollarHeight: 2, height: 26 }],
+    ["a hex head with both rims chamfered and a collar", { threadRole: "screw", threadHead: "hex", threadHeadChamfer: 0.4, threadCollarHeight: 1.5, threadCollarDiameter: 8, height: 26 }],
+    ["a wing head with a collar", { threadRole: "screw", threadHead: "wing", threadCollarHeight: 2.5, height: 28 }],
+    ["a flange head with a collar", { threadRole: "screw", threadHead: "flange", threadCollarHeight: 2, threadCollarDiameter: 11, height: 26 }],
+    // A collar on a nut's top face (#1175): a cylinder fused on the body, the thread cut through both.
+    ["a hex nut with a collar", { threadRole: "nut", threadCollarHeight: 3, height: 10 }],
+    ["a hex nut with both rims chamfered and a collar", { threadRole: "nut", threadHeadChamfer: 0.4, threadCollarHeight: 2, threadCollarDiameter: 11, height: 9 }],
+    ["a square nut with a collar", { threadRole: "nut", threadHead: "square", threadCollarHeight: 3, height: 10 }],
+    ["a flange nut with a collar", { threadRole: "nut", threadHead: "flange", threadCollarHeight: 3, height: 10 }],
+    ["a wing nut with a collar", { threadRole: "nut", threadHead: "wing", threadCollarHeight: 3, height: 10 }],
+    ["a star knob nut with a collar, left hand", { threadRole: "nut", threadHead: "knob", threadHand: "left", threadCollarHeight: 4, threadCollarDiameter: 16, height: 11 }],
   ];
 
   it.each(cases)("matches the drawn %s", (_name, extra) => {

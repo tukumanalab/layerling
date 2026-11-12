@@ -17,12 +17,15 @@ Depois, todos os seus projetos aparecem na página inicial com uma miniatura. El
 
 ## Conhecendo o editor
 
-![O editor com duas formas no plano de trabalho. A barra de opções no topo, os controles da câmera à esquerda, as configurações da forma selecionada à direita.](shot:editor-overview)
+![O editor com suas áreas nomeadas: a barra de opções no topo, o cubo de visualização à esquerda com a barra de visualização embaixo, ao lado a mensagem de status e a lista de objetos, as propriedades da forma selecionada à direita.](shot:editor-areas)
 
-- **No topo** fica a barra de opções. Ela é organizada por tarefa: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.group.modify}}, {{ui:editor.group.arrange}}, {{ui:editor.group.manage}} e {{ui:editor.group.help}}. Passe o mouse sobre um ícone para ver o nome dele. O pequeno ponto de interrogação, por exemplo nas configurações de uma forma, na biblioteca de formas ou nos painéis de ferramentas, leva direto ao capítulo correspondente deste guia.
+- **No topo** fica a **barra de opções**. Ela é organizada por tarefa: {{ui:editor.group.clipboard}}, {{ui:editor.group.history}}, {{ui:editor.group.shapes}}, {{ui:editor.group.visibility}}, {{ui:editor.group.combine}}, {{ui:editor.section.mirrorPattern}}, {{ui:editor.section.splitShape}}, {{ui:editor.section.edgesWalls}}, {{ui:editor.section.surface}}, {{ui:editor.group.arrange}} e {{ui:editor.group.file}}; {{ui:editor.group.help}} fica acima dela, na barra de título, e a casinha ao lado das abas leva de volta à página inicial. Quando a janela é estreita demais para todos os grupos, os menos usados se recolhem num botão com o nome deles, com uma pequena seta na cor do grupo pendurada embaixo: aponte para o botão ou toque nele, e as ferramentas do grupo se abrem logo abaixo. {{ui:editor.group.history}} recolhido é a exceção: o botão dele é o próprio {{ui:editor.tool.undo}}, e só a seta embaixo abre {{ui:editor.tool.redo}} e o resto. Se preferir, a tachinha no canto superior direito, à esquerda da lupa, mantém todos os grupos abertos. Passe o mouse sobre um ícone, mesmo que esteja acinzentado, para ver o nome dele. Com a {{ui:interactiveHelp.title}} (o ponto de interrogação na área {{ui:editor.group.help}}, ou Shift+F1), você pode clicar em qualquer ícone para saber o que ele faz e acessar a seção correspondente deste guia. O pequeno ponto de interrogação, por exemplo nas configurações de uma forma, na biblioteca de formas ou nas janelas de ferramentas, leva direto ao capítulo correspondente deste guia. Um ícone em cinza diz também o que falta, por exemplo {{ui:editor.needs.oneBody}} ou {{ui:editor.needs.locked}}. Não encontra uma ferramenta? Pressione [[Ctrl]]+[[K]] e digite o nome dela; um projeto vazio lembra disso na parte de baixo da vista.
 - **No centro** fica o plano de trabalho. É aqui que você posiciona as formas, dá forma a elas e vê o resultado.
 - **À direita** fica o **painel de propriedades**, com as configurações da forma selecionada: cor, dimensões, posição e tudo o mais que compõe a forma. Digitar números é mais exato do que arrastar.
-- **À esquerda** ficam os controles da câmera, com o cubo de visualização acima deles. Eles levam você pela cena; mais em [Vista e plano de trabalho](chapter:view-and-workplane).
+- **À esquerda** fica a barra de visualização, com o cubo de visualização acima dela. Eles levam você pela cena; mais em [Vista e plano de trabalho](chapter:view-and-workplane).
+- **Ao lado da barra de visualização** abre a **lista de objetos** ([[Ctrl]]+[[U]]), com todas as formas do projeto.
+- **À direita do cubo de visualização** aparece a **mensagem de status** quando o layerling tem algo para te dizer, por exemplo o que uma ferramenta espera de você. Quando não há nada a dizer, ela não aparece.
+- **Janelas de ferramentas** abrem sobre o plano de trabalho quando você inicia uma ferramenta como {{ui:editor.tool.fillet}}, {{ui:editor.tool.array}} ou {{ui:editor.tool.hollow}}. Arraste-as pela barra de título quando cobrirem algo.
 - **Bem no topo** você alterna entre {{ui:editor.modeGeometry}} e {{ui:editor.modeSketch}}, renomeia o projeto e escolhe o idioma e o tema de cores.
 
 ## Os botões em volta da área de trabalho
@@ -35,7 +38,7 @@ Passe o mouse sobre um botão para ver o nome dele. Se não tiver certeza do que
 
 ### Excluir
 
-{{ui:common.delete}} ([[Delete]]) remove as formas selecionadas. {{ui:editor.tool.undo}} as traz de volta.
+{{ui:common.delete}} ([[Delete]]) exclui as formas selecionadas. {{ui:editor.tool.undo}} as traz de volta.
 
 ### Desagrupar
 
@@ -55,7 +58,7 @@ Passe o mouse sobre um botão para ver o nome dele. Se não tiver certeza do que
 
 ### Nome do projeto
 
-O nome do projeto ({{ui:confirm.projectName}}) fica bem no topo. Clique nele, digite, e [[Enter]] mantém o nome.
+O nome do projeto ({{ui:confirm.projectName}}) fica bem no topo. Clique nele, digite o novo nome e pressione [[Enter]] para confirmar.
 
 ### Opções de visibilidade
 
@@ -69,9 +72,9 @@ Em {{ui:editor.visibilityOptions}}, na seta ao lado do ícone de olho, você enc
 
 {{ui:palette.open}}: digite o que você procura, uma ferramenta, uma forma ou uma configuração, e clique no resultado.
 
-### Ocultar controles da câmera
+### Ocultar a barra de visualização
 
-{{ui:camera.hide}} recolhe os controles da câmera à esquerda e dá mais espaço à área de trabalho; {{ui:camera.show}} os traz de volta.
+{{ui:camera.hide}} recolhe a barra de visualização à esquerda e dá mais espaço à área de trabalho; {{ui:camera.show}} os traz de volta.
 
 ### Grade de encaixe
 
@@ -85,6 +88,10 @@ A chave **mm | in** ao lado de {{ui:inspector.snapGrid}} troca a unidade, a grad
 
 No rodapé você encontra: {{ui:dashboard.sponsor}}, que leva à página onde você pode apoiar o projeto; {{ui:dashboard.userGuide}}, que abre este guia; {{ui:dashboard.forum}}, o lugar para perguntas, ideias e relatos de erros (as discussões no GitHub; em alemão, o fórum do drucktipps3d); {{ui:editor.bugReport}}, que cria um ZIP para um relato de erro; {{ui:dashboard.projectOnGitHub}}, que leva ao projeto no GitHub; e o número da versão, que abre as notas da versão. Os links para as informações legais e a política de privacidade são de quem mantém a cópia do layerling que você usa.
 
+### Modo foco
+
+Em uma tela pequena, o {{ui:focusMode.enter}} deixa a linha do título e o rodapé para o trabalho: o botão com as duas setas para fora no canto superior direito, [[Ctrl]]+[[Shift]]+[[F]] ou a busca de comandos o ativam. A faixa de opções sobe e a vista chega até a borda da janela. Uma pequena barra abaixo da faixa mantém a casinha para a página inicial, as abas {{ui:editor.modeGeometry}} e {{ui:editor.modeSketch}}, a lupa, as configurações e o botão com as duas setas para dentro, que encerra o modo; arraste a barra pela alça para outro lugar, e um clique duplo na alça a devolve. O layerling lembra a escolha neste navegador e, enquanto o navegador ocupa a tela inteira (F11), passa sozinho para o modo foco.
+
 ## Sua primeira peça
 
 Por exemplo, vamos montar um cubo com um furo.
@@ -95,15 +102,15 @@ Por exemplo, vamos montar um cubo com um furo.
 4. Selecione o cilindro e clique em {{ui:inspector.hole}} no painel de propriedades. Ele fica transparente: o sólido virou uma ferramenta que tira material.
 5. Selecione as duas formas e clique em {{ui:editor.tool.group}}. Agora o cubo tem um furo.
 
-![O cilindro é um orifício e sai pelo topo do cubo.](shot:hole-before)
+![O cilindro é um buraco e sai pelo topo do cubo.](shot:hole-before)
 
 ![Depois do agrupamento, o cubo tem um furo.](shot:hole-after)
 
-É assim que se fazem furos, rasgos e cavidades. O capítulo [Sólidos e orifícios](chapter:solids-and-holes) explica isso em detalhes.
+É assim que se fazem furos, rasgos e cavidades. O capítulo [Sólidos e buracos](chapter:solids-and-holes) explica isso em detalhes.
 
 ## Novidades desde a sua última visita
 
-Quando você abre o layerling de novo depois de uma atualização, um cartão na página inicial lista o que foi adicionado desde a sua última visita: cada versão desde então, a mais nova primeiro. Depois de muito tempo fora, você rola dentro do cartão. Abaixo delas, {{ui:whatsNew.earlier}} acrescenta também as versões de antes da sua última visita. Feche o cartão com {{ui:whatsNew.dismiss}} e ele não aparece mais até a próxima atualização. {{ui:whatsNew.footerLink}}, no rodapé da página inicial, mostra as últimas novidades de novo a qualquer momento. O navegador lembra a última versão que você viu, e nada sobre você sai dele.
+Quando você abre o layerling de novo depois de uma atualização, um cartão na página inicial lista o que foi adicionado desde a sua última visita: cada versão desde então, a mais nova primeiro. Depois de muito tempo sem abrir o layerling, você rola a lista dentro do cartão. Abaixo da lista, {{ui:whatsNew.earlier}} acrescenta também as versões de antes da sua última visita. Feche o cartão com {{ui:whatsNew.dismiss}} e ele não aparece mais até a próxima atualização. {{ui:whatsNew.footerLink}}, no rodapé da página inicial, mostra as últimas novidades de novo a qualquer momento. No editor, o botão {{ui:whatsNew.footerLink}} ao lado de {{ui:editor.guide}}, no canto superior direito, ou a busca de comandos abre a mesma lista; ela fica aberta ao lado do seu projeto enquanto você experimenta as novidades. O navegador lembra a última versão que você viu, e nada sobre você sai dele.
 
 Numa cópia do layerling no seu próprio computador ou servidor, o aviso "Atualização disponível" tem um botão, {{ui:update.previewShow}}, que lista o que a atualização traz antes de você instalá-la. A lista só é buscada no GitHub quando você clica no botão.
 
@@ -111,4 +118,4 @@ Numa cópia do layerling no seu próprio computador ou servidor, o aviso "Atuali
 
 Quando a peça estiver pronta, clique em {{ui:editor.export}}, escolha STL ou 3MF e baixe o arquivo. Abra-o no seu fatiador, por exemplo Bambu Studio, PrusaSlicer, OrcaSlicer ou Cura. Se você escolher sua impressora nas configurações, dá para ver enquanto modela se a peça cabe na mesa de impressão. Mais em [Impressão](chapter:printing).
 
-> **Dica:** Se você vem do Tinkercad, vai se achar rapidinho: a mesa, as formas, sólido e orifício, agrupar, alinhar e espelhar funcionam quase igual. As novidades são principalmente chanfro e arredondamento, vazar, roscas e esboços. Seus próprios projetos do Tinkercad também podem vir junto, veja [Arquivos e salvamento](chapter:files-and-saving).
+> **Dica:** Se você vem do Tinkercad, vai se achar rapidinho: a mesa, as formas, sólido e buraco, agrupar, alinhar e espelhar funcionam quase igual. As novidades são principalmente chanfro e arredondamento, vazar, roscas e esboços. Seus próprios projetos do Tinkercad também podem vir junto, veja [Arquivos e salvamento](chapter:files-and-saving).

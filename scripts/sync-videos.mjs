@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 // chapter of the guide (docs/guide/<language>/16-*.md) carries it with a description per language.
 // Everything else is filled from the chapter, so that no copy falls behind:
 //
-//   npm run videos:sync                  the video lists of README.md, README.de.md and README.nl.md
+//   npm run videos:sync                  the video lists of the READMEs in README_LANGUAGES
 //   npm run videos:sync -- --check       only says whether they are current (exit code 1 if not)
 //   npm run videos:sync -- --discussion  the first post of Discussion #296 on GitHub: shows whether it is current
 //   npm run videos:sync -- --discussion --apply   and writes it (needs `gh`, logged in as the owner)
@@ -20,7 +20,7 @@ const END = "<!-- videos:end -->";
 const DISCUSSION_NUMBER = 296;
 
 /** README file -> the guide language its list is taken from. */
-export const README_LANGUAGES = { "README.md": "en", "README.de.md": "de", "README.nl.md": "nl", "README.ar.md": "ar", "README.zh-cn.md": "zh-cn", "README.zh-tw.md": "zh-tw" };
+export const README_LANGUAGES = { "README.md": "en", "README.de.md": "de", "README.es.md": "es", "README.nl.md": "nl", "README.sv.md": "sv", "README.ar.md": "ar", "README.ja.md": "en", "README.zh-cn.md": "zh-cn", "README.zh-tw.md": "zh-tw" };
 
 /** The lines of the video chapter of a language: "- [title](https://...) - channel (language). description". */
 export function chapterVideoLines(language, base = root) {

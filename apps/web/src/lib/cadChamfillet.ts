@@ -1,5 +1,7 @@
 import type { OcctKernel, ShapeHandle, Vec3 } from "occt-wasm";
+import { isCadModifierWasmMemoryFault } from "@/lib/cadModifierRuntime";
 import { orientedFaceNormal } from "@/lib/cadShell";
+import { isKernelMemoryFault } from "@/lib/kernelFault";
 
 // Printable bottom-edge treatment ("chamfillet") for the CAD modifier worker:
 // a self-supporting chamfer at the base whose upper transition edge into the
@@ -23,7 +25,8 @@ function shapeIsValidSolid(cad: OcctKernel, shape: ShapeHandle) {
     if (!cad.isValid(shape)) return false;
     if (cad.isSolid(shape)) return true;
     return cad.subShapeCount(shape, "solid") > 0;
-  } catch {
+  } catch (error) {
+    if (isKernelMemoryFault(error)) throw error;
     return false;
   }
 }
@@ -50,7 +53,8 @@ function edgeMidpoint(cad: OcctKernel, edge: ShapeHandle): Vec3 {
     if (Number.isFinite(first) && Number.isFinite(last)) {
       return cad.curvePointAtParam(edge, (first + last) * 0.5);
     }
-  } catch {
+  } catch (error) {
+    if (isKernelMemoryFault(error)) throw error;
     // Fall back to linear center of mass.
   }
   return cad.getLinearCenterOfMass(edge);
@@ -60,7 +64,8 @@ function faceSamplePoint(cad: OcctKernel, face: ShapeHandle): Vec3 {
   const center = cad.getSurfaceCenterOfMass(face);
   try {
     return cad.projectPointOnFace(face, center);
-  } catch {
+  } catch (error) {
+    if (isKernelMemoryFault(error)) throw error;
     return center;
   }
 }
@@ -122,7 +127,8 @@ function isOriginalFace(cad: OcctKernel, face: ShapeHandle, originals: OriginalF
         return dot(normal, origNormal) > 0.999;
       });
       if (matches) return true;
-    } catch {
+    } catch (error) {
+      if (isKernelMemoryFault(error)) throw error;
       // Ignore faces whose projection fails.
     }
   }
@@ -317,7 +323,9 @@ export function chamfilletSolid(
           return result;
         }
         cad.release(result);
-      } catch {
+      } catch (error) {
+        // A kernel that has run out of memory is no case for a smaller radius; the worker restarts it.
+        if (error instanceof Error && isCadModifierWasmMemoryFault(error.message, error.name)) throw error;
         // Try a slightly smaller blend radius when adjacent geometry is tight.
       }
     }
