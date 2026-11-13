@@ -1,3 +1,4 @@
+import { withBasePath } from "@/lib/basePath";
 import { LANGUAGE_INFO, type Language } from "@/lib/languages";
 import { guideHref, type GuideSection } from "@/lib/guideLinks";
 import { getLanguage, t } from "@/lib/i18n";
@@ -248,7 +249,7 @@ const indexes = new Map<string, Promise<GuidePrepared[] | null>>();
 
 /** The address of a language's guide search index. */
 export function guideIndexUrl(language: Language): string {
-  return `/${(LANGUAGE_INFO[language] ?? LANGUAGE_INFO.en).guideDir}/search-index.json`;
+  return withBasePath(`/${(LANGUAGE_INFO[language] ?? LANGUAGE_INFO.en).guideDir}/search-index.json`);
 }
 
 /**
