@@ -19,7 +19,9 @@ fork 独自の機能（GitHub Pages 配信・base path 対応など）を置く�
    `main` に独自コミットがあると失敗します（それが正しい状態です）
 2. `tukumana` に無いコミットがあれば `main → tukumana` の PR を 1 本開き、auto-merge を有効にする。
    PR が既に開いていればそのまま使う（`main` が進めば同じ PR が更新される）
-3. ruleset「tukumana: CI required」の必須チェック `Typecheck and unit tests` が通ると、GitHub が merge commit でマージする。
+3. ruleset「tukumana: CI required」の必須チェック `Unit tests (1/3)`・`(2/3)`・`(3/3)` が通ると、GitHub が merge commit でマージする。
+   必須チェックは CI のジョブ名（`.github/workflows/ci.yml` の `name:`）と一字一句同じでなければならない。upstream がジョブの名前や分割数を変えたら、
+   ruleset も合わせて直す。合っていないとチェックが報告されず、PR は待ちのまま止まる。型チェックは `Unit tests (1/3)` の中で走る。
    マージされた push で Pages が配信される
 
 今すぐ同期したいときは Actions > Sync upstream > Run workflow で起動します。
