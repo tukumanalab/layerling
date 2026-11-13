@@ -86,7 +86,7 @@ upstream 向けの topic を先に Pages で使いたいときは、topic ブラ
 `tukumana` にだけある変更です。upstream に入ったらここから消します。
 
 - **日本語の書体は Zen Kaku Gothic New の太字（#11）:** Zen Maru Gothic（丸ゴシック、標準の太さ）は、ほかの組み込み書体（すべて太字）と並べると柔らかく細すぎ、印刷でも細く出た。代わりに Zen Kaku Gothic New の太字（SIL Open Font License、`fonts/zen-kaku-gothic-new/`）を使う。`scripts/build-japanese-typeface.mjs` で同じように `base` と `level2` に切り出し、JIS X 0208 の漢字（邉を含む）をすべて持つ。ほかの書体にも貸し、単独の書体としても選べる。フォントメニューと `list_fonts` ではフォントの名前で表示し、以前の「Japanese」を指定したデザインもその書体で開く（`builtInFontName`）。組み込み書体の名前は `BUILT_IN_FONTS` の 1 か所にまとめた。
-- **GitHub Pages 用の base path（#2）:** `LAYERLING_BASE_PATH` を指定すると、フォルダの下（`/layerling`）から配信できる。自分のアドレスを `/` で始めて書くファイルは `withBasePath`（`apps/web/src/lib/basePath.ts`）を通す。service worker にもこの base path が付く。
+- **GitHub Pages 用の base path（#2）:** `LAYERLING_BASE_PATH` を指定すると、フォルダの下（`/layerling`）から配信できる。自分のアドレスを `/` で始めて書くファイルは `withBasePath`（`apps/web/src/lib/basePath.ts`）を通す。service worker にもこの base path が付く。プログラムからガイドへのリンク（`guideHref`）と検索インデックスの取得（`guideIndexUrl`）にも付く。
 
 ## 古いブランチ
 
