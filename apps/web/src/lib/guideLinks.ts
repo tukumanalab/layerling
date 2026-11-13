@@ -1,3 +1,4 @@
+import { withBasePath } from "@/lib/basePath";
 import { LANGUAGE_INFO, type Language } from "@/lib/i18n";
 import type { ShapeKind } from "@/types/layerling";
 
@@ -138,17 +139,20 @@ export const GUIDE_SECTIONS = {
 
 export type GuideSection = keyof typeof GUIDE_SECTIONS;
 
-/** The address of a chapter or one of its sections, or of the guide's overview when neither is named. */
+/**
+ * The address of a chapter or one of its sections, or of the guide's overview when neither is named.
+ * The guide is built into the folder the program is served from, so the base path goes in front.
+ */
 export function guideHref(language: Language, chapter?: GuideChapter, section?: GuideSection): string {
   const directory = LANGUAGE_INFO[language].guideDir;
   const target = section ? GUIDE_SECTIONS[section] : null;
   const page = target?.chapter ?? chapter;
-  if (!page) return `/${directory}/index.html`;
+  if (!page) return withBasePath(`/${directory}/index.html`);
   // A language without names of its own in the tables above names its chapters like the English
   // ones, and a chapter it has not translated shows the English text under that same name.
   const chapterSlug = (GUIDE_CHAPTERS[page] as { en: string } & Partial<Record<Language, string>>)[language] ?? GUIDE_CHAPTERS[page].en;
   const anchor = target ? (target as { en: string } & Partial<Record<Language, string>>)[language] ?? target.en : null;
-  return `/${directory}/${chapterSlug}.html${anchor ? `#${anchor}` : ""}`;
+  return withBasePath(`/${directory}/${chapterSlug}.html${anchor ? `#${anchor}` : ""}`);
 }
 
 /**

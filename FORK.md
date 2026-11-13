@@ -19,7 +19,9 @@ fork 独自の機能（GitHub Pages 配信・base path 対応など）を置く�
    `main` に独自コミットがあると失敗します（それが正しい状態です）
 2. `tukumana` に無いコミットがあれば `main → tukumana` の PR を 1 本開き、auto-merge を有効にする。
    PR が既に開いていればそのまま使う（`main` が進めば同じ PR が更新される）
-3. ruleset「tukumana: CI required」の必須チェック `Typecheck and unit tests` が通ると、GitHub が merge commit でマージする。
+3. ruleset「tukumana: CI required」の必須チェック `Unit tests (1/3)`・`(2/3)`・`(3/3)` が通ると、GitHub が merge commit でマージする。
+   必須チェックは CI のジョブ名（`.github/workflows/ci.yml` の `name:`）と一字一句同じでなければならない。upstream がジョブの名前や分割数を変えたら、
+   ruleset も合わせて直す。合っていないとチェックが報告されず、PR は待ちのまま止まる。型チェックは `Unit tests (1/3)` の中で走る。
    マージされた push で Pages が配信される
 
 今すぐ同期したいときは Actions > Sync upstream > Run workflow で起動します。
@@ -86,7 +88,7 @@ upstream 向けの topic を先に Pages で使いたいときは、topic ブラ
 `tukumana` にだけある変更です。upstream に入ったらここから消します。
 
 - **日本語の書体は Zen Kaku Gothic New の太字（#11）:** Zen Maru Gothic（丸ゴシック、標準の太さ）は、ほかの組み込み書体（すべて太字）と並べると柔らかく細すぎ、印刷でも細く出た。代わりに Zen Kaku Gothic New の太字（SIL Open Font License、`fonts/zen-kaku-gothic-new/`）を使う。`scripts/build-japanese-typeface.mjs` で同じように `base` と `level2` に切り出し、JIS X 0208 の漢字（邉を含む）をすべて持つ。ほかの書体にも貸し、単独の書体としても選べる。フォントメニューと `list_fonts` ではフォントの名前で表示し、以前の「Japanese」を指定したデザインもその書体で開く（`builtInFontName`）。組み込み書体の名前は `BUILT_IN_FONTS` の 1 か所にまとめた。
-- **GitHub Pages 用の base path（#2）:** `LAYERLING_BASE_PATH` を指定すると、フォルダの下（`/layerling`）から配信できる。自分のアドレスを `/` で始めて書くファイルは `withBasePath`（`apps/web/src/lib/basePath.ts`）を通す。service worker にもこの base path が付く。
+- **GitHub Pages 用の base path（#2）:** `LAYERLING_BASE_PATH` を指定すると、フォルダの下（`/layerling`）から配信できる。自分のアドレスを `/` で始めて書くファイルは `withBasePath`（`apps/web/src/lib/basePath.ts`）を通す。service worker にもこの base path が付く。プログラムからガイドへのリンク（`guideHref`）と検索インデックスの取得（`guideIndexUrl`）にも付く。
 
 ## 古いブランチ
 
