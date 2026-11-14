@@ -3183,6 +3183,27 @@ html[data-theme="dark"] .edge-modifier-quick-actions button.active {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Scale by percent: the model railway gauges, four to a row. */
+.model-scale-presets {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.model-scale-presets button {
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+.model-scale-result {
+  margin: 8px 0 0;
+  color: #6d5133;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] .model-scale-result {
+  color: #d9c3a8;
+}
+
 /* Paint: fill, circle and lasso side by side. */
 .paint-panel .shell-opening-options {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4899,6 +4920,18 @@ html[data-theme="dark"] .toolbar-title-help .action-icon-button.active svg path 
 
 .shape-menu-trigger.active::before {
   transform: translateX(-50%) scaleY(-1);
+}
+
+/* The tab's hit area: resting the mouse on it opens the shapes panel, as on a folded group (#1722). A little larger than
+   the chevron, so it is easy to meet, and above it, so the chevron itself stays a drawing only. */
+.shape-menu-tab {
+  position: absolute;
+  z-index: 2;
+  bottom: -13px;
+  left: 50%;
+  width: 26px;
+  height: 13px;
+  transform: translateX(-50%);
 }
 
 .shape-menu-dropdown {
@@ -7249,7 +7282,6 @@ html[data-theme="dark"] .sketch-shape-options .unit {
   color: #321d07;
   background: rgba(247, 235, 223, 0.82);
   border-color: rgba(207, 182, 155, 0.7);
-  transform: translateX(1px);
 }
 
 .camera-controls button:focus-visible {
@@ -18177,4 +18209,32 @@ html[data-theme="dark"] .select-property select option {
 }
 html[data-theme="dark"] .property-card > button.property-card-header:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.align-size-toggle {
+  display: none;
+  position: absolute;
+  left: 12px;
+  bottom: 72px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--foreground);
+  font: 600 13px var(--font-ui);
+  box-shadow: 0 2px 8px rgba(40, 27, 13, 0.22);
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.align-size-toggle.on {
+  background: rgba(173, 89, 0, 0.92);
+  border-color: rgba(173, 89, 0, 0.92);
+  color: #fff;
+}
+
+@media (any-pointer: coarse) {
+  .align-size-toggle {
+    display: block;
+  }
 }

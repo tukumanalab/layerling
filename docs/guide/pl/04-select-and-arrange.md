@@ -78,7 +78,7 @@ Jeśli wśród zaznaczonych kształtów jest płyta (kształt bazowy, na którym
 
 Bez płyty przytrzymaj [[Shift]] i kliknij najpierw wolne miejsce stołu: stół staje się wtedy stałym kształtem, równe odstępy rozkładają kształty na całym stole z takim samym odstępem od brzegów, a pozostałe punkty wyrównują je do jego brzegów lub środka. Ponowne kliknięcie z [[Shift]] wolnego miejsca zwalnia go. Kliknięcie w puste miejsce bez [[Shift]] kończy wyrównywanie, tak jak [[L]] i [[Esc]].
 
-Przytrzymaj [[Alt]] i kliknij punkt, żeby samemu wpisać odstęp, np. 5 mm: kształty ustawią się w takiej odległości, od pierwszego kształtu albo od tego, który kliknięto najpierw; na płycie rząd trafia na jej środek. Zablokowany kształt zostaje na miejscu, więc taki między skrajnymi kształtami uniemożliwia równe odstępy.
+Przytrzymaj [[Alt]] i kliknij punkt, żeby samemu wpisać odstęp, np. 5 mm: kształty ustawią się w takiej odległości, od pierwszego kształtu albo od tego, który kliknięto najpierw; na płycie rząd trafia na jej środek. Zablokowany kształt zostaje na miejscu, więc taki między skrajnymi kształtami uniemożliwia równe odstępy. Na tablecie, który nie ma klawisza Alt, to samo robi przełącznik {{ui:align.sizeSwitch}} obok punktów: po włączeniu punkty pozostają kwadratami, a punkt odstępu otwiera swoje pole, dopóki go nie wyłączysz.
 
 ## Odbicie lustrzane
 
@@ -192,6 +192,8 @@ Gdy zaznaczonych jest kilka części, panel właściwości po prawej pokazuje, i
 Aby powiększyć lub zmniejszyć jedną lub kilka części o ten sam odsetek, na przykład wszystkie części pliku do druku o 20 %, użyj {{ui:scalePercent.title}}. Zaznacz części, kliknij je prawym przyciskiem i wybierz {{ui:scalePercent.title}} albo znajdź to przez [[Ctrl]]+[[K]].
 
 W polu {{ui:scalePercent.percent}} wpisujesz nowy rozmiar jako procent obecnego: 120 % to o jedną piątą więcej, 50 % to połowa rozmiaru. Szerokość, głębokość i wysokość zmieniają się jednakowo, więc proporcje zostają. Spód zostaje na miejscu, więc nic nie zapada się w płytę.
+
+Do modelarstwa wybierz u góry {{ui:scalePercent.by.scale}} zamiast {{ui:scalePercent.by.percent}}. {{ui:scalePercent.scalePresets}} zawiera typowe skale od Z (1:220) do 16mm (1:19,05), a w {{ui:scalePercent.ratio}} wpiszesz każdą inną, np. 35 dla 1:35. Jeśli model jest zbudowany w rzeczywistym rozmiarze oryginału, zostaw {{ui:scalePercent.original.fullSize}}: 1:87 zmniejsza go 87 razy. Jeśli zbudowałeś go w dowolnym rozmiarze, wybierz {{ui:scalePercent.original.realSize}}, potem {{ui:scalePercent.axis.height}} lub {{ui:scalePercent.axis.length}} (najdłuższy bok na płycie) i wpisz w {{ui:scalePercent.realSize}}, jak duży jest naprawdę oryginał, w metrach (w stopach przy jednostkach calowych). Drzewo, które w rzeczywistości ma 16 m, w H0 ma wtedy 16 000 mm / 87 = 184 mm, niezależnie od tego, jak duże było wcześniej. Nowy rozmiar widać pod polami, zanim naciśniesz {{ui:scalePercent.apply}}. Skala zostaje ustawiona, dopóki edytor jest otwarty.
 
 Przy kilku częściach wybierasz, jak mają rosnąć:
 
