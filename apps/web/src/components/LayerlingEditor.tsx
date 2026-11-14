@@ -12,6 +12,8 @@ import { SAVED_VIEW_KEYS } from "@/lib/designView";
 import * as THREE from "three";
 import type { AppThemePreference, ResolvedAppTheme } from "@/lib/appTheme";
 import { getLanguage, numberLocale, t, type MessageKey } from "@/lib/i18n";
+import { guideHref } from "@/lib/guideLinks";
+import { largeMeshWarningTriangles } from "@/lib/largeMeshes";
 import { isObjectListOrder, moveShapeBefore, sortObjectList } from "@/lib/objectListSearch";
 import { useLanguage } from "@/lib/useLanguage";
 import { loftShapePatch, normalizeLoftMiddles, type LoftMeasures } from "@/lib/loftGeometry";
@@ -239,12 +241,13 @@ import { sketchOutlineBounds } from "@/lib/sketchKeyring";
 import { meshSlicePath, planeCutsMesh } from "@/lib/sketchSlice";
 import { projectedEdgesPath } from "@/lib/sketchEdges";
 import { useRememberedFlag } from "@/lib/useRememberedFlag";
-import { BUG_REPORT_FILE, bugReportText, rememberBugReportEvent, type BugReportEvent } from "@/lib/bugReport";
+import { BUG_REPORT_ERROR_EVENT, BUG_REPORT_FILE, bugReportText, rememberBugReportEvent, type BugReportEvent } from "@/lib/bugReport";
+import type { SaveFailureKind } from "@/lib/saveFailureDiagnosis";
 import { formatLengthMm, lengthDisplayUnit } from "@/lib/measurementUnits";
 import { tightBendShown } from "@/lib/cadTightBends";
 import { angleAtVertex, angleBetweenFaces, formatFaceAngles, formatProtractorAngle } from "@/lib/protractor";
 import { wrapMeshAroundCylinder, type CylinderWrapError } from "@/lib/cylinderWrap";
-import { normalizeSurfaceTexture, SURFACE_TEXTURE_AXES, SURFACE_TEXTURE_CAP_EDGES, SURFACE_TEXTURE_CAP_STYLES, SURFACE_TEXTURE_CARBON_WEAVES, SURFACE_TEXTURE_BARK_TYPES, SURFACE_TEXTURE_BRICK_BONDS, SURFACE_TEXTURE_TIMBER_BRACINGS, SURFACE_TEXTURE_BUMP_GRIDS, SURFACE_TEXTURE_CRACK_STARTS, SURFACE_TEXTURE_CRACK_STYLES, SURFACE_TEXTURE_DETAILS, SURFACE_TEXTURE_DIRECTIONS, SURFACE_TEXTURE_IMAGES, SURFACE_TEXTURE_LIMITS, SURFACE_TEXTURE_PATTERNS, SURFACE_TEXTURE_PROFILES, SURFACE_TEXTURE_PROJECTIONS, SURFACE_TEXTURE_TILINGS, SURFACE_TEXTURE_FACE_NAMES, normalizeSurfaceTextureFaces, surfaceTextureFacePick, surfaceTexturePickedFaceIds, toggleSurfaceTexturePickedFace, type SurfaceTextureFace, type SurfaceTextureFacePick, SURFACE_TEXTURE_WOOD_CUTS, SURFACE_TEXTURE_WOOD_TYPES, type SurfaceTextureMask, type SurfaceTextureSettings } from "@/lib/surfaceTexture";
+import { normalizeSurfaceTexture, SURFACE_TEXTURE_AXES, SURFACE_TEXTURE_CAP_EDGES, SURFACE_TEXTURE_CAP_STYLES, SURFACE_TEXTURE_CARBON_WEAVES, SURFACE_TEXTURE_BARK_TYPES, SURFACE_TEXTURE_BRICK_BONDS, SURFACE_TEXTURE_TIMBER_BRACINGS, SURFACE_TEXTURE_BUMP_GRIDS, SURFACE_TEXTURE_CRACK_STARTS, SURFACE_TEXTURE_CRACK_STYLES, SURFACE_TEXTURE_DETAILS, SURFACE_TEXTURE_DIRECTIONS, SURFACE_TEXTURE_IMAGES, SURFACE_TEXTURE_LIMITS, SURFACE_TEXTURE_PATTERNS, SURFACE_TEXTURE_PROFILES, SURFACE_TEXTURE_PROJECTIONS, SURFACE_TEXTURE_TILINGS, SURFACE_TEXTURE_FACE_NAMES, normalizeSurfaceTextureFaces, normalizeSurfaceTextureRegion, SURFACE_TEXTURE_MAX_REGION_POINTS, surfaceTextureFacePick, surfaceTexturePickedFaceIds, surfaceTextureRegionFromLasso, toggleSurfaceTexturePickedFace, type SurfaceTextureFace, type SurfaceTextureFacePick, type SurfaceTextureRegion, SURFACE_TEXTURE_WOOD_CUTS, SURFACE_TEXTURE_WOOD_TYPES, type SurfaceTextureMask, type SurfaceTextureSettings } from "@/lib/surfaceTexture";
 import { normalizeSurfaceTextureOwnImage, SURFACE_TEXTURE_OWN_IMAGE_SIZE } from "@/lib/surfaceTextureImages";
 import { SURFACE_TEXT_FONTS, surfaceTextOutline } from "@/lib/surfaceTextOutline";
 import { surfaceTextureCardStaysOpen } from "@/lib/inspectorCards";
@@ -267,7 +270,7 @@ import { roundedAlignedValue } from "@/lib/alignRounding";
 import { buildSketchLoftFromSelection, canSketchLoft } from "@/lib/sketchLoft";
 import { alignBounds, sizeAlignmentState, sizedShapesForSelection } from "@/lib/alignSize";
 import { ALIGN_PLATE_ID, alignPlateShape, distributedShapesForSelection, distributionState, type DistributeProblem, type DistributeResult } from "@/lib/alignDistribute";
-import { cloneAsGroupChild, meshDataToManifoldMesh, shapeToManifoldSolid, withClosedHolesNote, withConnectorsNote, stretchNotice, stretchLengthLabel, MAX_STRETCH_LENGTH, DEFAULT_STRETCH_LENGTH, unionOverlappingExportMeshes, exportBodiesWithLooseHoles, formatSectionOffset, SECTION_SEEN_FROM_KEYS, visibleExportShapes, multicolorExportSolids, exportFaceColors, colorSeparatedExportMeshes, disposeManifold, canIntersectShapes, buildIntersectionShapeFromSelection, canHullShapes, buildHullShapeFromSelection, groupedShape, quaternionForShape, rotationFromQuaternion, cleanShapePatch, restoreGroupedChildren, restoreGroupedChildrenForEdges } from "@/lib/editorBooleans";
+import { cloneAsGroupChild, meshDataToManifoldMesh, shapeToManifoldSolid, withClosedHolesNote, withConnectorsNote, stretchNotice, stretchLengthLabel, type RebuildStretchedGroup, MAX_STRETCH_LENGTH, DEFAULT_STRETCH_LENGTH, unionOverlappingExportMeshes, exportBodiesWithLooseHoles, formatSectionOffset, SECTION_SEEN_FROM_KEYS, visibleExportShapes, multicolorExportSolids, exportFaceColors, colorSeparatedExportMeshes, disposeManifold, canIntersectShapes, buildIntersectionShapeFromSelection, canHullShapes, buildHullShapeFromSelection, groupedShape, quaternionForShape, rotationFromQuaternion, cleanShapePatch, restoreGroupedChildren, restoreGroupedChildrenForEdges } from "@/lib/editorBooleans";
 import { handleViewArrowKey } from "@/lib/viewArrowKeys";
 import { createKeyRepeatBatch } from "@/lib/keyRepeatBatch";
 import { escapeWasHandled } from "@/lib/escapeHandled";
@@ -897,6 +900,12 @@ function shapeMoveDeltaBetween(from: ShapeTransformSnapshot, to: ShapeTransformS
     rotationDelta: to.rotationQuaternion.clone().multiply(from.rotationQuaternion.clone().invert()),
     sizeFactors: sizeFactorsBetween(from.size, to.size),
   };
+}
+
+function sameIdSet(a: readonly string[], b: readonly string[]) {
+  if (a.length !== b.length) return false;
+  const inA = new Set(a);
+  return b.every((id) => inA.has(id));
 }
 
 function isZeroMoveDelta(delta: ShapeMoveDelta) {
@@ -3053,6 +3062,7 @@ export function LayerlingEditor({
   onProjectSnapshot,
   isProjectThumbnailMissing,
   projectSaveFailure,
+  projectUnsaved,
   onProjectWorkspaceChange,
   onProjectNameChange,
   onCreateProjectFromState,
@@ -3078,7 +3088,7 @@ export function LayerlingEditor({
   initialPlacementElevation?: number;
   initialPlacementWorkplane?: PlacementWorkplane;
   onHome?: (leaving: { itemCount: number }) => void;
-  onOpenLylProjectFile?: (file: File, shared?: undefined, fileHandle?: LylFileHandle, options?: { name?: string }) => Promise<{ ok: boolean; message: string } | void> | { ok: boolean; message: string } | void;
+  onOpenLylProjectFile?: (file: File, shared?: undefined, fileHandle?: LylFileHandle, options?: { name?: string; onSlow?: (message: string) => void }) => Promise<{ ok: boolean; message: string } | void> | { ok: boolean; message: string } | void;
   /** "Back up all" of the start page, for the reminder in the status line; it starts with the save dialog. */
   onBackUpAllDesigns?: () => void;
   onSaveSharedProject?: (request: { exportName: string; bytes: Uint8Array; thumbnailDataUrl: string; targetFileName?: string }) => Promise<string>;
@@ -3106,6 +3116,8 @@ export function LayerlingEditor({
   isProjectThumbnailMissing?: (projectId: string) => Promise<boolean>;
   /** The last failed autosave, so the editor can say so; `at` makes a repeat failure show again. */
   projectSaveFailure?: { message: string; at: number } | null;
+  /** Why the newest state of this design could not be stored, while it could not (#1652): a note stays up until a save gets through. */
+  projectUnsaved?: { message: string; kind: SaveFailureKind; detail: string; broken?: boolean } | null;
   onProjectNameChange?: (name: string) => void;
   /** Legt aus einem frueheren Stand ein neues Projekt an und sagt in einem Satz, was daraus wurde. */
   onCreateProjectFromState?: (request: HistoryProjectRequest) => Promise<string>;
@@ -3401,7 +3413,11 @@ export function LayerlingEditor({
   const deleteFaceRunRef = useRef(0);
   // Faces of the selected body picked for its texture with clicks (the texture card holds the other settings): the
   // body's faces as the texture finds them, on the body under a texture there is, and the faces picked so far.
-  const [surfaceFacePick, setSurfaceFacePick] = useState<{ shapeId: string; shape: WorkplaneShape; edgeAngle: number; pick: SurfaceTextureFacePick; faces: SurfaceTextureFace[] } | null>(null);
+  const [surfaceFacePick, setSurfaceFacePick] = useState<{ shapeId: string; shape: WorkplaneShape; edgeAngle: number; pick: SurfaceTextureFacePick; faces: SurfaceTextureFace[]; review: boolean } | null>(null);
+  // A region drawn on the selected body for its texture with a lasso (Discussion #1579): the body, its triangles under a
+  // texture there is, and the region drawn last, which the texture card takes for the layer it was drawn for.
+  const [surfaceRegionDraw, setSurfaceRegionDraw] = useState<{ shapeId: string; shape: WorkplaneShape; positions: Float64Array } | null>(null);
+  const [surfaceDrawnRegion, setSurfaceDrawnRegion] = useState<{ region: SurfaceTextureRegion } | null>(null);
   const [cruiseAsset, setCruiseAsset] = useState<ShapeAsset | null>(null);
   const cruiseAssetRef = useRef<ShapeAsset | null>(null);
   cruiseAssetRef.current = cruiseAsset;
@@ -3458,11 +3474,17 @@ export function LayerlingEditor({
     };
     const onError = (event: ErrorEvent) => remember(`${event.message}${event.filename ? ` (${event.filename.split("/").pop()}:${event.lineno})` : ""}`);
     const onRejection = (event: PromiseRejectionEvent) => remember(`Unhandled: ${event.reason instanceof Error ? event.reason.message : String(event.reason)}`);
+    const onReported = (event: Event) => {
+      const text = (event as CustomEvent<unknown>).detail;
+      if (typeof text === "string") remember(text);
+    };
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);
+    window.addEventListener(BUG_REPORT_ERROR_EVENT, onReported);
     return () => {
       window.removeEventListener("error", onError);
       window.removeEventListener("unhandledrejection", onRejection);
+      window.removeEventListener(BUG_REPORT_ERROR_EVENT, onReported);
     };
   }, []);
   // A failed autosave is said where the work happens, and stays a while.
@@ -3496,6 +3518,8 @@ export function LayerlingEditor({
   }, [projectId]);
   const booleanAutomationRunRef = useRef<string | null>(null);
   const splitRunRef = useRef(0);
+  // A stretched group is built again from its parts (Discussion #1707); set once rebuildGroupFromParts is made, below.
+  const rebuildStretchedGroupRef = useRef<RebuildStretchedGroup | undefined>(undefined);
   const splitProjectIdRef = useRef(projectId ?? null);
   splitProjectIdRef.current = projectId ?? null;
   const projectHydratingRef = useRef(false);
@@ -6916,6 +6940,13 @@ export function LayerlingEditor({
    */
   const smartDuplicateRef = useRef<{ id: string; baseline: ShapeTransformSnapshot; delta: ShapeMoveDelta }[] | null>(null);
 
+  // The chain ends once the selection leaves the copies, also by a click into empty space: selecting the copy
+  // again and duplicating then gives a plain copy in the same spot, as in similar tools (Discussion #1691).
+  useEffect(() => {
+    const chain = smartDuplicateRef.current;
+    if (chain && !sameIdSet(chain.map((link) => link.id), selectedIds)) smartDuplicateRef.current = null;
+  }, [selectedIds]);
+
   const duplicateSelected = useCallback(() => {
     if (!hasSelection) {
       setNotice(t("status.selectShapeFirst"));
@@ -7692,7 +7723,7 @@ export function LayerlingEditor({
     splitAbortRef.current = splitAbort;
     const stretch = session.mode === "stretch" ? session.stretch : undefined;
     const connectors = stretch !== undefined || session.connectors.kind === "none" ? undefined : session.connectors;
-    const outcome = await splitShapesByPlaneOffThread(splitTargetShapes, plane, () => splitRunRef.current === runId && sourceContextIsCurrent(), splitAbort.signal, connectors, stretch);
+    const outcome = await splitShapesByPlaneOffThread(splitTargetShapes, plane, () => splitRunRef.current === runId && sourceContextIsCurrent(), splitAbort.signal, connectors, stretch, rebuildStretchedGroupRef.current);
     if (splitRunRef.current !== runId) return;
     if (outcome.status === "stale" || !sourceContextIsCurrent()) {
       splitRunRef.current += 1;
@@ -9018,14 +9049,14 @@ export function LayerlingEditor({
       setLidTool(null);
       return;
     }
-    const { type, thickness, gap, depth, wall, magnets, magnetDiameter, magnetHeight, magnetGap, hinge, hingePin, hingeGap, hingePinPlay, hingeKnuckles, hingePrintPin, hingeSide, hingeTeardrop, hingeStyle, hingeEndPlugs, clickBumps, clickBumpHeight, handle, threadPitch, threadTurns, threadStandard, bayonetLugs, bayonetDepth, bayonetAxialGap, bayonetDetent, bayonetTurn, tether, flipTop, flipTopOpening, topEdge, topEdgeSize, slideSide, slideFrame } = lidTool;
+    const { type, thickness, gap, depth, wall, magnets, magnetDiameter, magnetHeight, magnetGap, hinge, hingePin, hingeGap, hingePinPlay, hingeKnuckles, hingePrintPin, hingeSide, hingeTeardrop, hingeStyle, hingeEndPlugs, clickBumps, clickBumpHeight, handle, threadPitch, threadTurns, threadOffset, threadStandard, bayonetLugs, bayonetDepth, bayonetAxialGap, bayonetDetent, bayonetTurn, tether, flipTop, flipTopOpening, topEdge, topEdgeSize, slideSide, slideFrame } = lidTool;
     setLidTool((current) => current ? { ...current, busy: true, error: null } : current);
     // Click bumps, a handle and end plugs the panel does not show (a flat lid, a pivot lid, a hinge not flush)
     // are not asked for, nor magnets and a hinge with a screw lid or a bayonet lid, nor a tether without one, nor a flip-top with another lid; nor magnets and a hinge with a slide-in lid.
     void makeLid({
       type, thickness, gap, depth, wall, magnets: magnets && lidTakesMagnets(lidTool), magnetDiameter, magnetHeight, magnetGap, hinge: hinge && LID_HINGE_TYPES.includes(type), hingePin, hingeGap, hingePinPlay, hingeKnuckles, hingePrintPin, hingeSide, hingeTeardrop, hingeStyle,
       hingeEndPlugs: hingeEndPlugs && hingeStyle === "flush",
-      clickBumps: clickBumps && lidClickBumpsFit(lidTool), clickBumpHeight, handle: lidHandleFits(lidTool) ? handle : "none", threadPitch, threadTurns, threadStandard,
+      clickBumps: clickBumps && lidClickBumpsFit(lidTool), clickBumpHeight, handle: lidHandleFits(lidTool) ? handle : "none", threadPitch, threadTurns, threadOffset, threadStandard,
       bayonetLugs, bayonetDepth, bayonetAxialGap, bayonetDetent, bayonetTurn, tether: tether && lidTetherFits(lidTool), flipTop: flipTop && lidFlipTopFits(lidTool), flipTopOpening,
       topEdge: lidTopEdgeFits(lidTool) ? topEdge : "square", topEdgeSize, slideSide, slideFrame,
     }, targets).then((result) => {
@@ -9212,7 +9243,10 @@ export function LayerlingEditor({
         setShellTool(null);
       })
       .catch((error: unknown) => {
-        const message = error instanceof Error ? localizedError(error.message) : String(error);
+        // A body the kernel cannot finish said only that the worker was restarted (#1687).
+        const message = error instanceof Error
+          ? (error.message.includes("Timed out waiting for the CAD worker") ? t("shell.errorTooSlow") : localizedError(error.message))
+          : String(error);
         setShellTool((current) => current ? { ...current, busy: false, error: message } : current);
       });
   }, [commitShapes, offsetShape, selectedShape, selectedShapes.length, shellShape, shellTool]);
@@ -11021,15 +11055,17 @@ export function LayerlingEditor({
 
   // Picking faces for the texture (#954): on the body the texture is made on - under a texture there is - where the
   // selected body stands. Started again with other faces (all of them again) on the same body, the faces it has stay.
-  const pickSurfaceFaces = useCallback((faces: SurfaceTextureFace[] | null, edgeAngle: number) => {
+  // With review the faces are only lit for a look (Discussion #1607): a click in the view does not change them.
+  const pickSurfaceFaces = useCallback((faces: SurfaceTextureFace[] | null, edgeAngle: number, review = false) => {
     if (!faces) {
       setSurfaceFacePick(null);
       return;
     }
     if (selectedShapes.length !== 1 || !selectedShape) return;
+    setSurfaceRegionDraw(null);
     const current = selectedShape;
     if (surfaceFacePick?.shapeId === current.id && surfaceFacePick.edgeAngle === edgeAngle) {
-      setSurfaceFacePick({ ...surfaceFacePick, faces });
+      setSurfaceFacePick({ ...surfaceFacePick, faces, review });
       return;
     }
     const source = canChangeSurfaceTexture(current) ? shapeUnderSurfaceTexture(current) : canTextureSurface(current) ? current : null;
@@ -11038,13 +11074,46 @@ export function LayerlingEditor({
       return;
     }
     if (deleteFaceTool && !deleteFaceTool.busy) setDeleteFaceTool(null);
-    setSurfaceFacePick({ shapeId: current.id, shape: current, edgeAngle, pick: surfaceTextureFacePick(surfaceTextureInput(source), edgeAngle), faces });
-    setNotice(t("status.surfaceFacesPick"));
+    setSurfaceFacePick({ shapeId: current.id, shape: current, edgeAngle, pick: surfaceTextureFacePick(surfaceTextureInput(source), edgeAngle), faces, review });
+    if (!review) setNotice(t("status.surfaceFacesPick"));
   }, [deleteFaceTool, selectedShape, selectedShapes.length, surfaceFacePick]);
 
   const toggleSurfaceFace = useCallback((faceId: number) => {
-    setSurfaceFacePick((current) => current && { ...current, faces: toggleSurfaceTexturePickedFace(current.pick, current.faces, faceId) });
+    setSurfaceFacePick((current) => current && !current.review ? { ...current, faces: toggleSurfaceTexturePickedFace(current.pick, current.faces, faceId) } : current);
   }, []);
+
+  // Drawing a region for the texture (Discussion #1579): on the body the texture is made on - under a texture there is -
+  // where the selected body stands, with a lasso in the view. Picking faces stops: the region takes their place.
+  const drawSurfaceRegion = useCallback((drawing: boolean) => {
+    if (!drawing) {
+      setSurfaceRegionDraw(null);
+      return;
+    }
+    if (selectedShapes.length !== 1 || !selectedShape) return;
+    const current = selectedShape;
+    const source = canChangeSurfaceTexture(current) ? shapeUnderSurfaceTexture(current) : canTextureSurface(current) ? current : null;
+    if (!source) {
+      setNotice(t(current.locked ? "status.objectLocked" : current.surfaceTexture ? "status.alreadyTextured" : "status.selectOneToTexture"));
+      return;
+    }
+    if (deleteFaceTool && !deleteFaceTool.busy) setDeleteFaceTool(null);
+    setSurfaceFacePick(null);
+    setSurfaceRegionDraw({ shapeId: current.id, shape: current, positions: surfaceTextureInput(source) });
+    setNotice(t("status.surfaceRegionDraw"));
+  }, [deleteFaceTool, selectedShape, selectedShapes.length]);
+
+  // A lasso drawn round a place on the body: the region it makes goes to the texture card, and drawing ends.
+  const surfaceRegionLasso = useCallback((start: LayFlatPick, view: PaintLassoView, outline: Array<[number, number]>) => {
+    if (!surfaceRegionDraw) return;
+    const region = surfaceTextureRegionFromLasso(surfaceRegionDraw.positions, start, view, outline);
+    if (!region) {
+      setNotice(t("status.surfaceRegionMissed"));
+      return;
+    }
+    setSurfaceDrawnRegion({ region });
+    setSurfaceRegionDraw(null);
+    setNotice(t("status.surfaceRegionDrawn", { count: region.points.length }));
+  }, [surfaceRegionDraw]);
 
   // The Honeycomb is gone as a shape (#223): one in an older design becomes a box with hexagonal holes, grouped, as the
   // hole pattern makes it. Each is converted once - Undo may bring the old one back, and it then stays as it was.
@@ -11953,6 +12022,10 @@ export function LayerlingEditor({
     const mergeWarning = "mergeWarning" in result && typeof result.mergeWarning === "string" ? result.mergeWarning : "";
     return { group, mergeWarning };
   }, []);
+  rebuildStretchedGroupRef.current = async (group, parts) => {
+    const rebuilt = await rebuildGroupFromParts(group, parts);
+    return rebuilt.group ?? { error: rebuilt.failure };
+  };
 
   const finishOpenGroup = useCallback(async (): Promise<OpenGroupOutcome> => {
     const levels = openGroupsRef.current;
@@ -12806,12 +12879,18 @@ export function LayerlingEditor({
     surfaceTextureBodyRef.current = surfaceTextureBody;
     if (!surfaceTextureCardStaysOpen(before, surfaceTextureBody, (id) => shapesRef.current.some((shape) => shape.id === id))) setSurfaceTextureOpen(false);
   }, [surfaceTextureBody]);
-  // Picking faces ends with the card closed, another selection, or the body changed (moved, resized, textured).
+  // Picking faces ends with the card closed, another selection, or the body changed (moved, resized, textured) - and so
+  // does drawing a region.
   useEffect(() => {
     if (!surfaceFacePick) return;
     const body = shapes.find((shape) => shape.id === surfaceFacePick.shapeId);
     if (!surfaceTextureOpen || selectedIds.length !== 1 || selectedIds[0] !== surfaceFacePick.shapeId || body !== surfaceFacePick.shape) setSurfaceFacePick(null);
   }, [selectedIds, shapes, surfaceFacePick, surfaceTextureOpen]);
+  useEffect(() => {
+    if (!surfaceRegionDraw) return;
+    const body = shapes.find((shape) => shape.id === surfaceRegionDraw.shapeId);
+    if (!surfaceTextureOpen || selectedIds.length !== 1 || selectedIds[0] !== surfaceRegionDraw.shapeId || body !== surfaceRegionDraw.shape) setSurfaceRegionDraw(null);
+  }, [selectedIds, shapes, surfaceRegionDraw, surfaceTextureOpen]);
   const canSurfaceTexture = selectedShapes.length === 1 && offersSurfaceTexture(selectedShape) && !bodyLocked(selectedShape);
   const toggleSurfaceTextureTool = useCallback(() => setSurfaceTextureOpen((open) => !open), [setSurfaceTextureOpen]);
 
@@ -13066,7 +13145,7 @@ export function LayerlingEditor({
   }, [beginSketch, sectionSketchAt, sketchActive]);
 
   // Der Dateiimport steht weiter unten; die MCP-Aktion nimmt denselben Weg.
-  const importFilesRef = useRef<((files: File[], fileHandle?: LylFileHandle, options?: { keepSvgPage?: boolean; svgWidth?: number | null }) => Promise<{ importedIds: string[]; failures: Array<{ fileName: string; reason: string }> }>) | null>(null);
+  const importFilesRef = useRef<((files: File[], fileHandle?: LylFileHandle, options?: { keepSvgPage?: boolean; svgWidth?: number | null }) => Promise<{ importedIds: string[]; failures: Array<{ fileName: string; reason: string }>; warning?: string }>) | null>(null);
 
   const {
     customShapeEntries, customShapeFolders, serverAvailable: customShapesServerAvailable, myShapesFileInputRef,
@@ -14971,6 +15050,7 @@ export function LayerlingEditor({
           handle: params.handle,
           threadPitch: params.threadPitch,
           threadTurns: params.threadTurns,
+          threadOffset: params.threadOffset,
           threadStandard: params.threadStandard,
           bayonetLugs: params.bayonetLugs,
           bayonetDepth: params.bayonetDepth,
@@ -15173,6 +15253,13 @@ export function LayerlingEditor({
             if (typeof face === "string" ? !(SURFACE_TEXTURE_FACE_NAMES as readonly string[]).includes(face) : !normalizeSurfaceTextureFaces([face]).length) throw new Error(named);
           });
         }
+        // A region drawn on a face (Discussion #1579) instead of faces: refused when it is no outline, or given with faces.
+        const regionError = (given: Record<string, unknown>, where: string) => {
+          if (given.region === undefined || given.region === null) return;
+          if (!normalizeSurfaceTextureRegion(given.region)) throw new Error(`${where}region must be { face, points }: face one of ${SURFACE_TEXTURE_FACE_NAMES.join(", ")} (default top) or a normal [x, y, z], and points 3 to ${SURFACE_TEXTURE_MAX_REGION_POINTS} [x, y] in mm with an area`);
+          if (Array.isArray(given.faces) && given.faces.length) throw new Error(`${where}region takes the place of faces: give one or the other`);
+        };
+        regionError(params, "");
         // Masks: the bodies named in `masks`, or else the bodies marked as masks that reach into this one.
         let masks: SurfaceTextureMask[];
         if (params.masks !== undefined) {
@@ -15188,8 +15275,8 @@ export function LayerlingEditor({
             return mask;
           });
         } else masks = surfaceTextureMasksFor(source, currentShapes());
-        // A change keeps the settings it does not name.
-        const settings = { ...normalizeSurfaceTexture({ ...(under ? target.surfaceTexture : {}), ...params }), masks };
+        // A change keeps the settings it does not name - faces named anew without a region take the region's place.
+        const settings = { ...normalizeSurfaceTexture({ ...(under ? target.surfaceTexture : {}), ...(params.faces !== undefined && params.region === undefined ? { region: null } : {}), ...params }), masks };
         if (settings.pattern === "text") {
           // A font of one's own may be named by its name as well as by its id; a name nobody knows is refused.
           const font = mcpTextFont(settings.textFont) ?? settings.textFont;
@@ -15210,8 +15297,9 @@ export function LayerlingEditor({
             if (given.faces !== undefined && (!Array.isArray(given.faces) || given.faces.some((face) => (typeof face === "string" ? !(SURFACE_TEXTURE_FACE_NAMES as readonly string[]).includes(face) : !normalizeSurfaceTextureFaces([face]).length)))) {
               throw new Error(`layers[${index}].faces must be a list of ${SURFACE_TEXTURE_FACE_NAMES.join(", ")}, or faces picked in the editor ({ at, normal })`);
             }
+            regionError(given, `layers[${index}].`);
             const layer = { ...normalizeSurfaceTexture(given), masks };
-            if (!surfaceTextureLayerPlaced(layer)) throw new Error(`layers[${index}] needs faces of its own (by name or as picked), or a text: without them it would cover the first layer`);
+            if (!surfaceTextureLayerPlaced(layer)) throw new Error(`layers[${index}] needs faces of its own (by name or as picked), a region, or a text: without them it would cover the first layer`);
             if (layer.pattern === "text") {
               layer.textFont = mcpTextFont(layer.textFont) ?? layer.textFont;
               layer.textOutline = await surfaceTextOutline({ content: layer.textContent, font: layer.textFont, size: layer.textSize, vertical: layer.textVertical });
@@ -15257,7 +15345,7 @@ export function LayerlingEditor({
           ...(patternPart ? { parts: (textured.groupedShapes ?? []).map((part) => ({ name: part.name, color: part.color })) } : {}),
           changed: Boolean(under),
           settings: shown,
-          layers: layerSettings.map((layer) => ({ pattern: layer.pattern, faces: layer.faces.length })),
+          layers: layerSettings.map((layer) => ({ pattern: layer.pattern, faces: layer.faces.length, ...(layer.region ? { region: layer.region } : {}) })),
           masks: masks.length,
           texture: { triangles, projection, around, spacing, limited, tooDeep, bedClamped, ...(cracks ? { cracks } : {}), ...(text ? { text } : {}), ...(bricks ? { bricks } : {}), ...(tiles ? { tiles } : {}), ...(timber ? { timber } : {}) },
         };
@@ -15413,6 +15501,7 @@ export function LayerlingEditor({
           geometryAbortRef.current?.signal,
           connectors.kind === "none" ? undefined : connectors,
           stretch,
+          rebuildStretchedGroupRef.current,
         );
         if (outcome.status === "stale") throw new Error("The scene changed while splitting; run the command again");
         if (outcome.status === "failed") throw new Error(t(stretch === undefined ? "split.error.failed" : "split.error.stretchFailed", { name: outcome.shape.name, detail: outcome.error }));
@@ -16228,6 +16317,8 @@ export function LayerlingEditor({
         return {
           imported: imported.map((shape) => ({ id: shape.id, name: shape.name, color: shape.color, width: shape.width, depth: shape.depth, height: shape.height, x: shape.x, z: shape.z, elevation: shape.elevation ?? 0 })),
           failures: result.failures,
+          // The editor's own warning about very large meshes (Discussion #1652), when it gave one.
+          ...(result.warning ? { warning: result.warning } : {}),
         };
       }
 
@@ -17769,7 +17860,7 @@ export function LayerlingEditor({
     if (await insertDesignFile(file)) setTopPanel(null);
   }, [insertDesignFile]);
 
-  const importFiles = useCallback(async (selected: File[], fileHandle?: LylFileHandle, importOptions?: { keepSvgPage?: boolean; svgWidth?: number | null }): Promise<{ importedIds: string[]; failures: Array<{ fileName: string; reason: string }> }> => {
+  const importFiles = useCallback(async (selected: File[], fileHandle?: LylFileHandle, importOptions?: { keepSvgPage?: boolean; svgWidth?: number | null }): Promise<{ importedIds: string[]; failures: Array<{ fileName: string; reason: string }>; warning?: string }> => {
     const none = { importedIds: [] as string[], failures: [] as Array<{ fileName: string; reason: string }> };
     if (!selected.length) return none;
     const projectFiles = selected.filter((file) => /\.(lyl|skf)$/i.test(file.name));
@@ -17783,7 +17874,8 @@ export function LayerlingEditor({
         return none;
       }
       setNotice(t("status.validatingFile", { name: projectFiles[0].name }), true);
-      const result = await onOpenLylProjectFile(projectFiles[0], undefined, fileHandle);
+      // An opening that takes long says so here too, with the step it is on (#1639).
+      const result = await onOpenLylProjectFile(projectFiles[0], undefined, fileHandle, { onSlow: (message) => setNotice(message, "stay") });
       if (result?.message) setNotice(result.message);
       if (result?.ok !== false) setTopPanel(null);
       return none;
@@ -17838,13 +17930,19 @@ export function LayerlingEditor({
     const nextAssets = dedupeProjectAssets([...projectAssetsRef.current, ...importedAssets]);
     projectAssetsRef.current = nextAssets;
     setProjectAssets(nextAssets);
-    commitShapes(
-      [...shapesRef.current, ...importedShapes],
-      importedShapes.map((shape) => shape.id),
-      [successSummary, ...notes].join(" ") + failureSummary,
-    );
+    const designAfter = [...shapesRef.current, ...importedShapes];
+    const importMessage = [successSummary, ...notes].join(" ") + failureSummary;
+    commitShapes(designAfter, importedShapes.map((shape) => shape.id), importMessage);
     setTopPanel(null);
-    return { importedIds: importedShapes.map((shape) => shape.id), failures };
+    // Very large meshes make the editor slow and saving slow (Discussion #1652): said once, after the import that brings them,
+    // and it stays until closed, with the way to the guide.
+    const largeTriangles = largeMeshWarningTriangles(importedShapes, designAfter);
+    const warning = largeTriangles === null ? undefined : t("status.largeMeshes", { count: formatTriangleCount(largeTriangles) });
+    if (warning) {
+      const href = guideHref(getLanguage(), undefined, "largeMeshes");
+      setNotice(`${importMessage} ${warning}`, "stay", { label: t("status.largeMeshesGuide"), run: () => window.open(href, "_blank", "noopener") });
+    }
+    return { importedIds: importedShapes.map((shape) => shape.id), failures, warning };
   }, [commitShapes, onOpenLylProjectFile, ontoActivePlate]);
   importFilesRef.current = importFiles;
 
@@ -18210,6 +18308,11 @@ export function LayerlingEditor({
           setSurfaceFacePick(null);
           return;
         }
+        // A region half drawn is let go; the one the layer has stays.
+        if (surfaceRegionDraw) {
+          setSurfaceRegionDraw(null);
+          return;
+        }
         if (arrayTool) {
           setArrayTool(null);
           setNotice(t("status.arrayCancelled"));
@@ -18513,6 +18616,7 @@ export function LayerlingEditor({
     deleteFaceTool,
     applyDeleteFaceTool,
     surfaceFacePick,
+    surfaceRegionDraw,
     scalePercentTool,
     selectedShapes,
     shapes,
@@ -19164,9 +19268,14 @@ export function LayerlingEditor({
           onRemoveSurfaceTexture={selectedShapes.length === 1 && surfaceTextureEntry(selectedShape) ? removeSelectedSurfaceTexture : undefined}
           surfaceTextureOpen={surfaceTextureOpen}
           onSurfaceTextureOpenChange={setSurfaceTextureOpen}
-          surfaceFacePicking={Boolean(surfaceFacePick)}
-          surfacePickedFaces={surfaceFacePick?.faces ?? null}
+          surfaceFacePicking={Boolean(surfaceFacePick && !surfaceFacePick.review)}
+          surfaceFacesShown={Boolean(surfaceFacePick?.review)}
+          surfacePickedFaces={surfaceFacePick && !surfaceFacePick.review ? surfaceFacePick.faces : null}
           onSurfaceFacePick={selectedShapes.length === 1 && offersSurfaceTexture(selectedShape) ? pickSurfaceFaces : undefined}
+          surfaceRegionDrawing={Boolean(surfaceRegionDraw)}
+          surfaceDrawnRegion={surfaceDrawnRegion}
+          onSurfaceRegionDraw={selectedShapes.length === 1 && offersSurfaceTexture(selectedShape) ? drawSurfaceRegion : undefined}
+          onSurfaceRegionLasso={surfaceRegionLasso}
           onVaseAccessories={selectedShapes.length === 1 && selectedShape?.kind === "vase" && !bodyLocked(selectedShape) ? () => layOutVaseAccessories(selectedShape.id) : undefined}
           onGridfinityKeys={selectedShapes.length === 1 && selectedShape?.kind === "gridfinity" && selectedShape.gridfinitySwallowtail === true && !historyViewState ? () => void makeSwallowtailKeys(selectedShape.id) : undefined}
           onLayerText={selectedShapes.length === 1 && offersTextLayers(selectedShape) ? layerSelectedText : undefined}
@@ -19304,6 +19413,17 @@ export function LayerlingEditor({
           onDeleteHistory={clearHistory}
           onClose={closeHistoryView}
         />
+      ) : null}
+      {projectUnsaved ? (
+        <div className="unsaved-design-banner" role="alert">
+          <strong>{t("notice.designNotSavedTitle")}</strong>
+          {/* Refused with most of the room free, the browser's storage for the site is broken: "no room left" would send people deleting designs, which does not help (#1639, Facebook). */}
+          <span>{projectUnsaved.broken ? t("notice.storageBroken", { backupAll: t("dashboard.backupAll") }) : projectUnsaved.message}</span>
+          {/* Lighter meshes help only where size or memory was the reason; a design of a few plates is refused all the same (#1639). */}
+          <span>{t(projectUnsaved.kind === "outOfMemory" || projectUnsaved.kind === "tooLarge" ? "notice.designNotSavedHint" : "notice.designNotSavedHintCopy")}</span>
+          {/* The browser's own words and its storage figures, so a screenshot tells why (#1639). */}
+          {projectUnsaved.detail ? <small className="unsaved-design-detail">{t("notice.designNotSavedDetail", { detail: projectUnsaved.detail })}</small> : null}
+        </div>
       ) : null}
       {openGroup ? (
         <div className="open-group-banner" role="status">

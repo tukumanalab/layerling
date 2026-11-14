@@ -272,8 +272,10 @@ export type ShapeCustomization = {
   hingeKnuckleWidth?: number;
   /** Hinge, cone style: the diameter of the cones at their root in mm; left out, the largest that fits (#907). */
   hingeConeSize?: number;
-  /** Hinge: "pin" (default) or "cone": cones on every other knuckle that nest into the others, printing without bridges (#907). */
-  hingeStyle?: "pin" | "pinless" | "cone" | "liftOff";
+  /** Hinge: "pin" (default) or "cone": cones on every other knuckle that nest into the others, printing without bridges (#907); "snap": B's knuckles are open clips that snap over A's pin (#1520). */
+  hingeStyle?: "pin" | "pinless" | "cone" | "liftOff" | "snap";
+  /** Hinge, snap style: how much narrower the clips' opening is than the pin in mm; left out, 0.3 (#1520). */
+  hingeSnapGrip?: number;
   /** Hinge: diameter of the pin in mm; the other part's bore is wider by the clearance. */
   hingePinDiameter?: number;
   /** Hinge: thickness of the two leaves in mm. */
@@ -1096,6 +1098,11 @@ export type WorkplaneShape = {
   /** Side drop: -1 to 1, 0 a straight line from the middle to the edge, above 0 bulging up, below 0 sagging. */
   sideCurve?: number;
   /**
+   * Only on a tube's bore split off as a hole (splitBoreTube), never saved: the width and depth of the
+   * tube around it. Its slope and side drop are measured over the tube, so its top lies on the tube's (#1698).
+   */
+  slopeSpan?: { width: number; depth: number };
+  /**
    * Narrow along: seen from above, the width of the narrow end in mm,
    * both long sides running in evenly. Missing or the full width means no narrowing.
    */
@@ -1201,8 +1208,10 @@ export type WorkplaneShape = {
   hingeKnuckleWidth?: number;
   /** Hinge, cone style: the diameter of the cones at their root in mm; left out, the largest that fits (#907). */
   hingeConeSize?: number;
-  /** Hinge: "pin" (default) or "cone": cones on every other knuckle that nest into the others, printing without bridges (#907). */
-  hingeStyle?: "pin" | "pinless" | "cone" | "liftOff";
+  /** Hinge: "pin" (default) or "cone": cones on every other knuckle that nest into the others, printing without bridges (#907); "snap": B's knuckles are open clips that snap over A's pin (#1520). */
+  hingeStyle?: "pin" | "pinless" | "cone" | "liftOff" | "snap";
+  /** Hinge, snap style: how much narrower the clips' opening is than the pin in mm; left out, 0.3 (#1520). */
+  hingeSnapGrip?: number;
   /** Hinge: diameter of the pin in mm; the other part's bore is wider by the clearance. */
   hingePinDiameter?: number;
   /** Hinge: thickness of the two leaves in mm. */
@@ -1736,7 +1745,7 @@ export type QrErrorCorrection = "L" | "M" | "Q" | "H";
 export type QrStyle = "code" | "raised" | "engraved";
 /** What a QR body keeps so it can be made again from the inspector (#553). */
 /** The single-board computers the SBC board shape knows (#1098). */
-export type SbcBoardType = "pi5" | "pi4" | "pi3bPlus" | "zero2w" | "bttPi12" | "xiaoEsp32c6" | "esp32c3SuperMini" | "esp32c6SuperMini" | "featherEsp32s3" | "arduinoUno" | "arduinoMega" | "arduinoNano" | "wemosD1Mini" | "pico" | "picoW" | "pico2" | "pico2W" | "esp32CamMb" | "esp32s3Cam" | "esp32DevKitC" | "esp32DevKitV1" | "cyd" | "cyd2usb";
+export type SbcBoardType = "pi5" | "pi4" | "pi3bPlus" | "zero2w" | "bttPi12" | "xiaoEsp32c6" | "esp32c3SuperMini" | "esp32c6SuperMini" | "featherEsp32s3" | "arduinoUno" | "arduinoMega" | "arduinoNano" | "wemosD1Mini" | "pico" | "picoW" | "pico2" | "pico2W" | "esp32CamMb" | "esp32s3Cam" | "esp32DevKitC" | "esp32DevKitV1" | "cyd" | "cyd2usb" | "waveshareEsp32s3Zero" | "arduinoProMini";
 
 export type SbcBoardSettings = {
   board: SbcBoardType;
