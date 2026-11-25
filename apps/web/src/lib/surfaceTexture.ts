@@ -6614,7 +6614,14 @@ export function createSurfaceTextureSession(positions: ArrayLike<number>) {
         const rl = Math.hypot(cx, cy);
         // Facing the axis, with the body across (see bodyAcross): a wedge's slope past the middle faces it too.
         const isInside = rl > 1e-9 && (fn[i1] * cx + fn[i2] * cy) / rl < -0.3 && faceAcross(t / 3, AXIS_INDEX[s.axis]);
-        smooth = isInside ? !s.inside : !s.outside;
+        // A pit in a floor (a Gridfinity socket in a hollowed box) has walls that face away from the axis, or along the way round
+        // it for the ridge between two pits, but the body lies beyond them: they belong to the inside too. An outer wall has
+        // nothing beyond it. Faces leaning outward look outward along the radius; the others along their own normal.
+        const outward = rl > 1e-9 ? (fn[i1] * cx + fn[i2] * cy) / rl : 0;
+        const level = Math.hypot(fn[i1], fn[i2]) > 0.3;
+        const pit = !isInside && level && rl > 1e-9 && outward > -0.3
+          && innerWall((v[I[t] * 3] + v[I[t + 1] * 3] + v[I[t + 2] * 3]) / 3, (v[I[t] * 3 + 1] + v[I[t + 1] * 3 + 1] + v[I[t + 2] * 3 + 1]) / 3, (v[I[t] * 3 + 2] + v[I[t + 1] * 3 + 2] + v[I[t + 2] * 3 + 2]) / 3, outward > 0.3 ? cx : fn[i1], outward > 0.3 ? cy : fn[i2], i1, i2);
+        smooth = isInside || pit ? !s.inside : !s.outside;
       }
       if (smooth) faces[t / 3] = 1;
       else for (let k = 0; k < 3; k += 1) points[I[t + k]] = 0;
@@ -6799,6 +6806,10 @@ export function createSurfaceTextureSession(positions: ArrayLike<number>) {
         // them into slivers.
         const first = unrolled(base, place, s, place.face);
         const nBase = base.vertices.length / 3;
+        // Laid over the creases, more of the body is reached than straight on (a wide text round a body with sides: the
+        // far sides come back only that way); a point either way reaches belongs to the window (#1665).
+        const folded = unrolled(base, place, s, place.face, true);
+        const reached = (i: number) => Number.isFinite(first.U[i]) || Number.isFinite(folded.U[i]);
         // Estimate first: the circle round the window over a triangle's area; too many - coarser.
         const budget = Math.max(1, maxTriangles - mesh.indices.length / 3);
         const estimate = (1.6 * Math.PI * place.reach ** 2) / (0.433 * edge * edge);
@@ -6824,7 +6835,7 @@ export function createSurfaceTextureSession(positions: ArrayLike<number>) {
         // Asked the same way from both triangles of an edge, or they would split it differently.
         const near = (verts: ArrayLike<number>, p: number, q: number) => {
           const a = Math.min(p, q), b = Math.max(p, q);
-          if ((a < nBase && !Number.isFinite(first.U[a])) || (b < nBase && !Number.isFinite(first.U[b]))) return false;
+          if ((a < nBase && !reached(a)) || (b < nBase && !reached(b))) return false;
           if (once && !inWindow(verts, a, b)) return false;
           const ox = verts[a * 3] - px, oy = verts[a * 3 + 1] - py, oz = verts[a * 3 + 2] - pz;
           const dx = verts[b * 3] - verts[a * 3], dy = verts[b * 3 + 1] - verts[a * 3 + 1], dz = verts[b * 3 + 2] - verts[a * 3 + 2];

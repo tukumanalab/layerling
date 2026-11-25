@@ -23,7 +23,7 @@ layerling 的每個零件都從一個形狀開始。其餘一切都是由形狀�
 
 - **{{ui:library.section.basic}}：** {{ui:shape.box}}、{{ui:shape.roundedBox}}、{{ui:shape.cylinder}}、{{ui:shape.slot}}、{{ui:shape.ellipse}}、{{ui:shape.polygon}}（三到二十四邊）、{{ui:shape.wedge}}、{{ui:shape.sphere}}、{{ui:shape.cone}}、{{ui:shape.curvedCone}}（側面向內彎成像偽球面那樣的喇叭形，或向外鼓成圓頂；由 {{ui:prop.curvedConeTop}} 與 {{ui:prop.curvedConeBend}} 設定，並且像所有精確實體一樣可以薄殼與導圓角）、{{ui:shape.pyramid}}（三到二十四邊，因此也有三角錐）、{{ui:shape.roundRoof}}、{{ui:shape.halfSphere}}、{{ui:shape.paraboloid}}（收窄成圓頭的穹頂，高度隨離軸距離的平方下降）和 {{ui:shape.torus}}。
 - **{{ui:library.section.vessels}}：** 從一個輪廓過渡到另一個輪廓的 {{ui:shape.loft}}，例如從方形到圓形，{{ui:shape.tube}}，由最多十二段直管與其間的彎角組成的 {{ui:shape.bentTube}}，以及 {{ui:shape.vase}}。
-- **{{ui:library.section.holes}}：** 用於螺絲頭的 {{ui:shape.counterbore}} 與 {{ui:shape.countersink}}、用於水平孔的 {{ui:shape.teardrop}}，以及用於 USB、HDMI、DisplayPort 與 RJ45 插座的 {{ui:shape.port}}。
+- **{{ui:library.section.holes}}：** 用於螺絲頭的 {{ui:shape.counterbore}} 與 {{ui:shape.countersink}}、用於水平孔的 {{ui:shape.teardrop}}，以及用於 USB、HDMI、DisplayPort 與 RJ45 插座的 {{ui:shape.port}}。 {{ui:threadInsert.title}} 在你選取的實體上開出熱熔嵌件的孔；它不能拖入設計。
 - **{{ui:library.section.connections}}：** {{ui:shape.thread}}（螺桿、螺絲、螺帽與螺紋孔）、沉頭螺絲下的 {{ui:shape.finishingWasher}}、可一體列印的 {{ui:shape.hinge}} 與 {{ui:shape.dovetail}}。更多內容見[螺紋與機械件](chapter:threads-and-mechanics)。
 - **{{ui:library.section.enclosure}}：** 用於熱熔螺母與自攻螺絲的 {{ui:shape.screwBoss}}、附卡座的 {{ui:shape.snapFit}}，以及 {{ui:shape.rib}} 或角撐板。更多內容見[螺紋與機械件](chapter:threads-and-mechanics)。
 - **{{ui:library.section.mechanics}}：** {{ui:shape.spring}}、{{ui:shape.gear}}、{{ui:shape.hirth}} 與 {{ui:shape.pulley}}。
@@ -35,6 +35,10 @@ layerling 的每個零件都從一個形狀開始。其餘一切都是由形狀�
 要得到三角形有兩種方式：三邊的 {{ui:shape.polygon}} 是等腰三角形，也就是 Tinkercad 的「Roof」；{{ui:shape.wedge}} 則是直角三角形。兩者都是真正的三角柱。想挖出三角形孔，可複製該形狀、把副本縮小、標記為孔，再用 {{ui:editor.tool.centerOnWorkplane}} 或 {{ui:editor.tool.align}} 對齊。兩者都按形狀的邊界框運作，也就是包住它的最小方框，所以切掉一半的正方形仍算作完整正方形。命令搜尋（[[Ctrl]]+[[K]]）在「triangle」或「roof」下也找得到這兩種形狀。楔形的屬性裡還有{{ui:prop.wedgeAngle}}，即其斜面與平台的夾角。輸入一個角度，高度會在寬度不變的情況下隨之改變，便於把面上的工作平面設成一定的傾角。
 
 {{ui:shape.slot}} 可以一端比另一端窄，例如用在兩顆皮帶輪之間的皮帶護罩。在 {{ui:inspector.properties}} 下設定 {{ui:prop.slotSmallEnd}}；大端與膠囊同寬，兩側從一段圓弧直通到另一段圓弧。{{ui:prop.slotCentreDistance}} 是兩段圓弧圓心之間的距離，也就是兩顆皮帶輪的間距。改變小端時圓心距保持不變，膠囊會變長或變短。錐形膠囊同樣是精確實體，可套用圓角並匯出 STEP。
+
+{{ui:shape.sector}} 是一個圓盤，你可以用 {{ui:prop.sectorAngle}}（1 到 360°）像時鐘指針一樣把它切掉一部分，從十二點鐘方向起順時針計算。{{ui:prop.innerDiameter}} 可以把它變成圓環或圓環段（為 0 時零件保持實心），{{ui:prop.sectorEndRadius}} 則把兩端倒成半圓：得到一條彎曲的槽，例如用於螢幕支架和其他需要轉動並夾緊的零件。直徑和高度的設定方法與圓柱相同。外框仍是完整的圓，所以形狀繞圓心旋轉。
+
+{{ui:shape.polygon}} 在 {{ui:prop.sides}} 下方有 {{ui:prop.cornerFillet}} 滑桿，模型上還有一個拖曳點，與 {{ui:shape.roundedBox}} 一樣。無論有多少條邊，一個半徑適用於所有角。它以毫米為單位，所以拉伸後的多邊形仍保持圓角；最大值是相鄰圓角恰好相接的位置，0 則是普通多邊形。
 
 ## 形狀的設定
 
@@ -183,6 +187,8 @@ layerling 的每個零件都從一個形狀開始。其餘一切都是由形狀�
 如果只想給部分面加圖案，例如只給盒子的頂面，點擊 {{ui:inspector.surfaceFacesPick}}，再在檢視中點擊這些面：頂面、底面或某個側面。一個面一直延伸到實體的銳利稜邊；圓柱的側面是一個面，頂面和底面各是一個面。選取的面會亮起，再點擊一次可以取消，{{ui:inspector.surfaceFacesClear}} 讓圖案重新覆蓋整個實體。選取完成後，{{ui:inspector.surfaceFacesShow}} 會再次點亮目前顯示圖層所選的面供檢查，不會改動它們；一個實體上有多個圖樣時很有用。只有選取的面得到圖案，其他面保持原樣，三角形也很少。在頂面或底面上圖案是平鋪的；在圓形頂面上，凹槽、繩紋和針織紋繞中心排成一圈圈，像樹的年輪。{{ui:inspector.surfaceFaceTurn}} 轉動頂面和底面上的圖案：0° 時各列沿前緣，90° 時沿側緣。{{ui:inspector.surfaceCapStyle}} 讓那裡的凹槽、繩紋和針織紋在列與環之間切換；在稜角實體上，環會沿外輪廓走。{{ui:inspector.surfaceCapEdge}} 決定側面與帶圖案的頂面或底面之間的稜邊怎麼處理：{{ui:surfaceTexture.edgeSharp}} 讓兩者都止於稜邊。選 {{ui:surfaceTexture.edgeOver}} 時，側面的圖案繞過稜邊鋪滿整個頂面：繩紋、針織紋和水平凹槽的各列以環的形式延續，垂直和斜向的凹槽則作為射線幾乎延伸到中心。{{ui:surfaceTexture.edgeFold}} 效果相同，但只作為一圈邊；裡面是頂面自己的圖案，依 {{ui:inspector.surfaceCapStyle}} 的設定。{{ui:surfaceTexture.edgeBead}} 為任何圖案在稜邊加一圈飾邊：一條繩、一道收針鏈或一道圓珠邊。較窄的圓角也會結束一個面：杯緣有圓角的杯子，其外側、圓角、杯緣、內側和杯底各自是獨立的面，所以點擊外側只會選到外側。較寬的圓角（約占實體四分之一或更多）屬於該面，就像球是一個面。選了面時，{{ui:inspector.surfaceOutside}} 和 {{ui:inspector.surfaceInside}} 不起作用。
 
 一個實體上的多種圖案——四周是磚牆，頂面是滾花——就是圖層：第一個旁邊的 {{ui:inspector.surfaceLayerAddShort}} 會新增一層，並立即為它開啟選面；點擊它應覆蓋的面。之後的每一層只作用於它自己的面，第一層作用於其餘所有面。分頁一次顯示一個圖層及其設定，{{ui:inspector.surfaceLayerRemove}} 刪除一層。所有圖層都在紋理下方的實體上一起產生，因此修改其中一層或移除紋理，和單一圖案時一樣。文字作為圖層不需要選面：放在哪裡就在哪裡。
+
+如果只想給一個面上的某一處加圖案，例如蓋子上一塊圓形的滾花，點擊 {{ui:inspector.surfaceRegionDraw}}，在檢視中按住該面，並按住按鍵繞這一處畫一圈。圖案就只落在你畫的輪廓之內，面的其餘部分保持光滑；如果按在實體旁邊，檢視照常旋轉。{{ui:inspector.surfaceRegionAgain}} 重新繪製區域，{{ui:inspector.surfaceRegionClear}} 將它移除。每個圖層都可以有自己的區域，也可以在同一個面上。
 
 在 {{ui:inspector.more}} 下選擇圖案鋪在哪裡：外壁和內壁，底部和頂部各留多少光滑（光滑的底部讓實體平穩地放在熱床上），高度上的一條帶，以及銳利稜邊是否保持光滑。在所有保持光滑的地方旁邊，圖案會柔和地過渡出現；{{ui:inspector.surfaceFade}} 設定過渡的毫米數。數值越小，圖案越靠近稜邊；凸起的圖案會一直延伸到稜邊。在立方體這類稜角實體的平面上，圖案則在這個距離處以一條直邊結束：凹槽和菱形以一小段壁收尾，只保留完整的凸點。{{ui:inspector.surfaceProfile}} 決定凹槽或接縫的截面：尖形和平形是精確的，圓形則依 {{ui:inspector.surfaceDetail}} 給出的級數分段。
 

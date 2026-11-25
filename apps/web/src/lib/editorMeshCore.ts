@@ -14,6 +14,7 @@ import { createFinishingWasherGeometry } from "@/lib/finishingWasherGeometry";
 import { createStarGeometry } from "@/lib/starGeometry";
 import { createHeartGeometry } from "@/lib/heartGeometry";
 import { createCrescentGeometry } from "@/lib/crescentGeometry";
+import { createSectorGeometry } from "@/lib/sectorGeometry";
 import { createSlotGeometry } from "@/lib/slotGeometry";
 import { createDovetailGeometry } from "@/lib/dovetailGeometry";
 import { createLoftGeometry } from "@/lib/loftGeometry";
@@ -31,6 +32,7 @@ import { createHoneycombGeometry } from "@/lib/honeycombGeometry";
 import { createRoundedBoxGeometry } from "@/lib/roundedBoxGeometry";
 import { createBentTubeGeometry } from "@/lib/bentTubeGeometry";
 import { createPrismGeometry } from "@/lib/prismGeometry";
+import { createRoundedPolygonGeometry } from "@/lib/roundedPolygonGeometry";
 import { shapeHasAlongDeform, slopeMesh } from "@/lib/slopeAlong";
 import { createBooleanHalfSphereGeometry, createBooleanHollowCylinderGeometry, createBooleanRoundRoofGeometry, createParaboloidGeometry } from "@/lib/roundBodyGeometry";
 import { createCurvedConeGeometry } from "@/lib/curvedCone";
@@ -503,6 +505,16 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         heartQuality: shape.heartQuality,
       });
       break;
+    case "sector":
+      geometry = createSectorGeometry({
+        width,
+        depth,
+        height,
+        sectorAngle: shape.sectorAngle,
+        sectorInnerDiameter: shape.sectorInnerDiameter,
+        sectorEndRadius: shape.sectorEndRadius,
+      });
+      break;
     case "crescent":
       geometry = createCrescentGeometry({
         width,
@@ -607,6 +619,10 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         gridfinityLabelRightOffset: shape.gridfinityLabelRightOffset,
         gridfinityLabelCorner: shape.gridfinityLabelCorner,
         gridfinityLabelCornerSize: shape.gridfinityLabelCornerSize,
+        gridfinityLabelBackText: shape.gridfinityLabelBackText,
+        gridfinityLabelFrontText: shape.gridfinityLabelFrontText,
+        gridfinityLabelLeftText: shape.gridfinityLabelLeftText,
+        gridfinityLabelRightText: shape.gridfinityLabelRightText,
         gridfinityScoopBack: shape.gridfinityScoopBack,
         gridfinityScoopFront: shape.gridfinityScoopFront,
         gridfinityScoopLeft: shape.gridfinityScoopLeft,
@@ -623,11 +639,19 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
         gridfinityPaddingFront: shape.gridfinityPaddingFront,
         gridfinityPaddingLeft: shape.gridfinityPaddingLeft,
         gridfinityPaddingRight: shape.gridfinityPaddingRight,
+        gridfinityOverhangBack: shape.gridfinityOverhangBack,
+        gridfinityOverhangFront: shape.gridfinityOverhangFront,
+        gridfinityOverhangLeft: shape.gridfinityOverhangLeft,
+        gridfinityOverhangRight: shape.gridfinityOverhangRight,
+        gridfinityOverhangChamfer: shape.gridfinityOverhangChamfer,
+        gridfinityOverhangSolid: shape.gridfinityOverhangSolid,
+        gridfinityOverhangLipOnGrid: shape.gridfinityOverhangLipOnGrid,
         gridfinityCornerRadius: shape.gridfinityCornerRadius,
         gridfinityBinCornerRadius: shape.gridfinityBinCornerRadius,
         gridfinityCompartmentsX: shape.gridfinityCompartmentsX,
         gridfinityCompartmentsZ: shape.gridfinityCompartmentsZ,
         gridfinityDividerThickness: shape.gridfinityDividerThickness,
+        gridfinityDividerHeight: shape.gridfinityDividerHeight,
         gridfinityDividerPositionsX: shape.gridfinityDividerPositionsX,
         gridfinityDividerPositionsZ: shape.gridfinityDividerPositionsZ,
         gridfinityCompartmentLabels: shape.gridfinityCompartmentLabels,
@@ -761,7 +785,9 @@ function geometryMeshForShape(shape: WorkplaneShape): MeshData | null {
       geometry = createBooleanWedgeGeometry(width, height, depth);
       break;
     case "polygon":
-      geometry = createPrismGeometry(width, height, depth, shape.sides ?? 6);
+      geometry = (shape.cornerFillet ?? 0) > 0
+        ? createRoundedPolygonGeometry(width, height, depth, shape.sides ?? 6, shape.cornerFillet ?? 0)
+        : createPrismGeometry(width, height, depth, shape.sides ?? 6);
       break;
     case "icosahedron":
       geometry = new THREE.IcosahedronGeometry(size / 2, 1);
@@ -877,7 +903,7 @@ export function groupedContentMesh(shape: WorkplaneShape): MeshData {
 // With them, the marks and switches that leave the body's own mesh as it is: hiding, locking or marking a large mesh
 // does not build it again (none of them is read while the mesh is built).
 const PLACEMENT_FIELDS = new Set(["id", "name", "color", "gridfinityLabelColor", "paint", "x", "z", "elevation", "rotation", "rotationX", "rotationZ",
-  "breakawayBase", "stencilBridge", "supportRibFor", "locked", "shapeLocked", "hidden", "transparent", "multicolor"]);
+  "breakawayBase", "stencilBridge", "supportRibFor", "moldOf", "locked", "shapeLocked", "hidden", "transparent", "multicolor"]);
 const MAX_UNPLACED_MESHES = 24;
 const MAX_UNPLACED_MESH_VERTICES = 1_500_000;
 const unplacedMeshCache: Array<{ shape: WorkplaneShape; mesh: MeshData; fontRevision: number }> = [];
