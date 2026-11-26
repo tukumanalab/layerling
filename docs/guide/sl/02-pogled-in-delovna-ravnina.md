@@ -110,6 +110,8 @@ Ko načrt vsebuje več, kot se natisne na eno ploščo, na primer škatlo s pokr
 - Tudi nova skica na plošči se začne na aktivni plošči: površina skice pokaže to ploščo s telesi na njej, in končano telo stoji tam.
 - {{ui:plates.moveLeft}} in {{ui:plates.moveRight}} spremenita vrstni red, telesa se premikajo s svojo ploščo. {{ui:plates.remove}} odstrani dejavno ploščo; njena telesa gredo na prvo ploščo na isto mesto.
 - {{ui:plates.arrange}} razporedi izbrana telesa, ali vsa, vrsto za vrsto po ploščah, največja najprej, 5 mm narazen, in dodaja plošče, dokler so potrebne. Telo, večje od plošče, ostane na mestu.
+- {{ui:plates.perRow}}, seznam zraven, določi, koliko plošč stoji v vrsti: osem plošč lahko stoji v dveh vrstah po štiri. Naslednja vrsta leži spredaj, telesa se premaknejo s svojo ploščo. Razveljavi vrne le premik teles, ne vrst; te vrni v seznamu.
+- {{ui:plates.export}} z enim klikom zapiše aktivno ploščo kot 3MF, pod imenom plošče in ne glede na izbor. [[Shift]] in klik odpre okno za izvoz s to ploščo, za drugo obliko.
 - Z izbranim tiskalnikom se vsako telo preveri glede na svojo ploščo, višina tiska pa se šteje od najnižjega telesa na tej plošči. Plošča s telesom, ki ne gre nanjo, pokaže svoje število rdeče.
 - V lastnostih se X šteje od sredine lastne plošče telesa.
 
@@ -125,6 +127,8 @@ Kratek klik s srednjo miškino tipko, brez premikanja miške, odpre meni koraka 
 ### Okno nastavitev
 
 Zobnik v naslovni vrstici ({{ui:editor.workspaceSettings}}) odpre nastavitve. Levo je devet področij: {{ui:workspace.appearance}}, {{ui:workspace.controls}}, {{ui:workspace.output}}, {{ui:workspace.ribbon}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}}, {{ui:workspace.history}} in {{ui:backups.settingsTitle}}. Sprememba velja takoj. {{ui:workspace.makeDefault}} spodaj shrani trenutne nastavitve kot privzete, tako da nov načrt začne z njimi. Odprta datoteka prinese svoje nastavitve; {{ui:workspace.useMyDefault}} poleg tega uporabi tvoje shranjene barve, mrežo in ostalo na odprtem načrtu in pri tem obdrži njegove enote. Če tvoje privzete nastavitve vsebujejo tiskalnik, pride zraven tudi velikost njegove plošče; brez tiskalnika načrt obdrži svojo ploščo in tiskalnik. {{ui:workspace.close}} zgoraj desno okno zapre. Ta del gre skozi nastavitve eno za drugo.
+
+{{ui:profiles.title}} nad tem hranijo več naborov nastavitev, na primer enega za vsak tiskalnik. {{ui:profiles.save}} shrani nastavitve okna pod imenom, do dvanajst v tem brskalniku; {{ui:profiles.apply}} jih uporabi v odprti zasnovi kot {{ui:workspace.useMyDefault}}, skupaj s tiskalnikom, njegovo ploščo in korakom pripenjanja. Datoteka z nastavitvami jih vzame s seboj.
 
 {{ui:workspace.exportSettings}} shrani nastavitve okna v datoteko (layerling-settings-<datum>.json): barve, mrežo, sence, kamero in privzete vrednosti oblik skupaj s temo, velikostjo orodne vrstice, kotom kocke pogleda, barvami oblik in režo vsakega tiskalnika. Na drugem računalniku ali po izgubi podatkov brskalnika {{ui:workspace.importSettings}} datoteko znova prebere: postane tvoja privzeta nastavitev za nove načrte in se uporabi na odprtem načrtu kot {{ui:workspace.useMyDefault}}. Tudi tvoje lastne tipke iz bližnjic gredo zraven.
 
@@ -203,6 +207,8 @@ Skicirni pogled ima lastne barve: {{ui:workspace.sketchBackground}} za okno okol
 {{ui:workspace.startInPerspective}}: urejevalnik se potem odpre v perspektivnem pogledu namesto v ploskem.
 
 {{ui:workspace.startWithScrollbars}}: načrt se potem odpre z drsniki pogleda. Nastavitev se shrani z načrtom in z {{ui:workspace.makeDefault}}.
+
+{{ui:workspace.showViewBar}}: izklopljeno, vrstice pogleda v urejevalniku 3D ni; skica svojo obdrži. Merilna orodja izginejo z njo, razen če je vklopljeno {{ui:workspace.measureBar}}: takrat so v svoji vrstici, ki se premika z vlečenjem puščice in zloži s klikom nanjo. Oboje si zapomni ta brskalnik, ne načrt.
 
 {{ui:workspace.viewBarOpensOnHover}}: zložena vrstica pogleda se odpre, ko je miška nad njeno puščico, in se kmalu potem, ko jo miška zapusti, spet zloži, razen če je v uporabi eno od njenih orodij. Klik na puščico, ko je tako odprta, jo pusti odprto. Velja samo za miško; na zaslonu na dotik vrstico kot doslej odpre dotik.
 

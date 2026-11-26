@@ -122,6 +122,8 @@ Quando um projeto contém mais peças do que cabem numa única base de impressã
 - Um novo esboço sobre a base também começa na base ativa: a área de esboço mostra essa base e os sólidos que contém, e o sólido concluído fica colocado nela.
 - {{ui:plates.moveLeft}} e {{ui:plates.moveRight}} alteram a ordem das bases, levando os respetivos sólidos consigo. {{ui:plates.remove}} remove a base ativa; os seus sólidos passam para a primeira base, mantendo a posição relativa.
 - {{ui:plates.arrange}} distribui os sólidos selecionados, ou todos os sólidos, por filas nas bases, começando pelos maiores e deixando 5 mm entre eles. Acrescenta bases conforme necessário. Um sólido maior do que uma base permanece onde está.
+- {{ui:plates.perRow}}, a lista ao lado, define quantas bases ficam numa fila: oito bases podem ficar em duas filas de quatro. A fila seguinte fica à frente e os sólidos movem-se com a sua base. Anular reverte só o movimento dos sólidos, não as filas; essas mudam-se na lista.
+- {{ui:plates.export}} grava a base ativa como 3MF com um clique, com o nome da base e seja qual for a seleção. [[Shift]] e um clique abre a janela de exportação com essa base escolhida, para outro formato.
 - Com uma impressora selecionada, cada sólido é verificado em relação à sua própria base, e a altura de impressão é medida a partir do sólido mais baixo dessa base. Uma base com um sólido que não cabe apresenta o respetivo número a vermelho.
 - Nas propriedades, a coordenada X é medida a partir do centro da base a que o sólido pertence.
 
@@ -142,6 +144,8 @@ Um clique breve com o botão do meio, sem mover o rato, abre o menu do passo de 
 A roda dentada na barra de título ({{ui:editor.workspaceSettings}}) abre as definições. À esquerda existem nove áreas: {{ui:workspace.appearance}}, {{ui:workspace.controls}}, {{ui:workspace.output}}, {{ui:workspace.ribbon}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}}, {{ui:workspace.history}} e {{ui:backups.settingsTitle}}. As alterações têm efeito imediato.
 
 {{ui:workspace.makeDefault}}, na parte inferior, guarda as definições atuais como predefinições para novos projetos. Um ficheiro que abras traz as suas próprias definições; {{ui:workspace.useMyDefault}}, ao lado, aplica as cores, a grelha e as restantes definições que guardaste ao projeto aberto, mantendo as unidades desse projeto. Se as tuas predefinições incluírem uma impressora, esta também é aplicada, juntamente com as dimensões da respetiva base; caso contrário, o projeto mantém a base e a impressora atuais. {{ui:workspace.close}}, no canto superior direito, fecha a janela. As secções seguintes explicam cada uma das definições.
+
+{{ui:profiles.title}}, por cima, guardam vários conjuntos de definições, por exemplo um por impressora. {{ui:profiles.save}} guarda as definições da janela com um nome, até doze neste navegador; {{ui:profiles.apply}} aplica-as ao projeto aberto como {{ui:workspace.useMyDefault}}, incluindo a impressora com a sua base e o passo de ajuste. O ficheiro de definições leva-os consigo.
 
 {{ui:workspace.exportSettings}} guarda as definições da janela num ficheiro (layerling-settings-<date>.json): cores, grelha, sombras, câmara e predefinições das formas, juntamente com o tema, o tamanho da faixa de ferramentas, o canto do cubo de vistas, as cores das formas e a folga de cada impressora. Noutro computador, ou depois de o navegador perder os dados, {{ui:workspace.importSettings}} permite recuperar o ficheiro: as definições passam a ser usadas nos novos projetos e são aplicadas ao projeto aberto da mesma forma que {{ui:workspace.useMyDefault}}. Os atalhos de teclado personalizados também são incluídos.
 
@@ -224,6 +228,8 @@ A vista de esboço tem as suas próprias cores: {{ui:workspace.sketchBackground}
 {{ui:workspace.startInPerspective}} faz com que o editor abra em perspetiva, em vez de na vista ortográfica.
 
 {{ui:workspace.startWithScrollbars}} faz com que os projetos abram com as barras de deslocamento da vista visíveis. Esta opção é guardada com o projeto e com {{ui:workspace.makeDefault}}.
+
+{{ui:workspace.showViewBar}}: desligado, a barra de vistas não aparece no editor 3D; o esboço mantém a sua. As ferramentas de medição desaparecem com ela, a menos que {{ui:workspace.measureBar}} esteja ligado: ficam então numa barra própria, que se move arrastando a seta e se recolhe com um clique. Ambos ficam guardados neste navegador, não no projeto.
 
 {{ui:workspace.viewBarOpensOnHover}} abre uma barra de vistas recolhida enquanto o ponteiro está sobre a respetiva seta. A barra volta a recolher pouco depois de o ponteiro sair, exceto se uma das suas ferramentas estiver em utilização. Clicar na seta enquanto a barra está aberta desta forma mantém-na aberta. Este comportamento aplica-se apenas ao rato; num ecrã tátil, um toque abre a barra da forma habitual.
 

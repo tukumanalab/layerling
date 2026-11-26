@@ -111,6 +111,8 @@ Gdy projekt zawiera więcej, niż zmieści jeden stół, na przykład pudełko z
 - Nowy szkic na stole też zaczyna się na aktywnym stole: obszar szkicu pokazuje ten stół z jego bryłami, a gotowa bryła stoi właśnie tam.
 - {{ui:plates.moveLeft}} i {{ui:plates.moveRight}} zmieniają kolejność, a bryły przesuwają się ze swoim stołem. {{ui:plates.remove}} usuwa aktywny stół; jego bryły trafiają na pierwszy stół w to samo miejsce.
 - {{ui:plates.arrange}} układa zaznaczone bryły, albo wszystkie, rząd po rzędzie na stołach, największe najpierw, 5 mm od siebie, i dodaje stoły, dopóki są potrzebne. Bryła większa niż stół zostaje na miejscu.
+- {{ui:plates.perRow}}, lista obok, ustala, ile stołów stoi w rzędzie: osiem stołów może stać w dwóch rzędach po cztery. Następny rząd leży przed nim, a bryły przesuwają się ze swoim stołem. Cofnij przywraca tylko przesunięcie brył, nie rzędy; rzędy zmień z powrotem na liście.
+- {{ui:plates.export}} zapisuje aktywny stół jednym kliknięciem jako 3MF, pod nazwą stołu i niezależnie od zaznaczenia. [[Shift]] i kliknięcie otwiera okno eksportu z wybranym stołem, dla innego formatu.
 - Przy wybranej drukarce każda bryła jest sprawdzana względem własnego stołu, a wysokość druku liczy się od najniższej bryły na tym stole. Stół z bryłą, która się nie mieści, pokazuje swoją liczbę na czerwono.
 - We właściwościach X liczy się od środka własnego stołu bryły.
 
@@ -126,6 +128,8 @@ Krótkie kliknięcie środkowym przyciskiem myszy, bez ruszania myszą, otwiera 
 ### Okno ustawień
 
 Koło zębate w wierszu tytułu ({{ui:editor.workspaceSettings}}) otwiera ustawienia. Po lewej jest dziewięć sekcji: {{ui:workspace.appearance}}, {{ui:workspace.controls}}, {{ui:workspace.output}}, {{ui:workspace.ribbon}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}}, {{ui:workspace.history}} i {{ui:backups.settingsTitle}}. Każda zmiana działa od razu. {{ui:workspace.makeDefault}} na dole zapisuje bieżące ustawienia jako domyślne, żeby nowy projekt z nimi zaczynał. Otwierany plik przynosi własne ustawienia, a {{ui:workspace.useMyDefault}} obok nakłada na otwarty projekt Twoje zapisane kolory, siatkę i resztę, zachowując jego jednostki. Jeśli Twoje ustawienia domyślne mają drukarkę, przychodzi ona razem z rozmiarem swojego stołu, a bez niej projekt zachowuje swoją płytę i drukarkę. {{ui:workspace.close}} w prawym górnym rogu zamyka okno. Ta część omawia ustawienia po kolei.
+
+{{ui:profiles.title}} powyżej przechowują kilka zestawów ustawień, na przykład po jednym dla każdej drukarki. {{ui:profiles.save}} zapisuje ustawienia okna pod nazwą, do dwunastu w tej przeglądarce; {{ui:profiles.apply}} nakłada je na otwarty projekt jak {{ui:workspace.useMyDefault}}, razem z drukarką, jej stołem i krokiem przyciągania. Plik ustawień zabiera je ze sobą.
 
 {{ui:workspace.exportSettings}} zapisuje ustawienia okna w pliku (layerling-settings-<data>.json): kolory, siatkę, cienie, kamerę i domyślne wartości kształtów, razem z motywem, rozmiarem paska narzędzi, rogiem kostki widoku, kolorami kształtów i luzem każdej drukarki. Na innym komputerze lub po utracie danych przeglądarki {{ui:workspace.importSettings}} wczytuje plik ponownie: staje się Twoją wartością domyślną dla nowych projektów i jest nakładany na otwarty projekt jak {{ui:workspace.useMyDefault}}. Twoje własne klawisze ze skrótów klawiszowych też trafiają do pliku.
 
@@ -204,6 +208,8 @@ Widok szkicu ma własne kolory: {{ui:workspace.sketchBackground}} dla okna wokó
 {{ui:workspace.startInPerspective}}: edytor otwiera się wtedy w widoku perspektywicznym, a nie płaskim.
 
 {{ui:workspace.startWithScrollbars}}: projekt otwiera się wtedy z paskami przewijania widoku. Ustawienie zapisuje się z projektem i przez {{ui:workspace.makeDefault}}.
+
+{{ui:workspace.showViewBar}}: wyłączone, paska widoku nie ma w edytorze 3D; szkic zachowuje swój. Narzędzia pomiarowe znikają razem z nim, chyba że włączone jest {{ui:workspace.measureBar}}: wtedy są na własnym pasku, który przesuwa się, ciągnąc strzałkę, i zwija kliknięciem. Oba ustawienia pamięta ta przeglądarka, nie projekt.
 
 {{ui:workspace.viewBarOpensOnHover}}: zwinięty pasek widoku otwiera się, gdy mysz jest nad jego strzałką, i zwija się ponownie chwilę po tym, jak mysz go opuści, chyba że używasz jednego z jego narzędzi. Kliknięcie strzałki, gdy jest tak otwarty, pozostawia go otwartym. Działa tylko z myszą; na ekranie dotykowym pasek otwiera stuknięcie, jak dotąd.
 

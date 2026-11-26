@@ -110,6 +110,8 @@ När en design innehåller mer än en enda byggplatta rymmer – till exempel en
 - En ny skiss på plattan börjar också på den aktiva plattan: skissytan visar den plattan med kropparna på den, och den färdiga kroppen hamnar där.
 - {{ui:plates.moveLeft}} och {{ui:plates.moveRight}} ändrar ordningen så att kropparna följer med sin platta. {{ui:plates.remove}} tar bort den aktiva plattan; dess kroppar flyttas till första plattan på motsvarande ställe.
 - {{ui:plates.arrange}} lägger ut de markerade kropparna, eller alla kroppar, rad för rad på plattorna med de största först och 5 mm mellanrum, och skapar fler plattor vid behov. En kropp som är större än en platta står kvar där den är.
+- {{ui:plates.perRow}}, listan bredvid, bestämmer hur många plattor som står i en rad: åtta plattor kan stå i två rader om fyra. Nästa rad ligger framför, och kropparna flyttas med sin platta. Ångra tar bara tillbaka kropparnas flyttning, inte raderna; ställ tillbaka dem i listan.
+- {{ui:plates.export}} skriver den aktiva plattan som 3MF med ett klick, under plattans namn och oavsett vad som är markerat. [[Shift]] och ett klick öppnar exportfönstret med den plattan vald, för ett annat format.
 - Med en skrivare vald kontrolleras varje kropp mot sin egen platta, och utskriftshöjden räknas från den lägsta kroppen på den plattan. En platta med en kropp som inte får plats får sin siffra i rött.
 - I egenskaperna räknas X från mitten av kroppens egen platta.
 
@@ -125,6 +127,8 @@ Ett kort klick med musens mittenknapp, utan att röra musen, öppnar fäst menyn
 ### Inställningsfönstret
 
 Kugghjulet i rubrikraden ({{ui:editor.workspaceSettings}}) öppnar inställningarna. Till vänster finns nio områden: {{ui:workspace.appearance}}, {{ui:workspace.controls}}, {{ui:workspace.output}}, {{ui:workspace.ribbon}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}}, {{ui:workspace.history}} och {{ui:backups.settingsTitle}}. Ändringar börjar gälla direkt. {{ui:workspace.makeDefault}} längst ned sparar nuvarande inställningar som standard så att nya designer startar med dem. En fil du öppnar bär med sig sina egna inställningar; {{ui:workspace.useMyDefault}} bredvid lägger dina sparade färger, rutnät och övriga val på den öppna designen med dess enheter intakta. Om din standard har en vald skrivare följer den skrivaren med inklusive plattstorleken; utan skrivare behåller designen sin egen platta och skrivare. {{ui:workspace.close}} uppe till höger stänger fönstret. Här följer alla inställningar i ordning.
+
+{{ui:profiles.title}} ovanför håller flera uppsättningar inställningar, till exempel en per skrivare. {{ui:profiles.save}} sparar fönstrets inställningar under ett namn, upp till tolv i den här webbläsaren; {{ui:profiles.apply}} lägger dem på den öppna designen som {{ui:workspace.useMyDefault}}, med skrivaren och dess platta och snäppsteget. Inställningsfilen tar dem med sig.
 
 {{ui:workspace.exportSettings}} bredvid sparar fönstrets inställningar i en fil (layerling-settings-<datum>.json): färger, rutnät, skuggor, kamera och formstandarder tillsammans med tema, knappstorlek i verktygsfältet, hörn för vykuben, formfärger och varje skrivares spelrum. På en annan dator, eller om webbläsaren har rensat sin data, läser {{ui:workspace.importSettings}} in filen igen: den blir då din standard för nya designer och läggs på den öppna designen på samma sätt som {{ui:workspace.useMyDefault}}. Dina egna kortkommandon följer också med.
 
@@ -203,6 +207,8 @@ Skissläget har sina egna färger: {{ui:workspace.sketchBackground}} för områd
 {{ui:workspace.startInPerspective}}: redigeraren öppnas då i perspektivvy i stället för ortografisk vy.
 
 {{ui:workspace.startWithScrollbars}}: en design öppnas då med vyns rullningslister synliga. Det sparas med designen och med {{ui:workspace.makeDefault}}.
+
+{{ui:workspace.showViewBar}}: avstängt utelämnas vyfältet i 3D-redigeraren; skissen behåller sitt. Mätverktygen försvinner med det, om inte {{ui:workspace.measureBar}} är på: då står de i ett eget fält, som flyttas genom att dra i pilen och fälls ihop med ett klick på den. Båda sparas i den här webbläsaren, inte i designen.
 
 {{ui:workspace.viewBarOpensOnHover}}: ett ihopfällt vyfält öppnas när musen hålls över pilen och fälls ihop strax efter att musen lämnar den, om inte ett av verktygen är aktivt. Ett klick på pilen medan det är öppet så här låter det stanna öppet. Det gäller bara med mus; på pekskärm öppnar ett tryck fältet som vanligt.
 

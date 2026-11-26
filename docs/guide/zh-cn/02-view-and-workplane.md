@@ -110,6 +110,8 @@ X 和 [[Esc]] 会关闭窗口；如果正在测量，[[Esc]] 会先结束测量�
 - 在打印板上新建的草图也从当前打印板开始：草图区域显示该打印板及其上的实体，完成的实体也放在那里。
 - {{ui:plates.moveLeft}} 和 {{ui:plates.moveRight}} 改变顺序，物体随其打印板一起移动。{{ui:plates.remove}} 删除当前打印板；其上的物体会移到第一个打印板的相同位置。
 - {{ui:plates.arrange}} 将所选物体（或全部物体）逐行排列到打印板上，先放最大的，间距 5 毫米，并在需要时添加打印板。比打印板大的物体会留在原处。
+- 旁边的列表{{ui:plates.perRow}}设定一行放多少个打印板：八个打印板可以排成两行，每行四个。下一行在其前方，物体随所在的打印板移动。撤销只恢复物体的移动，不恢复行的设置；请在列表中改回。
+- {{ui:plates.export}} 一键将当前打印板写成 3MF，以打印板的名称命名，与选择无关。[[Shift]] 加点击会打开导出窗口并选中该打印板，以便使用其他格式。
 - 选择打印机后，每个物体都按自己的打印板检查，打印高度从该打印板上最低的物体算起。有物体放不下的打印板，其数字显示为红色。
 - 在属性中，X 从物体所在打印板的中心算起。
 
@@ -125,6 +127,8 @@ X 和 [[Esc]] 会关闭窗口；如果正在测量，[[Esc]] 会先结束测量�
 ### 设置窗口
 
 标题行中的齿轮（{{ui:editor.workspaceSettings}}）打开设置。左侧有九个区域：{{ui:workspace.appearance}}、{{ui:workspace.controls}}、{{ui:workspace.output}}、{{ui:workspace.ribbon}}、{{ui:workspace.measurement}}、{{ui:workspace.workplane}}、{{ui:workspace.shapeDefaults}}、{{ui:workspace.history}} 和 {{ui:backups.settingsTitle}}。改动立即生效。底部的 {{ui:workspace.makeDefault}} 把当前设置保存为默认值，让新设计从这些设置开始。打开的文件会带着它自己的设置；旁边的 {{ui:workspace.useMyDefault}} 会把你保存的颜色、网格等应用到打开的设计上，同时保留它的单位。如果你的默认设置里有打印机，这台打印机连同它的平台尺寸也会一起带过来；没有的话，设计保留原有的平台和打印机。右上角的 {{ui:workspace.close}} 关闭窗口。本节逐项介绍这些设置。
+
+上方的{{ui:profiles.title}}保存多套设置，例如每台打印机一套。{{ui:profiles.save}}以一个名称保存窗口的设置，此浏览器中最多十二个；{{ui:profiles.apply}}像{{ui:workspace.useMyDefault}}一样把它们用于打开的设计，包括打印机及其打印板和捕捉步距。设置文件会带上它们。
 
 {{ui:workspace.exportSettings}} 把窗口的设置保存为文件（layerling-settings-<日期>.json）：颜色、网格、阴影、相机和形状默认值，以及主题、工具栏大小、视图立方体的角落、形状颜色和每台打印机的间隙。在另一台电脑上或浏览器数据丢失后，{{ui:workspace.importSettings}} 会再次读取该文件：它成为新设计的默认值，并像 {{ui:workspace.useMyDefault}} 一样应用到已打开的设计。你在键盘快捷键中设定的自定义按键也会一起保存。
 
@@ -203,6 +207,8 @@ X 和 [[Esc]] 会关闭窗口；如果正在测量，[[Esc]] 会先结束测量�
 {{ui:workspace.startInPerspective}}：编辑器随即以透视视图打开，而不是平面视图。
 
 {{ui:workspace.startWithScrollbars}}：设计打开时即显示视图的滚动条。此设置随设计一起保存，也会随 {{ui:workspace.makeDefault}} 保存。
+
+{{ui:workspace.showViewBar}}：关闭后，3D 编辑器中没有视图栏；草图保留自己的视图栏。测量工具也随之隐藏，除非开启{{ui:workspace.measureBar}}：这时它们位于单独的栏中，拖动箭头可移动，点击箭头可折叠。两项都保存在此浏览器中，而不是设计中。
 
 {{ui:workspace.viewBarOpensOnHover}}：折叠的视图栏在鼠标停在其箭头上时展开，鼠标离开后不久再次折叠，除非正在使用它的某个工具。以这种方式展开时点击箭头，可使其保持展开。仅适用于鼠标；在触摸屏上，仍像以前一样轻点即可打开视图栏。
 

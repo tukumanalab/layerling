@@ -110,6 +110,8 @@ Ha egy terv több alkatrészt tartalmaz, mint amennyi egy tálcára fér, péld�
 - Egy új vázlat a tálcán szintén az aktív tálcán kezdődik: a vázlatterület azt a tálcát mutatja a rajta lévő testekkel, és a kész test oda kerül.
 - A {{ui:plates.moveLeft}} és a {{ui:plates.moveRight}} a sorrendet változtatja, a testek a tálcájukkal mozognak. A {{ui:plates.remove}} eltávolítja az aktív tálcát; a testei ugyanarra a helyre kerülnek az első tálcán.
 - Az {{ui:plates.arrange}} a kijelölt testeket, vagy mindet, sorról sorra a tálcákra rakja, a legnagyobbat először, 5 mm-re egymástól, és tálcákat ad hozzá, amíg kell. A tálcánál nagyobb test a helyén marad.
+- {{ui:plates.perRow}}, a mellette lévő lista, megadja, hány tárgyasztal áll egy sorban: nyolc állhat két sorban, négyesével. A következő sor előtte fekszik, a testek a tárgyasztalukkal mozognak. A visszavonás csak a testek mozgatását vonja vissza, a sorokat nem; azokat a listában állítsd vissza.
+- Az {{ui:plates.export}} egy kattintással 3MF-be írja az aktív tálcát, a tálca nevén és a kijelöléstől függetlenül. A [[Shift]] és kattintás megnyitja az exportablakot ezzel a tálcával, más formátumhoz.
 - Kiválasztott nyomtatóval minden test a saját tálcájához mérve ellenőrződik, és a nyomtatási magasság a tálca legalsó testétől számít. Az a tálca, amelyen egy test nem fér el, pirosan mutatja a számát.
 - A tulajdonságokban az X a test saját tálcájának közepétől számít.
 
@@ -125,6 +127,8 @@ Egy rövid kattintás a középső egérgombbal, az egér mozgatása nélkül, k
 ### A beállítások ablaka
 
 A címsorban lévő fogaskerék ({{ui:editor.workspaceSettings}}) megnyitja a beállításokat. Balra kilenc terület van: {{ui:workspace.appearance}}, {{ui:workspace.controls}}, {{ui:workspace.output}}, {{ui:workspace.ribbon}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}}, {{ui:workspace.history}} és {{ui:backups.settingsTitle}}. Egy változtatás azonnal érvényes. Alul a(z) {{ui:workspace.makeDefault}} a jelenlegi beállításokat menti alapértelmezésként, így egy új terv ezekkel indul. Egy megnyitott fájl a saját beállításait hozza magával; a mellette lévő {{ui:workspace.useMyDefault}} a mentett színeidet, rácsodat és a többit alkalmazza a nyitott tervre, a mértékegységeit pedig megtartja. Ha az alapértelmezéseid nyomtatót is tartalmaznak, annak tárgyasztal-mérete is jön vele; nyomtató nélkül a terv megtartja a saját tárgyasztalát és nyomtatóját. A jobb felső sarokban a(z) {{ui:workspace.close}} bezárja az ablakot. Ez a rész sorban végigmegy a beállításokon.
+
+A felette lévő {{ui:profiles.title}} több beállításkészletet őriznek, például nyomtatónként egyet. A {{ui:profiles.save}} név alatt menti az ablak beállításait, ebben a böngészőben legfeljebb tizenkettőt; a {{ui:profiles.apply}} a megnyitott tervre teszi őket, mint a {{ui:workspace.useMyDefault}}, a nyomtatóval, a tárgyasztalával és az illesztési lépéssel együtt. A beállításfájl magával viszi őket.
 
 {{ui:workspace.exportSettings}} fájlba menti az ablak beállításait (layerling-settings-<dátum>.json): a színeket, a rácsot, az árnyékokat, a kamerát és az alakzatok alapértékeit, valamint a témát, az eszköztár méretét, a nézetkocka sarkát, az alakzatszíneket és az egyes nyomtatók játékát. Másik számítógépen vagy a böngésző adatvesztése után {{ui:workspace.importSettings}} újra beolvassa a fájlt: az új tervek alapértelmezése lesz, és a megnyitott tervre is rákerül, mint a {{ui:workspace.useMyDefault}}. A billentyűparancsok saját billentyűi is vele mennek.
 
@@ -203,6 +207,8 @@ A(z) {{ui:workspace.zoomSpeed}} egy csúszka lassútól gyorsig: milyen gyorsan 
 {{ui:workspace.startInPerspective}}: a szerkesztő ilyenkor perspektivikus nézetben nyílik meg a lapos helyett.
 
 {{ui:workspace.startWithScrollbars}}: a terv ilyenkor a nézet görgetősávjaival nyílik meg. A beállítás a tervvel és a {{ui:workspace.makeDefault}} gombbal is mentődik.
+
+{{ui:workspace.showViewBar}}: kikapcsolva a nézetsáv hiányzik a 3D szerkesztőből; a vázlat megtartja a sajátját. A mérőeszközök vele együtt eltűnnek, hacsak nincs bekapcsolva: {{ui:workspace.measureBar}}. Ekkor saját sávban állnak, amely a nyilánál húzva mozgatható, rákattintva becsukható. Mindkettőt ez a böngésző jegyzi meg, nem a terv.
 
 {{ui:workspace.viewBarOpensOnHover}}: a becsukott nézetsáv kinyílik, amíg az egér a nyila fölött van, és nem sokkal azután, hogy az egér elhagyta, újra becsukódik, hacsak valamelyik eszköze nincs használatban. Ha így nyitva van, egy kattintás a nyílra nyitva tartja. Csak egérrel működik; érintőképernyőn egy koppintás nyitja ki a sávot, mint eddig.
 

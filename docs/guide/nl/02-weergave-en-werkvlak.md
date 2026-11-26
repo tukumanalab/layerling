@@ -110,6 +110,8 @@ Als een ontwerp meer bevat dan één plaat kan printen, bijvoorbeeld een doos me
 - Ook een nieuwe schets op de plaat begint op de actieve plaat: het schetsvlak toont die plaat met de lichamen erop, en het afgemaakte lichaam staat daar.
 - {{ui:plates.moveLeft}} en {{ui:plates.moveRight}} veranderen de volgorde, de lichamen gaan mee met hun plaat. {{ui:plates.remove}} haalt de actieve plaat weg; haar lichamen komen op dezelfde plek op de eerste plaat.
 - {{ui:plates.arrange}} legt de geselecteerde lichamen, of alle, rij voor rij op de platen, de grootste eerst, 5 mm uit elkaar, en voegt platen toe zolang die nodig zijn. Een lichaam dat groter is dan een plaat blijft staan.
+- {{ui:plates.perRow}}, de lijst ernaast, bepaalt hoeveel platen in een rij staan: acht platen kunnen in twee rijen van vier staan. De volgende rij ligt ervoor en de lichamen gaan met hun plaat mee. Ongedaan maken draait alleen het verplaatsen van de lichamen terug, niet de rijen; zet die in de lijst terug.
+- {{ui:plates.export}} schrijft de actieve plaat met één klik als 3MF, onder de naam van de plaat en ongeacht wat er geselecteerd is. [[Shift]] en een klik opent het exportvenster met die plaat gekozen, voor een ander formaat.
 - Met een gekozen printer wordt elk lichaam tegen zijn eigen plaat gecontroleerd, en de bouwhoogte telt vanaf het laagste lichaam op die plaat. Een plaat met een lichaam dat niet past, toont haar getal in rood.
 - In de eigenschappen telt X vanaf het midden van de eigen plaat van het lichaam.
 
@@ -125,6 +127,8 @@ Een korte klik met de middelste muisknop, zonder de muis te bewegen, opent het m
 ### Het instellingenvenster
 
 Het tandwiel in de titelregel ({{ui:editor.workspaceSettings}}) opent de instellingen. Links staan negen onderdelen: {{ui:workspace.appearance}}, {{ui:workspace.controls}}, {{ui:workspace.output}}, {{ui:workspace.ribbon}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}}, {{ui:workspace.history}} en {{ui:backups.settingsTitle}}. Een wijziging telt meteen. {{ui:workspace.makeDefault}} onderaan bewaart de huidige instellingen als standaard, zodat een nieuw ontwerp ermee begint. Een bestand dat je opent, brengt zijn eigen instellingen mee; {{ui:workspace.useMyDefault}} ernaast zet je bewaarde kleuren, raster en de rest op het geopende ontwerp en houdt daarbij zijn eenheden. Heeft je standaard een printer, dan komt die printer mee met zijn plaatgrootte; zonder printer houdt het ontwerp zijn plaat en printer. {{ui:workspace.close}} rechtsboven sluit het venster. Dit deel loopt de instellingen een voor een door.
+
+{{ui:profiles.title}} erboven bewaren meerdere sets instellingen, bijvoorbeeld één per printer. {{ui:profiles.save}} bewaart de instellingen van het venster onder een naam, tot twaalf in deze browser; {{ui:profiles.apply}} zet ze op het geopende ontwerp zoals {{ui:workspace.useMyDefault}}, met de printer met zijn plaat en de snapstap erbij. Het instellingenbestand neemt ze mee.
 
 {{ui:workspace.exportSettings}} bewaart de instellingen van het venster in een bestand (layerling-settings-<datum>.json): de kleuren, het raster, de schaduwen, de camera en de standaardwaarden van vormen, samen met het thema, de grootte van de werkbalk, de hoek van de weergavekubus, de vormkleuren en de speling van elke printer. Op een andere computer, of na gegevensverlies van de browser, leest {{ui:workspace.importSettings}} het bestand weer in: het wordt je standaard voor nieuwe ontwerpen en komt op het geopende ontwerp, zoals bij {{ui:workspace.useMyDefault}}. Je eigen toetsen uit de sneltoetsen gaan mee.
 
@@ -203,6 +207,8 @@ De schetsweergave heeft eigen kleuren: {{ui:workspace.sketchBackground}} voor he
 {{ui:workspace.startInPerspective}}: de editor opent dan in het perspectiefaanzicht, niet in het vlakke.
 
 {{ui:workspace.startWithScrollbars}}: een ontwerp opent dan met de schuifbalken van de weergave. De instelling wordt met het ontwerp en met {{ui:workspace.makeDefault}} bewaard.
+
+{{ui:workspace.showViewBar}}: uitgeschakeld ontbreekt de weergavebalk in de 3D-editor; de schets houdt de zijne. De meetgereedschappen verdwijnen mee, tenzij {{ui:workspace.measureBar}} aan staat: dan staan ze in een eigen balk, die je aan de pijl versleept en met een klik erop inklapt. Beide worden in deze browser bewaard, niet in het ontwerp.
 
 {{ui:workspace.viewBarOpensOnHover}}: een ingeklapte weergavebalk klapt open zolang de muis boven zijn pijl is en klapt kort nadat de muis hem verlaten heeft weer in, tenzij een van zijn hulpmiddelen in gebruik is. Een klik op de pijl terwijl hij zo open is, houdt hem open. Dit geldt alleen voor de muis; op een aanraakscherm opent een tik de balk zoals voorheen.
 

@@ -108,6 +108,8 @@ Quand un design contient plus qu'un plateau ne peut imprimer, une boîte avec so
 - Une nouvelle esquisse sur le plateau commence aussi sur le plateau actif : la zone d'esquisse montre ce plateau avec ses corps, et le corps terminé s'y trouve.
 - {{ui:plates.moveLeft}} et {{ui:plates.moveRight}} changent l'ordre, les corps suivant leur plateau. {{ui:plates.remove}} retire le plateau actif ; ses corps passent sur le premier plateau au même endroit.
 - {{ui:plates.arrange}} dispose les corps sélectionnés, ou tous, rangée par rangée sur les plateaux, les plus grands d'abord, à 5 mm l'un de l'autre, et ajoute des plateaux tant qu'il en faut. Un corps plus grand qu'un plateau reste en place.
+- {{ui:plates.perRow}}, la liste à côté, fixe combien de plateaux se trouvent dans une rangée : huit plateaux peuvent former deux rangées de quatre. La rangée suivante se place devant et les corps suivent leur plateau. Annuler ne reprend que le déplacement des corps, pas les rangées ; remettez-les dans la liste.
+- {{ui:plates.export}} écrit le plateau actif en 3MF en un clic, sous le nom du plateau et quelle que soit la sélection. [[Shift]] et un clic ouvre la fenêtre d'export avec ce plateau choisi, pour un autre format.
 - Avec une imprimante choisie, chaque corps est contrôlé par rapport à son propre plateau, et la hauteur d'impression compte à partir du corps le plus bas de ce plateau. Un plateau avec un corps qui ne tient pas affiche son nombre en rouge.
 - Dans les propriétés, X compte à partir du milieu du plateau du corps.
 
@@ -123,6 +125,8 @@ Un clic bref avec le bouton du milieu de la souris, sans bouger la souris, ouvre
 ### La fenêtre des réglages
 
 La roue dentée dans la ligne du titre ({{ui:editor.workspaceSettings}}) ouvre les réglages. À gauche se trouvent neuf zones : {{ui:workspace.appearance}}, {{ui:workspace.controls}}, {{ui:workspace.output}}, {{ui:workspace.ribbon}}, {{ui:workspace.measurement}}, {{ui:workspace.workplane}}, {{ui:workspace.shapeDefaults}}, {{ui:workspace.history}} et {{ui:backups.settingsTitle}}. Une modification compte tout de suite. {{ui:workspace.makeDefault}} en bas enregistre les réglages actuels comme réglages par défaut, afin qu'une nouvelle conception commence avec eux. Un fichier que vous ouvrez apporte ses propres réglages ; {{ui:workspace.useMyDefault}} à côté applique à la conception ouverte vos couleurs, votre grille et le reste enregistrés, en gardant ses unités. Si vos réglages par défaut comportent une imprimante, cette imprimante arrive avec la taille de son plateau ; sans imprimante, la conception garde son plateau et son imprimante. {{ui:workspace.close}} en haut à droite ferme la fenêtre. Cette partie passe les réglages en revue un par un.
+
+{{ui:profiles.title}}, au-dessus, gardent plusieurs jeux de réglages, par exemple un par imprimante. {{ui:profiles.save}} enregistre les réglages de la fenêtre sous un nom, jusqu’à douze dans ce navigateur ; {{ui:profiles.apply}} les applique au projet ouvert comme {{ui:workspace.useMyDefault}}, imprimante avec son plateau et pas d’accrochage compris. Le fichier de réglages les emporte.
 
 {{ui:workspace.exportSettings}} enregistre les réglages de la fenêtre dans un fichier (layerling-settings-<date>.json) : les couleurs, la grille, les ombres, la caméra et les valeurs par défaut des formes, avec le thème, la taille de la barre d'outils, le coin du cube de vue, les couleurs des formes et le jeu de chaque imprimante. Sur un autre ordinateur, ou après une perte de données du navigateur, {{ui:workspace.importSettings}} relit le fichier : il devient votre valeur par défaut pour les nouveaux designs et s'applique au design ouvert comme {{ui:workspace.useMyDefault}}. Vos propres touches des raccourcis clavier suivent aussi.
 
@@ -201,6 +205,8 @@ La vue d'esquisse a ses propres couleurs : {{ui:workspace.sketchBackground}} pou
 {{ui:workspace.startInPerspective}} : l'éditeur s'ouvre alors dans la vue en perspective, et non dans la vue plate.
 
 {{ui:workspace.startWithScrollbars}} : un projet s'ouvre alors avec les barres de défilement de la vue. Le réglage est enregistré avec le projet et avec {{ui:workspace.makeDefault}}.
+
+{{ui:workspace.showViewBar}} : désactivé, la barre de vue n'apparaît pas dans l'éditeur 3D ; l'esquisse garde la sienne. Les outils de mesure disparaissent avec elle, sauf si {{ui:workspace.measureBar}} est activé : ils se trouvent alors dans leur propre barre, que l'on déplace en tirant sa flèche et que l'on replie d'un clic. Les deux sont gardés dans ce navigateur, pas dans le projet.
 
 {{ui:workspace.viewBarOpensOnHover}} : une barre de vue repliée s'ouvre tant que la souris est sur sa flèche et se replie peu après que la souris l'a quittée, sauf si l'un de ses outils est en cours d'utilisation. Un clic sur la flèche pendant qu'elle est ainsi ouverte la garde ouverte. Cela ne vaut que pour la souris ; sur un écran tactile, un toucher ouvre la barre comme avant.
 
