@@ -33,6 +33,9 @@ function communityUrl(language: Language) {
 /** The Layerling User Group on Facebook, for every language: many users meet there, not everyone is on GitHub. */
 export const FACEBOOK_GROUP_URL = "https://www.facebook.com/groups/1652302960025098/";
 
+/** NEXT_PUBLIC_COMMUNITY_LINKS=off: whoever runs an installation can leave out the forum and Facebook links. */
+const COMMUNITY_LINKS_OFF = process.env.NEXT_PUBLIC_COMMUNITY_LINKS?.trim().toLowerCase() === "off";
+
 // Whoever operates a layerling installation may be required to publish a legal
 // notice - in Germany every business site needs an Impressum. The pages differ
 // per operator and are not part of this project, so they are linked through
@@ -179,13 +182,17 @@ export function AppFooter({
           <a href={withBasePath(t("welcome.guideUrl"))} target="_blank" rel="noreferrer" key="guide">
             {t("dashboard.userGuide")}
           </a>,
-          <a href={communityUrl(language)} target="_blank" rel="noreferrer" key="community">
-            {t("dashboard.forum")}
-          </a>,
+          COMMUNITY_LINKS_OFF ? null : (
+            <a href={communityUrl(language)} target="_blank" rel="noreferrer" key="community">
+              {t("dashboard.forum")}
+            </a>
+          ),
           // Short names keep both halves of the footer on one line: the longer wording is the tooltip.
-          <a href={FACEBOOK_GROUP_URL} target="_blank" rel="noreferrer" key="facebook" title={t("dashboard.facebookGroup")}>
-            Facebook
-          </a>,
+          COMMUNITY_LINKS_OFF ? null : (
+            <a href={FACEBOOK_GROUP_URL} target="_blank" rel="noreferrer" key="facebook" title={t("dashboard.facebookGroup")}>
+              Facebook
+            </a>
+          ),
           // Ein Link in Knopfrolle: so traegt er die Farben der Fusszeile in
           // jedem Thema, und die Werkzeugleiste wird nicht breiter.
           onBugReport ? (
