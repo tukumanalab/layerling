@@ -10,7 +10,13 @@ import { checkAppUpdate, dismissUpdate as storeDismissUpdate, isUpdateDismissed,
 // Docker or on a web server of its own, still asks.
 const PUBLISHED_HOSTS = new Set(["layerling.com", "www.layerling.com", "layerling.server"]);
 
+// NEXT_PUBLIC_UPDATE_CHECK=off: whoever runs an installation that is updated
+// apart from layerling's releases (the fork's GitHub Pages, say) can keep the
+// notice away, so it never points at a release that copy will not get.
+const UPDATE_CHECK_OFF = process.env.NEXT_PUBLIC_UPDATE_CHECK?.trim().toLowerCase() === "off";
+
 function asksGitHubForUpdates() {
+  if (UPDATE_CHECK_OFF) return false;
   return typeof window === "undefined" || !PUBLISHED_HOSTS.has(window.location.hostname.toLowerCase());
 }
 

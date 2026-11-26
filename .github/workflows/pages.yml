@@ -46,6 +46,10 @@ jobs:
         run: npm run export
         env:
           LAYERLING_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          # The Pages copy is updated from this fork, not from layerling's releases: no update notice,
+          # and no links to the upstream community (GitHub Discussions, Facebook group).
+          NEXT_PUBLIC_COMMUNITY_LINKS: "off"
+          NEXT_PUBLIC_UPDATE_CHECK: "off"
 
       - name: Upload the export
         uses: actions/upload-pages-artifact@v4
